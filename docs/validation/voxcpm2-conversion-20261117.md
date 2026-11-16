@@ -246,9 +246,9 @@ would need about 19 GB; the stage requires 25 GB of free space.
 
 | Bundle | Precisions | Files | Bytes | Inventory |
 |---|---|---:|---:|---|
-| `fp32` | all FP32 | 22 | 9,349,325,520 | [fp32](../../Tools/Conversion/recipes/voxcpm2/bundles/fp32.inventory.json) |
-| `fp16` | all FP16 | 22 | 4,677,413,664 | [fp16](../../Tools/Conversion/recipes/voxcpm2/bundles/fp16.inventory.json) |
-| `fp16_proj32` | FP16, `proj` FP32 | 22 | 4,715,188,166 | [fp16_proj32](../../Tools/Conversion/recipes/voxcpm2/bundles/fp16_proj32.inventory.json) |
+| `fp32` | all FP32 | 22 | 9,349,325,520 | [fp32](../../CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp32.inventory.json) |
+| `fp16` | all FP16 | 22 | 4,677,413,664 | [fp16](../../CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp16.inventory.json) |
+| `fp16_proj32` | FP16, `proj` FP32 | 22 | 4,715,188,166 | [fp16_proj32](../../CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp16_proj32.inventory.json) |
 
 The path scan reads every byte and counts 132 byte patterns: the home,
 external-volume and temporary-folder prefixes written with `/`, `\/`, `\u002f`,

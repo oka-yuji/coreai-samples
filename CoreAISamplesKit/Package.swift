@@ -331,8 +331,9 @@ let package = Package(
             name: "SpeechRuntimeTests",
             dependencies: [
                 "SpeechRuntime", "SpeechCore", "SpeechFeature", "FeatureStore", "SpeechAssets", "ModelLibraryFeature",
-                .product(name: "IrodoriInputLogic", package: "IrodoriInputKit"),
+                "VoxCPMCore", .product(name: "IrodoriInputLogic", package: "IrodoriInputKit"),
                 .product(name: "IrodoriTokenizers", package: "IrodoriInputKit"),
+                .product(name: "VoxCPMTokenizers", package: "IrodoriInputKit"),
             ], resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "TruckInspectionFeature", dependencies: ["TruckInspectionCore", "FeatureStore"],

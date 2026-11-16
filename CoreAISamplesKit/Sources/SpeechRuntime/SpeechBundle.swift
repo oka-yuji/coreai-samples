@@ -34,9 +34,12 @@
             #endif
         }
 
-        static var defaultRoot: URL {
+        static var defaultRoot: URL { defaultRoot(for: .irodori) }
+
+        static func defaultRoot(for names: SpeechBundleNames) -> URL {
             URL.cachesDirectory.appending(
-                path: (Bundle.main.bundleIdentifier ?? ProcessInfo.processInfo.processName) + "/IrodoriVerified",
+                path: (Bundle.main.bundleIdentifier ?? ProcessInfo.processInfo.processName) + "/"
+                    + names.verifiedFolder,
                 directoryHint: .isDirectory)
         }
 
@@ -45,11 +48,13 @@
         let tokenizer: URL
 
         static func open(
-            _ source: URL, copyingInto root: URL = Self.defaultRoot,
+            _ source: URL, copyingInto copies: URL? = nil,
             layout: (Data) throws -> SpeechBundleLayout = SpeechBundleLayout.irodori(manifest:),
+            names: SpeechBundleNames = .irodori,
             inPlaceWhenCloneFails: Bool = Self.inPlaceWhenCloneFails,
             clone: (Int32, String) -> Int32 = Self.cloneFile(_:to:)
         ) throws -> Self {
+            let root = copies ?? defaultRoot(for: names)
             let incoming = root.appending(path: "incoming-" + UUID().uuidString, directoryHint: .isDirectory)
             do {
                 try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -61,15 +66,16 @@
                     throw CloneFailure(code: errno)
                 }
                 defer { try? FileManager.default.removeItem(at: incoming) }
-                let (spec, key) = try verify(source, into: incoming, layout: layout, clone: clone)
+                let (spec, key) = try verify(source, into: incoming, layout: layout, names: names, clone: clone)
                 let target = root.appending(path: key, directoryHint: .isDirectory)
                 let installed =
-                    rename(incoming.path, target.path) == 0 || isComplete(target, spec.files)
+                    rename(incoming.path, target.path) == 0 || isComplete(target, spec.files, names)
                     || renamex_np(incoming.path, target.path, UInt32(RENAME_SWAP)) == 0
                 guard installed else { throw CloneFailure(code: errno) }
-                return bundle(at: target, spec)
+                return bundle(at: target, spec, names)
             } catch is CloneFailure where inPlaceWhenCloneFails {
-                return bundle(at: source, try verify(source, into: nil, layout: layout, clone: clone).spec)
+                let spec = try verify(source, into: nil, layout: layout, names: names, clone: clone).spec
+                return bundle(at: source, spec, names)
             } catch let failure as CloneFailure {
                 throw SpeechError.invalidAsset(
                     "The model folder could not be copied for verification (error \(failure.code)).")
@@ -81,50 +87,53 @@
         }
 
         private static func verify(
-            _ source: URL, into incoming: URL?, layout: (Data) throws -> SpeechBundleLayout,
+            _ source: URL, into incoming: URL?, layout: (Data) throws -> SpeechBundleLayout, names: SpeechBundleNames,
             clone: (Int32, String) -> Int32
         ) throws -> (spec: SpeechBundleLayout, key: String) {
             try Task.checkCancellation()
-            let input = try folder(source)
+            let input = try folder(source, names)
             defer { close(input) }
-            if let incoming { try cloneFiles(["irodori.json"], from: input, into: incoming, clone) }
-            let root = try folder(incoming ?? source)
+            if let incoming { try cloneFiles([names.manifest], from: input, into: incoming, names, clone) }
+            let root = try folder(incoming ?? source, names)
             defer { close(root) }
-            let manifest = try regularFile("irodori.json", in: root).handle.read(upToCount: 65_536) ?? Data()
+            let manifest = try regularFile(names.manifest, in: root, names).handle.read(upToCount: 65_536) ?? Data()
             let spec = try layout(manifest)
             if let incoming {
                 try cloneFiles(
-                    spec.files.map(\.path).filter { $0 != "irodori.json" }, from: input, into: incoming, clone)
+                    spec.files.map(\.path).filter { $0 != names.manifest }, from: input, into: incoming, names, clone)
             }
             for file in spec.files {
-                let (handle, status) = try regularFile(file.path, in: root)
+                let (handle, status) = try regularFile(file.path, in: root, names)
                 guard Int64(status.st_size) == file.bytes, try hashFile(handle) == file.sha256 else {
-                    throw mismatch(file.path)
+                    throw mismatch(file.path, names)
                 }
             }
             return (spec, hexDigest(SHA256.hash(data: manifest)))
         }
 
-        private static func isComplete(_ copy: URL, _ files: [IrodoriBundleInventory.File]) -> Bool {
-            guard let root = try? folder(copy) else { return false }
+        private static func isComplete(
+            _ copy: URL, _ files: [IrodoriBundleInventory.File], _ names: SpeechBundleNames
+        ) -> Bool {
+            guard let root = try? folder(copy, names) else { return false }
             defer { close(root) }
             return files.allSatisfy { file in
-                (try? regularFile(file.path, in: root)).map { Int64($0.status.st_size) == file.bytes } ?? false
+                (try? regularFile(file.path, in: root, names)).map { Int64($0.status.st_size) == file.bytes } ?? false
             }
         }
 
-        private static func bundle(at base: URL, _ spec: SpeechBundleLayout) -> Self {
+        private static func bundle(at base: URL, _ spec: SpeechBundleLayout, _ names: SpeechBundleNames) -> Self {
             Self(
                 directory: base, assets: spec.assets.map { base.appending(path: $0, directoryHint: .isDirectory) },
-                tokenizer: base.appending(path: "tokenizer.json"))
+                tokenizer: base.appending(path: names.tokenizer))
         }
 
         private static func cloneFiles(
-            _ paths: [String], from input: Int32, into copy: URL, _ clone: (Int32, String) -> Int32
+            _ paths: [String], from input: Int32, into copy: URL, _ names: SpeechBundleNames,
+            _ clone: (Int32, String) -> Int32
         ) throws {
             let locked = UInt32(UF_IMMUTABLE | UF_APPEND)
             for path in paths {
-                let handle = try regularFile(path, in: input).handle
+                let handle = try regularFile(path, in: input, names).handle
                 var parent = copy
                 for part in path.split(separator: "/").dropLast() {
                     parent.append(path: String(part), directoryHint: .isDirectory)
@@ -140,36 +149,40 @@
             }
         }
 
-        private static func folder(_ url: URL) throws -> Int32 {
+        private static func folder(_ url: URL, _ names: SpeechBundleNames) throws -> Int32 {
             let descriptor = Darwin.open(url.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
             guard descriptor >= 0 else {
-                throw SpeechError.invalidAsset("Select a supported Irodori FP32 model folder.")
+                throw SpeechError.invalidAsset("Select a supported \(names.model) model folder.")
             }
             return descriptor
         }
 
-        private static func regularFile(_ path: String, in root: Int32) throws -> (handle: FileHandle, status: stat) {
+        private static func regularFile(
+            _ path: String, in root: Int32, _ names: SpeechBundleNames
+        ) throws -> (handle: FileHandle, status: stat) {
             let parts = path.split(separator: "/").map(String.init)
-            guard let name = parts.last else { throw mismatch(path) }
+            guard let name = parts.last else { throw mismatch(path, names) }
             var directory = dup(root)
-            guard directory >= 0 else { throw mismatch(path) }
+            guard directory >= 0 else { throw mismatch(path, names) }
             defer { close(directory) }
             for part in parts.dropLast() {
                 let next = openat(directory, part, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
-                guard next >= 0 else { throw mismatch(path) }
+                guard next >= 0 else { throw mismatch(path, names) }
                 close(directory)
                 directory = next
             }
             let descriptor = openat(directory, name, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
-            guard descriptor >= 0 else { throw mismatch(path) }
+            guard descriptor >= 0 else { throw mismatch(path, names) }
             let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
             var status = stat()
-            guard fstat(descriptor, &status) == 0, status.st_mode & S_IFMT == S_IFREG else { throw mismatch(path) }
+            guard fstat(descriptor, &status) == 0, status.st_mode & S_IFMT == S_IFREG else {
+                throw mismatch(path, names)
+            }
             return (handle, status)
         }
 
-        private static func mismatch(_ path: String) -> SpeechError {
-            .invalidAsset("Model files do not match the verified Irodori FP32 version: " + path)
+        private static func mismatch(_ path: String, _ names: SpeechBundleNames) -> SpeechError {
+            .invalidAsset("Model files do not match the verified \(names.model) version: " + path)
         }
     }
 
