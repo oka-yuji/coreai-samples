@@ -60,9 +60,9 @@ public enum VoxCPMBundleInventory {
     }
 
     private static func isRelative(_ path: String) -> Bool {
-        !path.isEmpty
-            && !path.split(separator: "/", omittingEmptySubsequences: false).contains {
-                $0.isEmpty || $0 == "." || $0 == ".."
+        path.utf8.allSatisfy { (0x21...0x7E).contains($0) }
+            && path.utf8.split(separator: UInt8(ascii: "/"), omittingEmptySubsequences: false).allSatisfy {
+                !$0.isEmpty && !$0.elementsEqual(".".utf8) && !$0.elementsEqual("..".utf8)
             }
     }
 

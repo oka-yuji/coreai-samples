@@ -27,7 +27,10 @@ struct VoxCPMManifestTests {
         "VIN-03 The manifest check rejects a wrong format, model, configuration, precision, rate, patch or asset list",
         arguments: VoxCPMManifestDefect.allCases)
     func rejectsManifest(_ defect: VoxCPMManifestDefect) throws {
-        let data = try Self.changed(VoxCPMBundleFixture.manifest(.fp32), defect)
+        let manifest = try VoxCPMBundleFixture.manifest(.fp32)
+        let rewritten = try JSONSerialization.data(withJSONObject: JSONSerialization.jsonObject(with: manifest))
+        #expect(try VoxCPMBundleInventory.profile(in: rewritten) == .fp32)
+        let data = try Self.changed(manifest, defect)
         #expect(throws: SpeechError.self) { try VoxCPMBundleInventory.profile(in: data) }
         #expect(throws: SpeechError.self) { try VoxCPMBundleInventory.manifest(in: data) }
     }
@@ -110,6 +113,10 @@ struct VoxCPMManifestTests {
             files[1]["path"] = files[0]["path"]
         case .absolutePath: files[0]["path"] = "/LICENSE"
         case .parentPath: files[0]["path"] = "artifacts/../LICENSE"
+        case .combiningParentPath: files[0]["path"] = "../\u{301}LICENSE"
+        case .nulPath: files[0]["path"] = "LICENSE\u{0}x"
+        case .combiningName: files[0]["path"] = "artifacts/\u{301}x/main.mlirb"
+        case .spacePath: files[0]["path"] = "LICENSE x"
         case .missingManifest:
             let index = try #require(files.firstIndex { $0["path"] as? String == "manifest.json" })
             json["bytes"] = total - (files[index]["bytes"] as? Int ?? 0)

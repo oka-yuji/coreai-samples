@@ -616,7 +616,7 @@ The inventories of the bundles made on 2026-11-17 and recorded in the
 [validation record](../../../../docs/validation/voxcpm2-conversion-20261117.md) are
 Swift resources, `voxcpm2-<configuration>.inventory.json` in
 [`CoreAISamplesKit/Sources/SpeechAssets/Resources`](../../../../CoreAISamplesKit/Sources/SpeechAssets/Resources).
-The app checks a bundle against them, and the repository keeps no other copy. They
+The Swift bundle check uses them, and the repository keeps no other copy. They
 describe those bundles only. Every export and every `strip` run writes a new creation
 date into `metadata.json`, so the hashes change even when the programs do not (three
 `strip` runs on the same exports gave the same `main.mlirb` and `main.hash`). Replace
