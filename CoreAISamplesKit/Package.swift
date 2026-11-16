@@ -320,6 +320,10 @@ let package = Package(
                     name: "IrodoriTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
             ], swiftSettings: speechSettings),
         .testTarget(name: "SpeechCoreTests", dependencies: ["SpeechCore"], swiftSettings: speechSettings),
+        .target(name: "VoxCPMCore", swiftSettings: speechSettings),
+        .testTarget(
+            name: "VoxCPMCoreTests", dependencies: ["VoxCPMCore"], resources: [.copy("Resources")],
+            swiftSettings: speechSettings),
         .testTarget(
             name: "SpeechFeatureTests", dependencies: ["SpeechCore", "SpeechFeature", "FeatureStore"],
             swiftSettings: speechSettings),
