@@ -18,6 +18,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case videoSearch
     case extract
     case speech
+    case voiceDesign
     case ocr
     case receipts
     case taxiForecast
@@ -35,6 +36,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .videoSearch: "EmbeddingGemma 2"
         case .extract: "GLiNER2.5-multi"
         case .speech: "Irodori"
+        case .voiceDesign: "VoxCPM2"
         case .ocr: "TeleOCR"
         case .receipts: "JEV-27B"
         case .taxiForecast, .productSales, .seoulBike: "Chronos-2"
@@ -50,6 +52,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .videoSearch: "Find moments in a video with your own words"
         case .extract: "Compare product specifications from official descriptions"
         case .speech: "Generate and play speech from text with Irodori"
+        case .voiceDesign: "Generate and play speech from text and a voice description with VoxCPM2"
         case .ocr: "Read text and tables from a document image"
         case .receipts: "Sort receipts into a reviewed expense ledger"
         case .taxiForecast: "NYC taxi pickup forecast"
@@ -67,6 +70,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .videoSearch: "film.stack"
         case .extract: "text.magnifyingglass"
         case .speech: "waveform"
+        case .voiceDesign: "person.wave.2"
         case .ocr: "doc.viewfinder"
         case .receipts: "receipt"
         case .taxiForecast: "chart.xyaxis.line"
@@ -82,6 +86,7 @@ enum DemoModel: CaseIterable {
     case embeddingGemma
     case gliner
     case irodori
+    case voxcpm2
     case teleOCR
     case jev
     case chronos
@@ -93,6 +98,7 @@ enum DemoModel: CaseIterable {
         case .embeddingGemma: "EmbeddingGemma 2"
         case .gliner: "GLiNER2.5-multi"
         case .irodori: "Irodori"
+        case .voxcpm2: "VoxCPM2"
         case .teleOCR: "TeleOCR"
         case .jev: "JEV-27B"
         case .chronos: "Chronos-2"
@@ -106,6 +112,7 @@ enum DemoModel: CaseIterable {
         case .embeddingGemma: "embeddinggemma2"
         case .gliner: "gliner2.5-multi"
         case .irodori: "irodori"
+        case .voxcpm2: "voxcpm2"
         case .teleOCR: "teleocr"
         case .jev: "jev-27b"
         case .chronos: ChronosDemoCatalog.selection.modelID
@@ -121,6 +128,7 @@ extension Demo {
         case .imageSearch: "image-search"
         case .videoSearch: "video-search"
         case .extract: "comparison"
+        case .voiceDesign: "voice-design"
         case .ocr: TeleOCRDemoCatalog.selection.demoID
         case .receipts: ReceiptDemoCatalog.selection.demoID
         case .taxiForecast: ChronosDemoCatalog.selection.demoID
@@ -137,6 +145,7 @@ extension Demo {
         case .imageSearch, .videoSearch: .embeddingGemma
         case .extract: .gliner
         case .speech: .irodori
+        case .voiceDesign: .voxcpm2
         case .ocr: .teleOCR
         case .receipts: .jev
         case .taxiForecast, .productSales, .seoulBike: .chronos
@@ -159,6 +168,7 @@ struct DemoRootView: View {
     @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
+    @State private var voiceDesign = SpeechAssembly.makeStore(.voxcpm2)
     @State private var library: MacModelLibrary
     @State private var choice: MacModelChoice
     @State private var showingExtractionLab = false
@@ -274,6 +284,9 @@ struct DemoRootView: View {
             .onChange(of: library.installed(.irodori)?.directory) { old, new in
                 if old != nil, new != old { speech.send(.bundleUnavailable) }
             }
+            .onChange(of: library.installed(.voxcpm2)?.directory) { old, new in
+                if old != nil, new != old { voiceDesign.send(.bundleUnavailable) }
+            }
             .onChange(of: library.installed(.gliner)?.directory) { old, new in
                 guard old != nil, new != old else { return }
                 products.send(.modelUnavailable)
@@ -319,7 +332,17 @@ struct DemoRootView: View {
                             .frame(minWidth: 820, minHeight: 640)
                         }
                 }
-            case .speech?: SpeechView(store: speech)
+            case .speech?:
+                SpeechView(
+                    store: speech, model: .irodori, limit: "Short passages work best. The limit is 255 tokens.",
+                    missing: "Download Irodori from its heading in the sidebar.")
+            case .voiceDesign?:
+                SpeechView(
+                    store: voiceDesign, model: .voxcpm2, limit: "Short passages work best. The limit is 144 tokens.",
+                    missing: "Import VoxCPM2 from its heading in the sidebar.",
+                    voiceHint:
+                        "Describe the voice in parentheses at the start, for example (A young woman, gentle and calm voice)."
+                )
             case .ocr?: OCRHostView(library: library)
             case .receipts?: ReceiptHostView(library: library)
             case .taxiForecast?: ChronosPreviewView(library: library)

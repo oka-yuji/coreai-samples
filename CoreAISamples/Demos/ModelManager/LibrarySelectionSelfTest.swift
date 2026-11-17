@@ -1,3 +1,4 @@
+import FeatureStore
 import Foundation
 import ModelLibraryFeature
 import ModelLibraryRuntime
@@ -5,6 +6,7 @@ import ModelLibraryStorage
 import ModelLibraryTransfer
 import ModelLibraryUI
 import Observation
+import SpeechFeature
 
 @MainActor
 enum LibrarySelectionSelfTest {
@@ -42,6 +44,20 @@ enum LibrarySelectionSelfTest {
                 Demo.seoulBike.model == .chronos
                     && Demo.seoulBike.libraryID == ChronosDemoCatalog.bikeSelection.demoID,
                 "Seoul Bike has its own sidebar destination and shares the Chronos model.")
+            check(
+                "library/voxcpm2SidebarSpeech",
+                Demo.voiceDesign.model == .voxcpm2 && DemoModel.voxcpm2.demos == [.voiceDesign]
+                    && Demo.voiceDesign.libraryID == "voice-design" && DemoModel.voxcpm2.libraryID == "voxcpm2"
+                    && catalog.model("voxcpm2")?.platforms == [.macOS]
+                    && MacModelLibraryServices.unconnectedDemoIDs.contains(Demo.voiceDesign.libraryID),
+                "VoxCPM2 opens its own speech demo from its sidebar section through a usage lease.")
+            let irodoriExamples = SpeechAssembly.makeStore().state.examples
+            let voxcpm2Examples = SpeechAssembly.makeStore(.voxcpm2).state.examples
+            check(
+                "speech/voxcpm2Examples",
+                voxcpm2Examples.map(\.id) == ["plain", "calm", "steady"] && !irodoriExamples.isEmpty
+                    && irodoriExamples.allSatisfy { !voxcpm2Examples.contains($0) },
+                "The VoxCPM2 screen loads its bundled examples and the Irodori screen keeps its own.")
             guard let model = catalog.model(ChronosDemoCatalog.selection.modelID) else {
                 check("library/chronosPresentation", false, "The Chronos model is missing.")
                 return

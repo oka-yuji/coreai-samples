@@ -19,6 +19,7 @@ struct SpeechWAVDocument: FileDocument {
 struct SpeechExportPresenter: View {
     let ticket: SpeechExportTicket
     let data: Data
+    var filename = "irodori-speech.wav"
     let send: (SpeechAction) -> Void
     @State private var presented = false
 
@@ -26,7 +27,7 @@ struct SpeechExportPresenter: View {
         Color.clear.frame(width: 0, height: 0)
             .fileExporter(
                 isPresented: $presented, document: SpeechWAVDocument(data: data),
-                contentType: .wav, defaultFilename: "irodori-speech.wav"
+                contentType: .wav, defaultFilename: filename
             ) { result in
                 switch result {
                 case .success: send(.exportFinished(ticket, nil))

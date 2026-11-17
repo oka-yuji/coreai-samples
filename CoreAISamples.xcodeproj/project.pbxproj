@@ -237,6 +237,7 @@
 		BE5297A9C5729D047A6B0A4D /* ImageGenerationUI in Frameworks */ = {isa = PBXBuildFile; productRef = C1FB546E6B1C4A3D1C885B93 /* ImageGenerationUI */; };
 		BF2A48F1993C91C4541D02DC /* ImageSearchSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */; };
 		C0A05F932CA6C2ECFFEFDDD8 /* DecideItemEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D82BEFE1B794EC81C96DCE7 /* DecideItemEditor.swift */; };
+		C1B4530E1F04615477D6E751 /* voxcpm2-speech-examples.json in Resources */ = {isa = PBXBuildFile; fileRef = F66BE4129F9624BF98A8C1A5 /* voxcpm2-speech-examples.json */; };
 		C20F7633663454D027F8E9F6 /* ImageDeviceCalibrationInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94EC46C966DF2E5757C61EC0 /* ImageDeviceCalibrationInput.swift */; };
 		C2651307CE5074B3E2A328C8 /* ExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE56C6B8743B1E3BD47CA2D4 /* ExtractView.swift */; };
 		C37696C0F188E175BE371467 /* 01-oyakodon.png in Resources */ = {isa = PBXBuildFile; fileRef = 202F76ABB95872C729E618CE /* 01-oyakodon.png */; };
@@ -485,6 +486,7 @@
 		F3C4386FEDC295B729DF07C1 /* DemoRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRootView.swift; sourceTree = "<group>"; };
 		F417EC4866A0F58AB8F72380 /* MetricsLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsLog.swift; sourceTree = "<group>"; };
 		F4262D7DF18D84C8A9A1C348 /* RecipeSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeSelfTest.swift; sourceTree = "<group>"; };
+		F66BE4129F9624BF98A8C1A5 /* voxcpm2-speech-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "voxcpm2-speech-examples.json"; sourceTree = "<group>"; };
 		F7E148DB501CB7AAE81691D6 /* ExtractService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractService.swift; sourceTree = "<group>"; };
 		F8A445C0F98E7EF55960E4EB /* ConversationArchiveSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationArchiveSelfTest.swift; sourceTree = "<group>"; };
 		FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelStorage.swift; sourceTree = "<group>"; };
@@ -793,6 +795,7 @@
 			isa = PBXGroup;
 			children = (
 				06CD13346BDB37EF62D8AA2C /* speech-examples.json */,
+				F66BE4129F9624BF98A8C1A5 /* voxcpm2-speech-examples.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1284,6 +1287,7 @@
 				CD5E46C7506A2140720C53AD /* recipe-examples.json in Resources */,
 				034DBE61347618327DD4B2E0 /* speech-examples.json in Resources */,
 				63C4B766A9C1158B39388B42 /* video-search-queries.json in Resources */,
+				C1B4530E1F04615477D6E751 /* voxcpm2-speech-examples.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

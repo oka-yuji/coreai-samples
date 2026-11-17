@@ -33,6 +33,7 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
     case modelNotOpened(String)
     case textExceedsLimit(count: Int, limit: Int)
     case speechNotFinished
+    case unreadableText
 
     public var errorDescription: String? {
         switch self {
@@ -50,6 +51,8 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
         case .textExceedsLimit(let count, let limit):
             "This text contains \(count) tokens. Shorten it to \(limit) tokens or fewer."
         case .speechNotFinished: "The model reached its length limit before the speech ended."
+        case .unreadableText:
+            "The model cannot read some characters in this text. Remove or replace them, then try again."
         }
     }
 }

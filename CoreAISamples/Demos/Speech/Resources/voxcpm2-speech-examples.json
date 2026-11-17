@@ -1,0 +1,17 @@
+[
+  {
+    "id": "plain",
+    "title": "No voice description",
+    "text": "こんにちは。今日はよい天気ですね。"
+  },
+  {
+    "id": "calm",
+    "title": "Gentle, calm voice",
+    "text": "(A young woman, gentle and calm voice)確認が終わりました。次の作業を始めます。"
+  },
+  {
+    "id": "steady",
+    "title": "Low, steady voice (English)",
+    "text": "(A middle-aged man, low and steady voice)The train to the airport leaves from platform four in ten minutes."
+  }
+]

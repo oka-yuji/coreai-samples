@@ -22,7 +22,7 @@
             tokenizer = nil
             opened = nil
             let bundle = try dependencies.open(directory)
-            let input = try dependencies.tokenizer(bundle.bundle.tokenizer)
+            let input = try makeTokenizer(bundle)
             try Task.checkCancellation()
             opened = bundle
             tokenizer = input
@@ -35,10 +35,13 @@
             guard let opened else { throw SpeechError.modelNotOpened("VoxCPM2") }
             let normalized: String
             do { normalized = try VoxCPMText.normalized(text) } catch { throw SpeechError.emptyText }
-            if tokenizer == nil { tokenizer = try dependencies.tokenizer(opened.bundle.tokenizer) }
+            if tokenizer == nil { tokenizer = try makeTokenizer(opened) }
             guard let tokenizer else { throw SpeechError.modelNotOpened("VoxCPM2") }
-            let ids = try VoxCPMPrompt.inputIDs(
-                textTokenIDs: tokenizer.tokenIDs(for: normalized), vocabulary: tokenizer.vocabulary)
+            let ids: [Int32]
+            do {
+                ids = try VoxCPMPrompt.inputIDs(
+                    textTokenIDs: tokenizer.tokenIDs(for: normalized), vocabulary: tokenizer.vocabulary)
+            } catch { throw SpeechError.unreadableText }
             let contract = opened.contract
             let limit = contract.prefillLength - 1
             guard ids.count > 1 else { throw SpeechError.emptyText }
@@ -80,6 +83,12 @@
             } else {
                 pipeline = nil
                 tokenizer = nil
+            }
+        }
+
+        private func makeTokenizer(_ bundle: VoxCPMOpenedBundle) throws -> any VoxCPMTextTokenizer {
+            do { return try dependencies.tokenizer(bundle.bundle.tokenizer) } catch {
+                throw SpeechError.invalidAsset("The VoxCPM2 tokenizer could not be loaded.")
             }
         }
 
