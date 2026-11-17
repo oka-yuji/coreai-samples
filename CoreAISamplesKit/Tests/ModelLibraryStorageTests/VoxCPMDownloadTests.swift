@@ -109,7 +109,7 @@ struct VoxCPMDownloadTests {
         let store = fixture.store()
         let installed = try await fixture.install(into: store)
         let ledger = try fixture.ledger()
-        let artifact = try VoxCPMModelArtifact.download(from: fixture.artifact)
+        let artifact = try VoxCPMModelArtifact.makeDownload(from: fixture.artifact)
         try #require(artifact.download != nil && artifact.localBundle == fixture.artifact.localBundle)
         let model = VoxCPMImportFixture.model(artifact)
         let resource = try #require(try await store.inspect(model: model, artifact: artifact).resource)
@@ -159,7 +159,7 @@ struct VoxCPMDownloadTests {
         } else {
             expected = try fixture.damage(kind, at: installed.directory)
         }
-        let artifact = try VoxCPMModelArtifact.download(from: fixture.artifact)
+        let artifact = try VoxCPMModelArtifact.makeDownload(from: fixture.artifact)
         let inspection = try await store.inspect(model: VoxCPMImportFixture.model(artifact), artifact: artifact)
         #expect(inspection.resource == nil && inspection.reason == describe(expected))
     }
@@ -171,7 +171,7 @@ struct VoxCPMDownloadTests {
         let store = fixture.store()
         let installed = try await fixture.install(into: store)
         let expected = try fixture.damage("altered", at: installed.directory)
-        let artifact = try VoxCPMModelArtifact.download(from: fixture.artifact)
+        let artifact = try VoxCPMModelArtifact.makeDownload(from: fixture.artifact)
         let model = VoxCPMImportFixture.model(artifact)
         #expect(try await store.inspect(model: model, artifact: artifact).resource == installed)
         let full = try await store.inspect(model: model, artifact: artifact, verification: .full)

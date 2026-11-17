@@ -11,14 +11,14 @@ public enum VoxCPMModelArtifact {
     }
 
     public static func makeDownload() throws -> ModelArtifact {
-        try download(from: make())
+        try makeDownload(from: make())
     }
 
     static func make(inventory: Data) throws -> ModelArtifact {
         try make(files: VoxCPMBundleInventory.files(inventory: inventory))
     }
 
-    static func download(from local: ModelArtifact) throws -> ModelArtifact {
+    static func makeDownload(from local: ModelArtifact) throws -> ModelArtifact {
         guard let root = downloadFolder(for: profile) else { throw ManagedModelStoreError.invalidDefinition }
         return ModelArtifact(
             id: local.id, title: local.title, contract: local.contract, platforms: local.platforms,

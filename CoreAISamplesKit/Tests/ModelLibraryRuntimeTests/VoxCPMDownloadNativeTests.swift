@@ -51,7 +51,8 @@ struct VoxCPMDownloadNativeTests {
             responses.withLock { $0[address] = status }
             return response
         })
-        let root = output.appending(path: "ModelLibrary")
+        let root = FileManager.default.temporaryDirectory.appending(path: "voxcpm2-download-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
         try #require(!FileManager.default.fileExists(atPath: root.path))
         let storage = ManagedModelStore(root: root)
         guard case .missing = try await storage.inspect(model: model, artifact: artifact) else {
@@ -100,14 +101,14 @@ struct VoxCPMDownloadNativeTests {
         }
         seconds["fullInspection"] = (clock.now - start) / .seconds(1)
         #expect(verified == installed)
-        let managedPath = installed.directory.pathComponents.dropFirst(output.pathComponents.count)
+        let managedPath = installed.directory.pathComponents.dropFirst(root.pathComponents.count)
         try JSONSerialization.data(
             withJSONObject: [
                 "format": "voxcpm2-download-acquisition/1", "repository": source.repository,
                 "revision": source.revision, "root": source.root, "requests": requests,
                 "requestsWithHeaders": 0, "files": artifact.files.count, "bytes": installed.sizeBytes,
                 "sourceKind": installed.sourceKind.rawValue, "manifestSHA256": installed.revision,
-                "managedRelativePath": managedPath.joined(separator: "/"),
+                "managedPath": managedPath.joined(separator: "/"),
                 "freshManagedStore": true, "migrationCandidates": 0, "seconds": seconds,
             ], options: [.prettyPrinted, .sortedKeys]
         ).write(to: output.appending(path: "acquisition.json"), options: .withoutOverwriting)

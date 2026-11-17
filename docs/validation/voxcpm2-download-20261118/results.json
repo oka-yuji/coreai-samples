@@ -4,7 +4,7 @@
     "files": 22,
     "format": "voxcpm2-download-acquisition/1",
     "freshManagedStore": true,
-    "managedRelativePath": "ModelLibrary/artifacts/voxcpm2-fp16/fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+    "managedPath": "artifacts/voxcpm2-fp16/fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
     "manifestSHA256": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
     "migrationCandidates": 0,
     "repository": "okayuji/voxcpm2-coreai",
@@ -36,9 +36,9 @@
     "revision": "afe11d61de9dd7c3609140aa040b777ef77b2555",
     "root": "fp16",
     "seconds": {
-      "download": 138.297589583,
-      "fullInspection": 1.598240667,
-      "validation": 1.510925583
+      "download": 145.829046625,
+      "fullInspection": 1.522633334,
+      "validation": 1.518110625
     },
     "sourceKind": "localManifest"
   },
@@ -49,11 +49,11 @@
     "format": "voxcpm2-download/1",
     "generation": {
       "audioSeconds": 2.4,
-      "elapsedSeconds": 9.279062208,
+      "elapsedSeconds": 5.397024125,
       "id": "plain",
       "patches": 15,
       "samples": 115200,
-      "wallSeconds": 9.285110417,
+      "wallSeconds": 5.403185124999999,
       "wavBytes": 460858
     },
     "leases": {
@@ -68,14 +68,14 @@
     "revision": "afe11d61de9dd7c3609140aa040b777ef77b2555",
     "root": "fp16",
     "seconds": {
-      "acquire": 0.000244792,
-      "delete": 0.050498542,
-      "download": 138.297589583,
-      "fullInspection": 1.598240667,
-      "open": 1.771939167,
-      "release": 7.3e-05,
-      "stop": 0.0775725,
-      "validation": 1.510925583
+      "acquire": 0.000286334,
+      "delete": 0.055214792,
+      "download": 145.829046625,
+      "fullInspection": 1.522633334,
+      "open": 1.663079625,
+      "release": 6.4375e-05,
+      "stop": 0.07096975,
+      "validation": 1.518110625
     },
     "system": "Version 27.2.1 (Build 26B131)"
   },
