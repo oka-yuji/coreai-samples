@@ -146,6 +146,23 @@ struct VoxCPMContractTests {
         }
     }
 
+    @Test("VPL-04 The prefill and step functions must report the same full descriptor for every shared state")
+    func sharedStateLayouts() throws {
+        let layout = ["k_cache": [262_144, 131_072, 128, 1], "v_cache": [262_144, 131_072, 128, 1]]
+        try VoxCPMContract.checkSharedStates(asset: "ralm", ["prefill": layout, "step": layout])
+        let stateless: [String: [String: [Int]]] = ["heads": [:], "fuse": [:]]
+        try VoxCPMContract.checkSharedStates(asset: "proj", stateless)
+        let cases: [[String: [String: [Int]]]] = [
+            ["prefill": layout, "step": layout.merging(["k_cache": [262_144, 131_072, 256, 1]]) { $1 }],
+            ["prefill": layout, "step": layout.filter { $0.key == "k_cache" }],
+            ["prefill": layout, "step": layout.merging(["w_cache": [1]]) { $1 }],
+            ["prefill": [:], "step": [:]],
+        ]
+        for states in cases {
+            #expect(throws: SpeechError.self) { try VoxCPMContract.checkSharedStates(asset: "ralm", states) }
+        }
+    }
+
     @Test(
         "VPL-04 A manifest whose generation or execution values differ from the VoxCPMCore assumptions is rejected",
         arguments: VoxCPMGenerationDefect.allCases)

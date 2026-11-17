@@ -1,3 +1,4 @@
+import CoreAI
 import Foundation
 import SpeechCore
 import Testing
@@ -64,9 +65,42 @@ struct VoxCPMNativeTests {
         value.map { $0 as Any } ?? "nonfinite"
     }
 
+    static func stateArrays(_ states: VoxCPMAssetStates) -> [NDArray] {
+        let mirror = Mirror(reflecting: states)
+        var arrays = mirror.children.compactMap { $0.value as? NDArray }
+        for child in mirror.children where child.label == "decoder" {
+            arrays += Mirror(reflecting: child.value).children.compactMap { $0.value as? NDArray }
+        }
+        return arrays
+    }
+
+    static func isZero(_ array: NDArray) -> Bool {
+        switch array.scalarType {
+        case .float32: isZero(array, Float.self)
+        case .float16: isZero(array, Float16.self)
+        default: false
+        }
+    }
+
+    static func isZero<Element: BinaryFloatingPoint & BitwiseCopyable>(_ array: NDArray, _ type: Element.Type) -> Bool {
+        let shape = array.shape
+        let count = shape.reduce(1, *)
+        return array.view(as: Element.self).withUnsafePointer { pointer, _, strides in
+            (0..<count).allSatisfy { index in
+                var rest = index
+                var offset = 0
+                for axis in shape.indices.reversed() {
+                    offset += rest % shape[axis] * strides[axis]
+                    rest /= shape[axis]
+                }
+                return pointer[offset] == 0
+            }
+        }
+    }
+
     @Test(
-        "VPL-06 Each recorded host call gives the same outputs from the Swift parts within 0.001", .enabled(if: enabled)
-    )
+        "VPL-06 From zero-filled states each recorded host call gives the same outputs from the Swift parts within 0.001",
+        .enabled(if: enabled))
     func perCall() async throws {
         let folder = try Self.folder("per-call")
         let (index, root) = try Self.references()
@@ -75,8 +109,11 @@ struct VoxCPMNativeTests {
         var sentences: [String: Any] = [:]
         var passed = true
         for name in index.sentences {
-            let reference = try VoxCPMReference(root.appending(path: name))
+            let reference = try VoxCPMReference(root.appending(path: name), index: index)
             var states = try assets.makeStates()
+            let allocated = Self.stateArrays(states)
+            let zeroStates = allocated.count == 30 && allocated.allSatisfy(Self.isZero)
+            #expect(zeroStates, "\(name) \(allocated.count) states")
             var maximum: [String: Double] = [:]
             var counts: [String: Int] = [:]
             var failures: [[String: Any]] = []
@@ -101,10 +138,11 @@ struct VoxCPMNativeTests {
                     }
                 }
             }
-            passed = passed && failures.isEmpty
+            passed = passed && failures.isEmpty && zeroStates
             sentences[name] = [
                 "calls": reference.record.calls.count, "comparisons": counts.values.reduce(0, +), "counts": counts,
                 "maximum": maximum, "largest": maximum.values.max() ?? 0, "failures": failures,
+                "allocatedStates": allocated.count, "allocatedStatesZero": zeroStates,
             ]
             #expect(failures.isEmpty, "\(name)")
         }
@@ -125,7 +163,7 @@ struct VoxCPMNativeTests {
         var sentences: [String: Any] = [:]
         var passed = true
         for name in index.sentences {
-            let reference = try VoxCPMReference(root.appending(path: name))
+            let reference = try VoxCPMReference(root.appending(path: name), index: index)
             let latents = try (0..<reference.record.patches).map { try reference.floats("patch.latent", $0) }
             let recorder = VoxCPMPatchRecorder(replacements: latents)
             let speech = try await loaded.pipeline.generate(
@@ -189,7 +227,7 @@ struct VoxCPMNativeTests {
     }
 
     @Test(
-        "The FP32 free run from seed 1708 is recorded against the host record and stops with its noise and finite values",
+        "The FP32 free run from the recorded seed is recorded against the host record and stops with its noise and finite values",
         .enabled(if: enabled))
     func freeRunning() async throws {
         let folder = try Self.folder("free-running")
@@ -198,7 +236,7 @@ struct VoxCPMNativeTests {
         var sentences: [String: Any] = [:]
         var passed = true
         for name in index.sentences {
-            let reference = try VoxCPMReference(root.appending(path: name))
+            let reference = try VoxCPMReference(root.appending(path: name), index: index)
             let recorder = VoxCPMPatchRecorder()
             let clock = ContinuousClock()
             let start = clock.now
@@ -277,42 +315,49 @@ struct VoxCPMNativeTests {
     func profiles() async throws {
         let folder = try Self.folder("profiles")
         let (index, root) = try Self.references()
-        let references = try index.sentences.map { try VoxCPMReference(root.appending(path: $0)) }
+        let references = try index.sentences.map { try VoxCPMReference(root.appending(path: $0), index: index) }
         var configurations: [String: Any] = [:]
         var passed = true
         for profile in VoxCPMBundleProfile.allCases {
-            let loaded = try await VoxCPMPipeline.load(bundle: Self.bundle(profile.rawValue))
-            #expect(loaded.pipeline.contract.profile == profile)
-            let clock = ContinuousClock()
-            let warmStart = clock.now
-            let warm = try await loaded.pipeline.generate(
-                ids: references[0].record.ids, seed: references[0].record.seed)
-            let warmSeconds = (clock.now - warmStart) / .seconds(1)
-            var rows: [String: Any] = [:]
-            for reference in references {
-                let start = clock.now
-                let speech = try await loaded.pipeline.generate(ids: reference.record.ids, seed: reference.record.seed)
-                let seconds = (clock.now - start) / .seconds(1)
-                let audioSeconds = Double(speech.samples.count) / Double(speech.sampleRate)
-                let lengthMatches =
-                    speech.samples.count == speech.patchCount * loaded.pipeline.contract.samplesPerPatch
-                    && speech.stoppedPatch == speech.patchCount - 1
-                let finite = speech.samples.allSatisfy(\.isFinite)
-                passed = passed && lengthMatches && finite
-                #expect(lengthMatches && finite, "\(profile.rawValue) \(reference.record.name)")
-                let peak = speech.samples.map { abs($0) }.max() ?? 0
-                rows[reference.record.name] = [
-                    "patches": speech.patchCount, "stoppedPatch": speech.stoppedPatch,
-                    "referenceFP32StoppedPatch": reference.record.stoppedPatch, "audioSeconds": audioSeconds,
-                    "seconds": seconds, "millisecondsPerPatch": seconds / Double(speech.patchCount) * 1000,
-                    "secondsPerAudioSecond": seconds / audioSeconds, "lengthMatches": lengthMatches, "finite": finite,
-                    "peak": Double(peak),
+            do {
+                let loaded = try await VoxCPMPipeline.load(bundle: Self.bundle(profile.rawValue))
+                #expect(loaded.pipeline.contract.profile == profile)
+                let clock = ContinuousClock()
+                let warmStart = clock.now
+                let warm = try await loaded.pipeline.generate(
+                    ids: references[0].record.ids, seed: references[0].record.seed)
+                let warmSeconds = (clock.now - warmStart) / .seconds(1)
+                var rows: [String: Any] = [:]
+                for reference in references {
+                    let start = clock.now
+                    let speech = try await loaded.pipeline.generate(
+                        ids: reference.record.ids, seed: reference.record.seed)
+                    let seconds = (clock.now - start) / .seconds(1)
+                    let audioSeconds = Double(speech.samples.count) / Double(speech.sampleRate)
+                    let lengthMatches =
+                        speech.samples.count == speech.patchCount * loaded.pipeline.contract.samplesPerPatch
+                        && speech.stoppedPatch == speech.patchCount - 1
+                    let finite = speech.samples.allSatisfy(\.isFinite)
+                    passed = passed && lengthMatches && finite
+                    #expect(lengthMatches && finite, "\(profile.rawValue) \(reference.record.name)")
+                    let peak = speech.samples.map { abs($0) }.max() ?? 0
+                    rows[reference.record.name] = [
+                        "patches": speech.patchCount, "stoppedPatch": speech.stoppedPatch,
+                        "referenceFP32StoppedPatch": reference.record.stoppedPatch, "audioSeconds": audioSeconds,
+                        "seconds": seconds, "millisecondsPerPatch": seconds / Double(speech.patchCount) * 1000,
+                        "secondsPerAudioSecond": seconds / audioSeconds, "lengthMatches": lengthMatches,
+                        "finite": finite, "peak": Double(peak),
+                    ]
+                }
+                configurations[profile.rawValue] = [
+                    "load": Self.statistics(loaded.statistics), "warmupSeconds": warmSeconds,
+                    "warmupPatches": warm.patchCount, "sentences": rows, "memoryAfter": VoxCPMMemory.capture().json,
                 ]
+            } catch {
+                passed = false
+                configurations[profile.rawValue] = ["error": "\(error)"]
+                Issue.record(error, "\(profile.rawValue)")
             }
-            configurations[profile.rawValue] = [
-                "load": Self.statistics(loaded.statistics), "warmupSeconds": warmSeconds,
-                "warmupPatches": warm.patchCount, "sentences": rows, "memoryAfter": VoxCPMMemory.capture().json,
-            ]
         }
         try Self.write(
             [

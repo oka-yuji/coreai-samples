@@ -37,17 +37,20 @@ struct FakeVoxCPMComponents: VoxCPMComponents {
         let (call, occurrence) = states.next(function)
         let behavior = behaviors[min(states.generation, behaviors.count) - 1]
         let group = Self.group(function)
-        log.record(
-            FakeVoxCPMLog.Call(
-                generation: states.generation, function: function, inputs: inputs, stateSum: group.map(states.sum)))
+        let stateSum = group.map(states.sum)
         if behavior.cancelledCall == call { withUnsafeCurrentTask { $0?.cancel() } }
         var result = outputs(function, inputs, occurrence: occurrence, stopPatch: behavior.stopPatch)
-        if let group { states.write(group, 1) }
         if behavior.nonFinite == function, behavior.nonFiniteOccurrence == occurrence,
             let name = result.keys.sorted().first
         {
             result[name]?[0] = .nan
         }
+        log.record(
+            FakeVoxCPMLog.Call(
+                generation: states.generation, function: function, inputs: inputs, outputs: result,
+                stateSum: stateSum))
+        if behavior.failedCall == call { throw VoxCPMGenerationError.invalidOutput("fake") }
+        if let group { states.write(group, 1) }
         return result
     }
 
@@ -57,41 +60,53 @@ struct FakeVoxCPMComponents: VoxCPMComponents {
         let sizes = Dictionary(
             uniqueKeysWithValues: (contract.manifest.assets[function.asset]?.functions[function.name]?.outputs ?? [])
                 .map { ($0.name, $0.shape.reduce(1, *)) })
-        func fill(_ name: String, _ value: Float) -> [Float] {
-            [Float](repeating: value, count: sizes[name] ?? 0)
+        func values(_ name: String) -> [Float] { Self.floats(inputs[name]) }
+        func spread(_ source: [Float], _ name: String, _ transform: (Float) -> Float) -> [Float] {
+            source.isEmpty ? [] : (0..<(sizes[name] ?? 0)).map { transform(source[$0 % source.count]) }
         }
         let position = Float(Self.integers(inputs["position"]).first ?? -1)
         switch function {
         case .embed:
             let ids = Self.integers(inputs["ids"])
             let width = (sizes["embeds"] ?? 0) / max(ids.count, 1)
-            return ["embeds": ids.flatMap { [Float](repeating: Float($0), count: width) }]
+            return ["embeds": ids.flatMap { id in (0..<width).map { Float(id) + Float($0 % 5) * 0.25 } }]
         case .prefill:
-            let rows = contract.prefillLength
-            let width = (sizes["hidden"] ?? 0) / rows
-            return ["hidden": (0..<rows).flatMap { [Float](repeating: Float($0) + 0.5, count: width) }]
+            return ["hidden": values("embeds").map { $0 * 2 + 1 }]
         case .prefillFuse:
-            return ["residual_inputs": Self.floats(inputs["hidden"]).map { $0 + 1000 }]
+            return ["residual_inputs": values("hidden").map { $0 * 3 - 1 }]
         case .residualPrefill:
-            return ["hidden": Self.floats(inputs["embeds"]).map { $0 + 0.25 }]
+            return ["hidden": values("embeds").map { $0 * 0.5 + 7 }]
         case .heads:
             let stop = stopPatch.map { occurrence >= $0 } ?? false
             return [
-                "dit_hidden": zip(Self.floats(inputs["lm_hidden"]), Self.floats(inputs["residual_hidden"])).map(+),
+                "dit_hidden": zip(values("lm_hidden"), values("residual_hidden")).map { $0 + 2 * $1 },
                 "stop_logits": stop ? [0, 1] : [1, 0],
             ]
         case .estimate:
-            return ["velocity": fill("velocity", 0)]
+            let x = values("x")
+            let mu = values("mu")
+            let cond = values("cond")
+            let half = max(x.count / 2, 1)
+            let width = mu.count / 2
+            return [
+                "velocity": x.indices.map { index in
+                    let hidden = index / half * width + index % half
+                    return 0.01 * x[index] + 0.001 * (mu.indices.contains(hidden) ? mu[hidden] : 0)
+                        + 0.0001 * (cond.indices.contains(index) ? cond[index] : 0)
+                }
+            ]
         case .encode:
-            return ["curr_embed": fill("curr_embed", Float(occurrence) + 0.125)]
+            return ["curr_embed": spread(values("patch"), "curr_embed") { $0 * 0.5 + 0.125 }]
         case .decode:
-            return ["audio": fill("audio", Float(occurrence + 1) / 1000)]
+            return ["audio": spread(values("latent"), "audio") { $0 * 0.1 }]
         case .step:
-            return ["hidden": fill("hidden", position)]
+            return ["hidden": values("embed").map { $0 * 1.5 + position * 0.01 }]
         case .fuse:
-            return ["lm_hidden": Self.floats(inputs["lm_raw"]), "residual_input": Self.floats(inputs["curr_embed"])]
+            let raw = values("lm_raw")
+            let embed = values("curr_embed")
+            return ["lm_hidden": zip(raw, embed).map { $0 + 0.25 * $1 }, "residual_input": zip(raw, embed).map(-)]
         case .residualStep:
-            return ["hidden": fill("hidden", position + 0.5)]
+            return ["hidden": values("embed").map { $0 * 0.75 + position * 0.02 }]
         }
     }
 }

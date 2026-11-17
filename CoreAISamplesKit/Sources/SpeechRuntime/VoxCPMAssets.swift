@@ -34,16 +34,25 @@
                     observed[name] = VoxCPMSignature(descriptor)
                 }
                 try contract.check(asset: asset, functionNames: model.functionNames, observed: observed)
-                for kind in VoxCPMFunction.allCases where kind.asset == asset {
-                    guard let descriptor = model.functionDescriptor(for: kind.name),
-                        let function = try model.loadFunction(named: kind.name)
-                    else { throw missing(asset, kind.name) }
+                let kinds = VoxCPMFunction.allCases.filter { $0.asset == asset }
+                var layouts: [String: [String: NDArrayDescriptor]] = [:]
+                for kind in kinds {
+                    guard let descriptor = model.functionDescriptor(for: kind.name) else {
+                        throw missing(asset, kind.name)
+                    }
                     for name in descriptor.stateNames {
                         guard case .ndArray(let state) = descriptor.stateDescriptor(of: name) else {
                             throw missing(asset, name)
                         }
-                        states[asset + "." + name] = state
+                        layouts[kind.name, default: [:]][name] = state
                     }
+                }
+                try VoxCPMContract.checkSharedStates(asset: asset, layouts)
+                for kind in kinds {
+                    guard let function = try model.loadFunction(named: kind.name) else {
+                        throw missing(asset, kind.name)
+                    }
+                    for (name, state) in layouts[kind.name] ?? [:] { states[asset + "." + name] = state }
                     functions[kind] = function
                     signatures[kind] = observed[kind.name]
                 }

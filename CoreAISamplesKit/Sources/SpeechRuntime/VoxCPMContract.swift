@@ -63,6 +63,15 @@
             }
         }
 
+        static func checkSharedStates<Descriptor: Equatable>(asset: String, _ states: [String: [String: Descriptor]])
+            throws
+        {
+            guard let prefill = states["prefill"], let step = states["step"] else { return }
+            guard !prefill.isEmpty, prefill == step else {
+                throw invalid("The \(asset) prefill and step functions do not share one state layout.")
+            }
+        }
+
         private func expects(_ function: VoxCPMFunction, _ signature: VoxCPMSignature, _ float: String) -> Bool {
             let hidden = VoxCPMSolver.hiddenSize
             let rows = prefillLength

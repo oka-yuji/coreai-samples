@@ -41,7 +41,7 @@ struct VoxCPMPipelineTests {
     private static let floats = FakeVoxCPMComponents.floats
     private static let integers = FakeVoxCPMComponents.integers
 
-    @Test("VPL-01 With fake parts the prefill runs first and each patch calls the parts in contract order and shape")
+    @Test("VPL-01 With fake parts every call follows the contract order and shape and receives the earlier outputs")
     func callOrder() async throws {
         let log = FakeVoxCPMLog()
         let pipeline = try Self.pipeline(log, [FakeVoxCPMBehavior(stopPatch: 4)])
@@ -54,36 +54,61 @@ struct VoxCPMPipelineTests {
             let expected = Dictionary(uniqueKeysWithValues: (inputs ?? []).map { ($0.name, $0.shape.reduce(1, *)) })
             #expect(call.inputs.mapValues(\.count) == expected, "\(call.function)")
         }
+        func input(_ call: FakeVoxCPMLog.Call, _ name: String) -> [Float] { Self.floats(call.inputs[name]) }
+        func output(_ call: FakeVoxCPMLog.Call, _ name: String) -> [Float] { call.outputs[name] ?? [] }
+        func row(_ values: [Float], _ index: Int) -> [Float] {
+            let width = VoxCPMSolver.hiddenSize
+            return Array(values[(index * width)..<((index + 1) * width)])
+        }
         let padded = Self.integers(calls[0].inputs["ids"])
         #expect(Array(padded.prefix(4)) == ids && padded.dropFirst(4).allSatisfy { $0 == 0 })
+        #expect(input(calls[1], "embeds") == output(calls[0], "embeds"))
+        #expect(input(calls[2], "hidden") == output(calls[1], "hidden"))
+        #expect(input(calls[3], "embeds") == output(calls[2], "residual_inputs"))
         #expect(Self.integers(calls[1].inputs["length"]) == [4] && Self.integers(calls[3].inputs["length"]) == [4])
-        for function in [VoxCPMFunction.step, .residualStep] {
-            let positions = calls.filter { $0.function == function }.flatMap { Self.integers($0.inputs["position"]) }
-            #expect(positions == [4, 5, 6, 7], "\(function)")
-        }
-        let heads = calls.filter { $0.function == .heads }
-        #expect(Self.floats(heads[0].inputs["lm_hidden"]).allSatisfy { $0 == 3.5 })
-        #expect(Self.floats(heads[0].inputs["residual_hidden"]).allSatisfy { $0 == 1003.75 })
-        #expect(Self.floats(heads[1].inputs["lm_hidden"]).allSatisfy { $0 == 4 })
-        #expect(Self.floats(heads[1].inputs["residual_hidden"]).allSatisfy { $0 == 4.5 })
-        let estimates = calls.filter { $0.function == .estimate }
-        let encodes = calls.filter { $0.function == .encode }
-        let decodes = calls.filter { $0.function == .decode }
+        var lmRow = row(output(calls[1], "hidden"), 3)
+        var residualRow = row(output(calls[3], "hidden"), 3)
+        var condition = [Float](repeating: 0, count: VoxCPMSolver.patchSize)
         var noise = VoxCPMNoise(seed: 7)
-        var previous = [Float](repeating: 0, count: VoxCPMSolver.patchSize)
+        var samples: [Float] = []
+        var next = 4
         for patch in 0..<5 {
-            let current = noise.nextPatch()
-            let first = estimates[patch * VoxCPMSolver.estimatorCallsPerPatch]
-            #expect(Self.floats(first.inputs["x"]) == current + current, "patch \(patch)")
-            #expect(Self.floats(first.inputs["cond"]) == previous + previous, "patch \(patch)")
-            #expect(Self.floats(first.inputs["mu"]).suffix(VoxCPMSolver.hiddenSize).allSatisfy { $0 == 0 })
-            #expect(Self.floats(first.inputs["dt"]) == [0, 0])
-            #expect(Self.floats(encodes[patch].inputs["patch"]) == current)
-            #expect(Self.floats(decodes[patch].inputs["latent"]) == current)
-            previous = current
+            let heads = calls[next]
+            #expect(input(heads, "lm_hidden") == lmRow && input(heads, "residual_hidden") == residualRow, "\(patch)")
+            var solver = try VoxCPMSolver(
+                noise: noise.nextPatch(), ditHidden: output(heads, "dit_hidden"), condition: condition)
+            next += 1
+            while let expected = solver.estimatorInput {
+                let estimate = calls[next]
+                #expect(input(estimate, "x") == expected.x && input(estimate, "mu") == expected.mu, "\(patch)")
+                #expect(input(estimate, "t") == expected.t && input(estimate, "cond") == expected.cond, "\(patch)")
+                #expect(input(estimate, "dt") == expected.dt, "\(patch)")
+                try solver.advance(velocity: output(estimate, "velocity"))
+                next += 1
+            }
+            let encode = calls[next]
+            let decode = calls[next + 1]
+            #expect(input(encode, "patch") == solver.latent && input(decode, "latent") == solver.latent, "\(patch)")
+            samples += output(decode, "audio")
+            next += 2
+            guard patch < 4 else { break }
+            let step = calls[next]
+            let fuse = calls[next + 1]
+            let residualStep = calls[next + 2]
+            let position = [Int32(ids.count + patch)]
+            #expect(input(step, "embed") == output(encode, "curr_embed"), "\(patch)")
+            #expect(input(fuse, "lm_raw") == output(step, "hidden"), "\(patch)")
+            #expect(input(fuse, "curr_embed") == output(encode, "curr_embed"), "\(patch)")
+            #expect(input(residualStep, "embed") == output(fuse, "residual_input"), "\(patch)")
+            #expect(Self.integers(step.inputs["position"]) == position, "\(patch)")
+            #expect(Self.integers(residualStep.inputs["position"]) == position, "\(patch)")
+            lmRow = output(fuse, "lm_hidden")
+            residualRow = output(residualStep, "hidden")
+            condition = solver.latent
+            next += 3
         }
         #expect(speech.patchCount == 5 && speech.stoppedPatch == 4 && speech.sampleRate == 48_000)
-        #expect(speech.samples == (1...5).flatMap { [Float](repeating: Float($0) / 1000, count: 7680) })
+        #expect(speech.samples == samples)
     }
 
     @Test("VPL-01 The generation ends at the first stop that the minimum length allows", arguments: [1, 3, 6])
@@ -140,6 +165,20 @@ struct VoxCPMPipelineTests {
         #expect(Self.outcome(result) == "cancelled")
         #expect(log.calls.count == call + 1)
         #expect(log.events.last == .released(1))
+    }
+
+    @Test("VPL-03 A part that fails after a cancellation reports the cancellation and other part failures pass through")
+    func failureAfterCancellation() async throws {
+        let log = FakeVoxCPMLog()
+        let pipeline = try Self.pipeline(
+            log, [FakeVoxCPMBehavior(failedCall: 16), FakeVoxCPMBehavior(cancelledCall: 16, failedCall: 16)])
+        var outcomes: [String] = []
+        for _ in 0..<2 {
+            outcomes.append(
+                Self.outcome(await Task { try await pipeline.generate(ids: [11, 12, 101], seed: 1) }.result))
+        }
+        #expect(outcomes == ["invalidOutput(\"fake\")", "cancelled"])
+        #expect(log.calls(in: 1).count == 17 && log.calls(in: 2).count == 17)
     }
 
     @Test("VPL-03 A cancellation before the start or between two parts calls no further part")

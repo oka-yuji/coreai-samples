@@ -7,6 +7,7 @@ final class FakeVoxCPMLog: Sendable {
         let generation: Int
         let function: VoxCPMFunction
         let inputs: [String: VoxCPMInput]
+        let outputs: [String: [Float]]
         let stateSum: Float?
     }
 

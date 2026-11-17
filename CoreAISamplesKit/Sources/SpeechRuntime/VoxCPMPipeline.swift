@@ -91,7 +91,13 @@
             _ function: VoxCPMFunction, _ inputs: [String: VoxCPMInput], _ states: inout Components.States
         ) async throws -> [String: [Float]] {
             try Task.checkCancellation()
-            let outputs = try await components.call(function, inputs, states: &states)
+            let outputs: [String: [Float]]
+            do {
+                outputs = try await components.call(function, inputs, states: &states)
+            } catch {
+                try Task.checkCancellation()
+                throw error
+            }
             try Task.checkCancellation()
             for name in outputs.keys.sorted() where outputs[name]?.allSatisfy(\.isFinite) == false {
                 throw VoxCPMGenerationError.nonFiniteValue(function.rawValue + "." + name)

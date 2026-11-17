@@ -43,11 +43,17 @@ struct VoxCPMReference: Sendable {
     private let words: [String: [UInt32]]
 
     static func index(_ root: URL) throws -> Index {
-        try JSONDecoder().decode(Index.self, from: Data(contentsOf: root.appending(path: "reference.json")))
+        let index = try JSONDecoder().decode(Index.self, from: Data(contentsOf: root.appending(path: "reference.json")))
+        guard index.format == 1, index.samplesPerPatch > 0, !index.sentences.isEmpty else {
+            throw VoxCPMGenerationError.invalidInput("reference.json")
+        }
+        return index
     }
 
-    init(_ folder: URL) throws {
+    init(_ folder: URL, index: Index) throws {
         record = try JSONDecoder().decode(Record.self, from: Data(contentsOf: folder.appending(path: "case.json")))
+        guard record.seed == index.seed, record.name == folder.lastPathComponent, index.sentences.contains(record.name)
+        else { throw VoxCPMGenerationError.invalidInput("case.json") }
         var words: [String: [UInt32]] = [:]
         for (key, entry) in record.arrays {
             let data = try Data(contentsOf: folder.appending(path: entry.file))
@@ -62,10 +68,6 @@ struct VoxCPMReference: Sendable {
             }
         }
         self.words = words
-    }
-
-    func count(_ key: String) -> Int {
-        record.arrays[key]?.shape.first ?? 0
     }
 
     func slice(_ key: String, _ index: Int) throws -> [UInt32] {
