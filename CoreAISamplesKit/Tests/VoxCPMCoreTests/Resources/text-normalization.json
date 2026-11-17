@@ -1,0 +1,430 @@
+{
+ "format": 1,
+ "python": "3.11.9",
+ "unicode": "14.0.0",
+ "pattern": "\\s",
+ "isspaceMatches": true,
+ "whitespace": [
+  9,
+  10,
+  11,
+  12,
+  13,
+  28,
+  29,
+  30,
+  31,
+  32,
+  133,
+  160,
+  5760,
+  8192,
+  8193,
+  8194,
+  8195,
+  8196,
+  8197,
+  8198,
+  8199,
+  8200,
+  8201,
+  8202,
+  8232,
+  8233,
+  8239,
+  8287,
+  12288
+ ],
+ "cases": [
+  {
+   "name": "empty",
+   "text": "",
+   "normalized": null
+  },
+  {
+   "name": "one space",
+   "text": " ",
+   "normalized": null
+  },
+  {
+   "name": "spaces only",
+   "text": "   ",
+   "normalized": null
+  },
+  {
+   "name": "whitespace only",
+   "text": "\t\n\r\u3000\u00a0\u0085\u2028\u2029\u001c",
+   "normalized": null
+  },
+  {
+   "name": "leading and trailing spaces",
+   "text": "  a b  ",
+   "normalized": " a b "
+  },
+  {
+   "name": "leading and trailing newlines",
+   "text": "\n\na\n\n",
+   "normalized": " a "
+  },
+  {
+   "name": "newline runs",
+   "text": "a\n\n\nb",
+   "normalized": "a b"
+  },
+  {
+   "name": "carriage return and newline",
+   "text": "a\r\nb\rc",
+   "normalized": "a b c"
+  },
+  {
+   "name": "tab and space run",
+   "text": "a \t \t b",
+   "normalized": "a b"
+  },
+  {
+   "name": "mixed run",
+   "text": "a \t\n\u3000\u00a0\u0085\u2028\u2029\u001c\u001fb",
+   "normalized": "a b"
+  },
+  {
+   "name": "ideographic spaces",
+   "text": "\u3053\u3093\u306b\u3061\u306f\u3000\u3000\u4e16\u754c",
+   "normalized": "\u3053\u3093\u306b\u3061\u306f \u4e16\u754c"
+  },
+  {
+   "name": "no-break space",
+   "text": "a\u00a0b",
+   "normalized": "a b"
+  },
+  {
+   "name": "next line",
+   "text": "a\u0085b",
+   "normalized": "a b"
+  },
+  {
+   "name": "line and paragraph separators",
+   "text": "a\u2028b\u2029c",
+   "normalized": "a b c"
+  },
+  {
+   "name": "zero width space",
+   "text": "a\u200bb",
+   "normalized": "a\u200bb"
+  },
+  {
+   "name": "mongolian vowel separator",
+   "text": "a\u180eb",
+   "normalized": "a\u180eb"
+  },
+  {
+   "name": "byte order mark",
+   "text": "a\ufeffb",
+   "normalized": "a\ufeffb"
+  },
+  {
+   "name": "word joiner",
+   "text": "a\u2060b",
+   "normalized": "a\u2060b"
+  },
+  {
+   "name": "combining mark after a space",
+   "text": "a \u0301b",
+   "normalized": "a \u0301b"
+  },
+  {
+   "name": "voice description",
+   "text": "(A calm voice)\n\u3053\u3093\u306b\u3061\u306f\u3002  hello",
+   "normalized": "(A calm voice) \u3053\u3093\u306b\u3061\u306f\u3002 hello"
+  },
+  {
+   "name": "U+0009 between letters",
+   "text": "a\tb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+000A between letters",
+   "text": "a\nb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+000B between letters",
+   "text": "a\u000bb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+000C between letters",
+   "text": "a\fb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+000D between letters",
+   "text": "a\rb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+001C between letters",
+   "text": "a\u001cb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+001D between letters",
+   "text": "a\u001db",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+001E between letters",
+   "text": "a\u001eb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+001F between letters",
+   "text": "a\u001fb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+0020 between letters",
+   "text": "a b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+0085 between letters",
+   "text": "a\u0085b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+00A0 between letters",
+   "text": "a\u00a0b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+1680 between letters",
+   "text": "a\u1680b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2000 between letters",
+   "text": "a\u2000b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2001 between letters",
+   "text": "a\u2001b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2002 between letters",
+   "text": "a\u2002b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2003 between letters",
+   "text": "a\u2003b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2004 between letters",
+   "text": "a\u2004b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2005 between letters",
+   "text": "a\u2005b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2006 between letters",
+   "text": "a\u2006b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2007 between letters",
+   "text": "a\u2007b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2008 between letters",
+   "text": "a\u2008b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2009 between letters",
+   "text": "a\u2009b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+200A between letters",
+   "text": "a\u200ab",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2028 between letters",
+   "text": "a\u2028b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+2029 between letters",
+   "text": "a\u2029b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+202F between letters",
+   "text": "a\u202fb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+205F between letters",
+   "text": "a\u205fb",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+3000 between letters",
+   "text": "a\u3000b",
+   "normalized": "a b"
+  },
+  {
+   "name": "U+0009 run at both ends",
+   "text": "\t\ta\t",
+   "normalized": " a "
+  },
+  {
+   "name": "U+000A run at both ends",
+   "text": "\n\na\n",
+   "normalized": " a "
+  },
+  {
+   "name": "U+000B run at both ends",
+   "text": "\u000b\u000ba\u000b",
+   "normalized": " a "
+  },
+  {
+   "name": "U+000C run at both ends",
+   "text": "\f\fa\f",
+   "normalized": " a "
+  },
+  {
+   "name": "U+000D run at both ends",
+   "text": "\r\ra\r",
+   "normalized": " a "
+  },
+  {
+   "name": "U+001C run at both ends",
+   "text": "\u001c\u001ca\u001c",
+   "normalized": " a "
+  },
+  {
+   "name": "U+001D run at both ends",
+   "text": "\u001d\u001da\u001d",
+   "normalized": " a "
+  },
+  {
+   "name": "U+001E run at both ends",
+   "text": "\u001e\u001ea\u001e",
+   "normalized": " a "
+  },
+  {
+   "name": "U+001F run at both ends",
+   "text": "\u001f\u001fa\u001f",
+   "normalized": " a "
+  },
+  {
+   "name": "U+0020 run at both ends",
+   "text": "  a ",
+   "normalized": " a "
+  },
+  {
+   "name": "U+0085 run at both ends",
+   "text": "\u0085\u0085a\u0085",
+   "normalized": " a "
+  },
+  {
+   "name": "U+00A0 run at both ends",
+   "text": "\u00a0\u00a0a\u00a0",
+   "normalized": " a "
+  },
+  {
+   "name": "U+1680 run at both ends",
+   "text": "\u1680\u1680a\u1680",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2000 run at both ends",
+   "text": "\u2000\u2000a\u2000",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2001 run at both ends",
+   "text": "\u2001\u2001a\u2001",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2002 run at both ends",
+   "text": "\u2002\u2002a\u2002",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2003 run at both ends",
+   "text": "\u2003\u2003a\u2003",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2004 run at both ends",
+   "text": "\u2004\u2004a\u2004",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2005 run at both ends",
+   "text": "\u2005\u2005a\u2005",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2006 run at both ends",
+   "text": "\u2006\u2006a\u2006",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2007 run at both ends",
+   "text": "\u2007\u2007a\u2007",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2008 run at both ends",
+   "text": "\u2008\u2008a\u2008",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2009 run at both ends",
+   "text": "\u2009\u2009a\u2009",
+   "normalized": " a "
+  },
+  {
+   "name": "U+200A run at both ends",
+   "text": "\u200a\u200aa\u200a",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2028 run at both ends",
+   "text": "\u2028\u2028a\u2028",
+   "normalized": " a "
+  },
+  {
+   "name": "U+2029 run at both ends",
+   "text": "\u2029\u2029a\u2029",
+   "normalized": " a "
+  },
+  {
+   "name": "U+202F run at both ends",
+   "text": "\u202f\u202fa\u202f",
+   "normalized": " a "
+  },
+  {
+   "name": "U+205F run at both ends",
+   "text": "\u205f\u205fa\u205f",
+   "normalized": " a "
+  },
+  {
+   "name": "U+3000 run at both ends",
+   "text": "\u3000\u3000a\u3000",
+   "normalized": " a "
+  }
+ ]
+}

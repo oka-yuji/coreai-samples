@@ -4,22 +4,30 @@
 
     @MainActor
     public final class LiveSpeechService: SpeechService {
-        public static let modelPathKey = "irodoriModelPath"
-        private let engine: any SpeechGenerating
+        public static let modelPathKey = SpeechEngine.irodori.modelPathKey
+        let engine: any SpeechGenerating
+        let modelPathKey: String
         private let playback: AudioPlayback
         private let defaults: UserDefaults?
         private let references: any SpeechReferenceReading
         private let recorder: any SpeechReferenceRecording
 
         public convenience init(defaults: UserDefaults? = .standard) {
-            self.init(engine: IrodoriRuntime(), playback: AudioPlayback(), defaults: defaults)
+            self.init(engine: .irodori, defaults: defaults)
+        }
+        public convenience init(engine kind: SpeechEngine, defaults: UserDefaults? = .standard) {
+            self.init(
+                engine: kind.makeRuntime(), playback: AudioPlayback(), defaults: defaults,
+                modelPathKey: kind.modelPathKey)
         }
         init(
             engine: any SpeechGenerating, playback: AudioPlayback, defaults: UserDefaults?,
+            modelPathKey: String = LiveSpeechService.modelPathKey,
             references: any SpeechReferenceReading = SpeechReferenceReader(),
             recorder: any SpeechReferenceRecording = SpeechReferenceRecorder()
         ) {
             self.engine = engine
+            self.modelPathKey = modelPathKey
             self.playback = playback
             self.defaults = defaults
             self.references = references
@@ -29,7 +37,7 @@
         public func open(path: String) async throws -> SpeechModel {
             let model = try await engine.open(URL(filePath: path, directoryHint: .isDirectory))
             try Task.checkCancellation()
-            defaults?.set(path, forKey: Self.modelPathKey)
+            defaults?.set(path, forKey: modelPathKey)
             return model
         }
         public func generate(text: String, seed: UInt64) async throws -> SpeechAudio {

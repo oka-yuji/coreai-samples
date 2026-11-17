@@ -318,6 +318,8 @@ let package = Package(
                     name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
                 .product(
                     name: "IrodoriTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
+                .product(
+                    name: "VoxCPMTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
             ], swiftSettings: speechSettings),
         .testTarget(name: "SpeechCoreTests", dependencies: ["SpeechCore"], swiftSettings: speechSettings),
         .target(name: "VoxCPMCore", swiftSettings: speechSettings),

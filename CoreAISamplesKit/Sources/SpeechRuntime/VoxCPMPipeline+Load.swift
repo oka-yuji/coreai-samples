@@ -10,6 +10,17 @@
             let clock = ContinuousClock()
             let start = clock.now
             try Task.checkCancellation()
+            let opened = try open(bundle: source, copyingInto: copies)
+            let openedAt = clock.now
+            let (assets, seconds) = try await VoxCPMAssets.load(
+                assets: opened.bundle.assets, contract: opened.contract)
+            let statistics = VoxCPMLoadStatistics(
+                openSeconds: (openedAt - start) / .seconds(1), assetSeconds: seconds,
+                totalSeconds: (clock.now - start) / .seconds(1))
+            return (Self(components: assets, contract: opened.contract), opened.bundle, statistics)
+        }
+
+        static func open(bundle source: URL, copyingInto copies: URL? = nil) throws -> VoxCPMOpenedBundle {
             var manifest = Data()
             let bundle = try ValidatedSpeechBundle.open(
                 source, copyingInto: copies,
@@ -17,13 +28,14 @@
                     manifest = data
                     return try SpeechBundleLayout.voxcpm2(manifest: data)
                 }, names: .voxcpm2)
-            let opened = clock.now
-            let contract = try VoxCPMContract(manifest: VoxCPMBundleInventory.manifest(in: manifest))
-            let (assets, seconds) = try await VoxCPMAssets.load(assets: bundle.assets, contract: contract)
-            let statistics = VoxCPMLoadStatistics(
-                openSeconds: (opened - start) / .seconds(1), assetSeconds: seconds,
-                totalSeconds: (clock.now - start) / .seconds(1))
-            return (Self(components: assets, contract: contract), bundle, statistics)
+            return VoxCPMOpenedBundle(
+                bundle: bundle, contract: try VoxCPMContract(manifest: VoxCPMBundleInventory.manifest(in: manifest)))
+        }
+
+        @concurrent
+        static func load(_ opened: VoxCPMOpenedBundle) async throws -> Self {
+            let assets = try await VoxCPMAssets.load(assets: opened.bundle.assets, contract: opened.contract).assets
+            return Self(components: assets, contract: opened.contract)
         }
     }
 #endif
