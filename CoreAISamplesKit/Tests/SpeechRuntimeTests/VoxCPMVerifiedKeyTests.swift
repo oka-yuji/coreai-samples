@@ -11,16 +11,16 @@ struct VoxCPMVerifiedKeyTests {
         let fixture = try VoxCPMBundleFixture()
         defer { fixture.remove() }
         let second = fixture.contents.mapValues { $0 == fixture.manifest ? $0 : Data($0.reversed()) }
-        #expect(second.mapValues(\.count) == fixture.contents.mapValues(\.count))
-        #expect(second.filter { fixture.contents[$0.key] != $0.value }.count == fixture.contents.count - 1)
+        try #require(second.mapValues(\.count) == fixture.contents.mapValues(\.count))
+        try #require(second.filter { fixture.contents[$0.key] != $0.value }.count == fixture.contents.count - 1)
         let folder = fixture.base.appending(path: "second", directoryHint: .isDirectory)
         try write(second, into: folder)
         let first = try open(fixture.source, fixture.contents, fixture)
         let copied = try read(first.directory)
+        try #require(copied == fixture.contents)
         let reopened = try open(folder, second, fixture)
         #expect(reopened.directory != first.directory)
         #expect(try read(reopened.directory) == second)
-        #expect(copied == fixture.contents)
         #expect(try read(first.directory) == copied)
         #expect(try fixture.copyFolders() == [first.directory.lastPathComponent, reopened.directory.lastPathComponent])
     }
@@ -54,14 +54,14 @@ struct VoxCPMVerifiedKeyTests {
         case "swap":
             let first = try #require(paths.firstIndex(of: "artifacts/dit-fp32.aimodel/main.mlirb"))
             let second = try #require(paths.firstIndex(of: "artifacts/vae-fp32.aimodel/main.mlirb"))
-            #expect(files[first].bytes == files[second].bytes && files[first].sha256 != files[second].sha256)
+            try #require(files[first].bytes == files[second].bytes && files[first].sha256 != files[second].sha256)
             changed[first] = entry(files[first], sha256: files[second].sha256)
             changed[second] = entry(files[second], sha256: files[first].sha256)
         default:
             let index = try #require(paths.firstIndex(of: change == "tokenizer" ? "tokenizer.json" : "NOTICE"))
             changed[index] = entry(files[index], sha256: VoxCPMBundleFixture.digest(Data("changed".utf8)))
         }
-        #expect(changed != files)
+        try #require(changed != files)
         #expect(
             ValidatedSpeechBundle.verifiedKey(manifest: fixture.manifest, files: changed, names: .voxcpm2)
                 != fixture.key)
