@@ -27,9 +27,14 @@ struct VoxCPMImportTests {
         #expect(inventory.first { $0.path == VoxCPMBundleInventory.manifestPath }?.sha256 == expected.manifest)
         #expect(
             artifact.sourceRevision == expected.manifest && artifact.localBundle?.manifestSHA256 == expected.manifest)
-        let manifest = try VoxCPMImportFixture.manifest(profile)
-        #expect(sha256(manifest) == expected.manifest)
-        #expect(artifact.files.first { $0.path == VoxCPMBundleInventory.manifestPath }?.bytes == Int64(manifest.count))
+        for configuration in VoxCPMBundleProfile.allCases {
+            let listed = try #require(
+                VoxCPMBundleInventory.files(profile: configuration).first {
+                    $0.path == VoxCPMBundleInventory.manifestPath
+                })
+            let manifest = try VoxCPMImportFixture.manifest(configuration)
+            #expect(sha256(manifest) == listed.sha256 && Int64(manifest.count) == listed.bytes, "\(configuration)")
+        }
         #expect(artifact.id == "voxcpm2-" + profile.rawValue && artifact.contract == VoxCPMModelArtifact.contract)
         #expect(artifact.sourceKind == .localManifest && artifact.download == nil && artifact.isSourceValid)
         #expect(artifact.platforms == [.macOS] && artifact.localBundle?.manifestPath == "manifest.json")
