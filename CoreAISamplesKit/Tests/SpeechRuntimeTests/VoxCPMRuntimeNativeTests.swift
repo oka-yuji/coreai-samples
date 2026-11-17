@@ -18,7 +18,7 @@ struct VoxCPMRuntimeNativeTests {
     }
 
     @Test(
-        "A real bundle opens, generates twice with one load, releases and generates again after a reload",
+        "VRT-07 A real bundle opens, generates twice with one load, releases and generates again after a reload",
         .enabled(if: enabled))
     func smoke() async throws {
         let bundle = URL(

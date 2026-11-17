@@ -3,7 +3,7 @@ import SpeechCore
 import Testing
 
 struct SpeechLimitTests {
-    @Test("Float WAV keeps its default limit and bytes and accepts an explicit sample limit")
+    @Test("VRT-05 Float WAV keeps its default limit and bytes and accepts an explicit sample limit")
     func sampleLimit() throws {
         let irodoriLimit = 750 * 1920
         let samples: [Float] = [-1, 0, 0.5, 1]

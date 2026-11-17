@@ -7,7 +7,7 @@ import Testing
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct SpeechEngineTests {
-    @Test("A service without an engine runs Irodori under the Irodori key and VoxCPM2 has its own runtime and key")
+    @Test("VRT-06 A service without an engine runs Irodori and VoxCPM2 has its own runtime and folder key")
     func engineSelection() throws {
         let name = "SpeechEngineTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
@@ -24,7 +24,7 @@ struct SpeechEngineTests {
         #expect(voxcpm.modelPathKey == "voxcpm2ModelPath")
     }
 
-    @Test("Opening a VoxCPM2 model saves its folder under the VoxCPM2 key and leaves the Irodori key alone")
+    @Test("VRT-06 Opening a VoxCPM2 model saves its folder under the VoxCPM2 key and leaves the Irodori key alone")
     func separatePathKeys() async throws {
         let name = "SpeechEngineTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))

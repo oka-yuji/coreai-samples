@@ -36,6 +36,7 @@ struct VoxCPMTextTests {
     func normalization() throws {
         let fixture = try Self.fixture()
         #expect(fixture.cases.count > 60)
+        #expect(fixture.cases.filter { $0.text.unicodeScalars.contains { $0.value > 0xFFFF } }.count == 2)
         for item in fixture.cases {
             if let expected = item.normalized {
                 let actual = try VoxCPMText.normalized(item.text)

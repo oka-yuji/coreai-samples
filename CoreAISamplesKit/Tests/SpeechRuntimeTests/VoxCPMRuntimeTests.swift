@@ -6,7 +6,7 @@ import VoxCPMCore
 @testable import SpeechAssets
 @testable import SpeechRuntime
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.serialized, .timeLimit(.minutes(1)))
 struct VoxCPMRuntimeTests {
     static let directory = URL(filePath: "/unused-model")
 
@@ -16,6 +16,11 @@ struct VoxCPMRuntimeTests {
 
     static func half(_ data: Data, _ offset: Int) -> UInt16 {
         data.withUnsafeBytes { UInt16(littleEndian: $0.loadUnaligned(fromByteOffset: offset, as: UInt16.self)) }
+    }
+
+    static func reference() throws -> SpeechReferenceAudio {
+        try SpeechReferenceAudio(
+            samples: [Float](repeating: 0.1, count: SpeechReferenceAudio.minimumSamples), source: .recording)
     }
 
     @Test(
@@ -63,7 +68,7 @@ struct VoxCPMRuntimeTests {
         await runtime.release()
     }
 
-    @Test("A request during an operation is rejected as busy and is not run later")
+    @Test("VRT-01 A request during an operation is rejected as busy and is not run later")
     func busyRejection() async throws {
         let driver = FakeVoxCPMDriver()
         await driver.configure(block: true)
@@ -87,8 +92,33 @@ struct VoxCPMRuntimeTests {
         await runtime.release()
     }
 
-    @Test("Every release waits for an operation that ignores cancellation and nothing is written back after it")
-    func releaseWaitsForOperation() async throws {
+    @Test("VRT-01 While the pipeline loads, a generation and an open are rejected as busy and are not run later")
+    func busyDuringLoad() async throws {
+        let driver = FakeVoxCPMDriver()
+        await driver.configure(blockLoad: true)
+        let runtime = VoxCPMRuntime(dependencies: driver.dependencies())
+        _ = try await runtime.open(Self.directory)
+        let loadGate = driver.loadGate
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            defer { loadGate.open() }
+            group.addTask { _ = try await runtime.generate(text: "ab", seed: 1) }
+            try await driver.loadStarted.wait()
+            await #expect(throws: SpeechError.busy) { try await runtime.generate(text: "cd", seed: 2) }
+            await #expect(throws: SpeechError.busy) { try await runtime.open(URL(filePath: "/other")) }
+            #expect(await driver.factoryCount == 0)
+            loadGate.open()
+            try await group.waitForAll()
+        }
+        #expect(await driver.factoryCount == 1)
+        #expect(await driver.seeds == [1])
+        #expect(driver.log.snapshot().filter { $0 == "open" }.count == 1)
+        await runtime.release()
+    }
+
+    @Test(
+        "VRT-02 Each release waits for the operation, cancelled or not, and nothing is written back after it",
+        arguments: [true, false])
+    func releaseWaitsForOperation(cancelled: Bool) async throws {
         let driver = FakeVoxCPMDriver()
         await driver.configure(block: true)
         let (requested, request) = AsyncStream<Void>.makeStream()
@@ -114,11 +144,12 @@ struct VoxCPMRuntimeTests {
                 _ = await requests.next()
             }
             #expect(!log.snapshot().contains("pipeline-ended"))
-            group.cancelAll()
+            if cancelled { group.cancelAll() }
             gate.open()
             var outcomes = Set<String>()
             for try await outcome in group { outcomes.insert(outcome) }
-            #expect(outcomes == ["cancelled", "first released after the end", "second released after the end"])
+            let operation = cancelled ? "cancelled" : "completed"
+            #expect(outcomes == [operation, "first released after the end", "second released after the end"])
         }
         #expect(log.snapshot().filter { $0 == "pipeline-ended" }.count == 1)
         #expect(log.snapshot().last == "pipeline-ended")
@@ -130,7 +161,42 @@ struct VoxCPMRuntimeTests {
         await runtime.release()
     }
 
-    @Test("A failed load or generation drops the pipeline and the next request reloads it without reopening")
+    @Test("VRT-02 A release during the pipeline load returns after the operation ends and leaves no pipeline behind")
+    func releaseDuringLoad() async throws {
+        let driver = FakeVoxCPMDriver()
+        await driver.configure(blockLoad: true)
+        let (requested, request) = AsyncStream<Void>.makeStream()
+        let runtime = VoxCPMRuntime(dependencies: driver.dependencies(releasing: { request.yield() }))
+        _ = try await runtime.open(Self.directory)
+        let loadGate = driver.loadGate
+        let log = driver.log
+        try await withThrowingTaskGroup(of: String.self) { group in
+            defer { loadGate.open() }
+            group.addTask {
+                _ = try await runtime.generate(text: "ab", seed: 1)
+                return "completed"
+            }
+            try await driver.loadStarted.wait()
+            group.addTask {
+                await runtime.release()
+                return log.snapshot().last == "pipeline-ended" ? "released after the end" : "released early"
+            }
+            var requests = requested.makeAsyncIterator()
+            _ = await requests.next()
+            #expect(await driver.factoryCount == 0)
+            loadGate.open()
+            var outcomes = Set<String>()
+            for try await outcome in group { outcomes.insert(outcome) }
+            #expect(outcomes == ["completed", "released after the end"])
+        }
+        #expect(await driver.factoryCount == 1)
+        _ = try await runtime.generate(text: "cd", seed: 2)
+        #expect(await driver.factoryCount == 2)
+        #expect(log.snapshot().filter { $0 == "open" }.count == 1)
+        await runtime.release()
+    }
+
+    @Test("VRT-03 A failed load or generation drops the pipeline and the next request reloads it without reopening")
     func recoveryAfterFailure() async throws {
         let driver = FakeVoxCPMDriver()
         let runtime = VoxCPMRuntime(dependencies: driver.dependencies())
@@ -148,7 +214,7 @@ struct VoxCPMRuntimeTests {
         await runtime.release()
     }
 
-    @Test("A cancelled generation drops the pipeline and the next request reloads it")
+    @Test("VRT-03 A cancelled generation drops the pipeline and the next request reloads it")
     func recoveryAfterCancellation() async throws {
         let driver = FakeVoxCPMDriver()
         await driver.configure(block: true)
@@ -175,7 +241,7 @@ struct VoxCPMRuntimeTests {
         await runtime.release()
     }
 
-    @Test("Text over the prefill limit, a generation at the patch limit and a reference voice return no audio")
+    @Test("VRT-04 Text over the prefill limit, a generation at the patch limit and a reference voice return no audio")
     func rejectedRequests() async throws {
         let driver = FakeVoxCPMDriver()
         let runtime = VoxCPMRuntime(dependencies: driver.dependencies())
@@ -184,8 +250,7 @@ struct VoxCPMRuntimeTests {
         await #expect(throws: SpeechError.textExceedsLimit(count: limit + 1, limit: limit)) {
             try await runtime.generate(text: String(repeating: "a", count: limit + 1), seed: 1)
         }
-        let reference = try SpeechReferenceAudio(
-            samples: [Float](repeating: 0.1, count: SpeechReferenceAudio.minimumSamples), source: .recording)
+        let reference = try Self.reference()
         await #expect(throws: SpeechError.referenceNotSupported) {
             try await runtime.generate(text: "ab", seed: 1, reference: reference)
         }
@@ -198,7 +263,29 @@ struct VoxCPMRuntimeTests {
         await runtime.release()
     }
 
-    @Test("The WAV is 48 kHz mono float with the samples of every patch up to the patch limit of the text")
+    @Test("VRT-04 Requests rejected for their input keep the loaded pipeline for the next generation")
+    func rejectionKeepsPipeline() async throws {
+        let driver = FakeVoxCPMDriver()
+        let runtime = VoxCPMRuntime(dependencies: driver.dependencies())
+        _ = try await runtime.open(Self.directory)
+        _ = try await runtime.generate(text: "ab", seed: 1)
+        let limit = try VoxCPMPipelineTests.contract().prefillLength - 1
+        await #expect(throws: SpeechError.textExceedsLimit(count: limit + 1, limit: limit)) {
+            try await runtime.generate(text: String(repeating: "a", count: limit + 1), seed: 2)
+        }
+        await #expect(throws: SpeechError.emptyText) { try await runtime.generate(text: " \n\u{3000}", seed: 3) }
+        let reference = try Self.reference()
+        await #expect(throws: SpeechError.referenceNotSupported) {
+            try await runtime.generate(text: "ab", seed: 4, reference: reference)
+        }
+        _ = try await runtime.generate(text: "cd", seed: 5)
+        #expect(await driver.factoryCount == 1)
+        #expect(await driver.seeds == [1, 5])
+        #expect(!driver.log.snapshot().contains("pipeline-ended"))
+        await runtime.release()
+    }
+
+    @Test("VRT-05 The WAV is 48 kHz mono float with the samples of every patch up to the patch limit of the text")
     func patchWAV() async throws {
         let driver = FakeVoxCPMDriver()
         await driver.configure(patches: 4)

@@ -6,8 +6,11 @@ import Foundation
 actor FakeVoxCPMDriver {
     let started = TestSignal()
     let gate = TestGate()
+    let loadStarted = TestSignal()
+    let loadGate = TestGate()
     let log = LifetimeLog()
     var block = false
+    var blockLoad = false
     var loadFailure: (any Error)?
     var failure: (any Error)?
     var patches = 3
@@ -17,17 +20,23 @@ actor FakeVoxCPMDriver {
     var seeds: [UInt64] = []
 
     func configure(
-        block: Bool = false, loadFailure: (any Error)? = nil, failure: (any Error)? = nil, patches: Int = 3,
-        extraSamples: Int = 0
+        block: Bool = false, blockLoad: Bool = false, loadFailure: (any Error)? = nil, failure: (any Error)? = nil,
+        patches: Int = 3, extraSamples: Int = 0
     ) {
         self.block = block
+        self.blockLoad = blockLoad
         self.loadFailure = loadFailure
         self.failure = failure
         self.patches = patches
         self.extraSamples = extraSamples
     }
 
-    func makePipeline() throws -> any VoxCPMSpeechPipeline {
+    func makePipeline() async throws -> any VoxCPMSpeechPipeline {
+        loadStarted.fire()
+        if blockLoad {
+            blockLoad = false
+            await loadGate.wait()
+        }
         if let loadFailure { throw loadFailure }
         factoryCount += 1
         log.add("factory-\(factoryCount)")

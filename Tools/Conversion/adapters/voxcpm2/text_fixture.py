@@ -11,23 +11,25 @@ SAMPLES = (
     ("empty", ""),
     ("one space", " "),
     ("spaces only", "   "),
-    ("whitespace only", "\t\n\r　 \u0085  \u001c"),
+    ("whitespace only", "\t\n\r\u3000\u00a0\u0085\u2028\u2029\u001c"),
     ("leading and trailing spaces", "  a b  "),
     ("leading and trailing newlines", "\n\na\n\n"),
     ("newline runs", "a\n\n\nb"),
     ("carriage return and newline", "a\r\nb\rc"),
     ("tab and space run", "a \t \t b"),
-    ("mixed run", "a \t\n　 \u0085  \u001c\u001fb"),
-    ("ideographic spaces", "こんにちは　　世界"),
-    ("no-break space", "a b"),
+    ("mixed run", "a \t\n\u3000\u00a0\u0085\u2028\u2029\u001c\u001fb"),
+    ("ideographic spaces", "\u3053\u3093\u306b\u3061\u306f\u3000\u3000\u4e16\u754c"),
+    ("no-break space", "a\u00a0b"),
     ("next line", "a\u0085b"),
-    ("line and paragraph separators", "a b c"),
-    ("zero width space", "a​b"),
-    ("mongolian vowel separator", "a᠎b"),
-    ("byte order mark", "a﻿b"),
-    ("word joiner", "a⁠b"),
-    ("combining mark after a space", "a ́b"),
-    ("voice description", "(A calm voice)\nこんにちは。  hello"),
+    ("line and paragraph separators", "a\u2028b\u2029c"),
+    ("zero width space", "a\u200bb"),
+    ("mongolian vowel separator", "a\u180eb"),
+    ("byte order mark", "a\ufeffb"),
+    ("word joiner", "a\u2060b"),
+    ("combining mark after a space", "a \u0301b"),
+    ("voice description", "(A calm voice)\n\u3053\u3093\u306b\u3061\u306f\u3002  hello"),
+    ("supplementary characters around spaces", "\U0001f600 \u3000\U0001f4ac\n\n\U00020000"),
+    ("supplementary characters at both ends", " \U0001f600\t\U0001f600 "),
 )
 
 

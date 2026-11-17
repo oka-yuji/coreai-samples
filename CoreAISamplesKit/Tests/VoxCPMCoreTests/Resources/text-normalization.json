@@ -137,6 +137,16 @@
    "normalized": "(A calm voice) \u3053\u3093\u306b\u3061\u306f\u3002 hello"
   },
   {
+   "name": "supplementary characters around spaces",
+   "text": "\ud83d\ude00 \u3000\ud83d\udcac\n\n\ud840\udc00",
+   "normalized": "\ud83d\ude00 \ud83d\udcac \ud840\udc00"
+  },
+  {
+   "name": "supplementary characters at both ends",
+   "text": " \ud83d\ude00\t\ud83d\ude00 ",
+   "normalized": " \ud83d\ude00 \ud83d\ude00 "
+  },
+  {
    "name": "U+0009 between letters",
    "text": "a\tb",
    "normalized": "a b"

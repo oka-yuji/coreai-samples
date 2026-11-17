@@ -21,8 +21,10 @@ class TextFixtureTests(unittest.TestCase):
         self.assertIsNone(cases["whitespace only"])
         self.assertEqual(cases["leading and trailing spaces"], " a b ")
         self.assertEqual(cases["newline runs"], "a b")
-        self.assertEqual(cases["zero width space"], "a​b")
-        self.assertEqual(cases["combining mark after a space"], "a ́b")
+        self.assertEqual(cases["zero width space"], "a\u200bb")
+        self.assertEqual(cases["combining mark after a space"], "a \u0301b")
+        self.assertEqual(cases["supplementary characters around spaces"], "\U0001f600 \U0001f4ac \U00020000")
+        self.assertEqual(cases["supplementary characters at both ends"], " \U0001f600 \U0001f600 ")
         for case in built["cases"]:
             if case["normalized"] is not None:
                 self.assertNotIn("  ", case["normalized"], case["name"])
