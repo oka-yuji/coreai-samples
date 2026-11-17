@@ -10,8 +10,26 @@ public enum VoxCPMModelArtifact {
         try make(files: VoxCPMBundleInventory.files(profile: profile))
     }
 
+    public static func makeDownload() throws -> ModelArtifact {
+        try makeDownload(from: make())
+    }
+
     static func make(inventory: Data) throws -> ModelArtifact {
         try make(files: VoxCPMBundleInventory.files(inventory: inventory))
+    }
+
+    static func makeDownload(from local: ModelArtifact) throws -> ModelArtifact {
+        guard let root = downloadFolder(for: profile) else { throw ManagedModelStoreError.invalidDefinition }
+        return ModelArtifact(
+            id: local.id, title: local.title, contract: local.contract, platforms: local.platforms,
+            sizeBytes: local.sizeBytes,
+            download: ModelDownload(
+                repository: "okayuji/voxcpm2-coreai", revision: "afe11d61de9dd7c3609140aa040b777ef77b2555", root: root),
+            upstream: local.upstream, files: local.files, localBundle: local.localBundle)
+    }
+
+    static func downloadFolder(for profile: VoxCPMBundleProfile) -> String? {
+        profile == .fp16 ? profile.rawValue : nil
     }
 
     static func validateManifest(_ data: Data) throws {

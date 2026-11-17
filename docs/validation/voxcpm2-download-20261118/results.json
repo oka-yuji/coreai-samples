@@ -1,0 +1,84 @@
+{
+  "acquisition": {
+    "bytes": 4677413664,
+    "files": 22,
+    "format": "voxcpm2-download-acquisition/1",
+    "freshManagedStore": true,
+    "managedPath": "artifacts/voxcpm2-fp16/fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+    "manifestSHA256": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+    "migrationCandidates": 0,
+    "repository": "okayuji/voxcpm2-coreai",
+    "requests": {
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/LICENSE": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/NOTICE": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/dit-fp16.aimodel/main.hash": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/dit-fp16.aimodel/main.mlirb": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/dit-fp16.aimodel/metadata.json": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/locenc-fp16.aimodel/main.hash": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/locenc-fp16.aimodel/main.mlirb": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/locenc-fp16.aimodel/metadata.json": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/proj-fp16.aimodel/main.hash": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/proj-fp16.aimodel/main.mlirb": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/proj-fp16.aimodel/metadata.json": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/ralm-fp16.aimodel/main.hash": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/ralm-fp16.aimodel/main.mlirb": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/ralm-fp16.aimodel/metadata.json": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/tslm-fp16.aimodel/main.hash": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/tslm-fp16.aimodel/main.mlirb": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/tslm-fp16.aimodel/metadata.json": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/vae-fp16.aimodel/main.hash": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/vae-fp16.aimodel/main.mlirb": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/artifacts/vae-fp16.aimodel/metadata.json": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/manifest.json": 200,
+      "https://huggingface.co/okayuji/voxcpm2-coreai/resolve/afe11d61de9dd7c3609140aa040b777ef77b2555/fp16/tokenizer.json": 200
+    },
+    "requestsWithHeaders": 0,
+    "revision": "afe11d61de9dd7c3609140aa040b777ef77b2555",
+    "root": "fp16",
+    "seconds": {
+      "download": 145.829046625,
+      "fullInspection": 1.522633334,
+      "validation": 1.518110625
+    },
+    "sourceKind": "localManifest"
+  },
+  "download": {
+    "artifactID": "voxcpm2-fp16",
+    "bytes": 4677413664,
+    "files": 22,
+    "format": "voxcpm2-download/1",
+    "generation": {
+      "audioSeconds": 2.4,
+      "elapsedSeconds": 5.397024125,
+      "id": "plain",
+      "patches": 15,
+      "samples": 115200,
+      "wallSeconds": 5.403185124999999,
+      "wavBytes": 460858
+    },
+    "leases": {
+      "afterDownload": 0,
+      "afterRelease": 0,
+      "afterStop": 1,
+      "inUse": 1
+    },
+    "manifestSHA256": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+    "model": "VoxCPM2 (FP16)",
+    "repository": "okayuji/voxcpm2-coreai",
+    "revision": "afe11d61de9dd7c3609140aa040b777ef77b2555",
+    "root": "fp16",
+    "seconds": {
+      "acquire": 0.000286334,
+      "delete": 0.055214792,
+      "download": 145.829046625,
+      "fullInspection": 1.522633334,
+      "open": 1.663079625,
+      "release": 6.4375e-05,
+      "stop": 0.07096975,
+      "validation": 1.518110625
+    },
+    "system": "Version 27.2.1 (Build 26B131)"
+  },
+  "format": "voxcpm2-download-validation/1",
+  "issue": 593
+}

@@ -339,7 +339,7 @@ struct DemoRootView: View {
             case .voiceDesign?:
                 SpeechView(
                     store: voiceDesign, model: .voxcpm2, limit: "Short passages work best. The limit is 144 tokens.",
-                    missing: "Import VoxCPM2 from its heading in the sidebar.",
+                    missing: "Download VoxCPM2 from its heading in the sidebar.",
                     voiceHint:
                         "Describe the voice in parentheses at the start, for example (A young woman, gentle and calm voice)."
                 )

@@ -2977,6 +2977,16 @@
         }
       }
     },
+    "Download VoxCPM2 from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから VoxCPM2 を取得してください。"
+          }
+        }
+      }
+    },
     "Downloaded" : {
       "localizations" : {
         "ja" : {
@@ -3985,16 +3995,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "画像はこの iPhone 内で解析し、保存しません。小さい物や隠れた物は見つからないことがあります。"
-          }
-        }
-      }
-    },
-    "Import VoxCPM2 from its heading in the sidebar." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サイドバーの見出しから VoxCPM2 を取り込んでください。"
           }
         }
       }

@@ -488,7 +488,9 @@ public actor ManagedModelStore {
         else { throw ManagedModelStoreError.pathEscape }
         if case .voxcpm = try family(artifact) {
             let trusted = try voxcpmInventory.map(VoxCPMModelArtifact.make(inventory:)) ?? VoxCPMModelArtifact.make()
-            guard artifact == trusted else { throw ManagedModelStoreError.contractMismatch("VoxCPM2 inventory") }
+            guard try artifact == trusted || artifact == VoxCPMModelArtifact.makeDownload(from: trusted) else {
+                throw ManagedModelStoreError.contractMismatch("VoxCPM2 inventory")
+            }
         }
         return ValidatedModelResource(
             modelID: model.id, artifactID: artifact.id, contract: artifact.contract, revision: revision,
