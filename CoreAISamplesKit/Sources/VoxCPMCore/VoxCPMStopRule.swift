@@ -1,7 +1,7 @@
 public enum VoxCPMStopRule {
-    private static let patchesPerTextToken = 6
-    private static let extraPatches = 10
-    private static let minimumLength = 2
+    public static let patchesPerTextToken = 6
+    public static let extraPatches = 10
+    public static let minimumLength = 2
 
     public static func patchLimit(textTokenCount: Int, capacity: Int) throws -> Int {
         guard textTokenCount >= 0 else { throw VoxCPMError.invalidTextTokenCount }
