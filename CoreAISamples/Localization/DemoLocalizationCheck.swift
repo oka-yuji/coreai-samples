@@ -2,6 +2,9 @@ import DecideFeature
 import Foundation
 import RecipeCore
 import RecipeFeature
+import SpeechCore
+import SpeechFeature
+import SpeechRuntime
 
 @MainActor
 enum DemoLocalizationCheck {
@@ -37,6 +40,8 @@ enum DemoLocalizationCheck {
                 "Downloaded %@ · Available %@", "Conversation history", "Show or hide the conversation history",
                 "Model information", "Removed the prepared copy of %@. The next load prepares it again.",
                 "Could not remove the prepared copy of %@: %@", "Download Irodori from its heading in the sidebar.",
+                "Import VoxCPM2 from its heading in the sidebar.", "Short passages work best. The limit is 144 tokens.",
+                "Describe the voice in parentheses at the start, for example (A young woman, gentle and calm voice).",
                 "Download %@ from its heading in the sidebar.",
                 "Download Qwen3.8 27B from its heading in the sidebar.", "Choose a model from the menu above.",
             ]
@@ -46,6 +51,10 @@ enum DemoLocalizationCheck {
                 "Notes kept as drafts.", "The question and sources exceed the RAG prompt budget.",
                 "The saved source record is inconsistent.",
             ]
+            keys += try [SpeechEngine.irodori, .voxcpm2].flatMap { try SpeechAssembly.examples($0) }
+                .map { "Speech example: " + $0.title }
+            let speechErrors: [SpeechError] = [.unreadableText, .speechNotFinished, .modelNotOpened("VoxCPM2")]
+            keys += speechErrors.compactMap(\.errorDescription) + ["The VoxCPM2 tokenizer could not be loaded."]
             var failures: [String] = []
             for name in modelNames.sorted() {
                 for language in ["en", "ja"] {

@@ -313,13 +313,19 @@ let package = Package(
         .target(
             name: "SpeechRuntime",
             dependencies: [
-                "SpeechCore", "SpeechFeature", "SpeechAssets", "ModelLibraryFeature",
+                "SpeechCore", "SpeechFeature", "SpeechAssets", "ModelLibraryFeature", "VoxCPMCore",
                 .product(
                     name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
                 .product(
                     name: "IrodoriTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
+                .product(
+                    name: "VoxCPMTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
             ], swiftSettings: speechSettings),
         .testTarget(name: "SpeechCoreTests", dependencies: ["SpeechCore"], swiftSettings: speechSettings),
+        .target(name: "VoxCPMCore", swiftSettings: speechSettings),
+        .testTarget(
+            name: "VoxCPMCoreTests", dependencies: ["VoxCPMCore"], resources: [.copy("Resources")],
+            swiftSettings: speechSettings),
         .testTarget(
             name: "SpeechFeatureTests", dependencies: ["SpeechCore", "SpeechFeature", "FeatureStore"],
             swiftSettings: speechSettings),
@@ -327,8 +333,9 @@ let package = Package(
             name: "SpeechRuntimeTests",
             dependencies: [
                 "SpeechRuntime", "SpeechCore", "SpeechFeature", "FeatureStore", "SpeechAssets", "ModelLibraryFeature",
-                .product(name: "IrodoriInputLogic", package: "IrodoriInputKit"),
+                "VoxCPMCore", .product(name: "IrodoriInputLogic", package: "IrodoriInputKit"),
                 .product(name: "IrodoriTokenizers", package: "IrodoriInputKit"),
+                .product(name: "VoxCPMTokenizers", package: "IrodoriInputKit"),
             ], resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "TruckInspectionFeature", dependencies: ["TruckInspectionCore", "FeatureStore"],

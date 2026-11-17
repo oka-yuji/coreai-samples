@@ -29,6 +29,12 @@ func copyLocalBundleFile(
     guard actual == file.sha256 else { throw ManagedModelStoreError.checksumMismatch(file.path) }
 }
 
+func readLocalBundleFile(source: URL, path: String, limit: Int = 1_048_576) throws -> Data {
+    let input = try localSourceHandle(source, path: path)
+    defer { try? input.close() }
+    return try input.read(upToCount: limit) ?? Data()
+}
+
 private func localSourceHandle(_ root: URL, path: String) throws -> FileHandle {
     let parts = path.split(separator: "/", omittingEmptySubsequences: false)
     guard !parts.isEmpty, parts.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }),

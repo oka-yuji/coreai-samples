@@ -9,29 +9,30 @@ import Testing
 @MainActor
 struct MacDemoCatalogTests {
     private let unconnected: Set<String> = [
-        "chat", "decide", "recipes", "image-search", "video-search", "comparison", "speech",
+        "chat", "decide", "recipes", "image-search", "video-search", "comparison", "speech", "voice-design",
     ]
 
-    @Test("LIB-01 The Mac catalog validates and lists eight models with their demos in declaration order on the Mac")
+    @Test("LIB-01 The Mac catalog validates and lists nine models with their demos in declaration order on the Mac")
     func sections() throws {
         let catalog = try MacDemoCatalog.make()
         let sections = catalog.sections(platform: .macOS, audience: .release)
         #expect(
             sections.map(\.model.name) == [
-                "Qwen3.8 27B", "Clef-Flash 9B", "EmbeddingGemma 2", "GLiNER2.5-multi", "Irodori", "TeleOCR", "JEV-27B",
-                "Chronos-2",
+                "Qwen3.8 27B", "Clef-Flash 9B", "EmbeddingGemma 2", "GLiNER2.5-multi", "Irodori", "VoxCPM2", "TeleOCR",
+                "JEV-27B", "Chronos-2",
             ])
         #expect(
             sections.map(\.id) == [
-                "qwen3.8-27b", "clef-flash-9b", "embeddinggemma2", "gliner2.5-multi", "irodori", "teleocr", "jev-27b",
-                "chronos2",
+                "qwen3.8-27b", "clef-flash-9b", "embeddinggemma2", "gliner2.5-multi", "irodori", "voxcpm2", "teleocr",
+                "jev-27b", "chronos2",
             ])
         #expect(
             sections.map { $0.demos.map(\.id) } == [
-                ["chat"], ["decide", "recipes"], ["image-search", "video-search"], ["comparison"], ["speech"], ["ocr"],
-                ["receipt-desk"], ["taxi-forecast", "product-sales-forecast", "seoul-bike-forecast"],
+                ["chat"], ["decide", "recipes"], ["image-search", "video-search"], ["comparison"], ["speech"],
+                ["voice-design"], ["ocr"], ["receipt-desk"],
+                ["taxi-forecast", "product-sales-forecast", "seoul-bike-forecast"],
             ])
-        #expect(sections.map { $0.artifacts.count } == [1, 1, 2, 1, 1, 1, 1, 1])
+        #expect(sections.map { $0.artifacts.count } == [1, 1, 2, 1, 1, 1, 1, 1, 1])
         #expect(catalog.sections(platform: .iOS, audience: .release).isEmpty)
         #expect(
             catalog.models.filter { $0.id != "chronos2" }.flatMap(\.artifacts).allSatisfy { $0.platforms == [.macOS] })
@@ -65,12 +66,40 @@ struct MacDemoCatalogTests {
         #expect(
             try catalog.model("irodori")?.artifacts == [IrodoriModelArtifact.makeReferenceDownload(platforms: [.macOS])]
         )
+        #expect(try catalog.model("voxcpm2")?.artifacts == [VoxCPMModelArtifact.make()])
         #expect(try catalog.model("teleocr")?.artifacts == [TeleOCRModelArtifact.make()])
         #expect(try catalog.model("chronos2")?.artifacts == [ChronosModelArtifact.make()])
     }
 
+    @Test("VUI-01 VoxCPM2 and its speech demo are listed on the Mac only, after Irodori, and not in the iOS catalog")
+    func voxcpm2() throws {
+        let catalog = try MacDemoCatalog.make()
+        let model = try #require(catalog.model("voxcpm2"))
+        #expect(model.name == "VoxCPM2" && model.category == "Speech Synthesis" && model.platforms == [.macOS])
+        #expect(model.artifacts == [try VoxCPMModelArtifact.make()] && model.artifacts[0].platforms == [.macOS])
+        #expect(model.demos == [ModelDemoLink(demoID: "voice-design", platforms: [.macOS])])
+        let demo = try #require(catalog.demo("voice-design"))
+        #expect(demo.platforms == [.macOS] && demo.title == demo.summary)
+        let sections = catalog.sections(platform: .macOS, audience: .release)
+        #expect(Array(sections.map(\.id).drop { $0 != "irodori" }.prefix(2)) == ["irodori", "voxcpm2"])
+        #expect(sections.first { $0.id == "voxcpm2" }?.demos.map(\.id) == ["voice-design"])
+        #expect(catalog.sections(platform: .iOS, audience: .release).isEmpty)
+        #expect(throws: ModelCatalogError.invalidDemo("voice-design")) {
+            try catalog.validateConnections(
+                adapterIDs: ["ocr", "product-sales-forecast", "receipt-desk", "seoul-bike-forecast", "taxi-forecast"],
+                unconnectedDemoIDs: unconnected.subtracting(["voice-design"]))
+        }
+        let phone = try IOSDemoCatalog.make(
+            speechArtifact: IrodoriModelArtifact.make(),
+            referenceSpeechArtifact: IrodoriModelArtifact.makeReferenceDownload(),
+            chronosArtifact: ChronosModelArtifact.make())
+        #expect(phone.model("voxcpm2") == nil && phone.demo("voice-design") == nil)
+        #expect(phone.models.flatMap(\.artifacts).allSatisfy { $0.contract != VoxCPMModelArtifact.contract })
+        #expect(phone.sections(platform: .iOS, audience: .release).allSatisfy { $0.id != "voxcpm2" })
+    }
+
     @Test(
-        "LIB-01 The Mac self-test reports eight models, twelve demos and the connected OCR, receipt and Chronos demos"
+        "LIB-01 The Mac self-test reports nine models, thirteen demos and the connected OCR, receipt and Chronos demos"
     )
     func selfTest() async throws {
         let root = URL.temporaryDirectory.appending(path: "mac-catalog-\(UUID().uuidString)")
@@ -90,7 +119,7 @@ struct MacDemoCatalogTests {
         #expect(status == 0)
         let report = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: output)) as? [String: Any])
         #expect(report["failures"] as? [String] == [] && report["catalogValidated"] as? Bool == true)
-        #expect(report["visibleModels"] as? Int == 8 && report["visibleDemos"] as? Int == 12)
+        #expect(report["visibleModels"] as? Int == 9 && report["visibleDemos"] as? Int == 13)
         #expect(
             report["catalogDemos"] as? [String]
                 == unconnected.union([
@@ -106,6 +135,6 @@ struct MacDemoCatalogTests {
         #expect(report["capabilities"] == nil)
         #expect(report["scope"] as? String == "Catalog, registry and store checks of the Mac app.")
         let artifacts = try #require(report["artifacts"] as? [[String: Any]])
-        #expect(artifacts.count == 9 && artifacts.allSatisfy { $0["inspection"] as? String == "missing" })
+        #expect(artifacts.count == 10 && artifacts.allSatisfy { $0["inspection"] as? String == "missing" })
     }
 }

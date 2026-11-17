@@ -1,8 +1,8 @@
 public enum MacDemoCatalog {
     public static func make(
-        searchTerms: [String: [String]] = [:], speechArtifact: ModelArtifact, ocrArtifact: ModelArtifact,
-        qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact, jevArtifact: ModelArtifact,
-        chronosArtifact: ModelArtifact
+        searchTerms: [String: [String]] = [:], speechArtifact: ModelArtifact, voxcpmArtifact: ModelArtifact,
+        ocrArtifact: ModelArtifact, qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact,
+        jevArtifact: ModelArtifact, chronosArtifact: ModelArtifact
     ) throws -> ModelCatalog {
         let mac: Set<LibraryPlatform> = [.macOS]
         let demos = [
@@ -13,6 +13,10 @@ public enum MacDemoCatalog {
             ("video-search", "Find moments in a video with your own words", "film.stack"),
             ("comparison", "Compare product specifications from official descriptions", "text.magnifyingglass"),
             ("speech", "Generate and play speech from text with Irodori", "waveform"),
+            (
+                "voice-design", "Generate and play speech from text and a voice description with VoxCPM2",
+                "person.wave.2"
+            ),
             (TeleOCRDemoCatalog.selection.demoID, "Read text and tables from a document image", "doc.viewfinder"),
         ].map { id, summary, systemImage in
             DemoDescriptor(
@@ -45,6 +49,7 @@ public enum MacDemoCatalog {
                     "gliner2.5-multi", "GLiNER2.5-multi", "Information Extraction",
                     [PublishedModelArtifacts.glinerFP32(platforms: mac)], ["comparison"]),
                 model("irodori", "Irodori", "Speech Synthesis", [speechArtifact], ["speech"]),
+                model("voxcpm2", "VoxCPM2", "Speech Synthesis", [voxcpmArtifact], ["voice-design"]),
                 TeleOCRDemoCatalog.model(artifact: ocrArtifact),
                 ReceiptDemoCatalog.model(artifact: jevArtifact),
                 ChronosDemoCatalog.model(artifact: chronosArtifact, platforms: mac, searchTerms: searchTerms),

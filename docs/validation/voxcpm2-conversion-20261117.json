@@ -1,0 +1,2034 @@
+{
+  "date": "2026-11-17",
+  "issues": [
+    575,
+    576,
+    577
+  ],
+  "source": {
+    "model_id": "openbmb/VoxCPM2",
+    "revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+    "upstream_revision": "300e4260b509066151d623dc9c0aa922cf82232b",
+    "license": "Apache-2.0",
+    "files": {
+      ".gitattributes": {
+        "bytes": 1519,
+        "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+      },
+      "README.md": {
+        "bytes": 7903,
+        "sha256": "feb850b390aa5051b81cbdc73b048361273552f003dd386b4da9c39ec9b6f055"
+      },
+      "audiovae.pth": {
+        "bytes": 376951122,
+        "sha256": "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1"
+      },
+      "config.json": {
+        "bytes": 4336,
+        "sha256": "405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c"
+      },
+      "model.safetensors": {
+        "bytes": 4580080592,
+        "sha256": "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d"
+      },
+      "special_tokens_map.json": {
+        "bytes": 1632,
+        "sha256": "068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76"
+      },
+      "tokenization_voxcpm2.py": {
+        "bytes": 2895,
+        "sha256": "84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729"
+      },
+      "tokenizer.json": {
+        "bytes": 3676772,
+        "sha256": "f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20"
+      },
+      "tokenizer_config.json": {
+        "bytes": 5059,
+        "sha256": "e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b"
+      }
+    }
+  },
+  "environment": {
+    "machine": "Apple M5 Max (Mac17,6), 137438953472 B RAM",
+    "os": "macOS 27.2.1 (26B131)",
+    "xcode": "27.2 (27B52)",
+    "python": "3.11.9",
+    "torch": "2.9.0",
+    "transformers": "4.57.3",
+    "tokenizers": "0.22.2",
+    "numpy": "2.3.5",
+    "coreai_core": "1.0.0b3",
+    "coreai_torch": "0.4.3",
+    "coreai_opt": "0.3.0",
+    "original": "PyTorch on the CPU in FP32, 4 threads",
+    "core_ai": "Python Core AI host, GPU-preferred specialization; the actual compute unit was not profiled"
+  },
+  "runs": {
+    "export": "20261116T161959-fc494398",
+    "reference_and_components": "20261116T181059-4ca849d6",
+    "generation": "20261116T195122-3ad68b2e",
+    "strip_without_removal": "20261116T201921-cc114781",
+    "replaced_bundles": [
+      "20261116T202807-b4d07f2b",
+      "20261116T204724-264d1994"
+    ],
+    "bundle": "20261116T212827-22314097",
+    "reuse": "20261116T214150-e16889ef",
+    "reused_stages": 18,
+    "stages": 18
+  },
+  "criteria": {
+    "components": {
+      "normalized_max_limit": 0.001,
+      "nonfinite": 0,
+      "min_kv_steps": 8,
+      "fsq_boundary_distance": 1e-05,
+      "fsq_boundary_max_dims": 1,
+      "fsq_boundary_max_fraction": 0.02
+    },
+    "replacement": {
+      "per_sentence": 1,
+      "total_fraction": 0.02
+    },
+    "limit_check": {
+      "fixture": "plain",
+      "patches": 8
+    }
+  },
+  "assets": {
+    "fp16": {
+      "bytes": 4673710046,
+      "assets": {
+        "tslm": {
+          "bytes": 2944859765,
+          "main_mlirb_sha256": "b130806b06a1dd084254a7037f1b599ed9ec3b53fe954daf4fcf1980752c0e3f"
+        },
+        "ralm": {
+          "bytes": 755394848,
+          "main_mlirb_sha256": "09a7c0a4c972aeaec0c61441a8ea105b0668f28d9ab9a8086ca5fbb802fd5e0d"
+        },
+        "proj": {
+          "bytes": 37780488,
+          "main_mlirb_sha256": "2a52d5a996e7e81728a3bcc2434686501f70e487cc8c0f97f5a5fc473969503c"
+        },
+        "locenc": {
+          "bytes": 419754534,
+          "main_mlirb_sha256": "d00ae7be23b32e232a429c8eecc25ad56a57d2cbe1573b1e078c8d32e3cd4450"
+        },
+        "dit": {
+          "bytes": 424354676,
+          "main_mlirb_sha256": "467a98c2e39f26261f0cd9d9e9c415a8b8d79ab7d0dee1382a64c4eb04b313b7"
+        },
+        "vae": {
+          "bytes": 91565735,
+          "main_mlirb_sha256": "0970208b924b4cb2a2d9595cca6c7800dac5679a70e2862e9e070ce16fde4726"
+        }
+      }
+    },
+    "fp32": {
+      "bytes": 9345622043,
+      "assets": {
+        "tslm": {
+          "bytes": 5888743347,
+          "main_mlirb_sha256": "ec510f48816e3da2302ad9b5e510fc921db090a6dc5e505c0466f8e7d8ae18fd"
+        },
+        "ralm": {
+          "bytes": 1510408578,
+          "main_mlirb_sha256": "ca62ed86415fd82b63b116fdcfe6730b7be86c83b35a7671fcaef8044f8319e2"
+        },
+        "proj": {
+          "bytes": 75554982,
+          "main_mlirb_sha256": "f8114625f9aa24d94d7d76bd1cbe67b6ca61c230d601983034423a454a2c16ab"
+        },
+        "locenc": {
+          "bytes": 839324907,
+          "main_mlirb_sha256": "cba83b47d688354e8cfde3bd9001fe02b475879fb267066b437da58b3e130e1f"
+        },
+        "dit": {
+          "bytes": 848519242,
+          "main_mlirb_sha256": "5f3c48049375e8ee375ff1e8099f4efad4722e49e598c0488eb4ea237f369a2a"
+        },
+        "vae": {
+          "bytes": 183070987,
+          "main_mlirb_sha256": "9d56be64038d64f7d3139427414d59a033e3aefa4edcdb0e01ea91de29b1038b"
+        }
+      }
+    }
+  },
+  "debug_info_removal": {
+    "method": "AIModelAsset.load, strip_debug_info, save_asset",
+    "comparison": "generic MLIR without locations, with every constant and resource, after loading, after stripping and after reloading the saved asset in a new process",
+    "passed": true,
+    "assets": [
+      {
+        "asset": "tslm",
+        "precision": "fp16",
+        "main_mlirb_bytes": [
+          2944868039,
+          2944859287
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "4c96900f284913eeb3de01e6cd97571cc08d82aa680db8d68348c683b9c8fdb5",
+        "semantic_bytes": 5889540117,
+        "semantic_equal": true
+      },
+      {
+        "asset": "tslm",
+        "precision": "fp32",
+        "main_mlirb_bytes": [
+          5888752133,
+          5888742869
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "0efea5914d7aac5e6889ffa0c6a59d0378a4a04a8ca97e4dd8a476837a616f03",
+        "semantic_bytes": 11777311619,
+        "semantic_equal": true
+      },
+      {
+        "asset": "ralm",
+        "precision": "fp16",
+        "main_mlirb_bytes": [
+          755396498,
+          755394370
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "16cd198361202ce01c5205da091d2af013fe00518932482e978e58bdb8b9bfa3",
+        "semantic_bytes": 1510746619,
+        "semantic_equal": true
+      },
+      {
+        "asset": "ralm",
+        "precision": "fp32",
+        "main_mlirb_bytes": [
+          1510410276,
+          1510408100
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "893d30d1939ec3ad40990ca6b7dafe7fbb0c598e3ab0900945e1831f30cff032",
+        "semantic_bytes": 3020774772,
+        "semantic_equal": true
+      },
+      {
+        "asset": "proj",
+        "precision": "fp16",
+        "main_mlirb_bytes": [
+          37780203,
+          37780010
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "f1d9c483a8b0feb065c7df6918b79f277079d350b1c6529cfd8217d65a2f0892",
+        "semantic_bytes": 75557159,
+        "semantic_equal": true
+      },
+      {
+        "asset": "proj",
+        "precision": "fp32",
+        "main_mlirb_bytes": [
+          75554681,
+          75554504
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "5a917464308a135f6ec16924cf09b01b1530ee79d1af0a5317c4c73a903bb1e2",
+        "semantic_bytes": 151106138,
+        "semantic_equal": true
+      },
+      {
+        "asset": "locenc",
+        "precision": "fp16",
+        "main_mlirb_bytes": [
+          419762840,
+          419754054
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "51583c407795b2b8682299b7af7638daea903967941a029d8f4c540710640370",
+        "semantic_bytes": 839459897,
+        "semantic_equal": true
+      },
+      {
+        "asset": "locenc",
+        "precision": "fp32",
+        "main_mlirb_bytes": [
+          839342704,
+          839324427
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "459b603c3821e59a7a0b21b248da3e5673afd8b85a82c5cd6d2360fba704df2a",
+        "semantic_bytes": 1678601099,
+        "semantic_equal": true
+      },
+      {
+        "asset": "dit",
+        "precision": "fp16",
+        "main_mlirb_bytes": [
+          424360823,
+          424354199
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "9f1eeca954a9523dd4a701d53d7d06d70a5d35da5c894c55f6c5c884a9257703",
+        "semantic_bytes": 848659959,
+        "semantic_equal": true
+      },
+      {
+        "asset": "dit",
+        "precision": "fp32",
+        "main_mlirb_bytes": [
+          848525565,
+          848518765
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "30b58444c241a4647648424caa76a5c054d7599f34eb8e30961ed28c7ed949ee",
+        "semantic_bytes": 1696989290,
+        "semantic_equal": true
+      },
+      {
+        "asset": "vae",
+        "precision": "fp16",
+        "main_mlirb_bytes": [
+          91565482,
+          91565258
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "d76fa97f6a9511db63956a608a0f5c4d3a2ce5d3a4f414c7054aa2695f329cf3",
+        "semantic_bytes": 183151415,
+        "semantic_equal": true
+      },
+      {
+        "asset": "vae",
+        "precision": "fp32",
+        "main_mlirb_bytes": [
+          183070734,
+          183070510
+        ],
+        "main_mlirb_changed": true,
+        "main_hash_changed": true,
+        "metadata_changed": true,
+        "files": [
+          "main.hash",
+          "main.mlirb",
+          "metadata.json"
+        ],
+        "semantic_sha256": "951aee996c78f51b611ea120f22a59862c820424e3e271a53a899cc346648c8c",
+        "semantic_bytes": 366151344,
+        "semantic_equal": true
+      }
+    ],
+    "probe": [
+      {
+        "asset": "proj",
+        "precision": "fp32",
+        "functions": [
+          "heads",
+          "fuse",
+          "prefill_fuse"
+        ],
+        "calls": 3,
+        "states": 0,
+        "semantic_equal": true,
+        "descriptors_equal": true,
+        "outputs_bitwise_equal": true,
+        "states_bitwise_equal": true,
+        "same_main_mlirb_as_stage": true
+      },
+      {
+        "asset": "vae",
+        "precision": "fp32",
+        "functions": [
+          "main"
+        ],
+        "calls": 2,
+        "states": 26,
+        "semantic_equal": true,
+        "descriptors_equal": true,
+        "outputs_bitwise_equal": true,
+        "states_bitwise_equal": true,
+        "same_main_mlirb_as_stage": true
+      },
+      {
+        "asset": "ralm",
+        "precision": "fp16",
+        "functions": [
+          "prefill",
+          "step"
+        ],
+        "calls": 3,
+        "states": 2,
+        "semantic_equal": true,
+        "descriptors_equal": true,
+        "outputs_bitwise_equal": true,
+        "states_bitwise_equal": true,
+        "same_main_mlirb_as_stage": true
+      }
+    ],
+    "repeat": [
+      {
+        "run": "20261116T202807-b4d07f2b",
+        "main_mlirb_identical": true,
+        "main_hash_identical": true,
+        "metadata_differs": true,
+        "semantic_identical": true
+      },
+      {
+        "run": "20261116T204724-264d1994",
+        "main_mlirb_identical": true,
+        "main_hash_identical": true,
+        "metadata_differs": true,
+        "semantic_identical": true
+      }
+    ],
+    "retained_failure": {
+      "run": "20261116T201921-cc114781",
+      "finding": "The first implementation stripped a temporary program because AIModelAsset.program reads the bytecode again on every access; main.mlirb of all twelve saved assets was unchanged while the digests were equal. Its outputs are not used, and the stage now also requires main.mlirb to change."
+    }
+  },
+  "bundles": {
+    "fp16": {
+      "files": 22,
+      "bytes": 4677413664,
+      "precisions": {
+        "tslm": "fp16",
+        "ralm": "fp16",
+        "proj": "fp16",
+        "locenc": "fp16",
+        "dit": "fp16",
+        "vae": "fp16"
+      },
+      "asset_files": {
+        "cloned": 18,
+        "copied": 0
+      },
+      "manifest_sha256": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+      "inventory_sha256": "dda09b4268cc4f4ff90c8a5d4f84f3e5712ba5df803891239c8981dd57a9a93f",
+      "inventory": "CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp16.inventory.json"
+    },
+    "fp16_proj32": {
+      "files": 22,
+      "bytes": 4715188166,
+      "precisions": {
+        "tslm": "fp16",
+        "ralm": "fp16",
+        "proj": "fp32",
+        "locenc": "fp16",
+        "dit": "fp16",
+        "vae": "fp16"
+      },
+      "asset_files": {
+        "cloned": 18,
+        "copied": 0
+      },
+      "manifest_sha256": "f7eb7f49fad8af5b58f1ed14c4ae53be508e885bbc1cbd93a0291bda30d536c6",
+      "inventory_sha256": "f46ec1c302dedc0445dc3dca9e92bc4ebbb762efac1189f206e18c4d7da822f7",
+      "inventory": "CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp16_proj32.inventory.json"
+    },
+    "fp32": {
+      "files": 22,
+      "bytes": 9349325520,
+      "precisions": {
+        "tslm": "fp32",
+        "ralm": "fp32",
+        "proj": "fp32",
+        "locenc": "fp32",
+        "dit": "fp32",
+        "vae": "fp32"
+      },
+      "asset_files": {
+        "cloned": 18,
+        "copied": 0
+      },
+      "manifest_sha256": "eda3c0098d35c8b305884e84ffd79005a7562cb027510ee2fa3b7f55ef2493da",
+      "inventory_sha256": "f771b72d2b18eb01b0a832cadee4bfff37ca7c76a3627defbf1f868d158d70e8",
+      "inventory": "CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp32.inventory.json"
+    }
+  },
+  "path_scan": {
+    "patterns": 132,
+    "encodings": [
+      "utf-8",
+      "utf-16-le",
+      "utf-16-be"
+    ],
+    "separators": [
+      "/",
+      "\\/",
+      "\\u002f",
+      "\\u002F",
+      "%2f",
+      "%2F"
+    ],
+    "bundles": {
+      "fp16": {
+        "files": 22,
+        "bytes": 4677413664,
+        "hits": 0
+      },
+      "fp16_proj32": {
+        "files": 22,
+        "bytes": 4715188166,
+        "hits": 0
+      },
+      "fp32": {
+        "files": 22,
+        "bytes": 9349325520,
+        "hits": 0
+      }
+    },
+    "before_removal": {
+      "dit": {
+        "files": 7,
+        "bytes": 1272910339,
+        "hits": 0
+      },
+      "locenc": {
+        "files": 7,
+        "bytes": 1259129315,
+        "hits": 0
+      },
+      "proj": {
+        "files": 7,
+        "bytes": 113358766,
+        "hits": 0
+      },
+      "ralm": {
+        "files": 7,
+        "bytes": 2265831868,
+        "hits": 0
+      },
+      "tslm": {
+        "files": 7,
+        "bytes": 8833646301,
+        "hits": 0
+      },
+      "vae": {
+        "files": 7,
+        "bytes": 274658886,
+        "hits": 0
+      }
+    },
+    "detector": {
+      "clean_detected": false,
+      "detected": {
+        "boundary": true,
+        "json": true,
+        "percent": true,
+        "temporary": true,
+        "unicode": true,
+        "user": true,
+        "utf16be": true,
+        "utf16le": true,
+        "utf8": true,
+        "volume": true
+      }
+    }
+  },
+  "fidelity": {
+    "fp32": {
+      "passed": true,
+      "criterion_met": true,
+      "fixtures": {
+        "design": {
+          "length": 29,
+          "steps": 33
+        },
+        "heldout_en": {
+          "length": 26,
+          "steps": 32
+        },
+        "heldout_ja": {
+          "length": 52,
+          "steps": 51
+        },
+        "long": {
+          "length": 98,
+          "steps": 104
+        },
+        "plain": {
+          "length": 20,
+          "steps": 14
+        }
+      },
+      "errors": {
+        "dit.main.velocity": {
+          "count": 2151,
+          "passed": 2151,
+          "gate": true,
+          "normalized_max": 4.6257605130482945e-06
+        },
+        "locenc.main.curr_embed": {
+          "count": 239,
+          "passed": 239,
+          "gate": true,
+          "normalized_max": 3.1356066953901725e-06
+        },
+        "proj.fuse": {
+          "count": 234,
+          "passed": 234,
+          "gate": true,
+          "normalized_max": 0.003824586670945994
+        },
+        "proj.heads.dit_hidden": {
+          "count": 239,
+          "passed": 239,
+          "gate": true,
+          "normalized_max": 2.3590552927174784e-07
+        },
+        "proj.heads.stop_argmax": {
+          "count": 239,
+          "passed": 239,
+          "gate": true,
+          "normalized_max": null
+        },
+        "proj.heads.stop_logits": {
+          "count": 239,
+          "passed": 239,
+          "gate": true,
+          "normalized_max": 3.411094461938053e-07
+        },
+        "proj.prefill_fuse.residual_inputs": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 1.1393418500655748e-07
+        },
+        "ralm.prefill.hidden": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 9.485578127015686e-07
+        },
+        "ralm.prefill.k_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 5.467362443211189e-07
+        },
+        "ralm.prefill.k_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.prefill.noise_padding_hidden": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "ralm.prefill.noise_padding_k_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "ralm.prefill.noise_padding_k_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.prefill.noise_padding_v_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "ralm.prefill.noise_padding_v_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.prefill.v_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 1.1139898022190676e-06
+        },
+        "ralm.prefill.v_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.step.count": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.step.hidden": {
+          "count": 234,
+          "passed": 234,
+          "gate": true,
+          "normalized_max": 1.6422755896097822e-06
+        },
+        "tslm.embed.embeds": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "tslm.prefill.hidden": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 2.1753583782074853e-06
+        },
+        "tslm.prefill.k_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 9.501503011089648e-07
+        },
+        "tslm.prefill.k_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.prefill.noise_padding_hidden": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "tslm.prefill.noise_padding_k_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "tslm.prefill.noise_padding_k_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.prefill.noise_padding_v_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "tslm.prefill.noise_padding_v_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.prefill.v_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 1.8188771499630583e-06
+        },
+        "tslm.prefill.v_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.step.count": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.step.hidden": {
+          "count": 234,
+          "passed": 234,
+          "gate": true,
+          "normalized_max": 1.1089874605265698e-06
+        },
+        "vae.main.chunk_audio": {
+          "count": 239,
+          "passed": 229,
+          "gate": false,
+          "normalized_max": 0.001285009249904411
+        },
+        "vae.main.joined_audio": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 4.178647260511346e-06
+        },
+        "vae.main.joined_audio_vs_full_decode": {
+          "count": 5,
+          "passed": 5,
+          "gate": false,
+          "normalized_max": 3.8537419202284444e-06
+        }
+      },
+      "fsq": {
+        "calls": 234,
+        "match": 233,
+        "boundary": 1,
+        "fail": 0,
+        "boundary_limit": 4.68,
+        "boundary_rows": [
+          {
+            "candidate_code": 2.0,
+            "code": 3.0,
+            "dim": 283,
+            "distance": 4.76837158203125e-07,
+            "fixture": "long",
+            "index": 8,
+            "lm_hidden_error": 5.7559104854615486e-08,
+            "residual_input_error": 1.0120604204119228e-07
+          }
+        ]
+      },
+      "load_seconds": {
+        "dit": 0.11502729204948992,
+        "locenc": 0.1162167500006035,
+        "proj": 0.02751287497812882,
+        "ralm": 0.38995920796878636,
+        "tslm": 2.643472332973033,
+        "vae": 0.034350084024481475
+      },
+      "load_average": [
+        [
+          4.4052734375,
+          4.125,
+          3.83837890625
+        ],
+        [
+          4.11474609375,
+          4.09375,
+          3.8349609375
+        ]
+      ]
+    },
+    "fp16": {
+      "gated": false,
+      "errors": {
+        "dit.main.velocity": {
+          "count": 2151,
+          "passed": 1457,
+          "gate": true,
+          "normalized_max": 0.007867005840915724
+        },
+        "locenc.main.curr_embed": {
+          "count": 239,
+          "passed": 217,
+          "gate": true,
+          "normalized_max": 0.0017490582547333429
+        },
+        "proj.fuse": {
+          "count": 234,
+          "passed": 190,
+          "gate": true,
+          "normalized_max": 0.003804443967074683
+        },
+        "proj.heads.dit_hidden": {
+          "count": 239,
+          "passed": 239,
+          "gate": true,
+          "normalized_max": 0.0005544677303658324
+        },
+        "proj.heads.stop_argmax": {
+          "count": 239,
+          "passed": 239,
+          "gate": true,
+          "normalized_max": null
+        },
+        "proj.heads.stop_logits": {
+          "count": 239,
+          "passed": 239,
+          "gate": true,
+          "normalized_max": 0.0006144099205115532
+        },
+        "proj.prefill_fuse.residual_inputs": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.00045251913847469874
+        },
+        "ralm.prefill.hidden": {
+          "count": 5,
+          "passed": 0,
+          "gate": true,
+          "normalized_max": 0.0025558366997563177
+        },
+        "ralm.prefill.k_cache": {
+          "count": 5,
+          "passed": 4,
+          "gate": true,
+          "normalized_max": 0.0014645697144751975
+        },
+        "ralm.prefill.k_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.prefill.noise_padding_hidden": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "ralm.prefill.noise_padding_k_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "ralm.prefill.noise_padding_k_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.prefill.noise_padding_v_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "ralm.prefill.noise_padding_v_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.prefill.v_cache": {
+          "count": 5,
+          "passed": 2,
+          "gate": true,
+          "normalized_max": 0.00135228329733765
+        },
+        "ralm.prefill.v_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.step.count": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "ralm.step.hidden": {
+          "count": 234,
+          "passed": 143,
+          "gate": true,
+          "normalized_max": 0.006008170017482766
+        },
+        "tslm.embed.embeds": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 8.620784781073446e-08
+        },
+        "tslm.prefill.hidden": {
+          "count": 5,
+          "passed": 0,
+          "gate": true,
+          "normalized_max": 0.003784297747585594
+        },
+        "tslm.prefill.k_cache": {
+          "count": 5,
+          "passed": 1,
+          "gate": true,
+          "normalized_max": 0.0015546132589782176
+        },
+        "tslm.prefill.k_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.prefill.noise_padding_hidden": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "tslm.prefill.noise_padding_k_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "tslm.prefill.noise_padding_k_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.prefill.noise_padding_v_cache": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": 0.0
+        },
+        "tslm.prefill.noise_padding_v_cache_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.prefill.v_cache": {
+          "count": 5,
+          "passed": 0,
+          "gate": true,
+          "normalized_max": 0.0016641508295370568
+        },
+        "tslm.prefill.v_cache_padding_zero": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.step.count": {
+          "count": 5,
+          "passed": 5,
+          "gate": true,
+          "normalized_max": null
+        },
+        "tslm.step.hidden": {
+          "count": 234,
+          "passed": 142,
+          "gate": true,
+          "normalized_max": 0.0032499833368116265
+        },
+        "vae.main.chunk_audio": {
+          "count": 239,
+          "passed": 2,
+          "gate": false,
+          "normalized_max": 0.17004808671627772
+        },
+        "vae.main.joined_audio": {
+          "count": 5,
+          "passed": 0,
+          "gate": true,
+          "normalized_max": 0.003617574315280912
+        },
+        "vae.main.joined_audio_vs_full_decode": {
+          "count": 5,
+          "passed": 0,
+          "gate": false,
+          "normalized_max": 0.0036174809728543368
+        }
+      },
+      "fsq": {
+        "calls": 234,
+        "match": 188,
+        "boundary": 2,
+        "fail": 44,
+        "boundary_limit": 4.68,
+        "boundary_rows": [
+          {
+            "candidate_code": -5.0,
+            "code": -4.0,
+            "dim": 484,
+            "distance": 3.814697265625e-06,
+            "fixture": "plain",
+            "index": 8,
+            "lm_hidden_error": 0.00042125268542173244,
+            "residual_input_error": 0.00031492060988346843
+          },
+          {
+            "candidate_code": 0.0,
+            "code": 1.0,
+            "dim": 328,
+            "distance": 1.6093254089355469e-06,
+            "fixture": "heldout_ja",
+            "index": 29,
+            "lm_hidden_error": 0.00047841167324482717,
+            "residual_input_error": 0.00012277365890613905
+          }
+        ]
+      },
+      "load_average": [
+        [
+          3.9033203125,
+          3.94677734375,
+          3.76171875
+        ],
+        [
+          5.08203125,
+          4.19580078125,
+          3.8525390625
+        ]
+      ]
+    },
+    "bundle_recheck": {
+      "passed": true,
+      "criterion_met": true,
+      "gated_rows": 3934,
+      "gated_failed": 0,
+      "counts_equal_before_removal": true,
+      "fsq_equal_before_removal": true,
+      "errors_equal_before_removal": true,
+      "descriptors": {
+        "fp16": {
+          "fp16": [
+            "dit",
+            "locenc",
+            "proj",
+            "ralm",
+            "tslm",
+            "vae"
+          ]
+        },
+        "fp16_proj32": {
+          "fp16": [
+            "dit",
+            "locenc",
+            "ralm",
+            "tslm",
+            "vae"
+          ],
+          "fp32": [
+            "proj"
+          ]
+        },
+        "fp32": {
+          "fp32": [
+            "dit",
+            "locenc",
+            "proj",
+            "ralm",
+            "tslm",
+            "vae"
+          ]
+        }
+      },
+      "fsq": {
+        "calls": 234,
+        "match": 233,
+        "boundary": 1,
+        "fail": 0
+      }
+    }
+  },
+  "component_timing_ms": {
+    "conditions": "median of 20 calls after 3 warm-up calls, two rounds, Python host",
+    "fp32": {
+      "dit.main": [
+        4.88,
+        4.92
+      ],
+      "locenc.main": [
+        3.13,
+        3.16
+      ],
+      "proj.fuse": [
+        0.54,
+        0.55
+      ],
+      "proj.heads": [
+        0.66,
+        0.66
+      ],
+      "proj.prefill_fuse": [
+        0.84,
+        0.86
+      ],
+      "ralm.prefill": [
+        11.66,
+        11.51
+      ],
+      "ralm.step": [
+        4.23,
+        4.23
+      ],
+      "tslm.embed": [
+        0.6,
+        0.6
+      ],
+      "tslm.prefill": [
+        39.85,
+        39.72
+      ],
+      "tslm.step": [
+        13.37,
+        13.35
+      ],
+      "vae.main": [
+        4.0,
+        4.01
+      ]
+    },
+    "fp16": {
+      "dit.main": [
+        3.08,
+        3.12
+      ],
+      "locenc.main": [
+        2.13,
+        2.25
+      ],
+      "proj.fuse": [
+        0.51,
+        0.51
+      ],
+      "proj.heads": [
+        0.66,
+        0.68
+      ],
+      "proj.prefill_fuse": [
+        0.7,
+        0.71
+      ],
+      "ralm.prefill": [
+        4.25,
+        4.25
+      ],
+      "ralm.step": [
+        2.85,
+        2.81
+      ],
+      "tslm.embed": [
+        0.54,
+        0.53
+      ],
+      "tslm.prefill": [
+        14.31,
+        13.35
+      ],
+      "tslm.step": [
+        8.57,
+        8.22
+      ],
+      "vae.main": [
+        3.13,
+        3.13
+      ]
+    },
+    "capacity": {
+      "1024": {
+        "ralm.prefill": [
+          11.53,
+          11.68
+        ],
+        "ralm.step": [
+          4.26,
+          4.25
+        ],
+        "tslm.prefill": [
+          39.64,
+          39.7
+        ],
+        "tslm.step": [
+          13.3,
+          13.64
+        ]
+      },
+      "2048": {
+        "ralm.prefill": [
+          12.0,
+          11.85
+        ],
+        "ralm.step": [
+          4.83,
+          4.52
+        ],
+        "tslm.prefill": [
+          40.07,
+          40.33
+        ],
+        "tslm.step": [
+          14.13,
+          14.48
+        ]
+      }
+    }
+  },
+  "generation": {
+    "check": {
+      "seed": 1708,
+      "passed": true,
+      "replacement": {
+        "kinds": {
+          "fuse": 2,
+          "latent": 1
+        },
+        "limit": 4.78,
+        "per_sentence": 1,
+        "reference_patches": 239,
+        "replaced_patches": 3,
+        "within_limit": true
+      },
+      "limit_check": {
+        "audio_written": false,
+        "finish": "limit",
+        "fixture": "plain",
+        "limit": 8,
+        "passed": true,
+        "patches": 8,
+        "reference_patches": 15,
+        "succeeded": false
+      },
+      "sentences": [
+        {
+          "id": "design",
+          "text_tokens": 28,
+          "patch_limit": 178,
+          "ids_match": true,
+          "noise_match": true,
+          "passed": true,
+          "replaced_patches": [],
+          "replacement_kinds": [],
+          "fuse_replacements": [],
+          "latent_replacements": [],
+          "replacing": {
+            "patches": 34,
+            "reference_patches": 34,
+            "stopped_patch": 33,
+            "reference_stopped_patch": 33,
+            "finish": "stop",
+            "audio_seconds": 5.44,
+            "audio_normalized_max": 7.625659200296932e-05,
+            "other_latents_max": 4.0248467204207306e-05
+          },
+          "without_replacement": {
+            "patches": 34,
+            "stopped_patch": 33,
+            "finish": "stop",
+            "within_criterion": true,
+            "first_latent_out_of_criterion": null,
+            "latent_max": 4.0248467204207306e-05,
+            "audio_normalized_max": 7.625659200296932e-05,
+            "seconds": 2.6246328339911997,
+            "audio_seconds": 5.44
+          }
+        },
+        {
+          "id": "heldout_en",
+          "text_tokens": 25,
+          "patch_limit": 160,
+          "ids_match": true,
+          "noise_match": true,
+          "passed": true,
+          "replaced_patches": [],
+          "replacement_kinds": [],
+          "fuse_replacements": [],
+          "latent_replacements": [],
+          "replacing": {
+            "patches": 33,
+            "reference_patches": 33,
+            "stopped_patch": 32,
+            "reference_stopped_patch": 32,
+            "finish": "stop",
+            "audio_seconds": 5.28,
+            "audio_normalized_max": 5.5522760143986616e-05,
+            "other_latents_max": 9.010959125156792e-06
+          },
+          "without_replacement": {
+            "patches": 33,
+            "stopped_patch": 32,
+            "finish": "stop",
+            "within_criterion": true,
+            "first_latent_out_of_criterion": null,
+            "latent_max": 9.010959125156792e-06,
+            "audio_normalized_max": 5.5522760143986616e-05,
+            "seconds": 2.55548533302499,
+            "audio_seconds": 5.28
+          }
+        },
+        {
+          "id": "heldout_ja",
+          "text_tokens": 51,
+          "patch_limit": 316,
+          "ids_match": true,
+          "noise_match": true,
+          "passed": true,
+          "replaced_patches": [
+            30
+          ],
+          "replacement_kinds": [
+            "fuse"
+          ],
+          "fuse_replacements": [
+            {
+              "candidate_code": 0.0,
+              "code": 1.0,
+              "dim": 328,
+              "distance": 1.6093254089355469e-06,
+              "fixture": "heldout_ja",
+              "kind": "fuse",
+              "lm_hidden_error": 9.763503535608718e-08,
+              "patch": 30,
+              "residual_input_error": 1.215448537908905e-06,
+              "step": 29
+            }
+          ],
+          "latent_replacements": [],
+          "replacing": {
+            "patches": 52,
+            "reference_patches": 52,
+            "stopped_patch": 51,
+            "reference_stopped_patch": 51,
+            "finish": "stop",
+            "audio_seconds": 8.32,
+            "audio_normalized_max": 0.0008148235239213359,
+            "other_latents_max": 0.0003430512940332479
+          },
+          "without_replacement": {
+            "patches": 52,
+            "stopped_patch": 51,
+            "finish": "stop",
+            "within_criterion": false,
+            "first_latent_out_of_criterion": 30,
+            "latent_max": 0.04172040253380144,
+            "audio_normalized_max": 0.06885137348525946,
+            "seconds": 3.9003755410085432,
+            "audio_seconds": 8.32
+          }
+        },
+        {
+          "id": "long",
+          "text_tokens": 97,
+          "patch_limit": 592,
+          "ids_match": true,
+          "noise_match": true,
+          "passed": true,
+          "replaced_patches": [
+            9
+          ],
+          "replacement_kinds": [
+            "fuse"
+          ],
+          "fuse_replacements": [
+            {
+              "candidate_code": 2.0,
+              "code": 3.0,
+              "dim": 283,
+              "distance": 4.76837158203125e-07,
+              "fixture": "long",
+              "kind": "fuse",
+              "lm_hidden_error": 5.7559104854615486e-08,
+              "patch": 9,
+              "residual_input_error": 1.100615707197966e-06,
+              "step": 8
+            }
+          ],
+          "latent_replacements": [],
+          "replacing": {
+            "patches": 105,
+            "reference_patches": 105,
+            "stopped_patch": 104,
+            "reference_stopped_patch": 104,
+            "finish": "stop",
+            "audio_seconds": 16.8,
+            "audio_normalized_max": 0.0004065590862603839,
+            "other_latents_max": 0.00043070705888694237
+          },
+          "without_replacement": {
+            "patches": 105,
+            "stopped_patch": 104,
+            "finish": "stop",
+            "within_criterion": false,
+            "first_latent_out_of_criterion": 9,
+            "latent_max": 2.194835415461936,
+            "audio_normalized_max": 1.3602943216687942,
+            "seconds": 7.709948249976151,
+            "audio_seconds": 16.8
+          }
+        },
+        {
+          "id": "plain",
+          "text_tokens": 19,
+          "patch_limit": 124,
+          "ids_match": true,
+          "noise_match": true,
+          "passed": true,
+          "replaced_patches": [
+            9
+          ],
+          "replacement_kinds": [
+            "latent"
+          ],
+          "fuse_replacements": [],
+          "latent_replacements": [
+            {
+              "a": 2.6004037174456e-05,
+              "a_reference_scale": 2.6005576511203762e-05,
+              "b": 0.003839537415517874,
+              "b_reference_scale": 0.00383976470103506,
+              "error": {
+                "max_abs": 0.014495491981506348,
+                "nonfinite": 0,
+                "normalized_max": 0.003865770277546264,
+                "passed": false,
+                "reference_max_abs": 3.7497034072875977
+              },
+              "fixture": "plain",
+              "inputs": {
+                "cond": {
+                  "max_abs": 3.802776336669922e-05,
+                  "nonfinite": 0,
+                  "normalized_max": 7.320685880797386e-06,
+                  "passed": true,
+                  "reference_max_abs": 5.194562911987305
+                },
+                "dit_hidden": {
+                  "max_abs": 5.698204040527344e-05,
+                  "nonfinite": 0,
+                  "normalized_max": 1.345987250448332e-06,
+                  "passed": true,
+                  "reference_max_abs": 42.334754943847656
+                },
+                "noise_bitwise": true,
+                "schedule": true,
+                "valid": true
+              },
+              "kind": "latent",
+              "original_reproduces_reference": true,
+              "patch": 9
+            }
+          ],
+          "replacing": {
+            "patches": 15,
+            "reference_patches": 15,
+            "stopped_patch": 14,
+            "reference_stopped_patch": 14,
+            "finish": "stop",
+            "audio_seconds": 2.4,
+            "audio_normalized_max": 9.073996821577219e-06,
+            "other_latents_max": 1.1579952785737331e-05
+          },
+          "without_replacement": {
+            "patches": 15,
+            "stopped_patch": 14,
+            "finish": "stop",
+            "within_criterion": false,
+            "first_latent_out_of_criterion": 9,
+            "latent_max": 0.006375584128612578,
+            "audio_normalized_max": 0.006914731111033391,
+            "seconds": 1.2601453749812208,
+            "audio_seconds": 2.4
+          }
+        }
+      ]
+    },
+    "sensitivity": {
+      "perturbation": {
+        "fixture": "plain",
+        "patch": 9,
+        "magnitude": 4e-06,
+        "trials": 32,
+        "max": 0.00032300324528478086,
+        "median": 0.00012572011473821476,
+        "observed": 0.003865770277546264,
+        "verdict": "undetermined"
+      },
+      "same_input_solver": {
+        "patches": 239,
+        "max_a": 2.6004037863458507e-05,
+        "plain_patch_9": {
+          "patch": 9,
+          "a": 2.6004037863458507e-05,
+          "s2": 0.0003472920798230916,
+          "b": 0.0038397647440433502,
+          "core_vs_reference": 0.003865770297124982,
+          "dit_hidden_vs_reference": 1.3459872434395947e-06,
+          "cond_vs_reference": 7.320685654121917e-06,
+          "noise_equal": true
+        },
+        "definitions": {
+          "a": "max|original(core inputs) - core latent| / max|original(core inputs)|",
+          "b": "max|original(core inputs) - reference latent| / max|reference latent|"
+        }
+      }
+    },
+    "precision_comparison": {
+      "seeds": [
+        1708,
+        1709,
+        1710
+      ],
+      "sentences": {
+        "design": 28,
+        "english": 15,
+        "long": 97,
+        "numbers": 51,
+        "plain": 19
+      },
+      "configurations": {
+        "fp16": {
+          "precisions": {
+            "dit": "fp16",
+            "locenc": "fp16",
+            "proj": "fp16",
+            "ralm": "fp16",
+            "tslm": "fp16",
+            "vae": "fp16"
+          },
+          "summary": {
+            "clipped_samples": 0,
+            "finish": {
+              "error": 0,
+              "limit": 0,
+              "stop": 15
+            },
+            "first_latent_out_of_criterion_median": 1.0,
+            "generations": 15,
+            "generations_out_of_criterion": 15,
+            "latent_max": 2.144796696069265,
+            "latent_median_of_medians": 0.11843803207994073,
+            "median_ms_per_patch": 47.05271560891086,
+            "median_seconds_per_audio_second": 0.2940794725556929,
+            "stopped_patch_matches_fp32": 10
+          }
+        },
+        "fp16_proj32": {
+          "precisions": {
+            "dit": "fp16",
+            "locenc": "fp16",
+            "proj": "fp32",
+            "ralm": "fp16",
+            "tslm": "fp16",
+            "vae": "fp16"
+          },
+          "summary": {
+            "clipped_samples": 0,
+            "finish": {
+              "error": 0,
+              "limit": 0,
+              "stop": 15
+            },
+            "first_latent_out_of_criterion_median": 1.0,
+            "generations": 15,
+            "generations_out_of_criterion": 15,
+            "latent_max": 2.6665923331834445,
+            "latent_median_of_medians": 0.05459098115669165,
+            "median_ms_per_patch": 47.08945711643216,
+            "median_seconds_per_audio_second": 0.294309106977701,
+            "stopped_patch_matches_fp32": 10
+          }
+        },
+        "fp32": {
+          "precisions": {
+            "dit": "fp32",
+            "locenc": "fp32",
+            "proj": "fp32",
+            "ralm": "fp32",
+            "tslm": "fp32",
+            "vae": "fp32"
+          },
+          "summary": {
+            "clipped_samples": 0,
+            "finish": {
+              "error": 0,
+              "limit": 0,
+              "stop": 15
+            },
+            "generations": 15,
+            "median_ms_per_patch": 72.94360997265257,
+            "median_seconds_per_audio_second": 0.4558975623290785
+          }
+        }
+      },
+      "load_average": [
+        4.09375,
+        6.12890625
+      ]
+    }
+  },
+  "memory_bundles": {
+    "run": "20261116T204724-264d1994",
+    "programs_identical_to_current": true,
+    "note": "Measured once per bundle with a one-off script outside the repository; not repeated for the current bundles."
+  },
+  "memory": {
+    "fp32": {
+      "sentence": "long",
+      "seed": 1708,
+      "text_tokens": 97,
+      "finish": "stop",
+      "patches": 105,
+      "stopped_patch": 104,
+      "audio_seconds": 16.8,
+      "load_seconds": 7.071023416996468,
+      "generation_seconds": 7.819349666009657,
+      "seconds_per_audio_second": 0.46543748011962244,
+      "phys_footprint_bytes": {
+        "before_load": 84247128,
+        "after_load": 215053080,
+        "after_generation": 838137128,
+        "after_release": 754709776
+      },
+      "resident_bytes": {
+        "before_load": 98549760,
+        "after_load": 16327606272,
+        "after_generation": 16731029504,
+        "after_release": 16650502144
+      },
+      "lifetime_max_phys_footprint_bytes": 842347816,
+      "max_rss_bytes": 22462464000,
+      "residual_footprint_bytes": 670462648,
+      "system_wired_bytes": {
+        "before_load": 7308689408,
+        "after_load": 7416659968,
+        "after_generation": 16450404352,
+        "after_release": 16374087680
+      },
+      "system_wired_change_during_generation_bytes": 9033744384,
+      "system_swap_used": {
+        "before_load": "12210.25M",
+        "after_load": "12210.25M",
+        "after_generation": "12210.25M",
+        "after_release": "12210.25M"
+      }
+    },
+    "fp16": {
+      "sentence": "long",
+      "seed": 1708,
+      "text_tokens": 97,
+      "finish": "stop",
+      "patches": 105,
+      "stopped_patch": 104,
+      "audio_seconds": 16.8,
+      "load_seconds": 3.4028813340119086,
+      "generation_seconds": 5.105552542023361,
+      "seconds_per_audio_second": 0.3039019370252,
+      "phys_footprint_bytes": {
+        "before_load": 84050496,
+        "after_load": 177102288,
+        "after_generation": 661102512,
+        "after_release": 617881520
+      },
+      "resident_bytes": {
+        "before_load": 98369536,
+        "after_load": 8241758208,
+        "after_generation": 8580218880,
+        "after_release": 8539504640
+      },
+      "lifetime_max_phys_footprint_bytes": 662626224,
+      "max_rss_bytes": 11290116096,
+      "residual_footprint_bytes": 533831024,
+      "system_wired_bytes": {
+        "before_load": 7276331008,
+        "after_load": 7378468864,
+        "after_generation": 12033949696,
+        "after_release": 11968528384
+      },
+      "system_wired_change_during_generation_bytes": 4655480832,
+      "system_swap_used": {
+        "before_load": "12210.25M",
+        "after_load": "12210.25M",
+        "after_generation": "12210.25M",
+        "after_release": "12210.25M"
+      }
+    }
+  },
+  "memory_earlier_bundle": {
+    "note": "The same measurement on the bundles of 20261116T202807-b4d07f2b, whose programs are also byte-identical; only creationDate in metadata.json differs.",
+    "values": {
+      "fp16": {
+        "sentence": "long",
+        "seed": 1708,
+        "text_tokens": 97,
+        "finish": "stop",
+        "patches": 105,
+        "stopped_patch": 104,
+        "audio_seconds": 16.8,
+        "load_seconds": 2.722440958954394,
+        "generation_seconds": 5.074483959004283,
+        "seconds_per_audio_second": 0.3020526166073978,
+        "phys_footprint_bytes": {
+          "before_load": 85197376,
+          "after_load": 178314656,
+          "after_generation": 661577600,
+          "after_release": 620699496
+        },
+        "resident_bytes": {
+          "before_load": 99516416,
+          "after_load": 8243003392,
+          "after_generation": 8582545408,
+          "after_release": 8542011392
+        },
+        "lifetime_max_phys_footprint_bytes": 664575872,
+        "max_rss_bytes": 11291279360,
+        "residual_footprint_bytes": 535502120,
+        "system_wired_bytes": {
+          "before_load": 7390511104,
+          "after_load": 7413563392,
+          "after_generation": 12049760256,
+          "after_release": 12008570880
+        },
+        "system_wired_change_during_generation_bytes": 4636196864,
+        "system_swap_used": {
+          "before_load": "12210.25M",
+          "after_load": "12210.25M",
+          "after_generation": "12210.25M",
+          "after_release": "12210.25M"
+        }
+      },
+      "fp32": {
+        "sentence": "long",
+        "seed": 1708,
+        "text_tokens": 97,
+        "finish": "stop",
+        "patches": 105,
+        "stopped_patch": 104,
+        "audio_seconds": 16.8,
+        "load_seconds": 6.689827624999452,
+        "generation_seconds": 7.738439375010785,
+        "seconds_per_audio_second": 0.46062139136968955,
+        "phys_footprint_bytes": {
+          "before_load": 84329024,
+          "after_load": 215429864,
+          "after_generation": 824358112,
+          "after_release": 741504200
+        },
+        "resident_bytes": {
+          "before_load": 98648064,
+          "after_load": 16328015872,
+          "after_generation": 16734568448,
+          "after_release": 16654024704
+        },
+        "lifetime_max_phys_footprint_bytes": 834024672,
+        "max_rss_bytes": 22462889984,
+        "residual_footprint_bytes": 657175176,
+        "system_wired_bytes": {
+          "before_load": 7641989120,
+          "after_load": 7346847744,
+          "after_generation": 16571809792,
+          "after_release": 16471195648
+        },
+        "system_wired_change_during_generation_bytes": 9224962048,
+        "system_swap_used": {
+          "before_load": "12210.25M",
+          "after_load": "12210.25M",
+          "after_generation": "12210.25M",
+          "after_release": "12210.25M"
+        }
+      }
+    }
+  },
+  "bundle_run_summary": {
+    "schema": "coreai-conversion-summary/1",
+    "status": "completed",
+    "verification": "passed",
+    "scope": "Fixed-input conversion check; not model production qualification.",
+    "stages": [
+      {
+        "index": 0,
+        "role": "reference",
+        "status": "reused",
+        "prepare_s": 1.662528500019107,
+        "execute_s": 0,
+        "total_s": 1.662588000006508
+      },
+      {
+        "index": 1,
+        "role": "verify",
+        "status": "reused",
+        "prepare_s": 1.6219648330006748,
+        "execute_s": 0,
+        "total_s": 1.6219802499981597
+      },
+      {
+        "index": 2,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 4.47883404098684,
+        "execute_s": 0,
+        "total_s": 4.478874500025995
+      },
+      {
+        "index": 3,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 2.349634500045795,
+        "execute_s": 0,
+        "total_s": 2.3496753750368953
+      },
+      {
+        "index": 4,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 1.649841499980539,
+        "execute_s": 0,
+        "total_s": 1.6498712499742396
+      },
+      {
+        "index": 5,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 2.0336812090245076,
+        "execute_s": 0,
+        "total_s": 2.0337186669930816
+      },
+      {
+        "index": 6,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 2.0337289170129225,
+        "execute_s": 0,
+        "total_s": 2.033765667001717
+      },
+      {
+        "index": 7,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 1.7044810419902205,
+        "execute_s": 0,
+        "total_s": 1.7045117919915356
+      },
+      {
+        "index": 8,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 3.544269542035181,
+        "execute_s": 0,
+        "total_s": 3.544308207987342
+      },
+      {
+        "index": 9,
+        "role": "export",
+        "status": "reused",
+        "prepare_s": 2.1102507920004427,
+        "execute_s": 0,
+        "total_s": 2.110285083996132
+      },
+      {
+        "index": 10,
+        "role": "verify",
+        "status": "reused",
+        "prepare_s": 0.0023025409900583327,
+        "execute_s": 0,
+        "total_s": 0.002318207989446819
+      },
+      {
+        "index": 11,
+        "role": "verify",
+        "status": "reused",
+        "prepare_s": 0.0020946250297129154,
+        "execute_s": 0,
+        "total_s": 0.0021059580030851066
+      },
+      {
+        "index": 12,
+        "role": "verify",
+        "status": "reused",
+        "prepare_s": 0.0023475419729948044,
+        "execute_s": 0,
+        "total_s": 0.002360332990065217
+      },
+      {
+        "index": 13,
+        "role": "verify",
+        "status": "reused",
+        "prepare_s": 0.016934540995862335,
+        "execute_s": 0,
+        "total_s": 0.016962624969892204
+      },
+      {
+        "index": 14,
+        "role": "verify",
+        "status": "reused",
+        "prepare_s": 1.6758567089564167,
+        "execute_s": 0,
+        "total_s": 1.6758896249812096
+      },
+      {
+        "index": 15,
+        "role": "export",
+        "status": "executed",
+        "prepare_s": 0.0012203750084154308,
+        "execute_s": 71.08959508303087,
+        "total_s": 81.52965237497119
+      },
+      {
+        "index": 16,
+        "role": "export",
+        "status": "executed",
+        "prepare_s": 0.0023804170195944607,
+        "execute_s": 606.8174742909614,
+        "total_s": 623.4603062500246
+      },
+      {
+        "index": 17,
+        "role": "verify",
+        "status": "executed",
+        "prepare_s": 0.0011214580154046416,
+        "execute_s": 39.06569183303509,
+        "total_s": 47.019910750037525
+      }
+    ],
+    "elapsed_s": 778.2099572910229
+  }
+}

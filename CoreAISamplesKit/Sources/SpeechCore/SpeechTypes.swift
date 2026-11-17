@@ -30,6 +30,10 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
     case invalidAsset(String)
     case playbackFailed
     case referenceNotSupported
+    case modelNotOpened(String)
+    case textExceedsLimit(count: Int, limit: Int)
+    case speechNotFinished
+    case unreadableText
 
     public var errorDescription: String? {
         switch self {
@@ -43,6 +47,12 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
         case .invalidAsset(let message): message
         case .playbackFailed: "The generated audio could not be played."
         case .referenceNotSupported: "This model does not support a reference voice. Choose the reference-voice model."
+        case .modelNotOpened(let model): "Open a \(model) model folder first."
+        case .textExceedsLimit(let count, let limit):
+            "This text contains \(count) tokens. Shorten it to \(limit) tokens or fewer."
+        case .speechNotFinished: "The model reached its length limit before the speech ended."
+        case .unreadableText:
+            "The model cannot read some characters in this text. Remove or replace them, then try again."
         }
     }
 }

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "limit_check": {
+    "fixture": "plain",
+    "patches": 8
+  },
+  "replacement": {
+    "per_sentence": 1,
+    "total_fraction": 0.02
+  },
+  "compare": {
+    "seeds": [1708, 1709, 1710],
+    "listen_seed": 1708,
+    "label_seed": 576,
+    "fixtures": ["plain", "long", "design"],
+    "sentences": [
+      {
+        "id": "numbers",
+        "text": "2026年11月17日の午前9時30分に、3番線から特急が発車します。料金は1,280円（税込）です。"
+      },
+      {
+        "id": "english",
+        "text": "Please check the schedule before you leave, and call me if anything changes."
+      }
+    ],
+    "baseline": "fp32",
+    "configurations": {
+      "fp32": {"tslm": "fp32", "ralm": "fp32", "proj": "fp32", "locenc": "fp32", "dit": "fp32", "vae": "fp32"},
+      "fp16": {"tslm": "fp16", "ralm": "fp16", "proj": "fp16", "locenc": "fp16", "dit": "fp16", "vae": "fp16"},
+      "fp16_proj32": {"tslm": "fp16", "ralm": "fp16", "proj": "fp32", "locenc": "fp16", "dit": "fp16", "vae": "fp16"}
+    }
+  }
+}

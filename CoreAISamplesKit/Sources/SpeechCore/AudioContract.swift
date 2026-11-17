@@ -27,8 +27,8 @@ public struct RecyclePolicy: Sendable {
     }
 }
 
-public func floatWAV(samples: [Float]) throws -> Data {
-    guard !samples.isEmpty, samples.count <= 750 * 1920, samples.allSatisfy({ $0.isFinite }) else {
+public func floatWAV(samples: [Float], maximumSamples: Int = 750 * 1920) throws -> Data {
+    guard !samples.isEmpty, samples.count <= maximumSamples, samples.allSatisfy({ $0.isFinite }) else {
         throw SpeechError.invalidSamples
     }
     var data = Data()

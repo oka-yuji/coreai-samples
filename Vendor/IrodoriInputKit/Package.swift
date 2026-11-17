@@ -13,6 +13,7 @@ let package = Package(
     products: [
         .library(name: "IrodoriInputLogic", targets: ["IrodoriInputLogic"]),
         .library(name: "IrodoriTokenizers", targets: ["IrodoriTokenizers"]),
+        .library(name: "VoxCPMTokenizers", targets: ["VoxCPMTokenizers"]),
     ],
     targets: [
         .target(name: "IrodoriInputLogic", swiftSettings: settings),
@@ -28,4 +29,5 @@ let package = Package(
             ]),
         .target(
             name: "IrodoriTokenizers", dependencies: ["IrodoriInputLogic", "CTokenizers"], swiftSettings: settings),
+        .target(name: "VoxCPMTokenizers", dependencies: ["CTokenizers"], swiftSettings: settings),
     ])
