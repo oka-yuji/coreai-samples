@@ -13,12 +13,13 @@
     "en": "Speech generation",
     "ja": "音声生成"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "conversion and app bundles verified on the Python host; listening, app and publication pending",
-    "ja": "変換とアプリ用bundleをPythonのホストで検証済み・試聴／アプリ／公開は未完了"
+    "en": "FP16 bundle published and downloadable from Mac Models; native Mac demo passes automated checks. Listening and normal-screen acceptance pending.",
+    "ja": "FP16のbundleを公開し、MacのModelsから取得できる。Macのネイティブデモは自動の確認に合格。試聴と通常の画面の本人受入は未完了。"
   },
-  "download": null,
+  "download": "https://huggingface.co/okayuji/voxcpm2-coreai",
+  "public_access_evidence": "docs/validation/voxcpm2-download-20261118/README.md#anonymous-download",
   "pages": {
     "en": "docs/model-reports/voxcpm2.md",
     "ja": "docs/model-reports/voxcpm2.ja.md"
@@ -48,12 +49,18 @@
   ],
   "support": {
     "macos": {
-      "state": "unavailable",
+      "state": "pending",
       "variants": [],
-      "evidence": [],
+      "evidence": [
+        "swift-pipeline-20261117",
+        "runtime-smoke-20261117",
+        "models-import-20261117",
+        "mac-models-20261117",
+        "download-20261118"
+      ],
       "note": {
-        "en": "No native demo yet. Results of the Python host are not app support.",
-        "ja": "ネイティブデモは未提供。Pythonのホストの結果はアプリの対応ではない。"
+        "en": "Native Mac demo using the FP16 bundle from Models. Automated checks pass: Swift pipeline against Python-host records, production runtime smoke, Models import, Models-to-service generation and a fresh public download. Normal-screen use and listening await the owner's acceptance.",
+        "ja": "ModelsのFP16のbundleを使うMacのネイティブデモ。自動の確認は合格: Pythonのホストの記録とのSwiftのパイプラインの照合、本番の実行部のsmoke、Modelsへの取込、Modelsからサービスでの生成、公開先からの新しい取得。通常の画面での操作と試聴は本人の受入待ち。"
       }
     },
     "ios": {
@@ -142,6 +149,146 @@
       "workload": {
         "en": "Sentence long (97 text tokens, 105 patches, 16.8 s of audio), seed 1708, first generation of the process. Process memory sampled before and after load, after the generation and after release by a one-off script outside the repository. Recorded without a pass or fail; not app memory.",
         "ja": "文long(97 token、105パッチ、音声16.8秒)、seed 1708、プロセスで最初の生成。ロードの前後、生成の後、解放の後にプロセスのメモリを、リポジトリの外の1回限りのスクリプトで採取。合否なしの記録で、アプリのメモリではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "swift-pipeline-20261117": {
+      "url": "https://github.com/oka-yuji/coreai-samples/pull/589",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-17",
+      "platform": "macos",
+      "device": "Apple M5 Max",
+      "os": null,
+      "toolchain": null,
+      "variant": "fp32 for the comparisons; fp32, fp16 and fp16_proj32 bundles for generation",
+      "backend": "Swift Core AI, GPU preference; actual delegate not profiled",
+      "route": "VoxCPMNativeTests: Swift pipeline per-call comparison with recorded Python-host inputs, a pass fed with the recorded latent each patch, and seed-1708 free-running generation",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Five fixed sentences. FP32: all 3,590 per-call comparisons were bit-identical; with the recorded latent fed each patch, dit_hidden, stop logits and audio were bit-identical, the solver latent differed by at most 1.92e-5 and the stop patch matched for all five. Free-running results are recorded only. 15 generations across the three configurations had sample counts equal to patches x 7680 and no non-finite values. Swift package tests, not the app.",
+        "ja": "固定の5文。FP32で、呼び出しごとの照合3,590件はすべてビット一致。記録の潜在を毎パッチ与えた通しは、dit_hidden・停止のlogits・音声がビット一致、解法の潜在の差は最大1.92e-5、停止したパッチは5文とも一致。自走の結果は記録だけ。3構成の15回の生成で、標本数はパッチ数×7680と合い、非有限値なし。Swiftのパッケージの試験で、アプリではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "runtime-smoke-20261117": {
+      "url": "https://github.com/oka-yuji/coreai-samples/pull/590",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-17",
+      "platform": "macos",
+      "device": "Apple M5 Max",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": null,
+      "variant": "fp32, fp16 and fp16_proj32 bundles",
+      "backend": "Swift Core AI, GPU preference; actual delegate not profiled",
+      "route": "VoxCPMRuntimeNativeTests: production VoxCPMRuntime, open -> generate -> generate another sentence without reloading -> release -> regenerate the same sentence and seed -> release; one new process per configuration",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Seed 1708; sentences with 2.40 s and 5.44 s of audio. All three configurations passed; assets loaded only at first use and after release; process RSS after release fell from 16.49 to 0.21 GB (fp32) and from 8.35 to 0.20 GB (fp16); the regenerated WAV equaled the first byte for byte. Swift package tests in release, not the app.",
+        "ja": "seed 1708。音声2.40秒と5.44秒の文。3構成とも合格。資産の読み込みは最初と解放の後だけ。解放の後のプロセスのRSSはfp32で16.49→0.21 GB、fp16で8.35→0.20 GB。読み直した後のWAVは最初の生成とバイト単位で同じ。releaseのSwiftのパッケージの試験で、アプリではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "models-import-20261117": {
+      "url": "https://github.com/oka-yuji/coreai-samples/pull/591",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-17",
+      "platform": "macos",
+      "device": "Apple M5 Max",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": null,
+      "variant": "fp16 bundle (fp32 and fp16_proj32 only as rejected inputs)",
+      "backend": "Swift Core AI, GPU preference; actual delegate not profiled",
+      "route": "VoxCPMImportTests.knownBundle: Models import of the real bundle (copy, full inspection, ready, lease, deletion, rejection of other configurations and damaged copies); then VoxCPMRuntimeNativeTests with the content-keyed verified copy",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+      "code_revision": null,
+      "workload": {
+        "en": "22 files, 4,677,413,664 B: copy 1.7-2.4 s, promotion 1.5-1.7 s, full re-inspection 1.5-1.7 s; source hashes unchanged; deletion refused while leased. After the verified-copy key change, open -> generate -> release -> regenerate passed with byte-identical audio (fp16 only). Swift package tests, not the app.",
+        "ja": "22ファイル・4,677,413,664 B。コピー1.7〜2.4秒、昇格1.5〜1.7秒、全量の再検査1.5〜1.7秒。元のhashは不変。lease中の削除は拒否。検査済みの複製の鍵を変えた後、開く→生成→解放→再生成が合格し、音声はバイト単位で同じ(fp16だけ)。Swiftのパッケージの試験で、アプリではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "mac-models-20261117": {
+      "url": "https://github.com/oka-yuji/coreai-samples/pull/592",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-17",
+      "platform": "macos",
+      "device": "Apple M5 Max",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": null,
+      "variant": "fp16",
+      "backend": "Swift Core AI, GPU preference; actual delegate not profiled",
+      "route": "VoxCPMMacIntegrationTests: production Mac catalog and Models store/runner import -> usage lease -> production speech store and service (LiveSpeechService.makeStore(engine: .voxcpm2)) -> three examples -> stop -> lease release",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+      "code_revision": null,
+      "workload": {
+        "en": "Import of 22 files, 4,677,413,664 B in 3.62 s; open with the full hash check 1.83 s; three examples: 2.40 s of audio in 6.42 s including asset load, 5.44 s in 1.51 s and 5.28 s in 1.49 s; 48 kHz mono Float32 WAV; leases 0 -> 1 -> 1 -> 0; source hashes unchanged. Swift package tests in release, not the app GUI; no playback or listening.",
+        "ja": "22ファイル・4,677,413,664 Bの取込は3.62秒、全hashの検査を含む開くは1.83秒。例文3つで、資産の読み込みを含む6.42秒で2.40秒の音声、1.51秒で5.44秒、1.49秒で5.28秒。WAVは48 kHz・mono・Float32。leaseは0→1→1→0。元のhashは不変。releaseのSwiftのパッケージの試験で、アプリの画面ではなく、再生も試聴もしていない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "download-20261118": {
+      "url": "docs/validation/voxcpm2-download-20261118/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-18",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; release package tests",
+      "variant": "fp16",
+      "backend": "Swift Core AI, GPU preference; actual delegate not profiled",
+      "route": "Fresh Models download without credentials from the pinned revision -> full inspection -> usage lease -> production speech store and service -> one example -> stop -> lease release -> deletion",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": "afe11d61de9dd7c3609140aa040b777ef77b2555",
+      "code_revision": null,
+      "workload": {
+        "en": "22 GETs with no header fields from okayuji/voxcpm2-coreai fp16/, all HTTP 200, 4,677,413,664 B into an empty model library with no migration candidates; download 138.3 s and validation 1.5 s (network-dependent, not a performance measurement); one example: 2.40 s of audio in 9.28 s including asset load; leases 0 -> 1 -> 1 -> 0; then deleted. No app GUI, playback or listening.",
+        "ja": "okayuji/voxcpm2-coreaiのfp16/へのheaderの無い22件の取得がすべてHTTP 200で、4,677,413,664 Bを移行候補の無い空のモデルの領域へ取得。ダウンロード138.3秒・検査1.5秒(通信に依存し、性能の計測ではない)。例文1つで、資産の読み込みを含む9.28秒で2.40秒の音声。leaseは0→1→1→0、その後に削除。アプリの画面・再生・試聴はしていない。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -458,15 +605,15 @@
     "cancel_s": {
       "state": "not_measured",
       "reason": {
-        "en": "Not measured; no app or stop path yet.",
-        "ja": "未計測。アプリと停止の経路はまだない。"
+        "en": "Not measured; the stop path exists (#590, #592) but its time was not measured.",
+        "ja": "未計測。停止の経路はある(#590、#592)が、時間は測っていない。"
       }
     },
     "first_audio_s": {
       "state": "not_measured",
       "reason": {
-        "en": "Not measured. The Python host does not stream audio, and no app reads the bundles yet.",
-        "ja": "未計測。Pythonのホストは逐次に再生せず、bundleを読むアプリもまだない。"
+        "en": "Not measured. Neither the Python host nor the app streams audio; the app returns the audio after the whole generation.",
+        "ja": "未計測。Pythonのホストもアプリも逐次に再生せず、アプリは生成の全体が終わってから音声を返す。"
       }
     },
     "cer": {
@@ -507,16 +654,16 @@
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "No repeated use or release check in an app.",
-        "ja": "アプリでの連続利用と解放の確認は未実施。"
+        "en": "Release and reload with the real model were checked in the production runtime and the Models service in test processes (#590, #592); continuous use in the app is not measured.",
+        "ja": "実モデルでの解放と読み直しは、試験のプロセスで本番の実行部とModelsのサービスを通して確認した(#590、#592)。アプリでの連続利用は未計測。"
       }
     },
     "cancellation": {
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "No stop or retry check.",
-        "ja": "停止と再試行の確認は未実施。"
+        "en": "Stop and retry are covered by CPU fakes (#590) and one real-model stop in a test process (#592); no measured cancellation time or app check.",
+        "ja": "停止と再試行は偽の部品のCPUの試験(#590)と、試験のプロセスでの実モデルの停止1回(#592)で確認。取消の時間とアプリでの確認は未計測。"
       }
     }
   }

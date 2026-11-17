@@ -66,7 +66,7 @@ struct MacDemoCatalogTests {
         #expect(
             try catalog.model("irodori")?.artifacts == [IrodoriModelArtifact.makeReferenceDownload(platforms: [.macOS])]
         )
-        #expect(try catalog.model("voxcpm2")?.artifacts == [VoxCPMModelArtifact.make()])
+        #expect(try catalog.model("voxcpm2")?.artifacts == [VoxCPMModelArtifact.makeDownload()])
         #expect(try catalog.model("teleocr")?.artifacts == [TeleOCRModelArtifact.make()])
         #expect(try catalog.model("chronos2")?.artifacts == [ChronosModelArtifact.make()])
     }
@@ -76,7 +76,7 @@ struct MacDemoCatalogTests {
         let catalog = try MacDemoCatalog.make()
         let model = try #require(catalog.model("voxcpm2"))
         #expect(model.name == "VoxCPM2" && model.category == "Speech Synthesis" && model.platforms == [.macOS])
-        #expect(model.artifacts == [try VoxCPMModelArtifact.make()] && model.artifacts[0].platforms == [.macOS])
+        #expect(model.artifacts == [try VoxCPMModelArtifact.makeDownload()] && model.artifacts[0].platforms == [.macOS])
         #expect(model.demos == [ModelDemoLink(demoID: "voice-design", platforms: [.macOS])])
         let demo = try #require(catalog.demo("voice-design"))
         #expect(demo.platforms == [.macOS] && demo.title == demo.summary)
