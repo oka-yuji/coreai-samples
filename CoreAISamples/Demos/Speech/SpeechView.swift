@@ -4,6 +4,10 @@ import SwiftUI
 
 struct SpeechView: View {
     @Bindable var store: Store<SpeechFeature>
+    let model: DemoModel
+    let limit: LocalizedStringKey
+    let missing: LocalizedStringKey
+    var voiceHint: LocalizedStringKey?
     @Environment(MacModelLibrary.self) private var library
     @State private var attempted: String?
 
@@ -11,13 +15,13 @@ struct SpeechView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Irodori").font(.title2.bold())
+                    Text(verbatim: model.title).font(.title2.bold())
                     Text("Text to speech").font(.headline)
-                    if let model = store.state.model {
-                        Text(model.name)
+                    if let opened = store.state.model {
+                        Text(opened.name)
                             .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-                    } else if library.installed(.irodori) == nil {
-                        Text("Download Irodori from its heading in the sidebar.")
+                    } else if library.installed(model) == nil {
+                        Text(missing)
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 }
@@ -45,13 +49,16 @@ struct SpeechView: View {
                 .disabled(!store.state.editable)
                 .accessibilityLabel("Text to speak")
                 .accessibilityIdentifier("speech.text")
+            if let voiceHint {
+                Text(voiceHint).font(.caption).foregroundStyle(.secondary)
+            }
             HStack(spacing: 14) {
                 TextField("Seed", text: Binding(get: { store.state.seed }, set: { store.send(.setSeed($0)) }))
                     .textFieldStyle(.roundedBorder).frame(width: 220)
                     .disabled(!store.state.editable)
                     .accessibilityIdentifier("speech.seed")
                     .help("Change the seed to try another voice variation.")
-                Text("Short passages work best. The limit is 255 tokens.")
+                Text(limit)
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
             }
@@ -63,10 +70,7 @@ struct SpeechView: View {
                 Button("Generate speech", systemImage: "waveform") { store.send(.generate) }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(
-                        !store.state.canGenerate
-                            || library.resource(inUse: .irodori)?.directory.path != store.state.lastPath
-                    )
+                    .disabled(!store.state.canGenerate(usingModelAt: library.resource(inUse: model)?.directory.path))
                     .accessibilityIdentifier("speech.generate")
                 Button("Play", systemImage: "play.fill") { store.send(.play) }
                     .disabled(!store.state.canPlay)
@@ -114,17 +118,17 @@ struct SpeechView: View {
             .frame(minHeight: 24)
         }
         .padding(20)
-        .navigationTitle("Irodori")
+        .navigationTitle(model.title)
         .onAppear {
             store.send(.appeared)
-            library.use(.irodori)
+            library.use(model)
         }
         .onDisappear {
             store.send(.ended)
-            library.stopUsing(.irodori)
+            library.stopUsing(model)
             attempted = nil
         }
-        .onChange(of: library.resource(inUse: .irodori)?.directory) { _, new in
+        .onChange(of: library.resource(inUse: model)?.directory) { _, new in
             if new == nil { attempted = nil }
         }
         .onChange(of: bundleToOpen, initial: true) { _, path in
@@ -134,13 +138,16 @@ struct SpeechView: View {
         }
         .background {
             if let ticket = store.state.exportTicket, let audio = store.state.audio {
-                SpeechExportPresenter(ticket: ticket, data: audio.wav, send: store.send).id(ticket.id)
+                SpeechExportPresenter(
+                    ticket: ticket, data: audio.wav, filename: model.libraryID + "-speech.wav", send: store.send
+                )
+                .id(ticket.id)
             }
         }
     }
 
     private var bundleToOpen: String? {
-        guard let path = library.resource(inUse: .irodori)?.directory.path, store.state.editable,
+        guard let path = library.resource(inUse: model)?.directory.path, store.state.editable,
             store.state.model == nil || store.state.lastPath != path, attempted != path
         else { return nil }
         return path

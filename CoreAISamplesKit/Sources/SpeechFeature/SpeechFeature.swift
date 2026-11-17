@@ -64,6 +64,10 @@ public struct SpeechState: Sendable, Equatable {
         editable && model != nil && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && UInt64(seed) != nil
             && (reference == nil || model?.supportsReferenceAudio == true)
     }
+    public func canGenerate(usingModelAt path: String?) -> Bool {
+        guard let path else { return false }
+        return canGenerate && path == lastPath
+    }
     public var canPlay: Bool { editable && audio != nil }
     public var canSelectReference: Bool { editable && model?.supportsReferenceAudio == true }
     public var canPreviewReference: Bool { editable && reference != nil }

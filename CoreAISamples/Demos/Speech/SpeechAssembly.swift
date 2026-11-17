@@ -5,9 +5,14 @@ import SpeechRuntime
 
 @MainActor
 enum SpeechAssembly {
-    static func makeStore() -> Store<SpeechFeature> {
+    static func makeStore(_ engine: SpeechEngine = .irodori) -> Store<SpeechFeature> {
+        let resource =
+            switch engine {
+            case .irodori: "speech-examples"
+            case .voxcpm2: "voxcpm2-speech-examples"
+            }
         let examples: [SpeechExample]
-        if let url = Bundle.main.url(forResource: "speech-examples", withExtension: "json"),
+        if let url = Bundle.main.url(forResource: resource, withExtension: "json"),
             let data = try? Data(contentsOf: url),
             let loaded = try? JSONDecoder().decode([SpeechExample].self, from: data)
         {
@@ -15,11 +20,6 @@ enum SpeechAssembly {
         } else {
             examples = []
         }
-        let service = LiveSpeechService()
-        return Store(
-            initialState: SpeechState(
-                examples: examples,
-                lastPath: UserDefaults.standard.string(forKey: LiveSpeechService.modelPathKey)),
-            run: SpeechRunner(service: service).run)
+        return LiveSpeechService.makeStore(engine: engine, examples: examples)
     }
 }

@@ -1,10 +1,20 @@
 #if os(macOS) || os(iOS)
+    import FeatureStore
     import Foundation
     import SpeechCore
+    import SpeechFeature
 
     @MainActor
     public final class LiveSpeechService: SpeechService {
         public static let modelPathKey = SpeechEngine.irodori.modelPathKey
+        public static func makeStore(
+            engine kind: SpeechEngine, examples: [SpeechExample], defaults: UserDefaults = .standard
+        ) -> Store<SpeechFeature> {
+            let service = LiveSpeechService(engine: kind, defaults: defaults)
+            return Store(
+                initialState: SpeechState(examples: examples, lastPath: defaults.string(forKey: service.modelPathKey)),
+                run: SpeechRunner(service: service).run)
+        }
         let engine: any SpeechGenerating
         let modelPathKey: String
         private let playback: AudioPlayback
