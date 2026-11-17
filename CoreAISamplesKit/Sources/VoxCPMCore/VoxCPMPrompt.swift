@@ -1,5 +1,5 @@
 public enum VoxCPMPrompt {
-    private static let audioStartTokenID: Int32 = 101
+    public static let audioStartTokenID: Int32 = 101
     private static let wordBoundary: Unicode.Scalar = "\u{2581}"
     private static let kanji: ClosedRange<Unicode.Scalar> = "\u{4E00}"..."\u{9FFF}"
 

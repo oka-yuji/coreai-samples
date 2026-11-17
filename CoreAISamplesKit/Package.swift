@@ -313,7 +313,7 @@ let package = Package(
         .target(
             name: "SpeechRuntime",
             dependencies: [
-                "SpeechCore", "SpeechFeature", "SpeechAssets", "ModelLibraryFeature",
+                "SpeechCore", "SpeechFeature", "SpeechAssets", "ModelLibraryFeature", "VoxCPMCore",
                 .product(
                     name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
                 .product(
