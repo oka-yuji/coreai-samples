@@ -5620,6 +5620,17 @@
         }
       }
     },
+    "Open a VoxCPM2 model folder first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先にVoxCPM2のモデルフォルダを開いてください。"
+          }
+        }
+      }
+    },
     "Open a model bundle folder in Models, then load it." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7691,6 +7702,23 @@
         }
       }
     },
+    "Speech example: Gentle, calm voice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gentle, calm voice"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "やさしく落ち着いた声"
+          }
+        }
+      }
+    },
     "Speech example: Greeting" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7721,6 +7749,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "作業手順"
+          }
+        }
+      }
+    },
+    "Speech example: Low, steady voice (English)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low, steady voice (English)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低く落ち着いた声（英語）"
+          }
+        }
+      }
+    },
+    "Speech example: No voice description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No voice description"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声の説明なし"
           }
         }
       }
@@ -8278,6 +8340,17 @@
         }
       }
     },
+    "The VoxCPM2 tokenizer could not be loaded." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VoxCPM2のトークナイザを読み込めませんでした。"
+          }
+        }
+      }
+    },
     "The agent is running a task on this model. Chat can send when it finishes." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8559,6 +8632,17 @@
         }
       }
     },
+    "The model cannot read some characters in this text. Remove or replace them, then try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが読めない文字が文章に含まれています。その文字を消すか置き換えてから、もう一度試してください。"
+          }
+        }
+      }
+    },
     "The model could not be released." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8566,6 +8650,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルを解放できませんでした。"
+          }
+        }
+      }
+    },
+    "The model reached its length limit before the speech ended." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声が終わる前に、モデルの長さの上限に達しました。"
           }
         }
       }

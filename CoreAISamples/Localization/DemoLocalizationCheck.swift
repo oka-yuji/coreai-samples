@@ -2,6 +2,9 @@ import DecideFeature
 import Foundation
 import RecipeCore
 import RecipeFeature
+import SpeechCore
+import SpeechFeature
+import SpeechRuntime
 
 @MainActor
 enum DemoLocalizationCheck {
@@ -48,6 +51,10 @@ enum DemoLocalizationCheck {
                 "Notes kept as drafts.", "The question and sources exceed the RAG prompt budget.",
                 "The saved source record is inconsistent.",
             ]
+            keys += try [SpeechEngine.irodori, .voxcpm2].flatMap { try SpeechAssembly.examples($0) }
+                .map { "Speech example: " + $0.title }
+            let speechErrors: [SpeechError] = [.unreadableText, .speechNotFinished, .modelNotOpened("VoxCPM2")]
+            keys += speechErrors.compactMap(\.errorDescription) + ["The VoxCPM2 tokenizer could not be loaded."]
             var failures: [String] = []
             for name in modelNames.sorted() {
                 for language in ["en", "ja"] {

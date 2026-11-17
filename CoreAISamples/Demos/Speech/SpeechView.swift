@@ -32,7 +32,9 @@ struct SpeechView: View {
                 Spacer()
                 Menu("Examples") {
                     ForEach(store.state.examples) { example in
-                        Button(example.title) { store.send(.setText(example.text)) }
+                        Button(LocalizedStringKey("Speech example: " + example.title)) {
+                            store.send(.setText(example.text))
+                        }
                     }
                 }
                 .disabled(!store.state.editable || store.state.examples.isEmpty)
@@ -107,7 +109,7 @@ struct SpeechView: View {
                     ProgressView().controlSize(.small)
                     Text(phaseLabel)
                 } else if let message = store.state.message {
-                    Text(message).textSelection(.enabled)
+                    RuntimeMessageText(message).textSelection(.enabled)
                 } else {
                     Text("Generate a short passage, then play or save the result.")
                 }
