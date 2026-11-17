@@ -107,6 +107,7 @@ public actor ManagedModelStore {
     private let writeLedger: @Sendable (Data, URL) throws -> Void
     private let availableCapacity: @Sendable (URL) throws -> Int64
     private let removeMigratedSources: Bool
+    private let voxcpmInventory: Data?
     private var leases: [UUID: ModelArtifactIdentity] = [:]
     private var generation = 0
 
@@ -118,11 +119,22 @@ public actor ManagedModelStore {
                 .volumeAvailableCapacityForImportantUsage ?? .max
         }
     ) {
+        self.init(
+            root: root, removeMigratedSources: removeMigratedSources, clock: clock, writeLedger: writeLedger,
+            availableCapacity: availableCapacity, voxcpmInventory: nil)
+    }
+
+    init(
+        root: URL, removeMigratedSources: Bool, clock: @escaping @Sendable () -> Date,
+        writeLedger: @escaping @Sendable (Data, URL) throws -> Void,
+        availableCapacity: @escaping @Sendable (URL) throws -> Int64, voxcpmInventory: Data?
+    ) {
         self.root = root
         self.removeMigratedSources = removeMigratedSources
         self.clock = clock
         self.writeLedger = writeLedger
         self.availableCapacity = availableCapacity
+        self.voxcpmInventory = voxcpmInventory
     }
 
     public func stagingDirectory(for model: LibraryModel, artifact: ModelArtifact) throws -> URL {
@@ -148,6 +160,7 @@ public actor ManagedModelStore {
         guard sourcePath != managedPath, !sourcePath.hasPrefix(managedPath + "/"),
             !managedPath.hasPrefix(sourcePath + "/")
         else { throw ManagedModelStoreError.pathEscape }
+        if artifact.contract == VoxCPMModelArtifact.contract { try VoxCPMModelArtifact.verifyConfiguration(of: source) }
         try verifyStructure(source, artifact, allowingExtraneous: false)
         let area = try stagingDirectory(for: model, artifact: artifact)
         guard try availableCapacity(area) >= resource.sizeBytes else { throw ManagedModelStoreError.insufficientSpace }
@@ -473,7 +486,10 @@ public actor ManagedModelStore {
         guard artifact.download.map({ $0.root.isEmpty || isRelative($0.root) }) ?? true,
             artifact.files.allSatisfy({ isRelative($0.path) })
         else { throw ManagedModelStoreError.pathEscape }
-        _ = try family(artifact)
+        if case .voxcpm = try family(artifact) {
+            let trusted = try voxcpmInventory.map(VoxCPMModelArtifact.make(inventory:)) ?? VoxCPMModelArtifact.make()
+            guard artifact == trusted else { throw ManagedModelStoreError.contractMismatch("VoxCPM2 inventory") }
+        }
         return ValidatedModelResource(
             modelID: model.id, artifactID: artifact.id, contract: artifact.contract, revision: revision,
             upstreamRevision: artifact.upstream?.revision,
@@ -561,6 +577,7 @@ private enum ContractFamily {
     case embedding(precision: String)
     case image
     case speech
+    case voxcpm
     case ocr
     case chronos
 }
@@ -593,6 +610,7 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
         }
         return .speech
     }
+    if artifact.contract == VoxCPMModelArtifact.contract { return .voxcpm }
     if artifact.localBundle != nil {
         if artifact.contract == TeleOCRModelArtifact.contract {
             guard artifact == (try TeleOCRModelArtifact.make()) else {
@@ -736,6 +754,9 @@ private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
         }
     case .speech:
         try IrodoriBundleInventory.validateManifest(Data(contentsOf: directory.appending(path: "irodori.json")))
+    case .voxcpm:
+        try VoxCPMModelArtifact.validateManifest(
+            Data(contentsOf: directory.appending(path: VoxCPMBundleInventory.manifestPath)))
     case .ocr:
         try TeleOCRModelArtifact.validateManifest(Data(contentsOf: directory.appending(path: "metadata.json")))
     case .chronos:
@@ -802,6 +823,7 @@ private func verifyLocalManifest(_ raw: Data, _ artifact: ModelArtifact) throws 
     switch try family(artifact) {
     case .image: try verifyImageManifest(raw, artifact)
     case .speech: try IrodoriBundleInventory.validateManifest(raw)
+    case .voxcpm: try VoxCPMModelArtifact.validateManifest(raw)
     case .ocr: try TeleOCRModelArtifact.validateManifest(raw)
     case .chronos: try ChronosModelArtifact.validateManifest(raw)
     default: throw ManagedModelStoreError.invalidDefinition

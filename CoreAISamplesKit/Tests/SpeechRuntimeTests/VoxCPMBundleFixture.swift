@@ -13,9 +13,10 @@ struct VoxCPMBundleFixture: Sendable {
         path: "VoxCPMBundleTests-" + UUID().uuidString, directoryHint: .isDirectory)
     let manifest: Data
     let contents: [String: Data]
+    let key: String
     var source: URL { base.appending(path: "source", directoryHint: .isDirectory) }
     var copies: URL { base.appending(path: "copies", directoryHint: .isDirectory) }
-    var copy: URL { copies.appending(path: Self.digest(manifest), directoryHint: .isDirectory) }
+    var copy: URL { copies.appending(path: key, directoryHint: .isDirectory) }
 
     init() throws {
         manifest = try Self.manifest(.fp32)
@@ -29,6 +30,9 @@ struct VoxCPMBundleFixture: Sendable {
             }
         }
         self.contents = contents
+        key = ValidatedSpeechBundle.verifiedKey(
+            manifest: manifest, files: try VoxCPMBundleInventory.files(inventory: Self.inventory(contents)),
+            names: .voxcpm2)
         for (path, data) in contents { try write(data, to: path) }
     }
 
@@ -44,8 +48,12 @@ struct VoxCPMBundleFixture: Sendable {
     }
 
     func inventory() throws -> Data {
+        try Self.inventory(contents)
+    }
+
+    static func inventory(_ contents: [String: Data]) throws -> Data {
         let files = contents.keys.sorted().map { path in
-            ["path": path, "bytes": contents[path]?.count ?? 0, "sha256": Self.digest(contents[path] ?? Data())]
+            ["path": path, "bytes": contents[path]?.count ?? 0, "sha256": digest(contents[path] ?? Data())]
         }
         let total = contents.values.reduce(0) { $0 + $1.count }
         return try JSONSerialization.data(withJSONObject: [

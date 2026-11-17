@@ -21,7 +21,7 @@ struct VoxCPMBundleTests {
                 == VoxCPMBundleFixture.assets.map {
                     fixture.copy.appending(path: "artifacts/\($0)-fp32.aimodel", directoryHint: .isDirectory)
                 })
-        #expect(try fixture.copyFolders() == [VoxCPMBundleFixture.digest(fixture.manifest)])
+        #expect(try fixture.copyFolders() == [fixture.key])
         try #require(try fixture.copiedFiles() == Set(fixture.contents.keys))
         for (path, data) in fixture.contents {
             #expect(try Data(contentsOf: fixture.copy.appending(path: path)) == data, "\(path)")

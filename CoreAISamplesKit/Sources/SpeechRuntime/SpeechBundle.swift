@@ -108,7 +108,20 @@
                     throw mismatch(file.path, names)
                 }
             }
-            return (spec, hexDigest(SHA256.hash(data: manifest)))
+            return (spec, verifiedKey(manifest: manifest, files: spec.files, names: names))
+        }
+
+        static func verifiedKey(
+            manifest: Data, files: [IrodoriBundleInventory.File], names: SpeechBundleNames
+        ) -> String {
+            guard let scheme = names.verifiedKeyScheme else { return hexDigest(SHA256.hash(data: manifest)) }
+            var hash = SHA256()
+            let ordered = files.sorted { $0.path.utf8.lexicographicallyPrecedes($1.path.utf8) }
+            for field in [scheme] + ordered.flatMap({ [$0.path, String($0.bytes), $0.sha256] }) {
+                withUnsafeBytes(of: UInt64(field.utf8.count).bigEndian) { hash.update(bufferPointer: $0) }
+                hash.update(data: Data(field.utf8))
+            }
+            return hexDigest(hash.finalize())
         }
 
         private static func isComplete(
