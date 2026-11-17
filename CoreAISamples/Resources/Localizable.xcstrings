@@ -4306,6 +4306,7 @@
       }
     },
     "Irodori" : {
+      "extractionState" : "manual",
       "shouldTranslate" : false
     },
     "Irodori device check" : {
@@ -9549,6 +9550,7 @@
       }
     },
     "VoxCPM2" : {
+      "extractionState" : "manual",
       "shouldTranslate" : false
     },
     "WAV file saved." : {

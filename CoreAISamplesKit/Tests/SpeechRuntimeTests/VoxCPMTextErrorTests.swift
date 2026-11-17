@@ -10,7 +10,7 @@ struct VoxCPMTextErrorTests {
     static let directory = URL(filePath: "/unused-model")
 
     @Test(
-        "VUI-05 Text the tokenizer cannot read fails with a sentence that says what to change and the runtime stays usable"
+        "Text the tokenizer cannot read fails with a sentence that says what to change and the runtime stays usable"
     )
     func unreadableText() async throws {
         let driver = FakeVoxCPMDriver()
@@ -27,7 +27,7 @@ struct VoxCPMTextErrorTests {
         await runtime.release()
     }
 
-    @Test("VUI-05 A tokenizer that cannot be created fails the open with a sentence instead of an internal error")
+    @Test("A tokenizer that cannot be created fails the open with a sentence instead of an internal error")
     func tokenizerCreation() async throws {
         var dependencies = FakeVoxCPMDriver().dependencies()
         dependencies.tokenizer = { _ in throw VoxCPMTokenizerError.invalidVocabulary }

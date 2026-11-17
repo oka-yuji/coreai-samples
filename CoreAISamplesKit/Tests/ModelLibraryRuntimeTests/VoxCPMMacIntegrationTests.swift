@@ -14,7 +14,7 @@ import Testing
 @MainActor
 struct VoxCPMMacIntegrationTests {
     @Test(
-        "VUI-05 The real bundle imports into Mac Models and every example generates through the speech store until the lease returns",
+        "The real bundle imports into Mac Models and every example generates through the speech store until the lease returns",
         .enabled(if: ProcessInfo.processInfo.environment["COREAI_VOXCPM2_MODELS_BUNDLE"] != nil),
         .timeLimit(.minutes(10)))
     func importedSpeech() async throws {

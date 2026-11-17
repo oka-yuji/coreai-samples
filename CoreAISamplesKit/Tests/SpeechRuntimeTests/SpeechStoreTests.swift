@@ -6,7 +6,7 @@ import Testing
 @MainActor
 struct SpeechStoreTests {
     @Test(
-        "VUI-05 The VoxCPM2 store starts from the VoxCPM2 folder and its examples, and the Irodori store keeps its own")
+        "The VoxCPM2 store starts from the VoxCPM2 folder and its examples, and the Irodori store keeps its own")
     func separateStores() throws {
         let name = "SpeechStoreTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
