@@ -535,7 +535,8 @@ load average 4.1 to 6.1):
 
 No sample was clipped at 16 bits. In both FP16 configurations every generation
 leaves the FP32 latent criterion early (from patch 1 in the median generation).
-Which configuration becomes the default is decided by listening.
+On 2026-11-18 the owner kept FP16 (`fp16`, all components in FP16) as the default;
+no scored listening evaluation has been recorded.
 
 ## App bundles
 
@@ -553,8 +554,8 @@ app reads.
   own, so changes to the bundle code do not run the removal again; every removal
   writes a new creation date into `metadata.json`.
 - **Bundles**: `bundle` makes `fp32`, `fp16` and `fp16_proj32` with the precisions of
-  `synthesis.json`. No configuration is the default yet; it will be chosen after a
-  listening comparison. Each bundle is a self-contained folder:
+  `synthesis.json`. The default is `fp16`, which the owner kept on 2026-11-18; no scored
+  listening evaluation has been recorded. Each bundle is a self-contained folder:
 
   ```text
   manifest.json
@@ -657,9 +658,11 @@ above). Not checked:
   the generations without replacement;
 - how often replacements are needed for other sentences and seeds;
 - whether the Swift runtime behaves the same way;
-- listening quality; no listening comparison has been done.
+- listening quality; no scored listening evaluation has been recorded.
 
-No app reads the bundles yet. FP16 parts and configurations are recorded, not
+The macOS app downloads the `fp16` bundle, published in
+[okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai), and uses it.
+FP16 parts and configurations are recorded, not
 accepted. The Python runtime cannot set `expectFrequentReshapes`; all shapes here are
 static. Reference-audio prompts,
 the VAE encoder, quantization and iPhone are out of scope.

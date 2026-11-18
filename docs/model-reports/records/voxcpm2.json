@@ -15,8 +15,8 @@
   },
   "release": "released",
   "release_note": {
-    "en": "FP16 bundle published and downloadable from Mac Models; native Mac demo passes automated checks. Listening and normal-screen acceptance pending.",
-    "ja": "FP16のbundleを公開し、MacのModelsから取得できる。Macのネイティブデモは自動の確認に合格。試聴と通常の画面の本人受入は未完了。"
+    "en": "FP16 bundle published and downloadable from Mac Models; native Mac demo passes automated checks. Listening and normal-screen acceptance by the owner completed on 2026-11-18.",
+    "ja": "FP16のbundleを公開し、MacのModelsから取得できる。Macのネイティブデモは自動の確認に合格。試聴と通常の画面の本人受入は2026-11-18に完了。"
   },
   "download": "https://huggingface.co/okayuji/voxcpm2-coreai",
   "public_access_evidence": "docs/validation/voxcpm2-download-20261118/README.md#anonymous-download",
@@ -49,18 +49,21 @@
   ],
   "support": {
     "macos": {
-      "state": "pending",
-      "variants": [],
+      "state": "verified",
+      "variants": [
+        "fp16"
+      ],
       "evidence": [
         "swift-pipeline-20261117",
         "runtime-smoke-20261117",
         "models-import-20261117",
         "mac-models-20261117",
-        "download-20261118"
+        "download-20261118",
+        "mac-acceptance-20261118"
       ],
       "note": {
-        "en": "Native Mac demo using the FP16 bundle from Models. Automated checks pass: Swift pipeline against Python-host records, production runtime smoke, Models import, Models-to-service generation and a fresh public download. Normal-screen use and listening await the owner's acceptance.",
-        "ja": "ModelsのFP16のbundleを使うMacのネイティブデモ。自動の確認は合格: Pythonのホストの記録とのSwiftのパイプラインの照合、本番の実行部のsmoke、Modelsへの取込、Modelsからサービスでの生成、公開先からの新しい取得。通常の画面での操作と試聴は本人の受入待ち。"
+        "en": "Native Mac demo using the FP16 bundle from Models. Automated checks pass: Swift pipeline against Python-host records, production runtime smoke, Models import, Models-to-service generation and a fresh public download. On 2026-11-18 the owner reported that download, generation, playback and saving worked in the normal app, that Irodori works as before and that the voice has no problem, and kept the all-FP16 configuration as the default. The steps given also included Stop and an example with a voice description, which the answer does not list separately. Not in the report or the records: scored listening, other Macs and long continuous use.",
+        "ja": "ModelsのFP16のbundleを使うMacのネイティブデモ。自動の確認は合格: Pythonのホストの記録とのSwiftのパイプラインの照合、本番の実行部のsmoke、Modelsへの取込、Modelsからサービスでの生成、公開先からの新しい取得。2026-11-18に本人が、通常のアプリでダウンロード・生成・再生・保存ができ、Irodoriはこれまでどおりで、声に問題が無いと報告し、既定の構成を全部品FP16のままにした。案内した手順には停止と声の説明つきの例文も含まれるが、回答はそれらを個別には挙げていない。報告と記録に無いもの: 採点した試聴、ほかの機種、長時間の連続利用。"
       }
     },
     "ios": {
@@ -297,6 +300,34 @@
       "thermal": null,
       "model_executed": true,
       "plan_sha256": null
+    },
+    "mac-acceptance-20261118": {
+      "url": "docs/validation/voxcpm2-mac-acceptance-20261118.md",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-18",
+      "platform": "macos",
+      "device": "Apple M5 Max (Mac17,6)",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": null,
+      "variant": "fp16",
+      "backend": null,
+      "route": "Normal Mac app, as reported by the owner: download -> generation -> playback -> save; Irodori as before",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "The owner's report on 2026-11-18 of a manual check in the normal Mac app: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. Observed afterwards: the app's model library on the Mac recorded the FP16 asset, its only VoxCPM2 entry, with the upstream revision given here at 04:54 UTC; the entry is the same for a download and an import, and its time is not a recorded time of the check; the check's time has no record. When the library recorded the asset, the repository's working tree was main at c90a4aa; how the app was built and launched was not observed. Device and OS are those of that Mac. That the check ran on it with this configuration, the only one the app at that version uses, is inferred from that entry. The app at that version is set to download fp16/ of okayuji/voxcpm2-coreai at the pinned revision afe11d61de9dd7c3609140aa040b777ef77b2555. The model library records the manifest SHA-256 as the version, not the source commit; the source commit used for the owner's download was not observed. Sentences, seeds, counts and times were not recorded; the report has no listening score or performance measurement.",
+        "ja": "2026-11-18の本人の報告(通常のMacのアプリでの手動の確認): ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。後から観測したこと: Macのアプリのモデルの領域は、FP16の資産(VoxCPM2では唯一の行)を、ここに記した上流の版とともに04:54 UTCに記録した。この行はダウンロードと取込で同じで、その時刻は確認の時刻として記録されたものではない(確認の時刻は記録が無い)。モデルの領域が資産を記録した時点で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。機種とOSはそのMacのもの。確認がそのMacで、この構成(その版のアプリが使う唯一の構成)で行われたことは、この行からの推定。その版のアプリの設定は、公開先okayuji/voxcpm2-coreaiの固定のrevision afe11d61de9dd7c3609140aa040b777ef77b2555のfp16/を指す。モデルの領域が記録する版はmanifestのSHA-256で、配布元のコミットは記録しない。本人の取得に使われた配布元のコミットは観測していない。文・seed・回数・時間は記録していない。報告に試聴の点数や性能の計測は無い。"
+      },
+      "batch_size": null,
+      "concurrency": null,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
     }
   },
   "measurements": [
@@ -388,8 +419,8 @@
       "n": 15,
       "evidence": "precision-20261117",
       "note": {
-        "en": "fp16: as above. Audio follows a different trajectory from FP32; listening pending.",
-        "ja": "fp16。同上。FP32と別の軌道の音声。試聴は未完了。"
+        "en": "fp16: as above. Audio follows a different trajectory from FP32.",
+        "ja": "fp16。同上。FP32と別の軌道の音声。"
       },
       "source_value": {
         "path": "docs/validation/voxcpm2-conversion-20261117.json",
@@ -404,8 +435,8 @@
       "n": 15,
       "evidence": "precision-20261117",
       "note": {
-        "en": "fp16_proj32: as above. Audio follows a different trajectory from FP32; listening pending.",
-        "ja": "fp16_proj32。同上。FP32と別の軌道の音声。試聴は未完了。"
+        "en": "fp16_proj32: as above. Audio follows a different trajectory from FP32.",
+        "ja": "fp16_proj32。同上。FP32と別の軌道の音声。"
       },
       "source_value": {
         "path": "docs/validation/voxcpm2-conversion-20261117.json",
@@ -626,8 +657,8 @@
     "human_score": {
       "state": "not_measured",
       "reason": {
-        "en": "Not measured; no listening comparison has been done.",
-        "ja": "未計測。聴き比べは未実施。"
+        "en": "Not measured; no listening score with a fixed rubric has been recorded. The owner's report of 2026-11-18 gives no score.",
+        "ja": "未計測。採点基準を固定した試聴の評点の記録は無い。2026-11-18の本人の報告に点数は無い。"
       }
     }
   },
@@ -638,16 +669,16 @@
         "conversion-20261117"
       ],
       "note": {
-        "en": "FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; listening is pending.",
-        "ja": "FP32の部品、置き換え3パッチでの5文のFP32の生成、FP32のbundleの再照合が合格。FP16は記録だけ。試聴は未完了。"
+        "en": "FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; the owner's report of listening in the app on 2026-11-18 is not a record of a reference comparison.",
+        "ja": "FP32の部品、置き換え3パッチでの5文のFP32の生成、FP32のbundleの再照合が合格。FP16は記録だけ。2026-11-18の本人のアプリでの試聴の報告は、参照との照合の記録ではない。"
       }
     },
     "quality": {
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "No quality evaluation; the default configuration will be chosen after a listening comparison.",
-        "ja": "品質の評価は未実施。既定の構成は聴き比べの後に決める。"
+        "en": "No scored quality evaluation has been recorded. On 2026-11-18 the owner reported no problem with the audio in the app and kept the all-FP16 configuration as the default; the report gives no score.",
+        "ja": "採点した品質の評価の記録は無い。2026-11-18に本人が、アプリで音声に問題が無いと報告し、既定の構成を全部品FP16のままにした。報告に点数は無い。"
       }
     },
     "stability": {
@@ -662,8 +693,8 @@
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "Cancellation and retry are covered by CPU fakes (#590). With the real model, only a stop after generation and the lease return were checked (#592); cancelling a running generation was not checked.",
-        "ja": "取消と再試行は偽の部品のCPUの試験で確認(#590)。実モデルでは、生成の後の停止とleaseの返却だけを確認した(#592)。実行中の生成の取消は確かめていない。"
+        "en": "Cancellation and retry are covered by CPU fakes (#590). With the real model, a stop after generation and the lease return were checked (#592). The steps given for the owner's app check, reported on 2026-11-18, included Stop, but the owner's answer does not list it separately. Cancelling a running generation has no recorded check.",
+        "ja": "取消と再試行は偽の部品のCPUの試験で確認(#590)。実モデルでは、生成の後の停止とleaseの返却を確認した(#592)。2026-11-18に報告された本人のアプリでの確認に案内した手順には停止が含まれるが、本人の回答は停止を個別には挙げていない。実行中の生成の取消は、記録した確認がない。"
       }
     }
   }

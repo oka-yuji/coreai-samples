@@ -4,7 +4,7 @@
 
 Mac のアプリの **VoxCPM2** の画面は、[openbmb/VoxCPM2](https://huggingface.co/openbmb/VoxCPM2)(Apache-2.0)の FP16 の Core AI の bundle で、文章から音声を生成します。文章には声の説明を書き添えられます。サイドバーの **VoxCPM2** の見出しからモデルをダウンロードし、その下の行を選んで、生成・再生・停止と、48 kHz・モノラル・Float32 の WAV の保存を行います。iPhone の版はありません。
 
-アプリは、公開した bundle [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) の `fp16` のフォルダを、固定した revision `afe11d61de9dd7c3609140aa040b777ef77b2555` からダウンロードします。bundle は[変換の手順](../Tools/Conversion/recipes/voxcpm2/README.md)で作りました。変換の照合・時間・メモリの実測は[変換の検証記録](validation/voxcpm2-conversion-20261117.md)にあります。聴いたときの品質と、通常の画面での操作は、まだ受け入れの確認が済んでいません。
+アプリは、公開した bundle [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) の `fp16` のフォルダを、固定した revision `afe11d61de9dd7c3609140aa040b777ef77b2555` からダウンロードします。bundle は[変換の手順](../Tools/Conversion/recipes/voxcpm2/README.md)で作りました。変換の照合・時間・メモリの実測は[変換の検証記録](validation/voxcpm2-conversion-20261117.md)にあります。2026-11-18 に本人が、Mac の通常の画面でダウンロード・生成・再生・保存ができ、声に問題が無いことを報告しました([受け入れの記録](validation/voxcpm2-mac-acceptance-20261118.md))。音質の点数の記録はありません。
 
 ## モデルをダウンロードする
 
@@ -34,4 +34,4 @@ Mac のアプリの **VoxCPM2** の画面は、[openbmb/VoxCPM2](https://hugging
 - `VOXCPM2_TOKENIZER=/path/to/fp16 swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpeechRuntimeTests.VoxCPMTokenizerTests` は、例文の text token の数も数えます。読むのは `tokenizer.json` だけです。
 - `AGENTS.md` にあるダウンロードの試験は、共有の heavy-job ロックの下で動かします。固定したファイルを、認証なしで空の一時のモデルの領域へダウンロードし、全ファイルを確かめ、利用の lease を取り、本番のサービスと Store で例文を 1 つ生成し、停止し、lease を返し、コピーを削除します。
 - `AGENTS.md` にある取込の通しの試験は、画面には出なくなった取込の経路で、ローカルの FP16 の bundle を同じモデルの領域へ取り込み、全部の例文を生成します。
-- これらの確認は、聴いたときの品質と通常の画面での操作を保証しません。それらは本人の受け入れの確認として残っています。
+- これらの確認は、聴いたときの品質と通常の画面での操作を保証しません。2026-11-18 に本人が、アプリでダウンロード・生成・再生・保存ができ、声に問題が無いことを報告しました。報告の範囲は[受け入れの記録](validation/voxcpm2-mac-acceptance-20261118.md)にあります。
