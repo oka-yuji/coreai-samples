@@ -5759,7 +5759,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "任意です。声の特徴を短く書きます(例: A young woman, gentle and calm voice)。空のままにすると、声はモデルが決めます。"
+            "value" : "任意です。声の特徴を短く書きます(例: A young woman, gentle and calm voice)。説明が無いときは、声はモデルが決めます。"
           }
         }
       }
