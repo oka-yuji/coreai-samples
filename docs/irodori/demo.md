@@ -22,7 +22,7 @@ The download button on the **Irodori** heading fetches the pinned reference mode
 ## Use the screen
 
 1. Select the **Irodori** row after the download finishes, or stay on the screen until it does. The screen opens the downloaded model by itself; after validation, the status says that the files are verified. Without a download, the screen asks you to download the model from the sidebar heading.
-2. Use an example or enter a short passage. The fixed tokenizer permits at most 255 body tokens. Longer input is rejected without truncation. The seed is an unsigned 64-bit integer; `1708` is the initial value. The same input and seed produce the same audio, and a different number produces a different take.
+2. Use an example or enter a short passage. The fixed tokenizer permits at most 255 body tokens. Longer input is rejected without truncation. The seed is an unsigned 64-bit integer; `1708` is the initial value. The same input and seed produce the same audio; change the seed to try a different take.
 3. Press **Generate speech**. The first request loads and specializes the models. The status remains busy during this work. When ready, the screen shows the audio duration, generation duration and the normalized text used by the model.
 4. Press **Play**, then **Stop** to interrupt playback, or let it finish. The result remains available for replay and saving. Editing text or seed discards that result so it cannot be mistaken for the new input.
 5. Press **Save WAV…** and choose a destination. Cancelling the save panel preserves the generated audio. A save error is displayed without discarding it.

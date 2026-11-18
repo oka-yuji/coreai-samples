@@ -8903,12 +8903,12 @@
         }
       }
     },
-    "The seed sets the random starting point of generation. The same input and seed produce the same audio. Change it to any other whole number for a different take, with a different tone, pacing or voice." : {
+    "The seed sets the random starting point of generation. The same input and seed produce the same audio. Change the seed to try a different take, with a different tone, pacing or voice." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "seed(シード)は、生成に使う乱数の出発点を決める数字です。同じ入力と同じ seed なら、同じ音声になります。別の整数に変えると、声色・抑揚・速さの違う別の読み上げになります。"
+            "value" : "seed(シード)は、生成に使う乱数の出発点を決める数字です。同じ入力と同じ seed なら、同じ音声になります。seed を変えると、声色・抑揚・速さの違う別の読み上げを試せます。"
           }
         }
       }

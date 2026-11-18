@@ -62,7 +62,7 @@ struct SpeechView: View {
                     .disabled(!store.state.editable)
                     .accessibilityIdentifier("speech.seed")
                 Text(
-                    "The seed sets the random starting point of generation. The same input and seed produce the same audio. Change it to any other whole number for a different take, with a different tone, pacing or voice."
+                    "The seed sets the random starting point of generation. The same input and seed produce the same audio. Change the seed to try a different take, with a different tone, pacing or voice."
                 )
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
