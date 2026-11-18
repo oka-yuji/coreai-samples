@@ -11,11 +11,11 @@ Issue #595 (parent #573). On 2026-11-18 the owner checked the VoxCPM2 demo in th
 | Date | 2026-11-18 |
 | Device | Apple M5 Max (Mac17,6) |
 | OS | macOS 27.2.1 (26B131) |
-| App version | `main` at `c90a4aad96c75d671c0f4ef65f575972f4d5df41` (#594), the commit of the repository's working tree when the model was downloaded. How the app was built and launched was not observed. |
+| Repository version at the download (observed) | `main` at `c90a4aad96c75d671c0f4ef65f575972f4d5df41` (#594), the commit of the repository's working tree when the model was downloaded. How the app was built and launched was not observed. |
 | Configuration | `fp16`, all components in FP16: artifact `voxcpm2-fp16`, contract `voxcpm2-coreai-v1`. The app downloads only this configuration. |
 | Published bundle | [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) at the pinned revision `afe11d61de9dd7c3609140aa040b777ef77b2555`, folder `fp16/`: 22 files, 4,677,413,664 bytes |
 
-The device, OS, app version and downloaded files come from the observations below, not from the owner's report.
+The device, OS, repository version and downloaded files come from the observations below, not from the owner's report.
 
 ## Owner's report
 

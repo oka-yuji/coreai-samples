@@ -313,13 +313,13 @@
       "toolchain": null,
       "variant": "fp16",
       "backend": null,
-      "route": "Normal Mac app at main c90a4aa, as reported by the owner: download -> generation -> playback -> save; Irodori as before",
+      "route": "Normal Mac app, as reported by the owner: download -> generation -> playback -> save; Irodori as before",
       "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
       "artifact_revision": "afe11d61de9dd7c3609140aa040b777ef77b2555",
-      "code_revision": "c90a4aad96c75d671c0f4ef65f575972f4d5df41",
+      "code_revision": null,
       "workload": {
-        "en": "The owner's report of a manual check in the normal Mac app on 2026-11-18: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. The app's model library recorded the downloaded copy at 04:54 UTC. Sentences, seeds, counts and times were not recorded; no scored listening or performance measurement.",
-        "ja": "2026-11-18の通常のMacのアプリでの手動の確認についての本人の報告: ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。アプリのモデルの領域は取得したコピーを04:54 UTCに記録。文・seed・回数・時間は記録していない。採点した試聴や性能の計測ではない。"
+        "en": "The owner's report of a manual check in the normal Mac app on 2026-11-18: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. When the app's model library recorded the download (04:54 UTC), the repository's working tree was main at c90a4aa; how the app was built and launched was not observed. Sentences, seeds, counts and times were not recorded; no scored listening or performance measurement.",
+        "ja": "2026-11-18の通常のMacのアプリでの手動の確認についての本人の報告: ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。アプリのモデルの領域が取得を記録した時点(04:54 UTC)で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。文・seed・回数・時間は記録していない。採点した試聴や性能の計測ではない。"
       },
       "batch_size": null,
       "concurrency": null,

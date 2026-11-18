@@ -17,7 +17,7 @@ Start with a model below. Each guide covers setup, supported devices, measuremen
 The GLiNER2.5-multi, EmbeddingGemma 2, Qwen3.8 27B, Clef-Flash 9B, JEV-27B and Chronos-2 repositories are public and anonymously downloadable. JEV-27B runs through the macOS command line tool. A completed conversion or merged app implementation alone does not count as a public release. Model-specific guides and issues record the verified scope.
 
 <!-- model-catalog:start -->
-Checked: **2026-11-17**. ✅ = recorded native-app execution on that OS for the variant/route in the guide; △ = implementation, older diagnostic evidence or acceptance pending; — = no native demo. A mark is separate from bundle publication, conversion success and full production qualification.
+Checked: **2026-11-18**. ✅ = recorded native-app execution on that OS for the variant/route in the guide; △ = implementation, older diagnostic evidence or acceptance pending; — = no native demo. A mark is separate from bundle publication, conversion success and full production qualification.
 
 | Model / bundle | Use | macOS | iOS | Status | Download | Guide |
 |---|---|---|---|---|---|---|
