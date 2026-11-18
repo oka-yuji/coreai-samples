@@ -12,10 +12,10 @@ Issue #595 (parent #573). On 2026-11-18 the owner checked the VoxCPM2 demo in th
 | Device | Apple M5 Max (Mac17,6) |
 | OS | macOS 27.2.1 (26B131) |
 | Repository version at the download (observed) | `main` at `c90a4aad96c75d671c0f4ef65f575972f4d5df41` (#594), the commit of the repository's working tree when the model was downloaded. How the app was built and launched was not observed. |
-| Configuration | `fp16`, all components in FP16: artifact `voxcpm2-fp16`, contract `voxcpm2-coreai-v1`. The app downloads only this configuration. |
-| Published bundle | [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) at the pinned revision `afe11d61de9dd7c3609140aa040b777ef77b2555`, folder `fp16/`: 22 files, 4,677,413,664 bytes |
+| Configuration | `fp16`, all components in FP16, observed in the app's model library as artifact `voxcpm2-fp16`, contract `voxcpm2-coreai-v1`: 22 files, 4,677,413,664 bytes. In the repository version above, the app downloads only this configuration. |
+| Download source set in that repository version | [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) at the pinned revision `afe11d61de9dd7c3609140aa040b777ef77b2555`, folder `fp16/`. This is the app's setting in the repository version above, not an observation of the commit that the owner's download used. |
 
-The device, OS, repository version and downloaded files come from the observations below, not from the owner's report.
+The device, OS, repository version and downloaded files come from the observations below, and the download source from the repository's setting at that version; none of them comes from the owner's report.
 
 ## Owner's report
 
@@ -33,8 +33,8 @@ The steps given to the owner before the check also included an example sentence 
 
 These facts were read on the Mac after the report. They show that the app on this Mac downloaded the model; they do not show the owner's operations on the screen.
 
-- The app's model library records the artifact `voxcpm2-fp16` of the model `voxcpm2` (contract `voxcpm2-coreai-v1`, upstream revision `7936080b41163874f38610f46f438e2c0757f9fd`, 4,677,413,664 bytes) at 2026-11-18 04:54 UTC (13:54 JST). Its folder holds 22 files of that total size.
-- At that time the repository's working tree was `main` at `c90a4aa`, after #594. In that version the app acquires VoxCPM2 only by downloading; the screen has no import.
+- The app's model library records the artifact `voxcpm2-fp16` of the model `voxcpm2` (contract `voxcpm2-coreai-v1`, upstream revision `7936080b41163874f38610f46f438e2c0757f9fd`, 4,677,413,664 bytes) at 2026-11-18 04:54 UTC (13:54 JST). Its folder holds 22 files of that total size. As the version, the record holds the SHA-256 of the manifest, not a commit of the download source.
+- At that time the repository's working tree was `main` at `c90a4aa`, after #594. In that version the app acquires VoxCPM2 only by downloading, from the source set above; the screen has no import. The build that the owner ran and the source commit that the owner's download used were not observed.
 - The Mac is an Apple M5 Max (Mac17,6) with macOS 27.2.1 (26B131).
 
 ## Not covered

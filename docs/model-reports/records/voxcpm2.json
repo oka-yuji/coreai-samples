@@ -315,11 +315,11 @@
       "backend": null,
       "route": "Normal Mac app, as reported by the owner: download -> generation -> playback -> save; Irodori as before",
       "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
-      "artifact_revision": "afe11d61de9dd7c3609140aa040b777ef77b2555",
+      "artifact_revision": null,
       "code_revision": null,
       "workload": {
-        "en": "The owner's report of a manual check in the normal Mac app on 2026-11-18: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. When the app's model library recorded the download (04:54 UTC), the repository's working tree was main at c90a4aa; how the app was built and launched was not observed. Sentences, seeds, counts and times were not recorded; no scored listening or performance measurement.",
-        "ja": "2026-11-18の通常のMacのアプリでの手動の確認についての本人の報告: ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。アプリのモデルの領域が取得を記録した時点(04:54 UTC)で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。文・seed・回数・時間は記録していない。採点した試聴や性能の計測ではない。"
+        "en": "The owner's report of a manual check in the normal Mac app on 2026-11-18: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. When the app's model library recorded the download (04:54 UTC), the repository's working tree was main at c90a4aa; how the app was built and launched was not observed. Device and OS are those of the Mac whose model library recorded the download. The app at that version is set to download fp16/ of okayuji/voxcpm2-coreai at the pinned revision afe11d61de9dd7c3609140aa040b777ef77b2555. The model library records the manifest SHA-256 as the version, not the source commit; the source commit used for the owner's download was not observed. Sentences, seeds, counts and times were not recorded; no scored listening or performance measurement.",
+        "ja": "2026-11-18の通常のMacのアプリでの手動の確認についての本人の報告: ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。アプリのモデルの領域が取得を記録した時点(04:54 UTC)で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。機種とOSは、取得を記録したモデルの領域があるMacのもの。その版のアプリの設定は、公開先okayuji/voxcpm2-coreaiの固定のrevision afe11d61de9dd7c3609140aa040b777ef77b2555のfp16/を指す。モデルの領域が記録する版はmanifestのSHA-256で、配布元のコミットは記録しない。本人の取得に使われた配布元のコミットは観測していない。文・seed・回数・時間は記録していない。採点した試聴や性能の計測ではない。"
       },
       "batch_size": null,
       "concurrency": null,
