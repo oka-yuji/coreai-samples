@@ -18,7 +18,7 @@ extension VoxCPMTokenizerTests {
         #expect(examples.map(\.id) == ["plain", "calm", "steady"])
         for example in examples {
             let ids = try VoxCPMPrompt.inputIDs(
-                textTokenIDs: tokenizer.tokenIDs(for: VoxCPMText.normalized(example.text)),
+                textTokenIDs: tokenizer.tokenIDs(for: VoxCPMText.normalized(example.prompt)),
                 vocabulary: tokenizer.vocabulary)
             print("VoxCPM2 example \(example.id): \(ids.count - 1) text tokens")
             #expect(ids.count > 1 && ids.count - 1 <= 144, "\(example.id)")

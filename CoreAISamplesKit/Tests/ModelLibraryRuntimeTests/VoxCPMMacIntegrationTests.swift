@@ -85,7 +85,7 @@ struct VoxCPMMacIntegrationTests {
 
         var generations: [[String: Any]] = []
         for example in examples {
-            speech.send(.setText(example.text))
+            speech.send(.selectExample(example))
             start = clock.now
             speech.send(.generate)
             await settle(speech)

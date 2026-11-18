@@ -17,8 +17,8 @@ Mac のアプリの **VoxCPM2** の画面は、[openbmb/VoxCPM2](https://hugging
 ## 画面を使う
 
 1. **VoxCPM2** の行を選びます。画面はダウンロードしたモデルを自分で開き、全ファイルをもう一度確かめます(モデルは動かしません)。モデルが無ければ、サイドバーの見出しからダウンロードするよう案内します。
-2. 例文を選ぶか、文章を入力します。声の説明は、文の先頭に半角の括弧で書きます。例: `(A young woman, gentle and calm voice)確認が終わりました。`。説明のための別の入力欄はありません。例文は、説明のない文、説明つきの日本語の文、説明つきの英語の文です。
-3. 文は、空白を整えて複数の漢字の token を分けた後の text token が 144 個までです。長い文は切り詰めずに拒否します。モデルが読めない文字を含む文も拒否し、その文字を消すか置き換えるよう案内します。
+2. 例文を選ぶか、文章を入力します。声の説明は、文の欄の下の **Voice description**(声の説明)の欄に短く書きます。例: `A young woman, gentle and calm voice`。画面は、説明から前後の空白と半角・全角の括弧を除き、残りを半角の括弧で囲んで文の前に付け、モデルへ渡します。文は変えません。説明が残らなければ、モデルへは文だけを渡します。欄が空なら、文の先頭に半角の括弧で書いた説明(例: `(A young woman, gentle and calm voice)確認が終わりました。`)も使えます。欄にも文の先頭にも説明が無いときは、声はモデルが決めます。例文を選ぶと文と声の説明の両方が置き換わり、**Clear** は文だけを消します。例文は、説明のない文、説明つきの日本語の文、説明つきの英語の文です。
+3. 文と声の説明を合わせて、text token は 144 個までです。付け足した括弧を含めて組み立てた文を、空白を整えて複数の漢字の token を分けた後に数えます。長い入力は切り詰めずに拒否します。モデルが読めない文字を含む入力も拒否し、その文字を消すか置き換えるよう案内します。
 4. **Generate speech** を押します。モデルを開いた直後、画面に戻った後、失敗の後の最初の生成には、モデルの資産を読み込む時間も入ります。音声が終わる前にモデルの長さの上限に達した生成は誤りとして表示し、音声を返しません。seed は符号なし 64 ビットの整数で、最初の値は `1708` です。同じ入力と同じ seed なら同じ音声になります。seed を変えると、別の読み上げを試せます。
 5. **Play**・**Stop**・**Save WAV…** は Irodori の画面と同じです。保存の既定のファイル名は `voxcpm2-speech.wav` です。
 
@@ -26,11 +26,11 @@ Mac のアプリの **VoxCPM2** の画面は、[openbmb/VoxCPM2](https://hugging
 
 ## 含まないもの
 
-参照音声(声のクローン)、逐次の再生、声の説明の専用の入力欄、音量をそろえる処理、ほかの構成の bundle、画面からのフォルダの取込、iPhone。
+参照音声(声のクローン)、逐次の再生、音量をそろえる処理、ほかの構成の bundle、画面からのフォルダの取込、iPhone。
 
 ## 確認
 
-- `swift test --package-path CoreAISamplesKit` は、カタログとダウンロードの定義(`MacDemoCatalogTests`、`VoxCPMDownloadTests`)、生成のボタンの条件(`SpeechGenerationGateTests`)、画面の Store(`SpeechStoreTests`)、文の誤り(`VoxCPMTextErrorTests`)を確かめます。アプリの `--check-localization` は、サイドバーとカタログの対応と、日本語の文字列を確かめます。
+- `swift test --package-path CoreAISamplesKit` は、カタログとダウンロードの定義(`MacDemoCatalogTests`、`VoxCPMDownloadTests`)、生成のボタンの条件(`SpeechGenerationGateTests`)、画面の Store(`SpeechStoreTests`)、声の説明と文の組み立て(`SpeechVoiceTests`)、文の誤り(`VoxCPMTextErrorTests`)を確かめます。アプリの `--check-localization` は、サイドバーとカタログの対応と、日本語の文字列を確かめます。
 - `VOXCPM2_TOKENIZER=/path/to/fp16 swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpeechRuntimeTests.VoxCPMTokenizerTests` は、例文の text token の数も数えます。読むのは `tokenizer.json` だけです。
 - `AGENTS.md` にあるダウンロードの試験は、共有の heavy-job ロックの下で動かします。固定したファイルを、認証なしで空の一時のモデルの領域へダウンロードし、全ファイルを確かめ、利用の lease を取り、本番のサービスと Store で例文を 1 つ生成し、停止し、lease を返し、コピーを削除します。
 - `AGENTS.md` にある取込の通しの試験は、画面には出なくなった取込の経路で、ローカルの FP16 の bundle を同じモデルの領域へ取り込み、全部の例文を生成します。
