@@ -13,6 +13,12 @@ public struct ModelAcquisitionControls: View {
     @State private var choosingBundle = false
     @State private var importArtifactID: String?
 
+    #if os(macOS)
+        public static let minimumControlSize: CGFloat = 28
+    #else
+        public static let minimumControlSize: CGFloat = 44
+    #endif
+
     public init(
         store: Store<ModelLibraryFeature>, model: LibraryModel, requestDeletion: @escaping (ModelArtifact) -> Void,
         showsActionTitle: Bool = false, deletionDisabled: Bool = false
@@ -31,7 +37,7 @@ public struct ModelAcquisitionControls: View {
             } else {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.secondary)
-                    .frame(minWidth: 44, minHeight: 44)
+                    .frame(minWidth: Self.minimumControlSize, minHeight: Self.minimumControlSize)
                     .accessibilityLabel(libraryText("Description only"))
             }
         }
@@ -64,7 +70,7 @@ public struct ModelAcquisitionControls: View {
                         acquire(artifact, method: .importBundle)
                     } label: {
                         Image(systemName: "folder.badge.plus")
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(minWidth: Self.minimumControlSize, minHeight: Self.minimumControlSize)
                             .contentShape(Rectangle())
                     }
                     .accessibilityLabel(libraryText("Import again"))
@@ -74,7 +80,7 @@ public struct ModelAcquisitionControls: View {
                     requestDeletion(artifact)
                 } label: {
                     Image(systemName: "trash")
-                        .frame(minWidth: 44, minHeight: 44)
+                        .frame(minWidth: Self.minimumControlSize, minHeight: Self.minimumControlSize)
                         .contentShape(Rectangle())
                 }
                 .foregroundStyle(.secondary)
@@ -91,7 +97,7 @@ public struct ModelAcquisitionControls: View {
                     store.send(.cancelRequested(artifact.id))
                 } label: {
                     Image(systemName: "xmark")
-                        .frame(minWidth: 44, minHeight: 44)
+                        .frame(minWidth: Self.minimumControlSize, minHeight: Self.minimumControlSize)
                         .contentShape(Rectangle())
                 }
                 .accessibilityLabel(libraryText("Cancel"))
@@ -114,7 +120,7 @@ public struct ModelAcquisitionControls: View {
                 libraryText(method.actionTitle(retrying: retrying)).padding(.leading, 12)
             }
             Image(systemName: method.systemImage(retrying: retrying))
-                .frame(minWidth: 44, minHeight: 44)
+                .frame(minWidth: Self.minimumControlSize, minHeight: Self.minimumControlSize)
                 .contentShape(Rectangle())
         }
         .accessibilityLabel(libraryText(method.actionTitle(retrying: retrying)))
@@ -141,7 +147,7 @@ public struct ModelAcquisitionControls: View {
                 store.send(.cancelRequested(artifact.id))
             } label: {
                 Image(systemName: "xmark")
-                    .frame(minWidth: 44, minHeight: 44)
+                    .frame(minWidth: Self.minimumControlSize, minHeight: Self.minimumControlSize)
                     .contentShape(Rectangle())
             }
             .accessibilityLabel(libraryText(method.cancellationTitle))
