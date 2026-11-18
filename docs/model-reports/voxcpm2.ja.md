@@ -8,7 +8,7 @@ OpenBMB VoxCPM2 の 6 つの FP32 の Core AI 資産は、記録した基準の�
 
 この音声は、同じ重みを Core AI で実行したものです。モデルの内部の丸めの境目の近くの数値の差で、同じ seed でも参照の実装と生成の結果が変わる場合があります。
 
-FP16 の資産を含む構成は、FP32 と別の軌道の音声になります。停止したパッチが FP32 と一致したのは 15 回中 10 回です。音質は採点していません。本人は、アプリで声に問題が無いと報告しました。
+FP16 の資産を含む構成は、FP32 と別の軌道の音声になります。停止したパッチが FP32 と一致したのは 15 回中 10 回です。音質の点数の記録はありません。本人は、アプリで声に問題が無いと報告しました。
 
 確かめていないこと: iPhone、ほかの Mac、参照音声(声のクローン)、逐次の再生、Neural Engine、8bit / 4bit、一般の文と seed での挙動、音質の定量評価。
 
@@ -25,7 +25,7 @@ FP16 の資産を含む構成は、FP32 と別の軌道の音声になります�
 
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| macos | ✅ | ModelsのFP16のbundleを使うMacのネイティブデモ。自動の確認は合格: Pythonのホストの記録とのSwiftのパイプラインの照合、本番の実行部のsmoke、Modelsへの取込、Modelsからサービスでの生成、公開先からの新しい取得。2026-11-18に本人が、通常のアプリでダウンロード・生成・再生・保存ができ、Irodoriはこれまでどおりで、声に問題が無いと報告し、既定の構成を全部品FP16のままにした。案内した手順には停止と声の説明つきの例文も含まれるが、回答はそれらを個別には挙げていない。採点した試聴、ほかの機種、長時間の連続利用は対象外。 | [E4](https://github.com/oka-yuji/coreai-samples/pull/589) · [E5](https://github.com/oka-yuji/coreai-samples/pull/590) · [E6](https://github.com/oka-yuji/coreai-samples/pull/591) · [E7](https://github.com/oka-yuji/coreai-samples/pull/592) · [E8](../validation/voxcpm2-download-20261118/README.md) · [E9](../validation/voxcpm2-mac-acceptance-20261118.md) |
+| macos | ✅ | ModelsのFP16のbundleを使うMacのネイティブデモ。自動の確認は合格: Pythonのホストの記録とのSwiftのパイプラインの照合、本番の実行部のsmoke、Modelsへの取込、Modelsからサービスでの生成、公開先からの新しい取得。2026-11-18に本人が、通常のアプリでダウンロード・生成・再生・保存ができ、Irodoriはこれまでどおりで、声に問題が無いと報告し、既定の構成を全部品FP16のままにした。案内した手順には停止と声の説明つきの例文も含まれるが、回答はそれらを個別には挙げていない。報告と記録に無いもの: 採点した試聴、ほかの機種、長時間の連続利用。 | [E4](https://github.com/oka-yuji/coreai-samples/pull/589) · [E5](https://github.com/oka-yuji/coreai-samples/pull/590) · [E6](https://github.com/oka-yuji/coreai-samples/pull/591) · [E7](https://github.com/oka-yuji/coreai-samples/pull/592) · [E8](../validation/voxcpm2-download-20261118/README.md) · [E9](../validation/voxcpm2-mac-acceptance-20261118.md) |
 | ios | — | ネイティブデモは未提供。Pythonのホストの結果はアプリの対応ではない。 | — |
 
 ### 性能と品質
@@ -56,14 +56,14 @@ FP16 の資産を含む構成は、FP32 と別の軌道の音声になります�
 | RTF（生成時間／音声長） | 0.294079473 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16。同上。FP32と別の軌道の音声。 |
 | RTF（生成時間／音声長） | 0.294309107 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16_proj32。同上。FP32と別の軌道の音声。 |
 | 文字誤り率CER | 未計測 | — | 未計測。音声認識による評価はしていない。 |
-| 人による品質評点（採点基準を固定） | 未計測 | — | 未計測。採点基準を固定した試聴の評点はない。2026-11-18に報告された本人のアプリでの判断は、評点ではない。 |
+| 人による品質評点（採点基準を固定） | 未計測 | — | 未計測。採点基準を固定した試聴の評点の記録は無い。2026-11-18の本人の報告に点数は無い。 |
 
 ### 検証した範囲
 
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| 変換・参照との一致 | 合格（記載範囲） | FP32の部品、置き換え3パッチでの5文のFP32の生成、FP32のbundleの再照合が合格。FP16は記録だけ。2026-11-18に報告された本人のアプリでの試聴は、参照との照合ではない。 | [E1](../validation/voxcpm2-conversion-20261117.md) |
-| 用途の品質 | 未計測 | 採点した品質の評価は未実施。2026-11-18に本人が、アプリで音声に問題が無いと報告し、既定の構成を全部品FP16のままにした。評点ではない。 | — |
+| 変換・参照との一致 | 合格（記載範囲） | FP32の部品、置き換え3パッチでの5文のFP32の生成、FP32のbundleの再照合が合格。FP16は記録だけ。2026-11-18の本人のアプリでの試聴の報告は、参照との照合の記録ではない。 | [E1](../validation/voxcpm2-conversion-20261117.md) |
+| 用途の品質 | 未計測 | 採点した品質の評価の記録は無い。2026-11-18に本人が、アプリで音声に問題が無いと報告し、既定の構成を全部品FP16のままにした。報告に点数は無い。 | — |
 | 連続利用・資源解放 | 未計測 | 実モデルでの解放と読み直しは実行部で確認した(#590)。Modelsのサービスの通し(#592)は、生成の後に利用を終えてleaseを返しただけ。アプリでの連続利用は未計測。 | — |
 | 停止・再試行・回復 | 未計測 | 取消と再試行は偽の部品のCPUの試験で確認(#590)。実モデルでは、生成の後の停止とleaseの返却を確認した(#592)。2026-11-18に報告された本人のアプリでの確認に案内した手順には停止が含まれるが、本人の回答は停止を個別には挙げていない。実行中の生成の取消は、記録した確認がない。 | — |
 
@@ -79,7 +79,7 @@ FP16 の資産を含む構成は、FP32 と別の軌道の音声になります�
 | [E6](https://github.com/oka-yuji/coreai-samples/pull/591) | 2026-11-17 / legacy / diagnostic | M5 Max / 未記録 / 未記録 | 22ファイル・4,677,413,664 B。コピー1.7〜2.4秒、昇格1.5〜1.7秒、全量の再検査1.5〜1.7秒。元のhashは不変。lease中の削除は拒否。検査済みの複製の鍵を変えた後、開く→生成→解放→再生成が合格し、音声はバイト単位で同じ(fp16だけ)。Swiftのパッケージの試験で、アプリではない。 · variant=All-FP16 bundle; two other configurations only as rejected inputs; route=VoxCPMImportTests.knownBundle: import of the real bundle into Models (copy, full inspection, ready, deletion refused while in use, deletion after release, rejection of other configurations and four damaged copies); then VoxCPMRuntimeNativeTests with the new verified-copy key; 未記録: os, toolchain, backend, source_revision, artifact_revision, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 | [E7](https://github.com/oka-yuji/coreai-samples/pull/592) | 2026-11-17 / legacy / diagnostic | M5 Max / 未記録 / 未記録 | 22ファイル・4,677,413,664 Bの取込は3.62秒、全hashの検査を含む開くは1.83秒。例文3つで、資産の読み込みを含む6.42秒で2.40秒の音声、1.51秒で5.44秒、1.49秒で5.28秒。WAVは48 kHz・mono・Float32。leaseは0→1→1→0。元のhashは不変。releaseのSwiftのパッケージの試験で、アプリの画面ではなく、再生も試聴もしていない。 · variant=All-FP16 bundle; route=VoxCPMMacIntegrationTests: import into a temporary Models area -> usage lease -> open through the same store path as the screen -> three examples -> stop -> lease return; 未記録: os, toolchain, backend, source_revision, artifact_revision, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 | [E8](../validation/voxcpm2-download-20261118/README.md) | 2026-11-18 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; release package tests | okayuji/voxcpm2-coreaiのfp16/へのheaderの無い22件の取得がすべてHTTP 200で、4,677,413,664 Bを移行候補の無い新しい一時のモデルの領域へ取得。ダウンロード145.8秒・検査1.52秒(通信に依存し、性能の計測ではない)。例文1つで、資産の読み込みを含む5.40秒で2.40秒の音声。leaseは0→1→1→0、その後に削除。アプリの画面・再生・試聴はしていない。 · variant=fp16; backend=Swift Core AI, GPU preference; actual delegate not profiled; route=Fresh Models download without credentials from the pinned revision into a temporary model library -> full inspection -> usage lease -> production speech store and service -> one example -> stop -> lease release -> deletion; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; artifact_revision=afe11d61de9dd7c3609140aa040b777ef77b2555; batch_size=1; concurrency=1; warmups=0; 未記録: code_revision, power, thermal, plan_sha256 |
-| [E9](../validation/voxcpm2-mac-acceptance-20261118.md) | 2026-11-18 / legacy / native_app | Apple M5 Max (Mac17,6) / macOS 27.2.1 (26B131) / 未記録 | 2026-11-18の本人の報告(通常のMacのアプリでの手動の確認): ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。後から観測したこと: Macのアプリのモデルの領域は、FP16の資産(VoxCPM2では唯一の行)を、ここに記した上流の版とともに04:54 UTCに記録した。この行はダウンロードと取込で同じで、その時刻は確認の時刻ではない。モデルの領域が資産を記録した時点で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。機種とOSはそのMacのもの。確認がそのMacで、この構成(その版のアプリが使う唯一の構成)で行われたことは、この行からの推定。その版のアプリの設定は、公開先okayuji/voxcpm2-coreaiの固定のrevision afe11d61de9dd7c3609140aa040b777ef77b2555のfp16/を指す。モデルの領域が記録する版はmanifestのSHA-256で、配布元のコミットは記録しない。本人の取得に使われた配布元のコミットは観測していない。文・seed・回数・時間は記録していない。採点した試聴や性能の計測ではない。 · variant=fp16; route=Normal Mac app, as reported by the owner: download -> generation -> playback -> save; Irodori as before; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; 未記録: toolchain, backend, artifact_revision, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
+| [E9](../validation/voxcpm2-mac-acceptance-20261118.md) | 2026-11-18 / legacy / native_app | Apple M5 Max (Mac17,6) / macOS 27.2.1 (26B131) / 未記録 | 2026-11-18の本人の報告(通常のMacのアプリでの手動の確認): ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。後から観測したこと: Macのアプリのモデルの領域は、FP16の資産(VoxCPM2では唯一の行)を、ここに記した上流の版とともに04:54 UTCに記録した。この行はダウンロードと取込で同じで、その時刻は確認の時刻として記録されたものではない(確認の時刻は記録が無い)。モデルの領域が資産を記録した時点で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。機種とOSはそのMacのもの。確認がそのMacで、この構成(その版のアプリが使う唯一の構成)で行われたことは、この行からの推定。その版のアプリの設定は、公開先okayuji/voxcpm2-coreaiの固定のrevision afe11d61de9dd7c3609140aa040b777ef77b2555のfp16/を指す。モデルの領域が記録する版はmanifestのSHA-256で、配布元のコミットは記録しない。本人の取得に使われた配布元のコミットは観測していない。文・seed・回数・時間は記録していない。報告に試聴の点数や性能の計測は無い。 · variant=fp16; route=Normal Mac app, as reported by the owner: download -> generation -> playback -> save; Irodori as before; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; 未記録: toolchain, backend, artifact_revision, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 
 ### 導入・制限・進捗
 

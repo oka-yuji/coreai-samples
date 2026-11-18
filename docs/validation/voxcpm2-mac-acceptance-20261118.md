@@ -39,6 +39,8 @@ These facts were read on the Mac after the report. They show that the app's mode
 
 ## Not covered
 
+The owner's report and the observations above contain nothing on the following, so this record does not cover them:
+
 - Scored listening (similarity, naturalness or clarity) and the individual results of comparing the configurations by listening.
 - The sentences, seeds, number of generations and times of the check; none were recorded, so this is not a performance measurement.
 - Other Macs, iPhone, long continuous use, and interrupted or resumed downloads and generations.
