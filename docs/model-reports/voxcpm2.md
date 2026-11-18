@@ -9,8 +9,9 @@ the recorded criteria, and FP32 generation from text was checked on a Python hos
 app bundles (FP32, FP16, and FP16 with `proj` in FP32) are made. The FP16 bundle that the
 macOS app uses is published in [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai),
 and the app downloads it from Models and generates speech natively (see the
-[demo guide](../voxcpm2.md)). The default configuration will be chosen after a listening
-comparison.
+[demo guide](../voxcpm2.md)). On 2026-11-18 the owner reported that download, generation,
+playback and saving worked in the app on a Mac, and kept the all-FP16 configuration as the
+default (see the [acceptance record](../validation/voxcpm2-mac-acceptance-20261118.md)).
 
 The audio comes from the same weights run with Core AI. Numerical differences near
 rounding boundaries inside the model can make the generated result differ from the
@@ -18,9 +19,9 @@ reference implementation, even with the same seed.
 
 Configurations with FP16 assets produce audio on a different trajectory from FP32. Their
 stop patch equaled FP32 in 10 of 15 generations. Their audio quality has not been
-evaluated; no listening comparison has been done.
+scored; the owner found no problem with the FP16 audio in the app.
 
-Not verified: iPhone, use of the normal Mac screen and listening, reference audio (voice cloning), streaming playback,
+Not verified: iPhone, other Macs, reference audio (voice cloning), streaming playback,
 the Neural Engine, 8-bit and 4-bit quantization, behavior for general sentences and
 seeds, and quantitative audio quality.
 
@@ -37,7 +38,7 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
-| macos | △ | Native Mac demo using the FP16 bundle from Models. Automated checks pass: Swift pipeline against Python-host records, production runtime smoke, Models import, Models-to-service generation and a fresh public download. Normal-screen use and listening await the owner's acceptance. | [E4](https://github.com/oka-yuji/coreai-samples/pull/589) · [E5](https://github.com/oka-yuji/coreai-samples/pull/590) · [E6](https://github.com/oka-yuji/coreai-samples/pull/591) · [E7](https://github.com/oka-yuji/coreai-samples/pull/592) · [E8](../validation/voxcpm2-download-20261118/README.md) |
+| macos | ✅ | Native Mac demo using the FP16 bundle from Models. Automated checks pass: Swift pipeline against Python-host records, production runtime smoke, Models import, Models-to-service generation and a fresh public download. On 2026-11-18 the owner reported that download, generation, playback and saving worked in the normal app, that Irodori works as before and that the voice has no problem, and kept the all-FP16 configuration as the default. The steps given also included Stop and an example with a voice description, which the answer does not list separately. Not covered: scored listening, other Macs and long continuous use. | [E4](https://github.com/oka-yuji/coreai-samples/pull/589) · [E5](https://github.com/oka-yuji/coreai-samples/pull/590) · [E6](https://github.com/oka-yuji/coreai-samples/pull/591) · [E7](https://github.com/oka-yuji/coreai-samples/pull/592) · [E8](../validation/voxcpm2-download-20261118/README.md) · [E9](../validation/voxcpm2-mac-acceptance-20261118.md) |
 | ios | — | No native demo yet. Results of the Python host are not app support. | — |
 
 ### Performance and quality
@@ -65,19 +66,19 @@ Results below retain their original dates and workloads. Different rows may use 
 | Stop acknowledgement time | Not measured | — | Not measured as defined: only one stop after generation, while the model was idle, was timed (download check); a stop during generation was not measured. |
 | Time to first playable audio | Not measured | — | Not measured. Neither the Python host nor the app streams audio; the app returns the audio after the whole generation. |
 | Real-time factor (generation / audio duration) | 0.455897562 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp32: generation seconds per second of audio, after one warm-up; excludes loading and saving. |
-| Real-time factor (generation / audio duration) | 0.294079473 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16: as above. Audio follows a different trajectory from FP32; listening pending. |
-| Real-time factor (generation / audio duration) | 0.294309107 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16_proj32: as above. Audio follows a different trajectory from FP32; listening pending. |
+| Real-time factor (generation / audio duration) | 0.294079473 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16: as above. Audio follows a different trajectory from FP32. |
+| Real-time factor (generation / audio duration) | 0.294309107 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16_proj32: as above. Audio follows a different trajectory from FP32. |
 | Character error rate | Not measured | — | Not measured; no speech recognition evaluation. |
-| Human quality score (rubric required) | Not measured | — | Not measured; no listening comparison has been done. |
+| Human quality score (rubric required) | Not measured | — | Not measured; no listening score with a fixed rubric. The owner's judgment in the app (2026-11-18) is not a score. |
 
 ### Verification coverage
 
 | Check | State | Scope / remaining work | Evidence |
 |---|---|---|---|
-| Conversion / reference fidelity | Passed (stated scope) | FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; listening is pending. | [E1](../validation/voxcpm2-conversion-20261117.md) |
-| Task quality | Not measured | No quality evaluation; the default configuration will be chosen after a listening comparison. | — |
+| Conversion / reference fidelity | Passed (stated scope) | FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; the owner's listening in the app (2026-11-18) is not a reference comparison. | [E1](../validation/voxcpm2-conversion-20261117.md) |
+| Task quality | Not measured | No scored quality evaluation. In the app on 2026-11-18 the owner found no problem with the audio and kept the all-FP16 configuration as the default; this is not a score. | — |
 | Repeated use / resource release | Not measured | Release and reload with the real model were checked in the runtime (#590). The Models service check (#592) only ended use after generating and returned the lease. Continuous use in the app is not measured. | — |
-| Stop / retry / recovery | Not measured | Cancellation and retry are covered by CPU fakes (#590). With the real model, only a stop after generation and the lease return were checked (#592); cancelling a running generation was not checked. | — |
+| Stop / retry / recovery | Not measured | Cancellation and retry are covered by CPU fakes (#590). With the real model, a stop after generation and the lease return were checked (#592). The steps given for the owner's app check (2026-11-18) included Stop, but the owner's answer does not list it separately. Cancelling a running generation has no recorded check. | — |
 
 ### Evidence and conditions
 
@@ -91,6 +92,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E6](https://github.com/oka-yuji/coreai-samples/pull/591) | 2026-11-17 / legacy / diagnostic | M5 Max / unrecorded / unrecorded | 22 files, 4,677,413,664 B: copy 1.7-2.4 s, promotion 1.5-1.7 s, full re-inspection 1.5-1.7 s; source hashes unchanged; deletion refused while leased. After the verified-copy key change, open -> generate -> release -> regenerate passed with byte-identical audio (fp16 only). Swift package tests, not the app. · variant=All-FP16 bundle; two other configurations only as rejected inputs; route=VoxCPMImportTests.knownBundle: import of the real bundle into Models (copy, full inspection, ready, deletion refused while in use, deletion after release, rejection of other configurations and four damaged copies); then VoxCPMRuntimeNativeTests with the new verified-copy key; unrecorded: os, toolchain, backend, source_revision, artifact_revision, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 | [E7](https://github.com/oka-yuji/coreai-samples/pull/592) | 2026-11-17 / legacy / diagnostic | M5 Max / unrecorded / unrecorded | Import of 22 files, 4,677,413,664 B in 3.62 s; open with the full hash check 1.83 s; three examples: 2.40 s of audio in 6.42 s including asset load, 5.44 s in 1.51 s and 5.28 s in 1.49 s; 48 kHz mono Float32 WAV; leases 0 -> 1 -> 1 -> 0; source hashes unchanged. Swift package tests in release, not the app GUI; no playback or listening. · variant=All-FP16 bundle; route=VoxCPMMacIntegrationTests: import into a temporary Models area -> usage lease -> open through the same store path as the screen -> three examples -> stop -> lease return; unrecorded: os, toolchain, backend, source_revision, artifact_revision, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 | [E8](../validation/voxcpm2-download-20261118/README.md) | 2026-11-18 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; release package tests | 22 GETs with no header fields from okayuji/voxcpm2-coreai fp16/, all HTTP 200, 4,677,413,664 B into a new temporary model library with no migration candidates; download 145.8 s and validation 1.52 s (network-dependent, not a performance measurement); one example: 2.40 s of audio in 5.40 s including asset load; leases 0 -> 1 -> 1 -> 0; then deleted. No app GUI, playback or listening. · variant=fp16; backend=Swift Core AI, GPU preference; actual delegate not profiled; route=Fresh Models download without credentials from the pinned revision into a temporary model library -> full inspection -> usage lease -> production speech store and service -> one example -> stop -> lease release -> deletion; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; artifact_revision=afe11d61de9dd7c3609140aa040b777ef77b2555; batch_size=1; concurrency=1; warmups=0; unrecorded: code_revision, power, thermal, plan_sha256 |
+| [E9](../validation/voxcpm2-mac-acceptance-20261118.md) | 2026-11-18 / legacy / native_app | Apple M5 Max (Mac17,6) / macOS 27.2.1 (26B131) / unrecorded | The owner's report of a manual check in the normal Mac app on 2026-11-18: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. The app's model library recorded the downloaded copy at 04:54 UTC. Sentences, seeds, counts and times were not recorded; no scored listening or performance measurement. · variant=fp16; route=Normal Mac app at main c90a4aa, as reported by the owner: download -> generation -> playback -> save; Irodori as before; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; artifact_revision=afe11d61de9dd7c3609140aa040b777ef77b2555; code_revision=c90a4aad96c75d671c0f4ef65f575972f4d5df41; unrecorded: toolchain, backend, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 
 ### Setup, limitations and progress
 

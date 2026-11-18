@@ -4,7 +4,7 @@
 
 The macOS app has a **VoxCPM2** screen that generates speech from text, optionally with a written description of the voice, using the FP16 Core AI bundle of [openbmb/VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) (Apache-2.0). Download the model from the **VoxCPM2** heading in the sidebar, select the row under it, then generate, play, stop and save a 48 kHz mono Float32 WAV. There is no iPhone version.
 
-The app downloads the `fp16` folder of the published bundle [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) at the pinned revision `afe11d61de9dd7c3609140aa040b777ef77b2555`. The bundle was made with the [conversion recipe](../Tools/Conversion/recipes/voxcpm2/README.md). Measured fidelity, times and memory are in the [conversion validation record](validation/voxcpm2-conversion-20261117.md). Listening quality and use of the normal screen have not been accepted yet.
+The app downloads the `fp16` folder of the published bundle [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) at the pinned revision `afe11d61de9dd7c3609140aa040b777ef77b2555`. The bundle was made with the [conversion recipe](../Tools/Conversion/recipes/voxcpm2/README.md). Measured fidelity, times and memory are in the [conversion validation record](validation/voxcpm2-conversion-20261117.md). On 2026-11-18 the owner reported that download, generation, playback and saving worked on the normal screen of a Mac and that the voice had no problem ([acceptance record](validation/voxcpm2-mac-acceptance-20261118.md)). Audio quality has not been scored.
 
 ## Download the model
 
@@ -34,4 +34,4 @@ Reference audio (voice cloning), streaming playback, a separate field for the vo
 - `VOXCPM2_TOKENIZER=/path/to/fp16 swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpeechRuntimeTests.VoxCPMTokenizerTests` also counts the text tokens of the examples. It reads only `tokenizer.json`.
 - The download test in `AGENTS.md` runs under the shared heavy-job lock. It downloads the pinned files without credentials into an empty temporary model library, checks every file, takes the usage lease, generates one example through the production service and store, stops, returns the lease and deletes the copy.
 - The end-to-end import test in `AGENTS.md` imports a local FP16 bundle through the same model library, which the screen no longer offers, and generates every example.
-- These checks do not establish listening quality or use of the normal screen; those remain the owner's acceptance checks.
+- These checks do not establish listening quality or use of the normal screen. On 2026-11-18 the owner reported download, generation, playback and saving in the app with no problem in the voice; the [acceptance record](validation/voxcpm2-mac-acceptance-20261118.md) gives the scope of that report.
