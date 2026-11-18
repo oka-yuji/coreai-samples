@@ -51,22 +51,25 @@ struct SpeechView: View {
                 .disabled(!store.state.editable)
                 .accessibilityLabel("Text to speak")
                 .accessibilityIdentifier("speech.text")
+            Text(limit).font(.caption).foregroundStyle(.secondary)
             if let voiceHint {
                 Text(voiceHint).font(.caption).foregroundStyle(.secondary)
             }
-            HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Seed").font(.headline)
                 TextField("Seed", text: Binding(get: { store.state.seed }, set: { store.send(.setSeed($0)) }))
                     .textFieldStyle(.roundedBorder).frame(width: 220)
                     .disabled(!store.state.editable)
                     .accessibilityIdentifier("speech.seed")
-                    .help("Change the seed to try another voice variation.")
-                Text(limit)
-                    .font(.caption).foregroundStyle(.secondary)
-                Spacer()
-            }
-            if UInt64(store.state.seed) == nil {
-                Text("Enter a whole-number seed from 0 to 18446744073709551615.")
-                    .font(.caption).foregroundStyle(.orange)
+                Text(
+                    "The seed sets the random starting point of generation. The same input and seed produce the same audio. Change the seed to try a different take, with a different tone, pacing or voice."
+                )
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                if UInt64(store.state.seed) == nil {
+                    Text("Enter a whole-number seed from 0 to 18446744073709551615.")
+                        .font(.caption).foregroundStyle(.orange)
+                }
             }
             HStack(spacing: 12) {
                 Button("Generate speech", systemImage: "waveform") { store.send(.generate) }
