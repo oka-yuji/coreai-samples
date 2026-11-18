@@ -130,9 +130,21 @@ struct SpeechVoiceTests {
         var state = ready(text: "Test")
         _ = SpeechFeature.reduce(&state, .setVoice("A calm voice"))
         _ = SpeechFeature.reduce(&state, .setText(" \n\t"))
-        #expect(state.prompt == "(A calm voice) \n\t")
+        #expect(state.prompt == " \n\t")
         #expect(!state.canGenerate)
         #expect(SpeechFeature.reduce(&state, .generate).isEmpty)
+    }
+
+    @Test(
+        "VIN-03 A voice description is not attached to text that has nothing to read",
+        arguments: ["\u{1C}", " \u{1D}\u{1E}\u{1F}\n"])
+    func nothingToRead(text: String) {
+        var state = ready(text: text)
+        _ = SpeechFeature.reduce(&state, .setVoice("A calm voice"))
+        #expect(state.prompt == text)
+        #expect(SpeechExample(id: "a", title: "A", text: text, voice: "A calm voice").prompt == text)
+        let commands = SpeechFeature.reduce(&state, .generate)
+        #expect(commands == [.run(.generate(state.session, text, 1708), id: .operation)])
     }
 
     @Test("VIN-04 The initial text and voice description come from the first example")

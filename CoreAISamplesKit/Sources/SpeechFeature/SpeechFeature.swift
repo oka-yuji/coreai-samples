@@ -8,7 +8,11 @@ private func assemblePrompt(voice: String, text: String) -> String {
         voice.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.filter { !parentheses.contains($0) }
     )
     .trimmingCharacters(in: .whitespacesAndNewlines)
-    return cleaned.isEmpty ? text : "(" + cleaned + ")" + text
+    let separators: Set<Unicode.Scalar> = ["\u{1C}", "\u{1D}", "\u{1E}", "\u{1F}"]
+    let unreadable = text.unicodeScalars.allSatisfy {
+        CharacterSet.whitespacesAndNewlines.contains($0) || separators.contains($0)
+    }
+    return cleaned.isEmpty || unreadable ? text : "(" + cleaned + ")" + text
 }
 
 public struct SpeechExample: Codable, Identifiable, Sendable, Equatable {
