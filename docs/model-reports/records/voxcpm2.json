@@ -318,8 +318,8 @@
       "artifact_revision": null,
       "code_revision": null,
       "workload": {
-        "en": "The owner's report of a manual check in the normal Mac app on 2026-11-18: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. When the app's model library recorded the download (04:54 UTC), the repository's working tree was main at c90a4aa; how the app was built and launched was not observed. Device and OS are those of the Mac whose model library recorded the download. The app at that version is set to download fp16/ of okayuji/voxcpm2-coreai at the pinned revision afe11d61de9dd7c3609140aa040b777ef77b2555. The model library records the manifest SHA-256 as the version, not the source commit; the source commit used for the owner's download was not observed. Sentences, seeds, counts and times were not recorded; no scored listening or performance measurement.",
-        "ja": "2026-11-18の通常のMacのアプリでの手動の確認についての本人の報告: ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。アプリのモデルの領域が取得を記録した時点(04:54 UTC)で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。機種とOSは、取得を記録したモデルの領域があるMacのもの。その版のアプリの設定は、公開先okayuji/voxcpm2-coreaiの固定のrevision afe11d61de9dd7c3609140aa040b777ef77b2555のfp16/を指す。モデルの領域が記録する版はmanifestのSHA-256で、配布元のコミットは記録しない。本人の取得に使われた配布元のコミットは観測していない。文・seed・回数・時間は記録していない。採点した試聴や性能の計測ではない。"
+        "en": "The owner's report on 2026-11-18 of a manual check in the normal Mac app: download, generation, playback and saving worked; Irodori as before; no problem with the voice; the all-FP16 default kept. The steps given beforehand also included an example with a voice description and Stop; the answer does not list them separately. Observed afterwards: the app's model library on the Mac recorded the FP16 asset, its only VoxCPM2 entry, with the upstream revision given here at 04:54 UTC; the entry is the same for a download and an import, and its time is not the time of the check. When the library recorded the asset, the repository's working tree was main at c90a4aa; how the app was built and launched was not observed. Device and OS are those of that Mac. That the check ran on it with this configuration, the only one the app at that version uses, is inferred from that entry. The app at that version is set to download fp16/ of okayuji/voxcpm2-coreai at the pinned revision afe11d61de9dd7c3609140aa040b777ef77b2555. The model library records the manifest SHA-256 as the version, not the source commit; the source commit used for the owner's download was not observed. Sentences, seeds, counts and times were not recorded; no scored listening or performance measurement.",
+        "ja": "2026-11-18の本人の報告(通常のMacのアプリでの手動の確認): ダウンロード・生成・再生・保存ができた。Irodoriはこれまでどおり。声に問題なし。既定は全部品FP16のまま。事前に案内した手順には声の説明つきの例文と停止も含まれるが、回答はそれらを個別には挙げていない。後から観測したこと: Macのアプリのモデルの領域は、FP16の資産(VoxCPM2では唯一の行)を、ここに記した上流の版とともに04:54 UTCに記録した。この行はダウンロードと取込で同じで、その時刻は確認の時刻ではない。モデルの領域が資産を記録した時点で、リポジトリの作業ツリーはmainのc90a4aaだった。アプリのビルドと起動の方法は観測していない。機種とOSはそのMacのもの。確認がそのMacで、この構成(その版のアプリが使う唯一の構成)で行われたことは、この行からの推定。その版のアプリの設定は、公開先okayuji/voxcpm2-coreaiの固定のrevision afe11d61de9dd7c3609140aa040b777ef77b2555のfp16/を指す。モデルの領域が記録する版はmanifestのSHA-256で、配布元のコミットは記録しない。本人の取得に使われた配布元のコミットは観測していない。文・seed・回数・時間は記録していない。採点した試聴や性能の計測ではない。"
       },
       "batch_size": null,
       "concurrency": null,
@@ -657,8 +657,8 @@
     "human_score": {
       "state": "not_measured",
       "reason": {
-        "en": "Not measured; no listening score with a fixed rubric. The owner's judgment in the app (2026-11-18) is not a score.",
-        "ja": "未計測。採点基準を固定した試聴の評点はない。本人のアプリでの判断(2026-11-18)は評点ではない。"
+        "en": "Not measured; no listening score with a fixed rubric. The owner's judgment in the app, reported on 2026-11-18, is not a score.",
+        "ja": "未計測。採点基準を固定した試聴の評点はない。2026-11-18に報告された本人のアプリでの判断は、評点ではない。"
       }
     }
   },
@@ -669,16 +669,16 @@
         "conversion-20261117"
       ],
       "note": {
-        "en": "FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; the owner's listening in the app (2026-11-18) is not a reference comparison.",
-        "ja": "FP32の部品、置き換え3パッチでの5文のFP32の生成、FP32のbundleの再照合が合格。FP16は記録だけ。本人のアプリでの試聴(2026-11-18)は参照との照合ではない。"
+        "en": "FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; the owner's listening in the app, reported on 2026-11-18, is not a reference comparison.",
+        "ja": "FP32の部品、置き換え3パッチでの5文のFP32の生成、FP32のbundleの再照合が合格。FP16は記録だけ。2026-11-18に報告された本人のアプリでの試聴は、参照との照合ではない。"
       }
     },
     "quality": {
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "No scored quality evaluation. In the app on 2026-11-18 the owner found no problem with the audio and kept the all-FP16 configuration as the default; this is not a score.",
-        "ja": "採点した品質の評価は未実施。2026-11-18に本人がアプリで音声に問題が無いことを確かめ、既定の構成を全部品FP16のままにした。評点ではない。"
+        "en": "No scored quality evaluation. On 2026-11-18 the owner reported no problem with the audio in the app and kept the all-FP16 configuration as the default; this is not a score.",
+        "ja": "採点した品質の評価は未実施。2026-11-18に本人が、アプリで音声に問題が無いと報告し、既定の構成を全部品FP16のままにした。評点ではない。"
       }
     },
     "stability": {
@@ -693,8 +693,8 @@
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "Cancellation and retry are covered by CPU fakes (#590). With the real model, a stop after generation and the lease return were checked (#592). The steps given for the owner's app check (2026-11-18) included Stop, but the owner's answer does not list it separately. Cancelling a running generation has no recorded check.",
-        "ja": "取消と再試行は偽の部品のCPUの試験で確認(#590)。実モデルでは、生成の後の停止とleaseの返却を確認した(#592)。本人のアプリでの確認(2026-11-18)に案内した手順には停止が含まれるが、本人の回答は停止を個別には挙げていない。実行中の生成の取消は、記録した確認がない。"
+        "en": "Cancellation and retry are covered by CPU fakes (#590). With the real model, a stop after generation and the lease return were checked (#592). The steps given for the owner's app check, reported on 2026-11-18, included Stop, but the owner's answer does not list it separately. Cancelling a running generation has no recorded check.",
+        "ja": "取消と再試行は偽の部品のCPUの試験で確認(#590)。実モデルでは、生成の後の停止とleaseの返却を確認した(#592)。2026-11-18に報告された本人のアプリでの確認に案内した手順には停止が含まれるが、本人の回答は停止を個別には挙げていない。実行中の生成の取消は、記録した確認がない。"
       }
     }
   }
