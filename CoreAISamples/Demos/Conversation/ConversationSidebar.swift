@@ -6,7 +6,6 @@ import SwiftUI
 struct ConversationSidebar: View {
     @Environment(DemoNavigator.self) private var navigator
     @Environment(MacModelLibrary.self) private var library
-    @State private var collapsed: Set<DemoModel> = []
     @State private var deletion: ModelDeletionRequest?
 
     var body: some View {
@@ -23,7 +22,7 @@ struct ConversationSidebar: View {
     @ViewBuilder private var list: some View {
         let list = List(selection: selection) {
             ForEach(DemoModel.allCases, id: \.self) { model in
-                Section(isExpanded: expanded(model)) {
+                Section {
                     if let failure = failure(of: model) { LibraryFailureView(failure: failure) }
                     ForEach(model.demos) { demoRow($0) }
                 } header: {
@@ -59,14 +58,6 @@ struct ConversationSidebar: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
-    }
-
-    private func expanded(_ model: DemoModel) -> Binding<Bool> {
-        Binding {
-            !collapsed.contains(model)
-        } set: { isExpanded in
-            if isExpanded { collapsed.remove(model) } else { collapsed.insert(model) }
-        }
     }
 
     private func header(_ model: DemoModel) -> some View {
@@ -112,7 +103,10 @@ private struct ModelInformationButton: View {
             showing = true
         } label: {
             Image(systemName: "info.circle")
-                .frame(minWidth: 44, minHeight: 44)
+                .frame(
+                    minWidth: ModelAcquisitionControls.minimumControlSize,
+                    minHeight: ModelAcquisitionControls.minimumControlSize
+                )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
