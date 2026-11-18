@@ -6,11 +6,14 @@ public struct SpeechExample: Codable, Identifiable, Sendable, Equatable {
     public let id: String
     public let title: String
     public let text: String
-    public init(id: String, title: String, text: String) {
+    public let voice: String?
+    public init(id: String, title: String, text: String, voice: String? = nil) {
         self.id = id
         self.title = title
         self.text = text
+        self.voice = voice
     }
+    public var prompt: String { text }
 }
 
 public struct SpeechExportTicket: Identifiable, Sendable, Equatable {
@@ -32,6 +35,7 @@ public struct SpeechState: Sendable, Equatable {
     public var managed = false
     public var session = 0
     public var text: String
+    public var voice = ""
     public var seed = "1708"
     public var model: SpeechModel?
     public var audio: SpeechAudio?
@@ -57,6 +61,7 @@ public struct SpeechState: Sendable, Equatable {
         text = previous?.text ?? text
         seed = previous?.seed ?? seed
     }
+    public var prompt: String { text }
     public var busy: Bool { phase != .idle }
     public var exportVisible: Bool { exportTicket != nil && !exportDismissed }
     public var editable: Bool { presented && !busy && !exportVisible }
@@ -79,6 +84,8 @@ public enum SpeechAction: Equatable, Sendable {
     case opened(Int, SpeechModel)
     case setText(String)
     case setSeed(String)
+    case setVoice(String)
+    case selectExample(SpeechExample)
     case generate
     case generated(Int, SpeechAudio)
     case failed(Int, String)
@@ -166,6 +173,8 @@ public enum SpeechFeature: Feature {
             guard state.editable else { return [] }
             state.seed = seed
             invalidateAudio(&state)
+        case .setVoice, .selectExample:
+            return []
         case .generate:
             guard state.canGenerate, let seed = UInt64(state.seed) else { return [] }
             state.session += 1
