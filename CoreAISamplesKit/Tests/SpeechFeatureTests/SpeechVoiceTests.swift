@@ -56,6 +56,7 @@ struct SpeechVoiceTests {
             ("A (young) woman", "(A young woman)"),
             ("A calm\nvoice", "(A calm\nvoice)"),
             ("A  calm voice", "(A  calm voice)"),
+            ("A calm (\u{0301}voice", "(A calm \u{0301}voice)"),
         ])
     func voicePrefix(voice: String, prefix: String) {
         var state = ready(text: text)

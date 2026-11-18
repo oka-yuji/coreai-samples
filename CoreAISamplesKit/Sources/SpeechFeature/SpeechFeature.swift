@@ -2,6 +2,15 @@ import FeatureStore
 import Foundation
 import SpeechCore
 
+private func assemblePrompt(voice: String, text: String) -> String {
+    let parentheses: Set<Unicode.Scalar> = ["\u{0028}", "\u{0029}", "\u{FF08}", "\u{FF09}"]
+    let cleaned = String(
+        voice.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.filter { !parentheses.contains($0) }
+    )
+    .trimmingCharacters(in: .whitespacesAndNewlines)
+    return cleaned.isEmpty ? text : "(" + cleaned + ")" + text
+}
+
 public struct SpeechExample: Codable, Identifiable, Sendable, Equatable {
     public let id: String
     public let title: String
@@ -13,7 +22,7 @@ public struct SpeechExample: Codable, Identifiable, Sendable, Equatable {
         self.text = text
         self.voice = voice
     }
-    public var prompt: String { text }
+    public var prompt: String { assemblePrompt(voice: voice ?? "", text: text) }
 }
 
 public struct SpeechExportTicket: Identifiable, Sendable, Equatable {
@@ -52,6 +61,7 @@ public struct SpeechState: Sendable, Equatable {
     public init(examples: [SpeechExample] = [], lastPath: String? = nil) {
         self.examples = examples
         self.text = examples.first?.text ?? ""
+        self.voice = examples.first?.voice ?? ""
         self.lastPath = lastPath
     }
     public init(managedModel: SpeechModel, examples: [SpeechExample] = [], retaining previous: SpeechState? = nil) {
@@ -60,8 +70,9 @@ public struct SpeechState: Sendable, Equatable {
         model = managedModel
         text = previous?.text ?? text
         seed = previous?.seed ?? seed
+        voice = previous?.voice ?? voice
     }
-    public var prompt: String { text }
+    public var prompt: String { assemblePrompt(voice: voice, text: text) }
     public var busy: Bool { phase != .idle }
     public var exportVisible: Bool { exportTicket != nil && !exportDismissed }
     public var editable: Bool { presented && !busy && !exportVisible }
@@ -173,8 +184,15 @@ public enum SpeechFeature: Feature {
             guard state.editable else { return [] }
             state.seed = seed
             invalidateAudio(&state)
-        case .setVoice, .selectExample:
-            return []
+        case .setVoice(let voice):
+            guard state.editable else { return [] }
+            state.voice = voice
+            invalidateAudio(&state)
+        case .selectExample(let example):
+            guard state.editable else { return [] }
+            state.text = example.text
+            state.voice = example.voice ?? ""
+            invalidateAudio(&state)
         case .generate:
             guard state.canGenerate, let seed = UInt64(state.seed) else { return [] }
             state.session += 1
@@ -183,9 +201,9 @@ public enum SpeechFeature: Feature {
             state.message = nil
             clearExport(&state)
             if let reference = state.reference {
-                return [.run(.generateReference(state.session, state.text, seed, reference), id: .operation)]
+                return [.run(.generateReference(state.session, state.prompt, seed, reference), id: .operation)]
             }
-            return [.run(.generate(state.session, state.text, seed), id: .operation)]
+            return [.run(.generate(state.session, state.prompt, seed), id: .operation)]
         case .generated(let session, let audio):
             guard state.session == session, state.phase == .generating else { return [] }
             state.phase = .idle
