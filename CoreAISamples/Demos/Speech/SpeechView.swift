@@ -33,7 +33,7 @@ struct SpeechView: View {
                 Menu("Examples") {
                     ForEach(store.state.examples) { example in
                         Button(LocalizedStringKey("Speech example: " + example.title)) {
-                            store.send(.setText(example.text))
+                            store.send(.selectExample(example))
                         }
                     }
                 }
@@ -53,7 +53,20 @@ struct SpeechView: View {
                 .accessibilityIdentifier("speech.text")
             Text(limit).font(.caption).foregroundStyle(.secondary)
             if let voiceHint {
-                Text(voiceHint).font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Voice description").font(.headline)
+                    TextField(
+                        "Voice description",
+                        text: Binding(get: { store.state.voice }, set: { store.send(.setVoice($0)) })
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .disabled(!store.state.editable)
+                    .accessibilityIdentifier("speech.voice")
+                    Text(voiceHint)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             VStack(alignment: .leading, spacing: 6) {
                 Text("Seed").font(.headline)

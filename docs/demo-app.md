@@ -7,7 +7,7 @@
 - **GLiNER2.5-multi**: add an Apple/Microsoft product URL or paste a description, then compare up to four source-linked specification cards. Values remain candidates from the page, including multiple configurations; missing fields are left empty. The earlier label/inspection experiment remains under **Extraction lab**. See [Extract](#extract) and the [product demo specification](specs/product-comparison-demo.md).
 
 - **Irodori**: download the pinned Irodori FP32 model from its sidebar heading, generate from text and seed, play/stop and save a WAV. Actual app/GPU/audio acceptance remains pending. See [Irodori Speech](irodori/demo.md).
-- **VoxCPM2**: download the pinned FP16 bundle from its sidebar heading, generate from text with an optional voice description in parentheses at the start, play/stop and save a WAV. On 2026-11-18 the owner reported that download, generation, playback and saving worked on a Mac, with no problem in the voice. See [VoxCPM2](voxcpm2.md).
+- **VoxCPM2**: download the pinned FP16 bundle from its sidebar heading, generate from text with an optional voice description in its own field, play/stop and save a WAV. On 2026-11-18 the owner reported that download, generation, playback and saving worked on a Mac, with no problem in the voice. See [VoxCPM2](voxcpm2.md).
 
 
 

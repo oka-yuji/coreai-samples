@@ -338,10 +338,11 @@ struct DemoRootView: View {
                     missing: "Download Irodori from its heading in the sidebar.")
             case .voiceDesign?:
                 SpeechView(
-                    store: voiceDesign, model: .voxcpm2, limit: "Short passages work best. The limit is 144 tokens.",
+                    store: voiceDesign, model: .voxcpm2,
+                    limit: "Short passages work best. The text and the voice description share a limit of 144 tokens.",
                     missing: "Download VoxCPM2 from its heading in the sidebar.",
                     voiceHint:
-                        "Describe the voice in parentheses at the start, for example (A young woman, gentle and calm voice)."
+                        "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. Without a description the model chooses the voice."
                 )
             case .ocr?: OCRHostView(library: library)
             case .receipts?: ReceiptHostView(library: library)
