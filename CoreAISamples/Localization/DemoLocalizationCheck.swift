@@ -42,7 +42,7 @@ enum DemoLocalizationCheck {
                 "Could not remove the prepared copy of %@: %@", "Download Irodori from its heading in the sidebar.",
                 "Download VoxCPM2 from its heading in the sidebar.",
                 "Short passages work best. The text and the voice description share a limit of 144 tokens.",
-                "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. Without a description the model chooses the voice.",
+                "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description written in Japanese is translated to English on this Mac before it reaches the model. Without a description the model chooses the voice.",
                 "Download %@ from its heading in the sidebar.",
                 "Download Qwen3.8 27B from its heading in the sidebar.", "Choose a model from the menu above.",
             ]
@@ -54,7 +54,9 @@ enum DemoLocalizationCheck {
             ]
             keys += try [SpeechEngine.irodori, .voxcpm2].flatMap { try SpeechAssembly.examples($0) }
                 .map { "Speech example: " + $0.title }
-            let speechErrors: [SpeechError] = [.unreadableText, .speechNotFinished, .modelNotOpened("VoxCPM2")]
+            let speechErrors: [SpeechError] = [
+                .unreadableText, .speechNotFinished, .modelNotOpened("VoxCPM2"), .voiceNotTranslated,
+            ]
             keys += speechErrors.compactMap(\.errorDescription) + ["The VoxCPM2 tokenizer could not be loaded."]
             var failures: [String] = []
             for name in modelNames.sorted() {
