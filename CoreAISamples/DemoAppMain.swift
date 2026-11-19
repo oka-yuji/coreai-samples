@@ -55,6 +55,7 @@ enum DemoAppMain {
             }
             LibrarySelectionSelfTest.checkPresentation(check)
             SpeechAssembly.checkMinimumHeight(check)
+            SpeechAssembly.checkPhaseText(check)
             if failures > 0 { exit(1) }
             DemoLocalizationCheck.run()
             return

@@ -9,6 +9,7 @@ struct SpeechForm: View {
     let missing: LocalizedStringKey?
     let voiceHint: LocalizedStringKey?
     let canGenerate: Bool
+    @Environment(\.locale) private var locale
 
     var body: some View {
         ScrollView {
@@ -122,7 +123,7 @@ struct SpeechForm: View {
                 HStack(spacing: 10) {
                     if store.state.busy {
                         ProgressView().controlSize(.small)
-                        Text(phaseLabel)
+                        Text(verbatim: Self.phaseText(store.state.phase, locale: locale))
                     } else if let message = store.state.message {
                         RuntimeMessageText(message).textSelection(.enabled)
                     } else {
@@ -138,13 +139,17 @@ struct SpeechForm: View {
         }
     }
 
-    private var phaseLabel: String {
-        switch store.state.phase {
+    static func phaseText(_ phase: SpeechState.Phase, locale: Locale) -> String {
+        DemoStrings(locale: locale).text(phaseLabel(phase))
+    }
+
+    private static func phaseLabel(_ phase: SpeechState.Phase) -> String {
+        switch phase {
         case .idle: "Ready"
         case .opening: "Checking model files…"
         case .generating: "Generating speech…"
         case .playing: "Playing audio…"
-        case .stopping: "Stopping after the current operation…"
+        case .stopping: "Waiting for the current operation to stop…"
         case .preparingRecording: "Preparing to record…"
         case .recording: "Recording your reference voice…"
         case .finishingRecording: "Preparing your recorded voice…"

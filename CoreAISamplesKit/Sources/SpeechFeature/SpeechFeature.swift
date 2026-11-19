@@ -55,7 +55,7 @@ public struct SpeechExportTicket: Identifiable, Sendable, Equatable {
 }
 
 public struct SpeechState: Sendable, Equatable {
-    public enum Phase: Sendable, Equatable {
+    public enum Phase: Sendable, Equatable, CaseIterable {
         case idle, opening, generating, playing, stopping
         case preparingRecording, recording, finishingRecording, importingReference
     }

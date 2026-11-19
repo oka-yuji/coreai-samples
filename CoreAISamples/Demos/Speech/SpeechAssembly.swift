@@ -40,4 +40,14 @@ enum SpeechAssembly {
                 "Minimum height \(height) pt; default window height \(DemoApp.defaultSize.height) pt.")
         }
     }
+
+    static func checkPhaseText(_ check: (String, Bool, String) -> Void) {
+        for phase in SpeechState.Phase.allCases {
+            let english = SpeechForm.phaseText(phase, locale: Locale(identifier: "en"))
+            let japanese = SpeechForm.phaseText(phase, locale: Locale(identifier: "ja"))
+            check(
+                "speech/phaseText/\(phase)", !japanese.isEmpty && japanese != english,
+                "English: \(english); Japanese: \(japanese)")
+        }
+    }
 }
