@@ -42,7 +42,7 @@ enum DemoLocalizationCheck {
                 "Could not remove the prepared copy of %@: %@", "Download Irodori from its heading in the sidebar.",
                 "Download VoxCPM2 from its heading in the sidebar.",
                 "Short passages work best. The text and the voice description share a limit of 144 tokens.",
-                "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model. Without a description the model chooses the voice.",
+                "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model; if the translation changes, the same seed gives different audio. Without a description the model chooses the voice.",
                 "Download %@ from its heading in the sidebar.",
                 "Download Qwen3.8 27B from its heading in the sidebar.", "Choose a model from the menu above.",
             ]
