@@ -3645,7 +3645,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "VoxCPM2で文章と声の説明から音声を生成・再生"
+            "value" : "VoxCPM2で文章と声質の指定から音声を生成・再生"
           }
         }
       }
@@ -5759,7 +5759,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "任意です。声の特徴を短く書きます(例: A young woman, gentle and calm voice)。説明が無いときは、声はモデルが決めます。"
+            "value" : "任意です。声質を短く書きます(例: A young woman, gentle and calm voice)。声質の指定が無いときは、声はモデルが決めます。"
           }
         }
       }
@@ -7470,7 +7470,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "短い文章に適しています。文と声の説明を合わせて、上限は144トークンです。"
+            "value" : "短い文章に適しています。文と声質を合わせて、上限は144トークンです。"
           }
         }
       }
@@ -7771,7 +7771,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "声の説明なし"
+            "value" : "声質の指定なし"
           }
         }
       }
@@ -9593,7 +9593,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "声の説明"
+            "value" : "声質"
           }
         }
       }
