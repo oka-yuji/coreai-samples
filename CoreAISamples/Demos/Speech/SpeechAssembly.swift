@@ -1,7 +1,9 @@
+import AppKit
 import FeatureStore
 import Foundation
 import SpeechFeature
 import SpeechRuntime
+import SwiftUI
 
 @MainActor
 enum SpeechAssembly {
@@ -19,5 +21,23 @@ enum SpeechAssembly {
             throw CocoaError(.fileNoSuchFile)
         }
         return try JSONDecoder().decode([SpeechExample].self, from: Data(contentsOf: url))
+    }
+
+    static func checkMinimumHeight(_ check: (String, Bool, String) -> Void) {
+        _ = NSApplication.shared
+        let guidance = LocalizedStringKey(
+            String(repeating: "This guidance is long enough to wrap across many lines in a narrow window. ", count: 3))
+        let cases: [(name: String, voiceHint: LocalizedStringKey?)] = [
+            ("withVoiceDescription", guidance), ("withoutVoiceDescription", nil),
+        ]
+        for (name, voiceHint) in cases {
+            let form = SpeechForm(
+                store: Store<SpeechFeature>(initialState: SpeechState()) { _, _ in }, title: "VoxCPM2", limit: guidance,
+                missing: guidance, voiceHint: voiceHint, canGenerate: false)
+            let height = NSHostingController(rootView: form).sizeThatFits(in: .zero).height
+            check(
+                "speech/minimumHeight/" + name, height <= DemoApp.defaultSize.height,
+                "Minimum height \(height) pt; default window height \(DemoApp.defaultSize.height) pt.")
+        }
     }
 }
