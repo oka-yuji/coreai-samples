@@ -15,8 +15,8 @@
   },
   "release": "released",
   "release_note": {
-    "en": "FP16 bundle published and downloadable from Mac Models; native Mac demo passes automated checks. The demo takes the text, an optional voice description in its own field and a seed; a description that contains hiragana or katakana is translated to English on the Mac before generation. Listening and normal-screen acceptance by the owner completed on 2026-11-18; on 2026-11-19 the owner answered that the updated screen was very good.",
-    "ja": "FP16のbundleを公開し、MacのModelsから取得できる。Macのネイティブデモは自動の確認に合格。デモは、文と、別の欄に書く任意の声質と、seedを受け取り、ひらがなかカタカナを含む声質はMacの中で英語に翻訳してから生成する。試聴と通常の画面の本人受入は2026-11-18に完了。2026-11-19に本人が、変更後の画面について「とてもいい感じでした！」と答えた。"
+    "en": "FP16 bundle published and downloadable from Mac Models; native Mac demo passes automated checks. The demo takes the text, an optional voice description in its own field and a seed; a description that contains hiragana or katakana is translated to English on the Mac before generation, which needs Japanese and English installed as translation languages on that Mac. Listening and normal-screen acceptance by the owner completed on 2026-11-18; on 2026-11-19 the owner answered that the updated screen was very good.",
+    "ja": "FP16のbundleを公開し、MacのModelsから取得できる。Macのネイティブデモは自動の確認に合格。デモは、文と、別の欄に書く任意の声質と、seedを受け取り、ひらがなかカタカナを含む声質はMacの中で英語に翻訳してから生成する。この翻訳には、翻訳用の日本語と英語がMacに入っている必要がある。試聴と通常の画面の本人受入は2026-11-18に完了。2026-11-19に本人が、変更後の画面について「とてもいい感じでした！」と答えた。"
   },
   "download": "https://huggingface.co/okayuji/voxcpm2-coreai",
   "public_access_evidence": "docs/validation/voxcpm2-download-20261118/README.md#anonymous-download",
