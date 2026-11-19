@@ -5754,12 +5754,12 @@
         }
       }
     },
-    "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. Without a description the model chooses the voice." : {
+    "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model; if the translation changes, the same seed can give different audio. Without a description the model chooses the voice." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "任意です。声質を短く書きます(例: A young woman, gentle and calm voice)。声質の指定が無いときは、声はモデルが決めます。"
+            "value" : "任意です。声質を短く書きます(例: 若い女性、やさしく落ち着いた声)。ひらがなかカタカナを含む声質は、このMacの中で英語に翻訳してからモデルへ渡します(訳が変わると、同じ seed でも音声が変わることがあります)。声質の指定が無いときは、声はモデルが決めます。"
           }
         }
       }
@@ -9007,6 +9007,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最終的な回答の前に、このターンは最大%lldステップに達しました。"
+          }
+        }
+      }
+    },
+    "The voice description could not be translated to English. Download Japanese and English as translation languages in System Settings, or write the description in English." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声質を英語に翻訳できませんでした。システム設定で翻訳用の言語(日本語と英語)をダウンロードするか、声質を英語で書いてください。"
           }
         }
       }

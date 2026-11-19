@@ -8,6 +8,7 @@
         func open(path: String) async throws -> SpeechModel
         func generate(text: String, seed: UInt64) async throws -> SpeechAudio
         func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio
+        func translate(voice: String) async throws -> String
         func play(_ data: Data) async throws
         func recordReference(ticket: Int, started: @MainActor () -> Void) async throws -> SpeechReferenceAudio
         func finishReferenceRecording(ticket: Int) async
@@ -31,6 +32,9 @@
             guard reference == nil else { throw SpeechError.referenceNotSupported }
             return try await generate(text: text, seed: seed)
         }
+        public func translate(voice: String) async throws -> String {
+            throw SpeechError.voiceNotTranslated
+        }
     }
 
     @MainActor
@@ -42,7 +46,8 @@
             let session: Int
             switch effect {
             case .open(let value, _), .generate(let value, _, _), .play(let value, _), .stop(let value): session = value
-            case .generateReference(let value, _, _, _), .recordReference(let value),
+            case .generateTranslated(let value, _, _, _), .generateReference(let value, _, _, _),
+                .recordReference(let value),
                 .finishReferenceRecording(let value), .importReference(let value, _), .playReference(let value, _):
                 session = value
             }
@@ -54,6 +59,20 @@
                     send(.opened(session, model))
                 case .generate(_, let text, let seed):
                     let audio = try await service.generate(text: text, seed: seed)
+                    try Task.checkCancellation()
+                    send(.generated(session, audio))
+                case .generateTranslated(_, let voice, let text, let seed):
+                    let translation: String
+                    do {
+                        translation = try await service.translate(voice: voice)
+                    } catch is CancellationError {
+                        try Task.checkCancellation()
+                        throw SpeechError.voiceNotTranslated
+                    }
+                    try Task.checkCancellation()
+                    guard !cleanedVoice(translation).isEmpty else { throw SpeechError.voiceNotTranslated }
+                    let prompt = assemblePrompt(voice: translation, text: text)
+                    let audio = try await service.generate(text: prompt, seed: seed)
                     try Task.checkCancellation()
                     send(.generated(session, audio))
                 case .generateReference(_, let text, let seed, let reference):
