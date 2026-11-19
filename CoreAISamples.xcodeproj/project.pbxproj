@@ -90,6 +90,7 @@
 		40D561949D3C716C66C23D0D /* TruckInspectionAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCBAA551F86D44CD24D4787C /* TruckInspectionAssembly.swift */; };
 		415BA358AC23880B2C050C4F /* ChronosUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6E8B0FF8CC3D455DF0DECE9C /* ChronosUI */; };
 		41CA6F8D7C2BCD8F43A409ED /* ObjectFinderContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */; };
+		425EA67B6860EEF211FA8566 /* SpeechForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4910581859BFE30F2C89C071 /* SpeechForm.swift */; };
 		4275FA1D00228F5E93B7A9D0 /* ImageSearchVectorCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3D65A0C17724B4972F0D163 /* ImageSearchVectorCheck.swift */; };
 		42D77086431DA7B229C4B249 /* RAGStructureSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1177181489D035B70BB5008A /* RAGStructureSelfTest.swift */; };
 		45046290241DAFC8DCCDB276 /* FeatureStore in Frameworks */ = {isa = PBXBuildFile; productRef = A10F5ED4A2E950644FC5C5D3 /* FeatureStore */; };
@@ -383,6 +384,7 @@
 		45CDC3B6511E848B1B0B40E6 /* ObjectFinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectFinderView.swift; sourceTree = "<group>"; };
 		467BAD30F4EF645A810E81C0 /* ImageTestBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTestBundle.swift; sourceTree = "<group>"; };
 		47737423C61124F4327C174E /* DecideSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideSelfTest.swift; sourceTree = "<group>"; };
+		4910581859BFE30F2C89C071 /* SpeechForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechForm.swift; sourceTree = "<group>"; };
 		4C5819C9766A98C2284DAD1A /* ImageDeviceMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDeviceMemory.swift; sourceTree = "<group>"; };
 		4EB6B5C0D4EEB1350D728A30 /* ConversationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSession.swift; sourceTree = "<group>"; };
 		4EDE697AB83805D8B5154CEB /* ImageGenerationGoldenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageGenerationGoldenTests.swift; sourceTree = "<group>"; };
@@ -683,6 +685,7 @@
 			children = (
 				1EF067F2F1108F44E0873891 /* SpeechAssembly.swift */,
 				D005E7D2BBBBEDDF71AD3A7B /* SpeechExport.swift */,
+				4910581859BFE30F2C89C071 /* SpeechForm.swift */,
 				0E8F067D0636EEF40E2268B3 /* SpeechReferenceControls.swift */,
 				AEE5CB9731EE821324E0CB00 /* SpeechView.swift */,
 				7C5B94712CF2C298506EDB49 /* Resources */,
@@ -1613,6 +1616,7 @@
 				31042D2A839D4FE25AA23E99 /* SpeechAdapter.swift in Sources */,
 				B6E6CA2DA418633553FF400B /* SpeechAssembly.swift in Sources */,
 				4DB1962CEDA4F3E9C958C7E3 /* SpeechExport.swift in Sources */,
+				425EA67B6860EEF211FA8566 /* SpeechForm.swift in Sources */,
 				E98F672AC4E0760204CF0035 /* SpeechReferenceControls.swift in Sources */,
 				144E14392F7E1FDBC800476D /* SpeechView.swift in Sources */,
 				84CACB21A547B2C201617E85 /* ToolRunner.swift in Sources */,

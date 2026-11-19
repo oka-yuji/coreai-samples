@@ -5,6 +5,7 @@ import ModelLibraryStorage
 import SwiftUI
 
 struct DemoApp: App {
+    static let defaultSize = CGSize(width: 1040, height: 720)
     @NSApplicationDelegateAdaptor(ConversationLifetime.self) private var lifetime
     var body: some Scene {
         WindowGroup("Core AI Demos") {
@@ -14,7 +15,7 @@ struct DemoApp: App {
                 DemoRootView(lifetime: lifetime)
             }
         }
-        .defaultSize(width: 1040, height: 720)
+        .defaultSize(Self.defaultSize)
     }
 }
 
@@ -48,10 +49,12 @@ enum DemoAppMain {
         }
         if LaunchArguments.flag("--check-localization") {
             var failures = 0
-            LibrarySelectionSelfTest.checkPresentation { name, passed, detail in
+            let check = { (name: String, passed: Bool, detail: String) in
                 print("\(passed ? "PASS" : "FAIL") \(name): \(detail)")
                 if !passed { failures += 1 }
             }
+            LibrarySelectionSelfTest.checkPresentation(check)
+            SpeechAssembly.checkMinimumHeight(check)
             if failures > 0 { exit(1) }
             DemoLocalizationCheck.run()
             return
