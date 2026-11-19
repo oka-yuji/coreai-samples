@@ -34,6 +34,7 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
     case textExceedsLimit(count: Int, limit: Int)
     case speechNotFinished
     case unreadableText
+    case voiceNotTranslated
 
     public var errorDescription: String? {
         switch self {
@@ -53,6 +54,10 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
         case .speechNotFinished: "The model reached its length limit before the speech ended."
         case .unreadableText:
             "The model cannot read some characters in this text. Remove or replace them, then try again."
+        case .voiceNotTranslated:
+            "The voice description could not be translated to English. "
+                + "Download Japanese and English as translation languages in System Settings, "
+                + "or write the description in English."
         }
     }
 }

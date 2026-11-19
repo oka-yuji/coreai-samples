@@ -2,17 +2,33 @@ import FeatureStore
 import Foundation
 import SpeechCore
 
-private func assemblePrompt(voice: String, text: String) -> String {
+package func cleanedVoice(_ voice: String) -> String {
     let parentheses: Set<Unicode.Scalar> = ["\u{0028}", "\u{0029}", "\u{FF08}", "\u{FF09}"]
-    let cleaned = String(
+    return String(
         voice.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.filter { !parentheses.contains($0) }
     )
     .trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+package func assemblePrompt(voice: String, text: String) -> String {
+    let cleaned = cleanedVoice(voice)
+    return cleaned.isEmpty || !hasSpeech(text) ? text : "(" + cleaned + ")" + text
+}
+
+private func hasSpeech(_ text: String) -> Bool {
     let separators: Set<Unicode.Scalar> = ["\u{1C}", "\u{1D}", "\u{1E}", "\u{1F}"]
-    let unreadable = text.unicodeScalars.allSatisfy {
+    return !text.unicodeScalars.allSatisfy {
         CharacterSet.whitespacesAndNewlines.contains($0) || separators.contains($0)
     }
-    return cleaned.isEmpty || unreadable ? text : "(" + cleaned + ")" + text
+}
+
+private func containsKana(_ voice: String) -> Bool {
+    voice.unicodeScalars.contains {
+        switch $0.value {
+        case 0x3041...0x3096, 0x30A1...0x30FA, 0x31F0...0x31FF, 0xFF66...0xFF6F, 0xFF71...0xFF9D: true
+        default: false
+        }
+    }
 }
 
 public struct SpeechExample: Codable, Identifiable, Sendable, Equatable {
@@ -124,6 +140,7 @@ public enum SpeechAction: Equatable, Sendable {
 public enum SpeechEffect: Equatable, Sendable {
     case open(Int, String)
     case generate(Int, String, UInt64)
+    case generateTranslated(Int, String, String, UInt64)
     case play(Int, Data)
     case stop(Int)
     case generateReference(Int, String, UInt64, SpeechReferenceAudio)
@@ -206,6 +223,10 @@ public enum SpeechFeature: Feature {
             clearExport(&state)
             if let reference = state.reference {
                 return [.run(.generateReference(state.session, state.prompt, seed, reference), id: .operation)]
+            }
+            let voice = cleanedVoice(state.voice)
+            if containsKana(voice), hasSpeech(state.text) {
+                return [.run(.generateTranslated(state.session, voice, state.text, seed), id: .operation)]
             }
             return [.run(.generate(state.session, state.prompt, seed), id: .operation)]
         case .generated(let session, let audio):
