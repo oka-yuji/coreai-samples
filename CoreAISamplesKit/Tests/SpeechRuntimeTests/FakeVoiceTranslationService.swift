@@ -7,19 +7,23 @@ final class FakeVoiceTranslationService: SpeechService {
     let started = TestSignal()
     let gate = TestGate()
     let translation: String?
+    let failure: any Error
     let audio = SpeechAudio(wav: Data([1]), audioSeconds: 1, elapsedSeconds: 2, normalizedText: "Test")
     private(set) var voices: [String] = []
     private(set) var texts: [String] = []
     private(set) var seeds: [UInt64] = []
 
-    init(translation: String?) { self.translation = translation }
+    init(translation: String?, failure: any Error = SpeechError.voiceNotTranslated) {
+        self.translation = translation
+        self.failure = failure
+    }
 
     func open(path: String) -> SpeechModel { SpeechModel(name: "Fixture", directory: URL(filePath: path)) }
     func translate(voice: String) async throws -> String {
         voices.append(voice)
         started.fire()
         await gate.wait()
-        guard let translation else { throw SpeechError.voiceNotTranslated }
+        guard let translation else { throw failure }
         return translation
     }
     func generate(text: String, seed: UInt64) async throws -> SpeechAudio {

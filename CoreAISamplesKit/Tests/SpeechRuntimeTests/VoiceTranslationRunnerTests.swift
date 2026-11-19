@@ -108,6 +108,17 @@ struct VoiceTranslationRunnerTests {
                 + "or write the description in English.")
     }
 
+    @Test("TRN-04 A translation that throws a cancellation error without a stop fails like any other translation error")
+    func cancellationErrorWithoutStop() async throws {
+        let service = FakeVoiceTranslationService(translation: nil, failure: CancellationError())
+        service.gate.open()
+        let store = try await generate(ready(voice: voice), on: service)
+        #expect(service.voices == [voice])
+        #expect(service.texts.isEmpty)
+        #expect(store.state.phase == .idle && store.state.audio == nil)
+        #expect(store.state.message == SpeechError.voiceNotTranslated.errorDescription)
+    }
+
     @Test("TRN-05 Stopping during the translation does not generate")
     func stopDuringTranslation() async throws {
         let service = FakeVoiceTranslationService(translation: "A calm voice")

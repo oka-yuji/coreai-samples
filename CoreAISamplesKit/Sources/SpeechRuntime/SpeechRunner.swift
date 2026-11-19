@@ -62,7 +62,13 @@
                     try Task.checkCancellation()
                     send(.generated(session, audio))
                 case .generateTranslated(_, let voice, let text, let seed):
-                    let translation = try await service.translate(voice: voice)
+                    let translation: String
+                    do {
+                        translation = try await service.translate(voice: voice)
+                    } catch is CancellationError {
+                        try Task.checkCancellation()
+                        throw SpeechError.voiceNotTranslated
+                    }
                     try Task.checkCancellation()
                     guard !cleanedVoice(translation).isEmpty else { throw SpeechError.voiceNotTranslated }
                     let prompt = assemblePrompt(voice: translation, text: text)
