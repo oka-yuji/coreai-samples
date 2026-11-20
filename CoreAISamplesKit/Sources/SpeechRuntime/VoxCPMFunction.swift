@@ -11,6 +11,7 @@
         case encode = "locenc.main"
         case estimate = "dit.main"
         case decode = "vae.main"
+        case referenceEncode = "refenc.main"
 
         var asset: String { String(rawValue.prefix { $0 != "." }) }
         var name: String { String(rawValue.drop { $0 != "." }.dropFirst()) }

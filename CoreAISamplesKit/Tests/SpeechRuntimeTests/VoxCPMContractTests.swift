@@ -43,6 +43,38 @@ struct VoxCPMContractTests {
         return result
     }
 
+    static func capacity(_ json: inout [String: Any], _ capacity: Int) throws {
+        try VoxCPMManifestTests.set(&json, ["execution", "capacity"], capacity)
+        try VoxCPMManifestTests.set(&json, ["generation", "max_len"], capacity)
+        for asset in ["tslm", "ralm"] {
+            for function in ["prefill", "step"] {
+                let path = ["assets", asset, "functions", function, "states"]
+                var states = try #require(try VoxCPMManifestTests.value(json, path) as? [[Any]])
+                for index in states.indices {
+                    var shape = try #require(states[index][2] as? [Int])
+                    shape[2] = capacity
+                    states[index][2] = shape
+                }
+                try VoxCPMManifestTests.set(&json, path, states)
+            }
+        }
+    }
+
+    static func referenceDeclaration(_ defect: String) -> (field: String, tensors: [[Any]]) {
+        let mu: [Any] = ["mu", "float32", [1, 64, 252]]
+        switch defect {
+        case "inputName": return ("inputs", [["audio", "float32", [1, 1, 161_280]]])
+        case "outputName": return ("outputs", [["latent", "float32", [1, 64, 252]]])
+        case "inputType": return ("inputs", [["pcm", "float16", [1, 1, 161_280]]])
+        case "outputType": return ("outputs", [["mu", "float16", [1, 64, 252]]])
+        case "inputSize": return ("inputs", [["pcm", "float32", [1, 1, 160_000]]])
+        case "outputLayout": return ("outputs", [["mu", "float32", [1, 252, 64]]])
+        case "extraOutput": return ("outputs", [mu, ["logvar", "float32", [1, 64, 252]]])
+        case "state": return ("states", [["past", "float32", [1, 64, 252]]])
+        default: return ("outputs", [["mu", "float32", [1, Int.max, 4]]])
+        }
+    }
+
     @Test("VPL-04 Every bundled configuration passes when the asset descriptors equal the manifest contract")
     func bundledContracts() throws {
         for profile in VoxCPMBundleProfile.allCases {
@@ -50,7 +82,7 @@ struct VoxCPMContractTests {
             let contract = try VoxCPMContract(manifest: manifest)
             #expect(contract.profile == profile)
             #expect(contract.prefillLength == 145 && contract.capacity == 1024 && contract.samplesPerPatch == 7680)
-            for asset in VoxCPMBundleInventory.assetNames {
+            for asset in profile.assetNames {
                 let (names, signatures) = Self.observed(manifest, asset)
                 try contract.check(asset: asset, functionNames: names, observed: signatures)
             }
@@ -169,5 +201,121 @@ struct VoxCPMContractTests {
     func rejectsGeneration(_ defect: VoxCPMGenerationDefect) throws {
         let manifest = try Self.manifest { try VoxCPMManifestTests.set(&$0, defect.change.path, defect.change.value) }
         #expect(throws: SpeechError.self) { try VoxCPMContract(manifest: manifest) }
+    }
+
+    @Test(
+        "VRA-02 The reference encoder must report the fixed PCM input, the feature output and no state",
+        arguments: [
+            "inputName", "outputName", "inputType", "outputType", "inputSize", "outputLayout", "extraOutput", "state",
+            "extraFunction", "missingFunction", "patchEncoder",
+        ])
+    func rejectsReferenceDescriptor(_ defect: String) throws {
+        let manifest = try VoxCPMBundleInventory.manifest(in: VoxCPMBundleFixture.manifest(.referenceFP32))
+        let contract = try VoxCPMContract(manifest: manifest)
+        var (names, signatures) = Self.observed(manifest, "refenc")
+        let pcm = Tensor(name: "pcm", type: "float32", shape: [1, 1, 161_280])
+        let mu = Tensor(name: "mu", type: "float32", shape: [1, 64, 252])
+        try #require(names == ["main"])
+        try #require(signatures["main"] == VoxCPMSignature(inputs: [pcm], outputs: [mu], states: []))
+        try contract.check(asset: "refenc", functionNames: names, observed: signatures)
+        #expect(contract.outputCount(.referenceEncode, "mu") == 16_128)
+        func observe(_ inputs: [Tensor], _ outputs: [Tensor], _ states: [Tensor] = []) {
+            signatures["main"] = VoxCPMSignature(inputs: inputs, outputs: outputs, states: states)
+        }
+        switch defect {
+        case "inputName": observe([Tensor(name: "audio", type: "float32", shape: pcm.shape)], [mu])
+        case "outputName": observe([pcm], [Tensor(name: "latent", type: "float32", shape: mu.shape)])
+        case "inputType": observe([Tensor(name: "pcm", type: "float16", shape: pcm.shape)], [mu])
+        case "outputType": observe([pcm], [Tensor(name: "mu", type: "float16", shape: mu.shape)])
+        case "inputSize": observe([Tensor(name: "pcm", type: "float32", shape: [1, 1, 160_000])], [mu])
+        case "outputLayout": observe([pcm], [Tensor(name: "mu", type: "float32", shape: [1, 252, 64])])
+        case "extraOutput": observe([pcm], [mu, Tensor(name: "logvar", type: "float32", shape: mu.shape)])
+        case "state": observe([pcm], [mu], [Tensor(name: "past", type: "float32", shape: mu.shape)])
+        case "extraFunction":
+            names.append("aux")
+            signatures["aux"] = signatures["main"]
+        case "missingFunction":
+            names.removeAll()
+            signatures.removeAll()
+        default:
+            let (_, patch) = Self.observed(manifest, "locenc")
+            signatures["main"] = patch["main"]
+        }
+        #expect(throws: SpeechError.self) {
+            try contract.check(asset: "refenc", functionNames: names, observed: signatures)
+        }
+    }
+
+    @Test(
+        "VRA-02 A wrong reference encoder declaration is rejected even when the asset reports the same descriptor",
+        arguments: [
+            "inputName", "outputName", "inputType", "outputType", "inputSize", "outputLayout", "extraOutput", "state",
+            "hugeShape",
+        ])
+    func rejectsReferenceDeclaration(_ defect: String) throws {
+        let change = Self.referenceDeclaration(defect)
+        let manifest = try Self.manifest(.referenceFP32) {
+            try VoxCPMManifestTests.set(&$0, ["assets", "refenc", "functions", "main", change.field], change.tensors)
+        }
+        let contract = try VoxCPMContract(manifest: manifest)
+        let (names, signatures) = Self.observed(manifest, "refenc")
+        #expect(throws: SpeechError.self) {
+            try contract.check(asset: "refenc", functionNames: names, observed: signatures)
+        }
+        if defect == "hugeShape" { #expect(contract.outputCount(.referenceEncode, "mu") == nil) }
+    }
+
+    @Test("VRA-02 locenc.main and refenc.main keep separate descriptors and a legacy contract has no reference encoder")
+    func separateEncoders() throws {
+        let manifest = try VoxCPMBundleInventory.manifest(in: VoxCPMBundleFixture.manifest(.referenceFP32))
+        let contract = try VoxCPMContract(manifest: manifest)
+        let (_, patch) = Self.observed(manifest, "locenc")
+        let (_, reference) = Self.observed(manifest, "refenc")
+        try contract.check(asset: "locenc", functionNames: ["main"], observed: patch)
+        #expect(throws: SpeechError.self) {
+            try contract.check(asset: "locenc", functionNames: ["main"], observed: reference)
+        }
+        #expect(throws: SpeechError.self) {
+            try contract.check(asset: "refenc", functionNames: ["main"], observed: patch)
+        }
+        let legacy = try VoxCPMPipelineTests.contract(.fp32)
+        #expect(legacy.outputCount(.encode, "curr_embed") == 2048)
+        #expect(legacy.outputCount(.referenceEncode, "mu") == nil)
+        #expect(throws: SpeechError.self) {
+            try legacy.check(asset: "refenc", functionNames: ["main"], observed: reference)
+        }
+    }
+
+    @Test(
+        "VRA-02 A capacity above 8192 is rejected even when max_len and all four shared cache states match",
+        arguments: VoxCPMBundleProfile.allCases)
+    func capacityLimit(_ profile: VoxCPMBundleProfile) throws {
+        let bounded = try Self.manifest(profile) { try Self.capacity(&$0, 8_192) }
+        let contract = try VoxCPMContract(manifest: bounded)
+        #expect(contract.capacity == VoxCPMContract.maximumCapacity)
+        for asset in ["tslm", "ralm"] {
+            let (names, signatures) = Self.observed(bounded, asset)
+            try contract.check(asset: asset, functionNames: names, observed: signatures)
+        }
+        for capacity in [8_193, Int.max] {
+            let manifest = try Self.manifest(profile) { try Self.capacity(&$0, capacity) }
+            #expect(throws: SpeechError.self, "\(capacity)") { try VoxCPMContract(manifest: manifest) }
+        }
+    }
+
+    @Test("VRA-02 Extreme prefill lengths, capacities and tensor shapes are rejected without an arithmetic trap")
+    func extremeValues() throws {
+        let cases: [([String], Int)] = [
+            (["execution", "prefill_length"], Int.min), (["execution", "prefill_length"], Int.max),
+            (["execution", "capacity"], Int.min), (["execution", "max_text_tokens"], Int.min),
+        ]
+        for (path, value) in cases {
+            let manifest = try Self.manifest(.referenceFP32) { try VoxCPMManifestTests.set(&$0, path, value) }
+            #expect(throws: SpeechError.self, "\(path) \(value)") { try VoxCPMContract(manifest: manifest) }
+        }
+        #expect(VoxCPMContract.count([1, 64, 252]) == 16_128)
+        for shape in [[1, Int.max, 4], [Int.max, Int.max], [1, -1, 4], [1, 0, 4], [Int.min]] {
+            #expect(VoxCPMContract.count(shape) == nil, "\(shape)")
+        }
     }
 }
