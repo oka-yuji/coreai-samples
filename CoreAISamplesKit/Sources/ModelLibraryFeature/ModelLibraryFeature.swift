@@ -26,6 +26,8 @@ public enum ModelLibraryAction: Sendable {
     case demoStopped(LibraryTicket, LibraryTicket)
     case demoStopFailed(LibraryTicket, LibraryTicket, String)
     case resourceLost(artifactID: String, session: LibraryTicket)
+    case recheckPreview(ModelArtifactIdentity, generation: Int)
+    case previewRegistrationChanged(ModelArtifactIdentity, ValidatedModelResource?)
     case requestDemoPreparation(LibraryTicket)
     case demoPreparationChanged(LibraryTicket, DemoPreparation)
     case retryDemoStop
@@ -64,8 +66,16 @@ public enum ModelLibraryFeature: Feature {
     public typealias Operation = Command<Effect, EffectID>
 
     public static func reduce(_ state: inout State, _ action: Action) -> [Operation] {
+        let previous = state.previewIdentity
         let operations = respond(&state, action)
-        return operations + serveUsages(&state)
+        let usages = serveUsages(&state)
+        switch action {
+        case .suspendDemo:
+            if previous.selection != nil { state.previewGeneration += 1 }
+        default:
+            if previous != state.previewIdentity { state.previewGeneration += 1 }
+        }
+        return operations + usages
     }
 
     private static func respond(_ state: inout State, _ action: Action) -> [Operation] {
@@ -182,6 +192,23 @@ public enum ModelLibraryFeature: Feature {
             else { return [] }
             state.failure = .operation(message)
             state.stopRequestID = nil
+        case .recheckPreview(let identity, let generation):
+            guard state.previewGeneration == generation, state.previews(identity),
+                state.installations[identity.artifactID]?.phase == .ready,
+                let model = state.catalog.model(identity.modelID), let artifact = model.artifact(identity.artifactID)
+            else { return [] }
+            return reinspect(&state, model: model, artifact: artifact, failure: nil)
+        case .previewRegistrationChanged(let identity, let resource):
+            guard state.previews(identity), let installation = state.installations[identity.artifactID],
+                !installation.phase.isBusy
+            else { return [] }
+            if let resource {
+                guard resource.identity == identity, let incoming = resource.registrationGeneration else { return [] }
+                if let current = installation.resource?.registrationGeneration, current >= incoming { return [] }
+            } else if installation.phase != .ready {
+                return []
+            }
+            complete(&state, artifactID: identity.artifactID, resource: resource)
         case .resourceLost(let artifactID, let ticket):
             guard let session = state.session, session.id == ticket, session.resource.artifactID == artifactID
             else { return [] }

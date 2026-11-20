@@ -57,6 +57,8 @@ let package = Package(
         .library(name: "TruckInspectionRuntime", targets: ["TruckInspectionRuntime"]),
         .library(name: "ImageSearchFeature", targets: ["ImageSearchFeature"]),
         .library(name: "ImageSearchRuntime", targets: ["ImageSearchRuntime"]),
+        .library(name: "SpokenSearchFeature", targets: ["SpokenSearchFeature"]),
+        .library(name: "SpokenSearchRuntime", targets: ["SpokenSearchRuntime"]),
         .library(name: "VideoSearchFeature", targets: ["VideoSearchFeature"]),
         .library(name: "VideoSearchRuntime", targets: ["VideoSearchRuntime"]),
         .library(name: "EmbeddingCore", targets: ["EmbeddingCore"]),
@@ -360,6 +362,20 @@ let package = Package(
         .testTarget(
             name: "ImageSearchTests", dependencies: ["ImageSearchFeature", "ImageSearchRuntime", "FeatureStore"],
             swiftSettings: approachableConcurrency),
+        .target(name: "SpokenSearchFeature", dependencies: ["FeatureStore"], swiftSettings: speechSettings),
+        .target(
+            name: "SpokenSearchRuntime",
+            dependencies: [
+                "SpokenSearchFeature", "FeatureStore", "SpeechRuntime", "EmbeddingCore", "EmbeddingRuntime",
+            ],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "SpokenSearchTests",
+            dependencies: [
+                "SpokenSearchFeature", "SpokenSearchRuntime", "FeatureStore", "SpeechRuntime", "EmbeddingCore",
+                "EmbeddingRuntime",
+            ],
+            resources: [.process("Resources")], swiftSettings: speechSettings),
         .target(name: "VideoSearchFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
         .target(
             name: "VideoSearchRuntime",

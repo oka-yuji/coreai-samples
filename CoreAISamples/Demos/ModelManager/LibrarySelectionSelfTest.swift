@@ -28,6 +28,30 @@ enum LibrarySelectionSelfTest {
             check(
                 "library/sidebarDemos", mapped && Demo.allCases.allSatisfy { $0.model != nil },
                 "Each actual sidebar demo belongs to its catalog model.")
+            let spoken = SpokenSearchCatalog.selection
+            check(
+                "library/spokenSearchSidebar",
+                Demo.spokenSearch.model == .embeddingGemma && Demo.spokenSearch.libraryID == spoken.demoID
+                    && catalog.demo(spoken.demoID)?.allowsPreviewInteraction == true
+                    && MacModelLibraryServices.assembly.registry.adapter(for: spoken.demoID) is SpokenSearchAdapter,
+                "Recording search opens from the EmbeddingGemma 2 sidebar and can request the model for a topic search."
+            )
+            for code in ["en", "ja"] {
+                let strings = DemoStrings(locale: Locale(identifier: code))
+                let example = strings.text("Example word from the recording")
+                let topicExample = strings.text("Example question about the recording")
+                let labels = [
+                    SpokenSearchCatalog.title, "Choose a recording…", "Word to find", "Stop playback", "Word", "Topic",
+                    "Search mode", "Question or topic", "Finding related passages…",
+                ]
+                check(
+                    "library/spokenSearchLanguage/" + code,
+                    example != "Example word from the recording" && !example.isEmpty
+                        && topicExample != "Example question about the recording" && !topicExample.isEmpty
+                        && labels.allSatisfy { code == "en" ? strings.text($0) == $0 : strings.text($0) != $0 },
+                    "The recording search title, both search modes, controls and examples use the requested display language."
+                )
+            }
             check(
                 "library/chronosSidebarForecast",
                 Demo.taxiForecast.model == .chronos
@@ -87,6 +111,7 @@ enum LibrarySelectionSelfTest {
         defer { try? FileManager.default.removeItem(at: root) }
         do {
             let catalog = try MacDemoCatalog.make()
+            await checkSpokenSessions(catalog: catalog, check: check)
             let qwen = catalog.model("qwen3.8-27b")?.artifacts.first
             check(
                 "library/conversationCatalog", qwen == (try LanguageModelArtifacts.qwen()), "Pinned Mac Qwen artifact")
@@ -155,6 +180,64 @@ enum LibrarySelectionSelfTest {
                 "library/refusesUnmanagedRuntimePath", rejected && managed.model == nil,
                 "Normal model loading requires the managed artifact and its runtime lease.")
         } catch { check("library/modelSelection", false, error.localizedDescription) }
+    }
+
+    private static func checkSpokenSessions(catalog: ModelCatalog, check: (String, Bool, String) -> Void) async {
+        let selection = SpokenSearchCatalog.selection
+        guard let artifact = catalog.model(selection.modelID)?.artifacts.first, let revision = artifact.sourceRevision
+        else {
+            check("spokenSearch/sessionOwners", false, "The embedding model is missing from the catalog.")
+            return
+        }
+        let resource = ValidatedModelResource(
+            modelID: selection.modelID, artifactID: artifact.id, contract: artifact.contract, revision: revision,
+            upstreamRevision: artifact.upstream?.revision, directory: .temporaryDirectory,
+            sizeBytes: artifact.sizeBytes ?? 0)
+        let owner = UUID()
+        let first = ModelDemoSession(
+            id: LibraryTicket(owner: owner, number: 1), selection: selection, resource: resource)
+        let next = ModelDemoSession(
+            id: LibraryTicket(owner: owner, number: 2), selection: selection, resource: resource)
+        let other = ModelDemoSession(
+            id: LibraryTicket(owner: UUID(), number: 1), selection: selection, resource: resource)
+        let firstGate = DemoExecutionGate(session: first) { true }
+        let nextGate = DemoExecutionGate(session: next) { true }
+        let otherGate = DemoExecutionGate(session: other) { true }
+        let adapter = SpokenSearchAdapter()
+        guard let original = adapter.bind(first, gate: firstGate),
+            let independent = adapter.bind(other, gate: otherGate)
+        else {
+            check("spokenSearch/sessionOwners", false, "Two independent spoken word search sessions could not bind.")
+            return
+        }
+        original.store.send(.appeared)
+        independent.store.send(.appeared)
+        let reused = adapter.bind(first, gate: firstGate) === original
+        let refusesMismatch = adapter.bind(next, gate: nextGate) == nil && adapter.bind(first, gate: otherGate) == nil
+        await adapter.stop(next)
+        let wrongStopPreserved = original.store.state.isActive
+        await adapter.stop(first)
+        let retired = adapter.bind(first, gate: firstGate) == nil
+        guard let replacement = adapter.bind(next, gate: nextGate) else {
+            check("spokenSearch/sessionOwners", false, "A new ticket could not bind after the first session stopped.")
+            return
+        }
+        replacement.store.send(.appeared)
+        await adapter.stop(first)
+        let revoked = DemoExecutionGate(session: next) { false }
+        check(
+            "spokenSearch/sessionOwners",
+            original !== independent && reused && refusesMismatch && wrongStopPreserved && retired
+                && !original.store.state.isActive && replacement !== original && replacement.store.state.isActive
+                && adapter.bind(next, gate: revoked) == nil,
+            "Spoken word search binds the matching ticket, joins stop and rejects retired tickets and revoked gates.")
+        await adapter.stop(next)
+        check(
+            "spokenSearch/independentWindows",
+            independent.store.state.isActive && adapter.bind(other, gate: otherGate) === independent
+                && adapter.bind(first, gate: firstGate) == nil && adapter.bind(next, gate: nextGate) == nil,
+            "Closing and reopening one window keeps the recording session in the other window active.")
+        await adapter.stop(other)
     }
 
     private static func bundle(_ name: String, modelID: String?, in root: URL) throws -> URL {
