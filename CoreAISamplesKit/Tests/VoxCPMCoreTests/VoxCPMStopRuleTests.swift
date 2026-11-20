@@ -22,6 +22,57 @@ struct VoxCPMStopRuleTests {
         }
     }
 
+    @Test(
+        "The patch limit of a prompt with T target tokens and length L is min(6T + 10, maximum patches, capacity - L)",
+        arguments: [
+            (64, 4_096, 22), (17, 4_096, 10), (8, 4_096, 1), (64, 5, 5), (Int.max, 4_096, 22), (Int.max, Int.max, 22),
+        ]
+    )
+    func promptLimit(capacity: Int, maximumPatches: Int, limit: Int) throws {
+        let prompt = try VoxCPMReferencePrompt(
+            textAndStartTokenIDs: [11, 22, 101], referencePatchCount: 2, prefillLength: 7)
+        #expect(
+            try VoxCPMStopRule.patchLimit(prompt: prompt, capacity: capacity, maximumPatches: maximumPatches) == limit)
+    }
+
+    @Test("A prompt that leaves no cache position for a patch is rejected", arguments: [7, 6, 0, -1, Int.min])
+    func promptWithoutRoom(capacity: Int) throws {
+        let prompt = try VoxCPMReferencePrompt(
+            textAndStartTokenIDs: [11, 22, 101], referencePatchCount: 2, prefillLength: 7)
+        #expect(throws: VoxCPMError.textTooLong) {
+            try VoxCPMStopRule.patchLimit(prompt: prompt, capacity: capacity, maximumPatches: 4_096)
+        }
+    }
+
+    @Test("A maximum patch count below one is rejected", arguments: [0, -1, Int.min])
+    func nonpositiveMaximum(maximumPatches: Int) throws {
+        let prompt = try VoxCPMReferencePrompt(
+            textAndStartTokenIDs: [11, 22, 101], referencePatchCount: 2, prefillLength: 7)
+        #expect(throws: VoxCPMError.invalidSize) {
+            try VoxCPMStopRule.patchLimit(prompt: prompt, capacity: 64, maximumPatches: maximumPatches)
+        }
+    }
+
+    @Test(
+        "Full 145-position prompts with five-second, ten-second or no reference audio keep the text budget",
+        arguments: [(32, 110, 670), (63, 79, 484), (0, 144, 874)])
+    func fullPromptLimit(patches: Int, tokens: Int, limit: Int) throws {
+        let prompt = try VoxCPMReferencePrompt(
+            textAndStartTokenIDs: [Int32](repeating: 11, count: tokens) + [101], referencePatchCount: patches,
+            prefillLength: 145)
+        #expect(prompt.inputIDs.count == 145 && prompt.textTokenCount == tokens)
+        #expect(try VoxCPMStopRule.patchLimit(prompt: prompt, capacity: 1_024, maximumPatches: 4_096) == limit)
+    }
+
+    @Test("Without reference audio the prompt limit equals the text token limit", arguments: [1, 2, 28, 144, 145])
+    func plainPromptLimit(tokens: Int) throws {
+        let prompt = try VoxCPMReferencePrompt(
+            textAndStartTokenIDs: [Int32](repeating: 11, count: tokens) + [101], referencePatchCount: 0,
+            prefillLength: 8_192)
+        let expected = try VoxCPMStopRule.patchLimit(textTokenCount: tokens, capacity: 1_024)
+        #expect(try VoxCPMStopRule.patchLimit(prompt: prompt, capacity: 1_024, maximumPatches: 4_096) == expected)
+    }
+
     @Test("With the fixture stop logits generation stops at patch 33, the first stop decision after patch 2")
     func fixtureStop() throws {
         let logits = try VoxCPMReference.load().stopLogits.map(VoxCPMReference.floats)
