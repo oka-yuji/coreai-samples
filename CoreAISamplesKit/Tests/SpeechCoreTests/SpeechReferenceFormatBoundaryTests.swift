@@ -57,7 +57,8 @@ struct SpeechReferenceFormatBoundaryTests {
             }
         }
         #expect(throws: SpeechReferenceError.silent) {
-            try SpeechReferenceAudio(samples: [Float](repeating: -0, count: 80_000), source: .recording, format: .voxcpm2)
+            try SpeechReferenceAudio(
+                samples: [Float](repeating: -0, count: 80_000), source: .recording, format: .voxcpm2)
         }
         #expect(throws: SpeechReferenceError.tooShort) {
             try SpeechReferenceAudio(samples: tone(23_999), source: .recording, format: .irodori)
@@ -76,7 +77,8 @@ struct SpeechReferenceFormatBoundaryTests {
         #expect(normalized.samples[3] == -1 && normalized.samples[0] == 0.0625)
         let legacy = try SpeechReferenceAudio(samples: tiny.samples + quiet, source: .recording)
         #expect(legacy.seconds == Double(160_000) / 48_000 && tiny.seconds == 5)
-        #expect(legacy != (try SpeechReferenceAudio(samples: tiny.samples + quiet, source: .recording, format: .voxcpm2)))
+        #expect(
+            legacy != (try SpeechReferenceAudio(samples: tiny.samples + quiet, source: .recording, format: .voxcpm2)))
     }
 
     @Test("VPC-03 Reference previews write complete mono Float32 RIFF headers at each format rate")
