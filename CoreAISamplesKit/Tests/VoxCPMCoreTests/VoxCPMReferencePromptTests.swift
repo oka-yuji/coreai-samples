@@ -82,4 +82,37 @@ struct VoxCPMReferencePromptTests {
         #expect(prompt.inputIDs == [7, 101])
         #expect(prompt.audioPositions.isEmpty)
     }
+
+    @Test("VPR-03: Reference input at the upstream capacity is accepted")
+    func acceptsUpstreamCapacity() throws {
+        let prompt = try VoxCPMReferencePrompt(
+            textAndStartTokenIDs: [7, 101], referencePatchCount: 8_188, prefillLength: Int.max)
+        #expect(prompt.inputIDs.count == 8_192)
+        #expect(prompt.audioPositions == 1..<8_189)
+        #expect(prompt.textTokenCount == 1)
+    }
+
+    @Test(
+        "VPR-03: Reference input exceeding the upstream capacity is rejected",
+        arguments: [8_189, Int.max - 4, Int.max / 8])
+    func rejectsReferenceBeyondUpstreamCapacity(referencePatches: Int) {
+        #expect(throws: VoxCPMError.textTooLong) {
+            try VoxCPMReferencePrompt(
+                textAndStartTokenIDs: [7, 101], referencePatchCount: referencePatches, prefillLength: Int.max)
+        }
+    }
+
+    @Test("VPR-03: Text input obeys the upstream capacity without tensor padding")
+    func checksTextAtUpstreamCapacity() throws {
+        let input = [Int32](repeating: 7, count: 8_191) + [101]
+        let prompt = try VoxCPMReferencePrompt(
+            textAndStartTokenIDs: input, referencePatchCount: 0, prefillLength: Int.max)
+        #expect(prompt.inputIDs == input)
+        #expect(prompt.audioPositions.isEmpty)
+        #expect(throws: VoxCPMError.textTooLong) {
+            try VoxCPMReferencePrompt(
+                textAndStartTokenIDs: input + [101], referencePatchCount: 0, prefillLength: Int.max)
+        }
+    }
+
 }

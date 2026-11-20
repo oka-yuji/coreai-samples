@@ -22,7 +22,7 @@ public struct VoxCPMReferencePrompt: Equatable, Sendable {
             guard !prefixed.overflow else { throw VoxCPMError.textTooLong }
             validLength = prefixed.partialValue
         }
-        guard validLength <= length else { throw VoxCPMError.textTooLong }
+        guard validLength <= min(length, 8_192) else { throw VoxCPMError.textTooLong }
 
         if patches == 0 {
             self.inputIDs = inputIDs
