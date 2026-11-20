@@ -136,7 +136,9 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Core AI Demos
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Record reference voices and enter inspection answers by voice."
         ENABLE_HARDENED_RUNTIME: "YES"
+        ENABLE_RESOURCE_ACCESS_AUDIO_INPUT: "YES"
         ENABLE_APP_SANDBOX: "NO"
 
   CoreAISamples-iOS:
