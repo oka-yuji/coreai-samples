@@ -65,6 +65,16 @@
             availableSpace = ModelStorage.availableSpace()
         }
 
+        func executionLeaseAcquirer(for model: DemoModel)
+            -> @Sendable (URL, Int?) async throws -> (
+                registrationGeneration: Int, release: @Sendable () async -> Void
+            )
+        {
+            guard let store else { return { _, _ in throw ManagedModelStoreError.notInstalled } }
+            return MacModelLibraryServices.assembly.runner.executionLeaseAcquirer(
+                for: model.libraryID, in: store, runtimeUses: MacModelLibraryServices.runtimeUses)
+        }
+
         func use(_ model: DemoModel) { store?.send(.useRequested(model.libraryID)) }
 
         func stopUsing(_ model: DemoModel) { store?.send(.useEnded(model.libraryID)) }

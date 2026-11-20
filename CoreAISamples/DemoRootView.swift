@@ -171,7 +171,7 @@ struct DemoRootView: View {
     @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
-    @State private var voiceDesign = SpeechAssembly.makeStore(.voxcpm2)
+    @State private var voiceDesign: Store<SpeechFeature>
     @State private var library: MacModelLibrary
     @State private var choice: MacModelChoice
     @State private var showingExtractionLab = false
@@ -190,6 +190,8 @@ struct DemoRootView: View {
         _choice = State(initialValue: choice)
         let library = MacModelLibrary()
         _library = State(initialValue: library)
+        let voiceDesign = SpeechAssembly.makeVoiceDesignStore(library: library)
+        _voiceDesign = State(initialValue: voiceDesign)
         let managed = LaunchArguments.value("--gui-e2e") == nil || LaunchArguments.value("--model") == nil
         let chat = ChatViewModel(managed: managed)
         let decide = DecideAssembly.makeStore(managed: managed)
@@ -203,6 +205,9 @@ struct DemoRootView: View {
                 resumeModels: {
                     if navigator.selection == .decide { decide.send(.appeared) }
                     if navigator.selection == .recipes { recipes.send(.appeared) }
+                    if navigator.selection == .voiceDesign {
+                        SpeechView.present(voiceDesign, model: .voxcpm2, in: library)
+                    }
                 },
                 modelUnloaded: {
                     choice.send(.reset)
@@ -211,10 +216,22 @@ struct DemoRootView: View {
                 releaseModels: {
                     decide.send(.ended)
                     recipes.send(.ended)
-                    for await phases in Observations({ (decide.state.phase, recipes.state.phase) }) {
-                        if phases.0 != .closing && phases.1 != .closing { break }
+                    SpeechView.dismiss(voiceDesign, model: .voxcpm2, in: library)
+                    for await phases in Observations({
+                        (decide.state.phase, recipes.state.phase, voiceDesign.state.phase)
+                    }) {
+                        if phases.0 != .closing && phases.1 != .closing && phases.2 != .stopping { break }
                     }
                 }))
+    }
+
+    private func rebindVoiceDesign(_ phase: ScenePhase) {
+        switch phase {
+        case .background: SpeechView.dismiss(voiceDesign, model: .voxcpm2, in: library)
+        case .active where navigator.selection == .voiceDesign:
+            SpeechView.present(voiceDesign, model: .voxcpm2, in: library)
+        default: break
+        }
     }
 
     private var modelLoadID: String? {
@@ -321,7 +338,10 @@ struct DemoRootView: View {
                 decide.send(.ended)
                 recipes.send(.ended)
             }
-            .onChange(of: scenePhase) { _, phase in library.enter(phase) }
+            .onChange(of: scenePhase) { _, phase in
+                library.enter(phase)
+                rebindVoiceDesign(phase)
+            }
             .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
     }
 

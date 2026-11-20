@@ -9,9 +9,14 @@
     public final class LiveSpeechService: SpeechService {
         public static let modelPathKey = SpeechEngine.irodori.modelPathKey
         public static func makeStore(
-            engine kind: SpeechEngine, examples: [SpeechExample], defaults: UserDefaults = .standard
+            engine kind: SpeechEngine, examples: [SpeechExample], defaults: UserDefaults = .standard,
+            acquireVoxCPM: (
+                @Sendable (URL, Int?) async throws -> (
+                    registrationGeneration: Int, release: @Sendable () async -> Void
+                )
+            )? = nil
         ) -> Store<SpeechFeature> {
-            let service = LiveSpeechService(engine: kind, defaults: defaults)
+            let service = LiveSpeechService(engine: kind, defaults: defaults, acquireVoxCPM: acquireVoxCPM)
             return Store(
                 initialState: SpeechState(examples: examples, lastPath: defaults.string(forKey: service.modelPathKey)),
                 run: SpeechRunner(service: service).run)
@@ -26,9 +31,23 @@
         public convenience init(defaults: UserDefaults? = .standard) {
             self.init(engine: .irodori, defaults: defaults)
         }
-        public convenience init(engine kind: SpeechEngine, defaults: UserDefaults? = .standard) {
+        public convenience init(
+            engine kind: SpeechEngine, defaults: UserDefaults? = .standard,
+            acquireVoxCPM: (
+                @Sendable (URL, Int?) async throws -> (
+                    registrationGeneration: Int, release: @Sendable () async -> Void
+                )
+            )? = nil
+        ) {
+            let runtime = kind.makeRuntime()
+            let engine: any SpeechGenerating =
+                if case .voxcpm2 = kind, let acquireVoxCPM {
+                    VoxCPMLeasedEngine(engine: runtime, acquire: acquireVoxCPM)
+                } else {
+                    runtime
+                }
             self.init(
-                engine: kind.makeRuntime(), playback: AudioPlayback(), defaults: defaults,
+                engine: engine, playback: AudioPlayback(), defaults: defaults,
                 modelPathKey: kind.modelPathKey, references: SpeechReferenceReader(format: kind.referenceFormat))
         }
         init(
