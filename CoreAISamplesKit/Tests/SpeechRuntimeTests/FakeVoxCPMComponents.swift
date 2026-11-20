@@ -3,9 +3,23 @@ import Foundation
 @testable import SpeechRuntime
 
 struct FakeVoxCPMComponents: VoxCPMComponents {
+    struct Damage: Sendable {
+        enum Kind: Sendable {
+            case missing, short, nonFiniteTail
+        }
+
+        var generation = 1
+        let function: VoxCPMFunction
+        var occurrence = 0
+        let output: String
+        let kind: Kind
+    }
+
     let log: FakeVoxCPMLog
     let contract: VoxCPMContract
     var behaviors = [FakeVoxCPMBehavior()]
+    var rowTag: Float = 0
+    var damage: Damage?
 
     static func group(_ function: VoxCPMFunction) -> String? {
         switch function {
@@ -45,6 +59,11 @@ struct FakeVoxCPMComponents: VoxCPMComponents {
         {
             result[name]?[0] = .nan
         }
+        if let damage, damage.generation == states.generation, damage.function == function,
+            damage.occurrence == occurrence
+        {
+            Self.apply(damage, to: &result)
+        }
         log.record(
             FakeVoxCPMLog.Call(
                 generation: states.generation, function: function, inputs: inputs, outputs: result,
@@ -52,6 +71,17 @@ struct FakeVoxCPMComponents: VoxCPMComponents {
         if behavior.failedCall == call { throw VoxCPMGenerationError.invalidOutput("fake") }
         if let group { states.write(group, 1) }
         return result
+    }
+
+    private static func apply(_ damage: Damage, to result: inout [String: [Float]]) {
+        switch damage.kind {
+        case .missing:
+            result[damage.output] = nil
+        case .short:
+            result[damage.output]?.removeLast()
+        case .nonFiniteTail:
+            if let last = result[damage.output]?.indices.last { result[damage.output]?[last] = .nan }
+        }
     }
 
     private func outputs(_ function: VoxCPMFunction, _ inputs: [String: VoxCPMInput], occurrence: Int, stopPatch: Int?)
@@ -69,7 +99,11 @@ struct FakeVoxCPMComponents: VoxCPMComponents {
         case .embed:
             let ids = Self.integers(inputs["ids"])
             let width = (sizes["embeds"] ?? 0) / max(ids.count, 1)
-            return ["embeds": ids.flatMap { id in (0..<width).map { Float(id) + Float($0 % 5) * 0.25 } }]
+            return [
+                "embeds": ids.enumerated().flatMap { row, id in
+                    (0..<width).map { Float(id) + Float($0 % 5) * 0.25 + Float(row) * rowTag }
+                }
+            ]
         case .prefill:
             return ["hidden": values("embeds").map { $0 * 2 + 1 }]
         case .prefillFuse:
