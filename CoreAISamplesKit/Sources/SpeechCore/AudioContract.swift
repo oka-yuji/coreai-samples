@@ -31,6 +31,14 @@ public func floatWAV(samples: [Float], maximumSamples: Int = 750 * 1920) throws 
     guard !samples.isEmpty, samples.count <= maximumSamples, samples.allSatisfy({ $0.isFinite }) else {
         throw SpeechError.invalidSamples
     }
+    return monoFloatWAV(samples: samples, sampleRate: 48_000)
+}
+
+public func floatWAV(reference: SpeechReferenceAudio) throws -> Data {
+    monoFloatWAV(samples: reference.samples, sampleRate: reference.format.sampleRate)
+}
+
+private func monoFloatWAV(samples: [Float], sampleRate: Int) -> Data {
     var data = Data()
     func string(_ value: String) { data.append(contentsOf: value.utf8) }
     func integer<T: FixedWidthInteger>(_ value: T) {
@@ -44,8 +52,8 @@ public func floatWAV(samples: [Float], maximumSamples: Int = 750 * 1920) throws 
     integer(UInt32(18))
     integer(UInt16(3))
     integer(UInt16(1))
-    integer(UInt32(48000))
-    integer(UInt32(192000))
+    integer(UInt32(sampleRate))
+    integer(UInt32(sampleRate * 4))
     integer(UInt16(4))
     integer(UInt16(32))
     integer(UInt16(0))

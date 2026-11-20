@@ -107,7 +107,7 @@ actor SpeechReferenceReader: SpeechReferenceReading {
 @concurrent
 func referenceWAV(_ reference: SpeechReferenceAudio) async throws -> Data {
     try Task.checkCancellation()
-    let data = try floatWAV(samples: reference.samples)
+    let data = try floatWAV(reference: reference)
     try Task.checkCancellation()
     return data
 }
