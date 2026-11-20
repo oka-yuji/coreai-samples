@@ -156,6 +156,18 @@
                 }
             case .preview where selection == SpokenSearchCatalog.selection:
                 renderer.preview(for: selection)
+                if let artifact, let installation = store.state.installations[artifact.id], installation.phase != .ready
+                {
+                    LabeledContent {
+                        ModelAcquisitionControls(
+                            store: store, model: model,
+                            requestDeletion: { deletion = ModelDeletionRequest(model: model, artifact: $0) },
+                            showsActionTitle: true)
+                    } label: {
+                        libraryText("Model for topic search")
+                    }
+                    if let failure = installation.failure { LibraryFailureView(failure: failure) }
+                }
             case .preview:
                 VStack(alignment: .leading, spacing: 12) {
                     if artifact?.sourceKind == nil {

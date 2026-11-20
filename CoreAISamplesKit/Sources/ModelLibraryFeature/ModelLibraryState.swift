@@ -253,7 +253,7 @@ public struct ModelLibraryState: Equatable, Sendable {
     }
 
     package func previewResource(for selection: DemoSelection) -> ValidatedModelResource? {
-        guard self.selection == selection, pendingDestination == nil, allowsCapabilities(for: selection) else {
+        guard onDemandSelection == selection, allowsCapabilities(for: selection) else {
             return nil
         }
         return executableResource(for: selection)
@@ -264,11 +264,19 @@ public struct ModelLibraryState: Equatable, Sendable {
             selection: DemoSelection?, artifactID: String?, resource: ValidatedModelResource?, registration: Int?
         )
     {
-        let artifact = selection.flatMap { selectedArtifacts[$0.modelID] }
+        guard let selection = onDemandSelection else { return (nil, nil, nil, nil) }
+        let artifact = selectedArtifacts[selection.modelID]
         let installation = artifact.flatMap { installations[$0] }
-        let enabled = selection.map { allowsCapabilities(for: $0) } == true
-        let resource = enabled && installation?.phase == .ready ? installation?.resource : nil
+        let resource =
+            allowsCapabilities(for: selection) && installation?.phase == .ready ? installation?.resource : nil
         return (selection, artifact, resource, resource?.registrationGeneration)
+    }
+
+    private var onDemandSelection: DemoSelection? {
+        guard pendingDestination == nil, let selection, catalog.demo(selection.demoID)?.preparesModelOnOpen == false,
+            isConnected(selection), canBrowse(selection)
+        else { return nil }
+        return selection
     }
 
     private func allowsCapabilities(for selection: DemoSelection) -> Bool {

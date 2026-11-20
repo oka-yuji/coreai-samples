@@ -1,3 +1,4 @@
+import EmbeddingCore
 import Foundation
 import SpokenSearchFeature
 
@@ -6,7 +7,12 @@ final class SpokenSearchRunner {
     private let isPermitted: @MainActor () -> Bool
     private let speech: any SpokenTranscribing
     private let player: SpokenRecordingPlayer
+    private let makeTopicIndex: @MainActor (URL) -> SpokenTopicIndex
     private var recording: SpokenRecording?
+    private var topicSource: SpokenTopicSource?
+    private var topicIndex: SpokenTopicIndex?
+    private var searchingTopics = false
+    private var topicWaiters: [CheckedContinuation<Void, Never>] = []
     private var generation = 0
     private var closed = false
     private var isClosing = false
@@ -17,11 +23,21 @@ final class SpokenSearchRunner {
     init(
         isPermitted: @escaping @MainActor () -> Bool,
         speech: any SpokenTranscribing = SpokenFileTranscriber(),
-        player: SpokenRecordingPlayer = SpokenRecordingPlayer()
+        player: SpokenRecordingPlayer = SpokenRecordingPlayer(),
+        makeTopicIndex: @escaping @MainActor (URL) -> SpokenTopicIndex = { SpokenTopicIndex(folder: $0) }
     ) {
         self.isPermitted = isPermitted
         self.speech = speech
         self.player = player
+        self.makeTopicIndex = makeTopicIndex
+    }
+
+    func setTopicSource(_ source: SpokenTopicSource?) {
+        guard !closed else { return }
+        if source?.identity != topicSource?.identity || source?.directory != topicSource?.directory {
+            topicIndex = source.map { makeTopicIndex($0.directory) }
+        }
+        topicSource = source
     }
 
     func run(_ effect: SpokenSearchEffect, send: (SpokenSearchAction) -> Void) async {
@@ -43,7 +59,16 @@ final class SpokenSearchRunner {
             }
             let hits = await Self.matches(in: transcript, query: query)
             if current(id) === record { send(.found(id, hits)) }
-        case .play(let id, let hit):
+        case .findTopic(let id, let query, let identity):
+            await findTopic(id, query: query, identity: identity, send: send)
+        case .waitForTopic(let id):
+            await waitForTopics()
+            if !Task.isCancelled { send(.topicStopped(id)) }
+        case .play(let id, let hit, let identity):
+            if let identity, topicSource?.identity != identity || topicSource?.isCurrent() != true {
+                send(.failed(id, .topicUnavailable))
+                return
+            }
             guard let record = current(id) else {
                 send(.failed(id, .unavailable))
                 return
@@ -68,6 +93,8 @@ final class SpokenSearchRunner {
             return
         }
         closed = true
+        topicSource = nil
+        topicIndex = nil
         isClosing = true
         await clear()
         if operations > 0 { await withCheckedContinuation { waiters.append($0) } }
@@ -90,6 +117,8 @@ final class SpokenSearchRunner {
         recording = record
         await speech.cancel()
         guard current(id) === record else { return }
+        await topicIndex?.invalidate(before: id)
+        guard current(id) === record else { return }
         do {
             let transcript = try await speech.transcribe(url)
             guard current(id) === record else { return }
@@ -108,6 +137,53 @@ final class SpokenSearchRunner {
         }
     }
 
+    private func findTopic(_ id: Int, query: String, identity: String, send: (SpokenSearchAction) -> Void) async {
+        await waitForTopics()
+        guard !Task.isCancelled else { return }
+        guard let record = current(id), let transcript = record.transcript, let source = topicSource,
+            source.identity == identity, source.isCurrent(), let index = topicIndex
+        else {
+            send(.failed(id, .topicUnavailable))
+            return
+        }
+        searchingTopics = true
+        defer {
+            searchingTopics = false
+            let pending = topicWaiters
+            topicWaiters.removeAll()
+            for waiter in pending { waiter.resume() }
+        }
+        func isCurrent() -> Bool {
+            current(id) === record && topicIndex === index && topicSource?.identity == identity && source.isCurrent()
+        }
+        let release: SpokenTopicSource.Release
+        do {
+            release = try await source.acquire()
+        } catch {
+            if isCurrent() { send(.failed(id, .topicUnavailable)) }
+            return
+        }
+        guard isCurrent() else {
+            await release()
+            return
+        }
+        let result: SpokenSearchAction
+        do {
+            let hits = try await index.search(query, transcript: transcript, generation: id)
+            result = .topicFound(id, identity, hits)
+        } catch EmbeddingError.tooManyTokens {
+            result = .failed(id, .shortenQuery)
+        } catch {
+            result = .failed(id, .topicFailed)
+        }
+        await release()
+        if isCurrent() { send(result) }
+    }
+
+    private func waitForTopics() async {
+        while searchingTopics { await withCheckedContinuation { topicWaiters.append($0) } }
+    }
+
     private func current(_ id: Int) -> SpokenRecording? {
         guard !closed, !Task.isCancelled, isPermitted(), recording?.generation == id else { return nil }
         return recording
@@ -116,7 +192,10 @@ final class SpokenSearchRunner {
     private func clear() async {
         recording = nil
         let playbackStop = player.beginStopping()
+        let index = topicIndex
+        let lowerBound = generation
         await speech.cancel()
+        await index?.invalidate(before: lowerBound)
         await playbackStop.wait()
     }
 

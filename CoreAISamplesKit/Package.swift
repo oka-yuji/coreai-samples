@@ -364,11 +364,17 @@ let package = Package(
             swiftSettings: approachableConcurrency),
         .target(name: "SpokenSearchFeature", dependencies: ["FeatureStore"], swiftSettings: speechSettings),
         .target(
-            name: "SpokenSearchRuntime", dependencies: ["SpokenSearchFeature", "FeatureStore", "SpeechRuntime"],
+            name: "SpokenSearchRuntime",
+            dependencies: [
+                "SpokenSearchFeature", "FeatureStore", "SpeechRuntime", "EmbeddingCore", "EmbeddingRuntime",
+            ],
             swiftSettings: speechSettings),
         .testTarget(
             name: "SpokenSearchTests",
-            dependencies: ["SpokenSearchFeature", "SpokenSearchRuntime", "FeatureStore", "SpeechRuntime"],
+            dependencies: [
+                "SpokenSearchFeature", "SpokenSearchRuntime", "FeatureStore", "SpeechRuntime", "EmbeddingCore",
+                "EmbeddingRuntime",
+            ],
             resources: [.process("Resources")], swiftSettings: speechSettings),
         .target(name: "VideoSearchFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
         .target(

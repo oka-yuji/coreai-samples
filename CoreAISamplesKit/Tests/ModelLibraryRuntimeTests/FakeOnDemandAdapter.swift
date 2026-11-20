@@ -4,7 +4,7 @@ import SwiftUI
 
 @MainActor
 final class FakeOnDemandAdapter: ModelOnDemandDemoAdapter {
-    let demoID = "comparison"
+    let demoID = SpokenSearchCatalog.selection.demoID
     var access: OnDemandModelAccess?
     var ordinaryPreviews = 0
 

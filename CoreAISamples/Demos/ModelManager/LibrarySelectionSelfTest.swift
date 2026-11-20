@@ -34,16 +34,23 @@ enum LibrarySelectionSelfTest {
                 Demo.spokenSearch.model == .embeddingGemma && Demo.spokenSearch.libraryID == spoken.demoID
                     && catalog.demo(spoken.demoID)?.allowsPreviewInteraction == true
                     && MacModelLibraryServices.assembly.registry.adapter(for: spoken.demoID) is SpokenSearchAdapter,
-                "Spoken word search opens from the EmbeddingGemma 2 sidebar with or without a downloaded model.")
+                "Recording search opens from the EmbeddingGemma 2 sidebar and can request the model for a topic search."
+            )
             for code in ["en", "ja"] {
                 let strings = DemoStrings(locale: Locale(identifier: code))
                 let example = strings.text("Example word from the recording")
-                let labels = [SpokenSearchCatalog.title, "Choose a recording…", "Word to find", "Stop playback"]
+                let topicExample = strings.text("Example question about the recording")
+                let labels = [
+                    SpokenSearchCatalog.title, "Choose a recording…", "Word to find", "Stop playback", "Word", "Topic",
+                    "Search mode", "Question or topic", "Finding related passages…",
+                ]
                 check(
                     "library/spokenSearchLanguage/" + code,
                     example != "Example word from the recording" && !example.isEmpty
+                        && topicExample != "Example question about the recording" && !topicExample.isEmpty
                         && labels.allSatisfy { code == "en" ? strings.text($0) == $0 : strings.text($0) != $0 },
-                    "The spoken word search title, controls and example use the requested display language.")
+                    "The recording search title, both search modes, controls and examples use the requested display language."
+                )
             }
             check(
                 "library/chronosSidebarForecast",

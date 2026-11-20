@@ -68,7 +68,7 @@ public enum ModelLibraryFeature: Feature {
         let operations = respond(&state, action)
         let usages = serveUsages(&state)
         switch action {
-        case .suspendDemo, .closeDemo:
+        case .suspendDemo:
             if previous.selection != nil { state.previewGeneration += 1 }
         default:
             if previous != state.previewIdentity { state.previewGeneration += 1 }

@@ -117,15 +117,17 @@ public final class ModelLibraryRunner {
             resource.sizeBytes == artifact.totalFileBytes
         else { return nil }
 
-        return OnDemandModelAccess(resource: resource, generation: generation) { [weak self, weak library] in
+        let isCurrent: @MainActor @Sendable () -> Bool = { [weak self, weak library] in
+            guard let self, let library, registered[owner]?.store === library, releasedThrough[owner] != .max,
+                library.state.previewGeneration == generation,
+                let current = library.state.previewResource(for: selection)
+            else { return false }
+            return current == resource && current.registrationGeneration == registration
+        }
+        return OnDemandModelAccess(resource: resource, generation: generation, isCurrent: isCurrent) { [weak self] in
             guard let self else { throw CancellationError() }
-            return try await acquireOnDemand(model: model, artifact: artifact, resource: resource, owner: owner) {
-                guard let library, registered[owner]?.store === library, releasedThrough[owner] != .max,
-                    library.state.previewGeneration == generation,
-                    let current = library.state.previewResource(for: selection)
-                else { return false }
-                return current == resource && current.registrationGeneration == registration
-            }
+            return try await acquireOnDemand(
+                model: model, artifact: artifact, resource: resource, owner: owner, isCurrent: isCurrent)
         }
     }
 

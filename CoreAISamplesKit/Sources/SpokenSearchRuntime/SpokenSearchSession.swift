@@ -17,6 +17,11 @@ public final class SpokenSearchSession {
         runner.stopPlayback()
     }
 
+    public func setTopicSource(_ source: SpokenTopicSource?) {
+        runner.setTopicSource(source)
+        store.send(.topicSourceChanged(source?.identity))
+    }
+
     public func close() async {
         suspend()
         await runner.close()

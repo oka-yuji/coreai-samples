@@ -6,6 +6,10 @@ public enum SpokenSearchAction: Sendable {
     case fileSelected(URL, generation: Int)
     case fileSelectionFailed(generation: Int)
     case queryChanged(String)
+    case modeChanged(SpokenSearchMode)
+    case topicSourceChanged(String?)
+    case topicFound(Int, String, [SpokenHit])
+    case topicStopped(Int)
     case search
     case play(Int)
     case stopPlayback
