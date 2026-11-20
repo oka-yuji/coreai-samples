@@ -9,10 +9,18 @@ protocol SpeechReferenceReading: Actor {
 
 actor SpeechReferenceReader: SpeechReferenceReading {
     let format: SpeechReferenceFormat
+    #if os(macOS)
+        private let cleanup: MacSpeechRecordingCleanup
 
-    init(format: SpeechReferenceFormat = .irodori) {
-        self.format = format
-    }
+        init(format: SpeechReferenceFormat = .irodori, cleanup: MacSpeechRecordingCleanup = .shared) {
+            self.format = format
+            self.cleanup = cleanup
+        }
+    #else
+        init(format: SpeechReferenceFormat = .irodori) {
+            self.format = format
+        }
+    #endif
 
     func read(_ url: URL, source: SpeechReferenceSource) throws -> SpeechReferenceAudio {
         guard url.isFileURL else { throw SpeechReferenceError.unreadable }
@@ -69,11 +77,29 @@ actor SpeechReferenceReader: SpeechReferenceReading {
     }
 
     func removeRecording(_ url: URL) {
+        #if os(macOS)
+            if format == .voxcpm2 {
+                if Self.isTransferredRecording(url) { cleanup.discard(url) }
+                return
+            }
+        #endif
         guard url.lastPathComponent.hasPrefix("irodori-reference-"), url.pathExtension == "wav",
             url.deletingLastPathComponent().standardizedFileURL == URL.temporaryDirectory.standardizedFileURL
         else { return }
         try? FileManager.default.removeItem(at: url)
     }
+
+    #if os(macOS)
+        private static func isTransferredRecording(_ url: URL) -> Bool {
+            let prefix = "irodori-reference-"
+            let name = url.deletingPathExtension().lastPathComponent
+            guard url.isFileURL, !url.hasDirectoryPath, url.pathExtension == "wav", name.hasPrefix(prefix),
+                url.deletingLastPathComponent().standardizedFileURL == URL.temporaryDirectory.standardizedFileURL
+            else { return false }
+            let identifier = String(name.dropFirst(prefix.count))
+            return UUID(uuidString: identifier)?.uuidString == identifier
+        }
+    #endif
 
     static func completeVoxResampling(
         _ output: inout [Float], sourceCount: Int, consumedCount: Int, sourceRate: Double
