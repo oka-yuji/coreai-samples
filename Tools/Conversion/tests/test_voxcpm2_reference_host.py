@@ -2,6 +2,7 @@ import copy
 import json
 from pathlib import Path
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -121,6 +122,10 @@ class ReferenceHostTests(unittest.TestCase):
         self.assertEqual(len(result.audio), 2)
         self.assertEqual(result.waveform().size, 2 * 7680)
         self.assertEqual(len(locenc), 4)
+        decoded = assets.inputs("vae", "main", "latent")
+        self.assertEqual(len(decoded), len(result.latents))
+        for actual, generated in zip(decoded, result.latents):
+            np.testing.assert_array_equal(actual, generated)
 
     def test_patch_limit_uses_text_count_and_actual_prompt_length(self):
         generation = contract()["generation"]
@@ -180,6 +185,16 @@ class ReferenceHostTests(unittest.TestCase):
             self.assertEqual(len(result.ids), count + 5)
             self.assertEqual(len(assets.inputs("locenc", "main", "patch")), count + 2)
             self.assertEqual(result.waveform().size, 2 * 7680)
+
+
+    def test_oversized_views_are_refused_before_finite_scan_and_id_allocation(self):
+        patches = np.broadcast_to(np.zeros((1, 4, 64), np.float32), (10_000_000, 4, 64))
+        assets = ObservedAssets()
+        with mock.patch.object(np, "isfinite", side_effect=AssertionError("An oversized reference was scanned")):
+            with self.assertRaises(ValueError):
+                synthesis.generate(assets, contract(), [11, 22, 101], 1708, reference_patches=patches)
+        self.assertEqual(assets.calls, [])
+        self.assertEqual(assets.state_calls, [])
 
 
 if __name__ == "__main__":

@@ -118,11 +118,13 @@ class Result:
         return np.concatenate(self.audio, axis=-1).reshape(-1)
 
 
-def reference_ids(patches, ids):
+def reference_ids(patches, ids, maximum_length):
     if not isinstance(patches, np.ndarray) or isinstance(patches, np.ma.MaskedArray):
         raise ValueError(f"reference_patches must be a NumPy array, not {type(patches).__name__}")
     if patches.dtype != np.float32 or patches.ndim != 3 or patches.shape[1:] != REFERENCE_PATCH or len(patches) < 1:
         raise ValueError(f"reference_patches must be a nonempty float32 [R, 4, 64] array, not {patches.dtype} {list(patches.shape)}")
+    if len(ids) + len(patches) + 2 > maximum_length:
+        raise ValueError(f"{len(ids) - 1} text tokens and {len(patches)} reference patches do not fit the prefill length {maximum_length}")
     if not np.isfinite(patches).all():
         raise ValueError("reference_patches must be finite")
     return [REFERENCE_START] + [0] * len(patches) + [REFERENCE_END] + [int(value) for value in ids]
@@ -151,10 +153,8 @@ def generate(assets, contract, ids, seed, limit=None, align=None, *, reference_p
         raise ValueError(f"{length - 1} text tokens do not fit the prefill length {size}")
     text, prompt_length = length - 1, None
     if reference_patches is not None:
-        ids = reference_ids(reference_patches, ids)
+        ids = reference_ids(reference_patches, ids, size)
         length = prompt_length = len(ids)
-        if length > size:
-            raise ValueError(f"{text} text tokens and {len(reference_patches)} reference patches do not fit the prefill length {size}")
     allowed = host.patch_limit(text, execution["capacity"], generation, prompt_length=prompt_length)
     limit = allowed if limit is None else limit
     if not 1 <= limit <= allowed:
