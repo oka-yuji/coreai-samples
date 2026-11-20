@@ -114,7 +114,7 @@ struct LocalSpeechCatalogTests {
         #expect(status == 0)
         let report = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: output)) as? [String: Any])
         #expect(report["visibleModels"] as? Int == 4)
-        #expect(report["visibleDemos"] as? Int == 8)
+        #expect(report["visibleDemos"] as? Int == 9)
         let resources = try #require(report["artifacts"] as? [[String: Any]])
         let speech = try #require(resources.first { $0["modelID"] as? String == "irodori" })
         #expect(speech["sourceKind"] as? String == "localManifest")

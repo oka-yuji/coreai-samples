@@ -3,7 +3,7 @@
     import SpeechCore
 
     @MainActor
-    protocol PlaybackSession {
+    package protocol PlaybackSession {
         func start(
             interrupted: @escaping @MainActor () -> Void,
             ready: @escaping @MainActor (Result<Void, any Error>) -> Void)
@@ -87,10 +87,14 @@
     }
 
     @MainActor
-    enum PlaybackSessions {
-        static func make() -> any PlaybackSession {
+    package enum PlaybackSessions {
+        #if os(iOS)
+            private static let coordinator = PlaybackSessionCoordinator(device: PhonePlaybackSessionDevice())
+        #endif
+
+        package static func make() -> any PlaybackSession {
             #if os(iOS)
-                ManagedPlaybackSession(device: PhonePlaybackSessionDevice())
+                PlaybackSessionOwner(coordinator: coordinator)
             #else
                 PassivePlaybackSession()
             #endif

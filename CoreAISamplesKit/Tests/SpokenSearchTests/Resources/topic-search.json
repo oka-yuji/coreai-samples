@@ -1,0 +1,12 @@
+{
+  "query": "傘は必要ですか",
+  "anchor": "傘",
+  "speech": "この電車は東京行きです。本日の天気は晴れです。午後から雨が降ります。傘を持ってお出かけください。",
+  "voice": "Kyoko",
+  "rate": "180",
+  "role_query": "query",
+  "role_passages": "document",
+  "expected_first": "傘を持ってお出かけください。",
+  "expected_literal_matches": "0",
+  "playback_tolerance_seconds": "0.02"
+}

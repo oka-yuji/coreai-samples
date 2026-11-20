@@ -64,6 +64,8 @@
 
 | `MacSpeechReferenceRecorder` (`SpeechRuntime/MacSpeechReferenceRecorder.swift`) | Macのactorが録音ごとのticket・device・一時URL・AsyncStreamとstop待機者を所有する。permissionとdeviceのcallbackは発生時のsinkへBoolだけを送り、actorやdeviceを捕捉しない。許可待ちのstop/取消でOS回答を待たず終了し、古いsinkを破棄する。成功時はdevice.stopでWAVを確定してからURLをserviceへ移し、失敗・取消は所有ファイルを消す。cleanupを1回だけ行い、全stop待機者の再開後に状態を書き換えない。iOSとMac Irodoriは従来recorderを使う。 | MacSpeechRecordingTests・MacSpeechRecordingLifecycleTestsと固定CPU probe（同期/遅いpermission・旧ticket・重複・複数stop・開始/encode失敗・reader後の削除）、SDK型検査、署名済みMac Releaseの用途文字列・audio-input entitlement。実マイクの形式・時間と本人操作は親 #614のmanual受入。 |
 
+録音検索では表示時のモデル準備を行わない。話題検索が権限を要求した時だけ、ModelLibraryRunnerが通常の常駐枠と相互排他で資産の利用を予約する。取得前後に現在のowner・画面世代・選択資産・登録世代が一致することを確かめ、取得したleaseは推論の終了・modelの解放後に返す。再登録・取消・複数window・古いreleaseは `OnDemandModelAccessTests` と `SpokenTopicRunnerTests` で確認する。
+
 ## 公開物の規約
 
 - 手書きのソース・テスト・設定には、doc コメントを含めてコメントを書かない。SwiftPM の `swift-tools-version` と shell の先頭 shebang は、ツールが解釈する宣言として保持する。
@@ -73,6 +75,10 @@
 - Issue と PR に投稿した後の点検(タイトル・本文・コメント・レビュー・レビューコメントの現在の文と、本文側の削除していない編集履歴の版。変更前のタイトルは読まない)は `python3 -I Tools/Privacy/check-public-text.py oka-yuji/coreai-samples` で行う。手元でだけ実行する。認証済みの `gh` が要る。`check.sh` と CI には入れない。当たりは終了コード 1、読めなければ 2。
 
 ## 重いジョブ
+
+- 録音の語検索の実結合は共有ロック下で `COREAI_SPOKEN_WORD_AUDIO=/path/to/twice.wav swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenNativeTests.fixedRecordings`。同じフォルダの `related.wav` とともに、生成手順は `docs/embeddinggemma2.md`。Macの端末内認識・各語頭からの原音再生・関連する録音の0件を確かめる。通常suiteではskip。実iPhoneでの自然な発話の聴取は別に確認する。
+
+- 録音の話題検索の実結合は共有ロック下で `COREAI_SPOKEN_TOPIC_AUDIO=/path/to/topic.wav COREAI_SPOKEN_TOPIC_MODEL=/path/to/eg2-fp16 swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenTopicNativeTests.relatedPassage`。固定4発話の日本語音声からSpeechで時刻を取得し、実FP16のdocument/queryで傘を勧める発話の順位と原音の開始位置を確かめる。通常はskip。音源とモデル条件は `docs/embeddinggemma2.md`。
 
 - Mobile Image Labの公開取得は共有heavy-jobロック下で `COREAI_MOBILE_IMAGE_DOWNLOAD_OUTPUT=/new/output swift test --package-path CoreAISamplesKit --filter MobileImageDownloadNativeTests.freshDownload`。既存出力を拒否し、親folderは先に作る。空のModelsと移行候補0から固定HF revisionの51filesを実取得し、全量inspect・新manifest・lease中の削除拒否・解放後lease0を確認する。取得物とacquisition/download JSONは保持する。生成・編集・新しい品質/性能評価・実iPhone操作は行わず、既定はskip。
 
