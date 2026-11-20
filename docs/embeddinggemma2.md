@@ -144,6 +144,27 @@ COREAI_TEST_BUNDLES=/path/to/embeddinggemma2 swift test --package-path CoreAISam
 
 It runs only when a path in `COREAI_TEST_BUNDLES` contains `embedding-manifest.json`, so language-model bundles passed to the same variable skip it. Choosing, playing and searching a video on an iPhone remain user checks.
 
+## Search spoken words in a recording
+
+On iPhone, open **Models → EmbeddingGemma 2 → Search spoken words**. On Mac, choose **Search spoken words** under **EmbeddingGemma 2** in the sidebar. This demo uses Apple Speech on the device. You can search recordings before downloading either EmbeddingGemma 2 variant.
+
+1. Select **Choose a recording…** and open a Japanese audio file from Files or Finder. The first transcription may need a connection to prepare Japanese speech recognition data.
+2. When **Transcript ready** appears, enter a word such as **天気** and select **Search**. Each occurrence in the recognized text appears in recording order, including words that span adjacent recognition segments.
+3. Select **Play** beside a match to hear the original recording from the first timestamp assigned to that word. **Play again** repeats the start and **Stop playback** stops listening.
+
+Matches depend on what Apple Speech recognized. For example, a recording about rain only returns a match for **天気** if the transcript contains **天気**. Choosing another file, leaving the screen or putting the app in the background clears the current recording. Select the file again to transcribe it again.
+
+The opt-in `SpokenNativeTests.fixedRecordings` check uses a Japanese synthetic recording with two occurrences of the same word and a second file, `related.wav`, in the same directory. With the shared heavy-job lock held, set `COREAI_SPOKEN_WORD_AUDIO` to the first WAV and run `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenNativeTests.fixedRecordings`. On M5 Max / macOS 27.2.1 with Xcode 27.2, the two matches started at 3.06 and 4.86 seconds. The player reached both positions and played to the end. The related recording produced a nonempty transcript and zero literal matches. The iOS build uses the same code. Listening to natural speech on a physical iPhone remains an owner check.
+
+To recreate the two fixtures in an empty directory on a Mac with the Japanese Kyoko voice installed, run
+
+```sh
+say -v Kyoko -r 180 -o twice.aiff 'この電車は東京行きです。本日の天気は晴れです。明日の天気は雨です。'
+say -v Kyoko -r 180 -o related.aiff '午後から雨が降ります。傘を持ってお出かけください。'
+afconvert -f WAVE -d LEI16@16000 -c 1 twice.aiff twice.wav
+afconvert -f WAVE -d LEI16@16000 -c 1 related.aiff related.wav
+```
+
 ## Runtime contract
 
 - Queries use `task: search result | query: `; documents use `title: none | text: `.

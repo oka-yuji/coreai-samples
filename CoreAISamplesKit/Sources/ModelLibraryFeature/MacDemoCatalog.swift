@@ -44,7 +44,7 @@ public enum MacDemoCatalog {
                     [clefArtifact], ["decide", "recipes"]),
                 model(
                     "embeddinggemma2", "EmbeddingGemma 2", "Multimodal Embedding", embedding,
-                    ["image-search", "video-search"]),
+                    ["image-search", "video-search", SpokenSearchCatalog.selection.demoID]),
                 model(
                     "gliner2.5-multi", "GLiNER2.5-multi", "Information Extraction",
                     [PublishedModelArtifacts.glinerFP32(platforms: mac)], ["comparison"]),
@@ -55,6 +55,7 @@ public enum MacDemoCatalog {
                 ChronosDemoCatalog.model(artifact: chronosArtifact, platforms: mac, searchTerms: searchTerms),
             ],
             demos: demos + [
+                SpokenSearchCatalog.demo(platform: .macOS, searchTerms: searchTerms),
                 ReceiptDemoCatalog.demo, ChronosDemoCatalog.demo(platforms: mac, searchTerms: searchTerms),
                 ChronosDemoCatalog.salesDemo(platforms: mac, searchTerms: searchTerms),
                 ChronosDemoCatalog.bikeDemo(platforms: mac, searchTerms: searchTerms),
