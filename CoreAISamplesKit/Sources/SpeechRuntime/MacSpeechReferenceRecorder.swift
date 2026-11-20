@@ -5,6 +5,7 @@
 
     actor MacSpeechReferenceRecorder: SpeechReferenceRecording {
         private static let maximumSeconds: TimeInterval = 10
+        private static let completionDeadline: Duration = .seconds(15)
         private static var captureSettings: [String: Any] {
             [
                 AVFormatIDKey: kAudioFormatLinearPCM,
@@ -18,21 +19,25 @@
 
         private let backend: MacSpeechRecordingBackend
         private let cleanup: MacSpeechRecordingCleanup
+        private let deadline: MacSpeechRecordingDeadline
         private let didRequestStop: @Sendable () -> Void
         private var activeTicket: Int?
         private var isRecording = false
         private var device: (any MacSpeechRecordingDevice)?
         private var ownedURL: URL?
         private var continuation: AsyncStream<MacSpeechRecordingEvent>.Continuation?
+        private var expiry: ContinuousClock.Instant?
+        private var disarm: (() -> Void)?
         private var isStopRequested = false
         private var waiters: [CheckedContinuation<Void, Never>] = []
 
         init(
             backend: MacSpeechRecordingBackend = .live, cleanup: MacSpeechRecordingCleanup = .shared,
-            didRequestStop: @escaping @Sendable () -> Void = {}
+            deadline: MacSpeechRecordingDeadline = .live, didRequestStop: @escaping @Sendable () -> Void = {}
         ) {
             self.backend = backend
             self.cleanup = cleanup
+            self.deadline = deadline
             self.didRequestStop = didRequestStop
         }
 
@@ -99,6 +104,8 @@
                     return recording
                 case .finishRequested:
                     if let recording { return recording }
+                case .deadlineFired(let stamp):
+                    try receiveDeadline(stamp, sink: sink)
                 case .cancelled:
                     throw CancellationError()
                 }
@@ -127,7 +134,28 @@
                 throw SpeechReferenceError.recordingFailed
             }
             isRecording = true
+            expiry = deadline.now().advanced(by: Self.completionDeadline)
+            arm(sink, after: Self.completionDeadline)
             return url
+        }
+
+        private func arm(_ sink: AsyncStream<MacSpeechRecordingEvent>.Continuation, after remaining: Duration) {
+            disarm = deadline.schedule(remaining) { stamp in sink.yield(.deadlineFired(stamp)) }
+        }
+
+        private func receiveDeadline(
+            _ stamp: ContinuousClock.Instant, sink: AsyncStream<MacSpeechRecordingEvent>.Continuation
+        ) throws {
+            guard let expiry else { return }
+            guard stamp < expiry else { throw SpeechReferenceError.recordingFailed }
+            disarmDeadline()
+            arm(sink, after: max(.zero, deadline.now().duration(to: expiry)))
+        }
+
+        private func disarmDeadline() {
+            let cancel = disarm
+            disarm = nil
+            cancel?()
         }
 
         private func checkCancellation() throws {
@@ -138,6 +166,8 @@
         private func settle(keeping result: URL?) -> Bool {
             continuation?.finish()
             continuation = nil
+            disarmDeadline()
+            expiry = nil
             device?.stop()
             device = nil
             if let ownedURL, ownedURL != result { cleanup.discard(ownedURL) }

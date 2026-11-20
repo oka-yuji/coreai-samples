@@ -3,6 +3,7 @@
         case permissionAnswered(Bool)
         case deviceFinished(Bool)
         case finishRequested
+        case deadlineFired(ContinuousClock.Instant)
         case cancelled
     }
 #endif
