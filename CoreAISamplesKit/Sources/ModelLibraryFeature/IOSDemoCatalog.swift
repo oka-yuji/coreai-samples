@@ -68,6 +68,7 @@ public enum IOSDemoCatalog {
                     )
                 ],
                 platforms: [.iOS], searchTerms: searchTerms["video-search"]),
+            SpokenSearchCatalog.demo(platform: .iOS, searchTerms: searchTerms),
             DemoDescriptor(
                 id: "object-finder", title: "Camera search demo", systemImage: "viewfinder",
                 summary: "Find camera regions that match your words.",
@@ -102,6 +103,7 @@ public enum IOSDemoCatalog {
                 demos: [
                     ModelDemoLink(demoID: "image-search", platforms: [.iOS]),
                     ModelDemoLink(demoID: "video-search", platforms: [.iOS]),
+                    ModelDemoLink(demoID: SpokenSearchCatalog.selection.demoID, platforms: [.iOS]),
                     ModelDemoLink(demoID: "object-finder", platforms: [.iOS], requiredCapabilities: [.camera]),
                 ]),
         ]

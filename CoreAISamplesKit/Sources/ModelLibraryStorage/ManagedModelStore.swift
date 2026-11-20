@@ -203,7 +203,7 @@ public actor ManagedModelStore {
         model: LibraryModel, artifact: ModelArtifact, verification: ModelVerification = .recorded
     ) throws -> ManagedInspection {
         guard artifact.isSourceValid else { return .missing }
-        let resource: ValidatedModelResource
+        var resource: ValidatedModelResource
         do { resource = try definition(model, artifact) } catch { return .invalid(error) }
         let entry = try readLedger()?.entries.first {
             $0.matches(resource.identity)
@@ -218,7 +218,11 @@ public actor ManagedModelStore {
         } catch let error as CancellationError { throw error } catch {
             return .invalid(error)
         }
-        if entry?.records(resource) != true { try record(resource) }
+        if let entry, entry.records(resource) {
+            resource.registrationGeneration = entry.generation
+        } else {
+            resource.registrationGeneration = try record(resource)
+        }
         return .ready(resource)
     }
 
@@ -236,7 +240,7 @@ public actor ManagedModelStore {
     }
 
     public func promote(staging: URL, model: LibraryModel, artifact: ModelArtifact) throws -> ValidatedModelResource {
-        let resource = try definition(model, artifact)
+        var resource = try definition(model, artifact)
         guard activeLeases(identity: resource.identity) == 0 else { throw ManagedModelStoreError.inUse }
         let area = try location("staging", resource.artifactID, resource.revision)
         let areaPath = area.standardizedFileURL.resolvingSymlinksInPath().path
@@ -254,7 +258,7 @@ public actor ManagedModelStore {
         if replacing { try manager.moveItem(at: target, to: trash) }
         do {
             try manager.moveItem(at: staging, to: target)
-            do { try record(resource) } catch {
+            do { resource.registrationGeneration = try record(resource) } catch {
                 try? manager.moveItem(at: target, to: staging)
                 throw error
             }
@@ -506,7 +510,7 @@ public actor ManagedModelStore {
         return ledger
     }
 
-    private func record(_ resource: ValidatedModelResource) throws {
+    private func record(_ resource: ValidatedModelResource) throws -> Int {
         var ledger = try readLedger() ?? Ledger()
         let next = generation + 1
         ledger.entries.removeAll { $0.matches(resource.identity) }
@@ -519,6 +523,7 @@ public actor ManagedModelStore {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try writeLedger(JSONEncoder().encode(ledger), ledgerURL)
         generation = next
+        return next
     }
 
     private func location(_ area: String, _ artifactID: String, _ revision: String) throws -> URL {

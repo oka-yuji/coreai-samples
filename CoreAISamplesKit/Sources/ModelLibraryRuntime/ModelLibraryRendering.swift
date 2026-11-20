@@ -46,8 +46,13 @@ public struct ModelLibraryRendering {
     }
 
     public func preview(for selection: DemoSelection) -> AnyView {
-        registry.adapter(for: selection.demoID)?.preview(for: selection)
-            ?? AnyView(DemoDescriptionPreview(demoID: selection.demoID))
+        guard let adapter = registry.adapter(for: selection.demoID) else {
+            return AnyView(DemoDescriptionPreview(demoID: selection.demoID))
+        }
+        if let onDemand = adapter as? any ModelOnDemandDemoAdapter {
+            return onDemand.preview(for: selection, access: runner.access(for: selection, in: library))
+        }
+        return adapter.preview(for: selection)
     }
 }
 

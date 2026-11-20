@@ -68,7 +68,8 @@ struct IOSDemoLaunchTests {
         #expect(sections.map(\.model.name) == ["GLiNER2.5-multi", "EmbeddingGemma 2", "Mobile Image Lab"])
         #expect(
             sections.map { $0.demos.map(\.id) } == [
-                ["comparison", "extraction", "inspection"], ["image-search", "video-search", "object-finder"],
+                ["comparison", "extraction", "inspection"],
+                ["image-search", "video-search", "spoken-search", "object-finder"],
                 ["image-generation"],
             ])
         #expect(
@@ -122,7 +123,7 @@ struct IOSDemoLaunchTests {
         let matches = catalog.sections(platform: .iOS, audience: .release, query: "comparar")
         #expect(matches.map(\.id) == ["gliner2.5-multi"])
         #expect(matches.first?.demos.map(\.id) == ["comparison"])
-        #expect(catalog.sections(platform: .iOS, audience: .release, query: "embeddinggemma").first?.demos.count == 3)
+        #expect(catalog.sections(platform: .iOS, audience: .release, query: "embeddinggemma").first?.demos.count == 4)
         let video = try IOSDemoCatalog.make(searchTerms: ["video-search": ["doga no bamen"]])
         let found = video.sections(platform: .iOS, audience: .release, query: "doga no bamen")
         #expect(found.map(\.id) == ["embeddinggemma2"])

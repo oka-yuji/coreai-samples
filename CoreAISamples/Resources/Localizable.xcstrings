@@ -1,6 +1,601 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Ask about the recording. EmbeddingGemma 2 compares your question with the transcribed passages." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask about the recording. EmbeddingGemma 2 compares your question with the transcribed passages."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音について質問してください。EmbeddingGemma 2が質問と文字起こしを照らし合わせます。"
+          }
+        }
+      }
+    },
+    "Download EmbeddingGemma 2 to search by topic. You can search by word while the model is being prepared." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download EmbeddingGemma 2 to search by topic. You can search by word while the model is being prepared."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話題を探すにはEmbeddingGemma 2をダウンロードしてください。モデルの準備中も言葉を検索できます。"
+          }
+        }
+      }
+    },
+    "Example question about the recording" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do I need an umbrella?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傘は必要ですか"
+          }
+        }
+      }
+    },
+    "Finding related passages…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding related passages…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "関連する発話を探しています…"
+          }
+        }
+      }
+    },
+    "Most relevant passages appear first. Play starts at the beginning of each passage in the original recording." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most relevant passages appear first. Play starts at the beginning of each passage in the original recording."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "関連度が高い発話から表示します。「再生」を押すと、元の録音をその発話の先頭から聞けます。"
+          }
+        }
+      }
+    },
+    "No passages with playback times were found in this transcript." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No passages with playback times were found in this transcript."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この文字起こしには、再生位置を特定できる発話が見つかりませんでした。"
+          }
+        }
+      }
+    },
+    "Question or topic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Question or topic"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問や話題"
+          }
+        }
+      }
+    },
+    "Search mode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search mode"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索方法"
+          }
+        }
+      }
+    },
+    "The question is too long for EmbeddingGemma 2. Shorten it and search again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The question is too long for EmbeddingGemma 2. Shorten it and search again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問がEmbeddingGemma 2の入力上限を超えています。短くして、もう一度検索してください。"
+          }
+        }
+      }
+    },
+    "The selected model is unavailable. Close any other demo using a model, check Models and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected model is unavailable. Close any other demo using a model, check Models and try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルを利用できません。モデルを使用中のデモを閉じ、Modelsで状態を確認して、もう一度検索してください。"
+          }
+        }
+      }
+    },
+    "The topic search could not finish. Try searching again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The topic search could not finish. Try searching again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話題の検索が完了しませんでした。もう一度検索してください。"
+          }
+        }
+      }
+    },
+    "Topic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Topic"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話題"
+          }
+        }
+      }
+    },
+    "Word" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言葉"
+          }
+        }
+      }
+    },
+    "Apple Speech transcribes the recording on this device. Word finds the words you entered. Topic uses EmbeddingGemma 2 to find passages related to a question. Both modes play the original recording." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Speech transcribes the recording on this device. Word finds the words you entered. Topic uses EmbeddingGemma 2 to find passages related to a question. Both modes play the original recording."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Speechが端末上で録音を文字に起こします。「言葉」は入力した言葉を、「話題」はEmbeddingGemma 2で質問に関連する発話を探します。どちらも元の録音を再生します。"
+          }
+        }
+      }
+    },
+    "Choose a Japanese recording. Apple Speech can download Japanese recognition data the first time." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a Japanese recording. Apple Speech can download Japanese recognition data the first time."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語の録音を選んでください。初回はApple Speechが日本語の音声認識データをダウンロードすることがあります。"
+          }
+        }
+      }
+    },
+    "Choose a recording…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a recording…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音を選ぶ…"
+          }
+        }
+      }
+    },
+    "Example word from the recording" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天気 (weather)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天気"
+          }
+        }
+      }
+    },
+    "Find a spoken word or a related passage in a Japanese recording." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find a spoken word or a related passage in a Japanese recording."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語の録音から、指定した言葉や質問に関連する発話を探せます。"
+          }
+        }
+      }
+    },
+    "From %@ to %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@ to %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@〜%@"
+          }
+        }
+      }
+    },
+    "Japanese recognition data is unavailable. Check your connection and choose the recording again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Japanese recognition data is unavailable. Check your connection and choose the recording again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語の音声認識データを準備できませんでした。通信状況を確認して、録音を選び直してください。"
+          }
+        }
+      }
+    },
+    "No spoken matches. Try another word from the recording." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No spoken matches. Try another word from the recording."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一致する発話が見つかりませんでした。録音に含まれる別の言葉を試してください。"
+          }
+        }
+      }
+    },
+    "No timed Japanese speech was found in this recording." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No timed Japanese speech was found in this recording."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この録音から、時刻を特定できる日本語の発話が見つかりませんでした。"
+          }
+        }
+      }
+    },
+    "On-device speech recognition is unavailable on this device." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On-device speech recognition is unavailable on this device."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末ではオンデバイスの音声認識を利用できません。"
+          }
+        }
+      }
+    },
+    "Play again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play again"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度再生"
+          }
+        }
+      }
+    },
+    "Reopen recording search and choose the file again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reopen recording search and choose the file again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「録音を検索」を開き直し、ファイルを選び直してください。"
+          }
+        }
+      }
+    },
+    "Search a recording" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search a recording"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音を検索"
+          }
+        }
+      }
+    },
+    "Searching the transcript…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching the transcript…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字起こしを検索しています…"
+          }
+        }
+      }
+    },
+    "Speech recognition did not finish. Choose the recording again to retry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech recognition did not finish. Choose the recording again to retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字起こしが完了しませんでした。録音を選び直して、もう一度試してください。"
+          }
+        }
+      }
+    },
+    "Stop playback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop playback"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生を停止"
+          }
+        }
+      }
+    },
+    "The audio file could not be read. Choose another recording." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The audio file could not be read. Choose another recording."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声ファイルを読み込めませんでした。別の録音を選んでください。"
+          }
+        }
+      }
+    },
+    "The recording could not be played. Try the match again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The recording could not be played. Try the match again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音を再生できませんでした。検索結果からもう一度再生してください。"
+          }
+        }
+      }
+    },
+    "Matches appear in recording order. Play starts at the spoken word." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matches appear in recording order. Play starts at the spoken word."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音に登場する順に表示します。「再生」を押すと、その言葉の先頭から聞けます。"
+          }
+        }
+      }
+    },
+    "Transcribing Japanese speech…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing Japanese speech…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語の音声を文字に起こしています…"
+          }
+        }
+      }
+    },
+    "Transcript ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript ready"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字起こしが完了しました"
+          }
+        }
+      }
+    },
+    "Word to find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word to find"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探す言葉"
+          }
+        }
+      }
+    },
     "Download the Chronos-2 FP32 model. Model files use about 479 MB." : {
       "extractionState" : "manual",
       "localizations" : {
