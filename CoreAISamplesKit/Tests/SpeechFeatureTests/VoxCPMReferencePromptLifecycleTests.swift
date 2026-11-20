@@ -6,7 +6,7 @@ import Testing
 
 struct VoxCPMReferencePromptLifecycleTests {
     static let english = "A gentle voice"
-    static let kana = String(UnicodeScalar(0x304a)!)
+    static let kana = String(decoding: [0xE3, 0x81, 0x8A], as: UTF8.self)
     static let text = "  read this\nexactly  "
 
     @Test(
