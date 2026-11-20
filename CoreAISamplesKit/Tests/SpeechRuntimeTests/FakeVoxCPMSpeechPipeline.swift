@@ -1,3 +1,5 @@
+import SpeechCore
+
 @testable import SpeechRuntime
 
 struct FakeVoxCPMSpeechPipeline: VoxCPMSpeechPipeline {
@@ -6,5 +8,9 @@ struct FakeVoxCPMSpeechPipeline: VoxCPMSpeechPipeline {
     @concurrent
     func generate(ids: [Int32], seed: UInt64) async throws -> VoxCPMSpeech {
         try await driver.generate(ids: ids, seed: seed)
+    }
+    @concurrent
+    func generate(ids: [Int32], seed: UInt64, reference: SpeechReferenceAudio?) async throws -> VoxCPMSpeech {
+        try await driver.generate(ids: ids, seed: seed, reference: reference)
     }
 }
