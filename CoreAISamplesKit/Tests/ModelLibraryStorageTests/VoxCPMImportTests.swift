@@ -145,6 +145,16 @@ struct VoxCPMImportTests {
             expected: .contractMismatch("VoxCPM2 configuration " + profile.rawValue), copiesFirst: false)
     }
 
+    @Test("VRA-03 Models keeps the FP16 definition and has no download or import for reference FP32")
+    func referenceStaysOutOfModels() throws {
+        #expect(VoxCPMModelArtifact.profile == .fp16)
+        #expect(VoxCPMModelArtifact.downloadFolder(for: .referenceFP32) == nil)
+        let manifest = try VoxCPMImportFixture.manifest(.referenceFP32)
+        #expect(throws: ManagedModelStoreError.contractMismatch("VoxCPM2 configuration reference_fp32")) {
+            try VoxCPMModelArtifact.validateManifest(manifest)
+        }
+    }
+
     @Test("VML-02 A staged copy that changes before promotion is rejected and the previous registration stays ready")
     func changedStaging() async throws {
         let fixture = try VoxCPMImportFixture()
@@ -257,7 +267,7 @@ struct VoxCPMImportTests {
         await #expect(throws: ManagedModelStoreError.inUse) { try await store.delete(identity: installed.identity) }
         await lease.release()
         let ledger = try fixture.ledger()
-        for profile in VoxCPMBundleProfile.allCases where profile != VoxCPMModelArtifact.profile {
+        for profile in [VoxCPMBundleProfile.fp32, .fp16, .fp16Proj32] where profile != VoxCPMModelArtifact.profile {
             let other = bundles.appending(path: profile.rawValue, directoryHint: .isDirectory)
             try #require(FileManager.default.fileExists(atPath: other.path))
             await #expect(throws: ManagedModelStoreError.contractMismatch("VoxCPM2 configuration " + profile.rawValue))

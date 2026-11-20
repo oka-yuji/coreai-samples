@@ -318,7 +318,7 @@ struct VoxCPMNativeTests {
         let references = try index.sentences.map { try VoxCPMReference(root.appending(path: $0), index: index) }
         var configurations: [String: Any] = [:]
         var passed = true
-        for profile in VoxCPMBundleProfile.allCases {
+        for profile in [VoxCPMBundleProfile.fp32, .fp16, .fp16Proj32] {
             do {
                 let loaded = try await VoxCPMPipeline.load(bundle: Self.bundle(profile.rawValue))
                 #expect(loaded.pipeline.contract.profile == profile)

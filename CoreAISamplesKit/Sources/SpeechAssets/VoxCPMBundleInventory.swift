@@ -25,7 +25,7 @@ public enum VoxCPMBundleInventory {
     public static let assetNames = ["tslm", "ralm", "proj", "locenc", "dit", "vae"]
     public static let functions: [String: Set<String>] = [
         "tslm": ["embed", "prefill", "step"], "ralm": ["prefill", "step"], "proj": ["heads", "fuse", "prefill_fuse"],
-        "locenc": ["main"], "dit": ["main"], "vae": ["main"],
+        "locenc": ["main"], "dit": ["main"], "vae": ["main"], "refenc": ["main"],
     ]
 
     public static func files(profile: VoxCPMBundleProfile) throws -> [IrodoriBundleInventory.File] {

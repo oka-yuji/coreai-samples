@@ -70,6 +70,7 @@ public enum VoxCPMModelArtifact {
         case .fp32: "FP32"
         case .fp16: "FP16"
         case .fp16Proj32: "FP16 (FP32 projection)"
+        case .referenceFP32: "FP32 (reference audio)"
         }
     }
 }
