@@ -1,4 +1,5 @@
 import Foundation
+import SpeechCore
 
 @testable import SpeechAssets
 @testable import SpeechRuntime
@@ -15,13 +16,15 @@ actor FakeVoxCPMDriver {
     var failure: (any Error)?
     var patches = 3
     var extraSamples = 0
+    var output: VoxCPMSpeech?
     var factoryCount = 0
     var requests: [[Int32]] = []
     var seeds: [UInt64] = []
+    var references: [SpeechReferenceAudio?] = []
 
     func configure(
         block: Bool = false, blockLoad: Bool = false, loadFailure: (any Error)? = nil, failure: (any Error)? = nil,
-        patches: Int = 3, extraSamples: Int = 0
+        patches: Int = 3, extraSamples: Int = 0, output: VoxCPMSpeech? = nil
     ) {
         self.block = block
         self.blockLoad = blockLoad
@@ -29,6 +32,7 @@ actor FakeVoxCPMDriver {
         self.failure = failure
         self.patches = patches
         self.extraSamples = extraSamples
+        self.output = output
     }
 
     func makePipeline() async throws -> any VoxCPMSpeechPipeline {
@@ -52,9 +56,15 @@ actor FakeVoxCPMDriver {
             await gate.wait()
         }
         if let failure { throw failure }
+        if let output { return output }
         return VoxCPMSpeech(
             samples: [Float](repeating: 0.25, count: patches * 7680 + extraSamples), sampleRate: 48_000,
             patchCount: patches, stoppedPatch: patches - 1)
+    }
+
+    func generate(ids: [Int32], seed: UInt64, reference: SpeechReferenceAudio?) async throws -> VoxCPMSpeech {
+        references.append(reference)
+        return try await generate(ids: ids, seed: seed)
     }
 
     nonisolated func dependencies(
