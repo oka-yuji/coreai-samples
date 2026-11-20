@@ -21,6 +21,8 @@ from .runtime import Components
 from .source import compare, load_contract, load_model
 
 FLOATS = {"fp32": np.float32, "fp16": np.float16}
+REFERENCE_START, REFERENCE_END = 103, 104
+REFERENCE_PATCH = (4, 64)
 
 
 class GenerationError(Exception):
@@ -116,14 +118,44 @@ class Result:
         return np.concatenate(self.audio, axis=-1).reshape(-1)
 
 
-def generate(assets, contract, ids, seed, limit=None, align=None):
+def reference_ids(patches, ids):
+    if not isinstance(patches, np.ndarray) or isinstance(patches, np.ma.MaskedArray):
+        raise ValueError(f"reference_patches must be a NumPy array, not {type(patches).__name__}")
+    if patches.dtype != np.float32 or patches.ndim != 3 or patches.shape[1:] != REFERENCE_PATCH or len(patches) < 1:
+        raise ValueError(f"reference_patches must be a nonempty float32 [R, 4, 64] array, not {patches.dtype} {list(patches.shape)}")
+    if not np.isfinite(patches).all():
+        raise ValueError("reference_patches must be finite")
+    return [REFERENCE_START] + [0] * len(patches) + [REFERENCE_END] + [int(value) for value in ids]
+
+
+def reference_prefill(assets, patches, embeds):
+    encoded = []
+    for row, patch in enumerate(patches, 1):
+        encoded.append(assets.call("locenc", "main", {"patch": np.ascontiguousarray(patch.T[None, ...])})["curr_embed"])
+        embeds[:, row, :] = encoded[-1]
+    return encoded
+
+
+def reference_fuse(assets, encoded, hidden, residual):
+    for row, curr_embed in enumerate(encoded, 1):
+        fused = assets.call("proj", "fuse", {"lm_raw": hidden[:, row, :], "curr_embed": curr_embed})
+        residual[:, row, :] = fused["residual_input"]
+
+
+def generate(assets, contract, ids, seed, limit=None, align=None, *, reference_patches=None):
     import torch
 
     execution, generation = contract["execution"], contract["generation"]
     size, length = execution["prefill_length"], len(ids)
     if not 1 < length <= size:
         raise ValueError(f"{length - 1} text tokens do not fit the prefill length {size}")
-    allowed = host.patch_limit(length - 1, execution["capacity"], generation)
+    text, prompt_length = length - 1, None
+    if reference_patches is not None:
+        ids = reference_ids(reference_patches, ids)
+        length = prompt_length = len(ids)
+        if length > size:
+            raise ValueError(f"{text} text tokens and {len(reference_patches)} reference patches do not fit the prefill length {size}")
+    allowed = host.patch_limit(text, execution["capacity"], generation, prompt_length=prompt_length)
     limit = allowed if limit is None else limit
     if not 1 <= limit <= allowed:
         raise ValueError(f"The patch limit must be within 1..{allowed}")
@@ -136,8 +168,14 @@ def generate(assets, contract, ids, seed, limit=None, align=None):
         padded[0, :length] = ids
         count = np.array([length], np.int32)
         embeds = assets.call("tslm", "embed", {"ids": padded})["embeds"]
+        if reference_patches is not None:
+            embeds = np.array(embeds)
+            encoded = reference_prefill(assets, reference_patches, embeds)
         hidden = assets.call("tslm", "prefill", {"embeds": embeds, "length": count}, tslm)["hidden"]
         residual = assets.call("proj", "prefill_fuse", {"hidden": hidden})["residual_inputs"]
+        if reference_patches is not None:
+            residual = np.array(residual)
+            reference_fuse(assets, encoded, hidden, residual)
         lm_hidden = hidden[:, length - 1]
         residual_hidden = assets.call("ralm", "prefill", {"embeds": residual, "length": count}, ralm)["hidden"][:, length - 1]
         cond = np.zeros(host.PATCH, np.float32)
