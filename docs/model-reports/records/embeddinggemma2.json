@@ -47,11 +47,12 @@
         "safe FP16 S128 / vision70"
       ],
       "evidence": [
-        "fp16-mac"
+        "fp16-mac",
+        "recording-fp16-mac"
       ],
       "note": {
-        "en": "FP16 local-folder image-search UI recorded; this mark does not cover PTQ camera acceptance.",
-        "ja": "FP16のローカル画像検索UIの記録。PTQのカメラ受入を含まない。"
+        "en": "FP16 image search and one Japanese recording query verified on Mac. PTQ camera and recording acceptance are pending.",
+        "ja": "MacでFP16の画像検索と日本語録音の固定1問を確認。PTQでのカメラ・録音の受入は未確認。"
       }
     },
     "ios": {
@@ -265,6 +266,34 @@
       "thermal": null,
       "model_executed": false,
       "plan_sha256": null
+    },
+    "recording-fp16-mac": {
+      "url": "docs/validation/embeddinggemma2-recording-search-20261121.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-21",
+      "platform": "macos",
+      "device": "M5 Max, 128 GiB unified memory",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52), Swift 6.4.2",
+      "variant": "safe FP16 S128 / vision70",
+      "backend": "Apple Speech and Core AI EmbeddingModel (text)",
+      "route": "Japanese audio file to timed transcript, EG2 passage ranking and AVPlayer seek",
+      "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+      "artifact_revision": "daab6dbfbae1610a87d9f181458419e3ea5ce682",
+      "code_revision": "e9e936c9a2a5829533951cdaa35221b230d30e72",
+      "workload": {
+        "en": "One Japanese synthetic WAV, four passages and one question. The highest-ranked result played from 6.12 seconds.",
+        "ja": "日本語の合成WAV 1本・4発話・質問1件。1位の発話を6.12秒から再生。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC power, low-power mode off at start and finish",
+      "thermal": "Nominal at start and finish",
+      "model_executed": true,
+      "plan_sha256": "88b75dd42a697cd549ac03755a64e98eebec2efa9f3f75ec928e25b9584e3fa5"
     }
   },
   "measurements": [
