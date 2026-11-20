@@ -13,8 +13,8 @@ three stages remove debug information from the assets, assemble three app bundle
 with a manifest and fixed inventories, and compare the FP32 bundle with the original
 again. The six-asset recipe does not cover the Swift runtime, iPhone, quantization,
 reference-audio generation or listening quality. A separate FP32 reference encoder
-check is described below. `model.json` is the asset contract that a native host
-follows.
+check, and the assembly of a reference bundle from one of its runs, are described
+below. `model.json` is the asset contract that a native host follows.
 
 ## Fixed inputs
 
@@ -125,11 +125,110 @@ new conversion and comparison.
 
 The stage preserves original, fixed-length PyTorch and Core AI arrays, cropped
 recordings, descriptors and timings under its `encoder` output. These are research
-outputs. The encoder asset still needs debug-information removal, bundle assembly
-and distribution checks before publication. This recipe does not establish Swift,
+outputs. [Reference bundle](#reference-bundle) removes the debug information of the
+encoder of one selected run and assembles a bundle; the distribution checks still
+follow before publication. This recipe does not establish Swift,
 normal-UI or listening acceptance. FP16 encoder comparisons failed three of the
 four fixed cases at the separately recorded 0.01 threshold; this recipe exports
 only the accepted FP32 candidate.
+
+## Reference bundle
+
+`reference-bundle-recipe.json` makes `reference_fp32`: the published FP32 bundle with
+the reference encoder of one selected, passing `reference-recipe.json` run added. It
+converts and compares nothing again, and it does not run the reference recipe, so
+the selected files keep their bytes. This assembly stage has `cache: false`: every
+run validates the current inputs and creates a new stripped asset, whose metadata
+timestamp and inventory can change. A same-content symbolic link must not bypass
+the input checks through a previously cached result. Its bindings are `python`, `base_bundle` (the
+`fp32/` folder of [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai)
+at revision `afe11d61de9dd7c3609140aa040b777ef77b2555`), `encoder_run` (the `encoder`
+folder of the selected run) and `selection`:
+
+```sh
+.local/conversion/voxcpm2/.venv/bin/python -m Tools.Conversion plan Tools/Conversion/recipes/voxcpm2/reference-bundle-recipe.json \
+  --bindings .local/conversion/voxcpm2-reference-bundle.paths.json
+.local/conversion/voxcpm2/.venv/bin/python -m Tools.Conversion run Tools/Conversion/recipes/voxcpm2/reference-bundle-recipe.json \
+  --bindings .local/conversion/voxcpm2-reference-bundle.paths.json \
+  --work-dir .local/conversion/work/voxcpm2-reference-bundle \
+  --lock-dir "$HOME/Library/Caches/coreai-samples/heavy-job"
+```
+
+The stage runs `python -m Tools.Conversion.adapters.voxcpm2.reference_bundle
+--base-bundle <fp32> --encoder-run <encoder> --selection <selection.json> --output
+<new folder>`, which can also be run directly.
+
+- **Selection**: a JSON object written when the run is chosen, with exactly `format`
+  1, `profile` `reference_fp32`, `report` and `files`. `report` and each of
+  `files["main.hash"]`, `files["main.mlirb"]` and `files["metadata.json"]` hold the
+  `bytes` (a positive integer) and `sha256` (64 lowercase hexadecimal digits) of that
+  file, read from the run itself. It names no paths: the report is always
+  `report.json` and the asset always `refenc-fp32.aimodel/` in the run. Duplicate
+  keys, other fields or files, booleans as sizes and other digest forms are refused.
+  Another run needs a new selection file; neither the recipe nor the code holds the
+  fingerprint of a run.
+- **Before loading anything**: the output must not exist, not even as a broken link,
+  and must be outside both inputs. `report.json` and the three asset files must be
+  regular files, the asset folder must hold exactly those three, and their sizes and
+  SHA-256 values must equal the selection. The report must be version 1, at stage
+  `complete`, complete and passed, in FP32, for the model and code revisions and the
+  source files of `model.json`, with the encoder descriptor below as its contract and
+  its Core AI descriptor, four of four cases passed with matching original inputs,
+  no non-finite value and a normalized maximum error of at most 0.001 for both the
+  fixed-shape PyTorch and the Core AI outputs, and an unchanged source encoder. Its
+  `export.file`, the three sizes, their total and `main_mlirb_sha256` must equal the
+  files. The base must have exactly the 22 files, sizes and SHA-256 values of
+  `voxcpm2-fp32.inventory.json` in
+  [`CoreAISamplesKit/Sources/SpeechAssets/Resources`](../../../../CoreAISamplesKit/Sources/SpeechAssets/Resources),
+  with no link, and its `manifest.json` must be the format 1 FP32 manifest that
+  `bundle.py` writes from `model.json`. The `manifest` field of the report names the
+  voices of the comparison, not a bundle manifest; the recordings, crops and arrays of
+  the run are not copied.
+- **Assembly**: `strip_one` removes the debug information of the encoder into the new
+  bundle with the same three-way comparison as `strip` (see
+  [App bundles](#app-bundles)). The 18 files of the six FP32 assets, `LICENSE` and
+  `tokenizer.json` are cloned or copied with their checked bytes; copying them needs
+  about 9.3 GB, and the stage asks for 12 GB of free space. `manifest.json`
+  and `NOTICE` (from `bundle-notice.txt`, naming `reference_fp32`) are written. Every
+  file is then read again: the 20 kept files must equal the repository inventory,
+  `manifest.json` and `NOTICE` the written bytes and the encoder files the record
+  after the removal. All 25 files are scanned for absolute paths with the canaries of
+  `bundle`.
+
+```text
+bundle/
+  reference_fp32/                  the bundle
+    manifest.json, NOTICE, LICENSE, tokenizer.json
+    artifacts/{tslm,ralm,proj,locenc,dit,vae,refenc}-fp32.aimodel/main.mlirb, main.hash, metadata.json
+  reference_fp32.inventory.json    format 1 listing of the 25 files
+  check.json
+```
+
+The manifest copies `model`, `execution`, `generation`, `structure`, `tokenizer` and
+the six assets from the base manifest and changes the following:
+
+| Key | Content |
+|---|---|
+| `format` | 2 |
+| `configuration` | `name` `reference_fp32`; the precision of all seven assets is `fp32` |
+| `assets.refenc` | `path` `artifacts/refenc-fp32.aimodel`, `precision` `fp32`, function `main` with input `pcm` float32 `[1,1,161280]`, output `mu` float32 `[1,64,252]` and no states |
+| `reference` | `sample_rate` 16000, `minimum_samples` 80000, `maximum_samples` 160000, `hop_samples` 640, `start_token` 103, `end_token` 104, `padding` `right_zero` |
+
+Reference audio is 5 to 10 seconds of 16 kHz mono, padded with zeros on the right to
+the fixed encoder input of 161,280 samples; the input length is not the audio limit.
+`check.json` records `complete`, `passed`, `selection_sha256`,
+`base_inventory_sha256`, `manifest_sha256`, `inventory_sha256`, the `strip` record,
+the cloned and copied counts, `path_scan`, the scan of the encoder before the removal
+and the canaries. A rejected input leaves no output at all. A later failure exits
+with an error and leaves the earlier `check.json` checkpoint without a passing
+result. An inventory may already exist if saving the final check fails; it is not
+usable without both a successful command exit and a complete, passing check. The
+inputs and an existing folder are not changed. A pass covers this
+assembly only. Before publication, the encoder inside the finished bundle still has
+to run in a new process with the OS Core AI runtime on the two voices at 5 and 10
+seconds against the original PyTorch features, the manifest and inventory handed on
+must be checked against the 25 files, and the model release must be audited. Swift,
+normal-UI and listening acceptance are separate.
 
 ## Stages
 
@@ -590,7 +689,10 @@ app reads.
   object; the stage fails unless `main.mlirb` changes. It prints each program as
   generic MLIR without locations and with every constant and resource, and compares
   the SHA-256 of that text after loading, after the removal and after loading the
-  saved asset in a new process. The three must be equal. `strip.py` is a module of its
+  saved asset in a new process. The three must be equal. `strip_one` does this for one
+  asset into a new folder and also requires the source folder to be unchanged
+  afterwards; `strip` calls it for each of the twelve assets, and the reference bundle
+  calls it for the encoder. `strip.py` is a module of its
   own, so changes to the bundle code do not run the removal again; every removal
   writes a new creation date into `metadata.json`.
 - **Bundles**: `bundle` makes `fp32`, `fp16` and `fp16_proj32` with the precisions of
