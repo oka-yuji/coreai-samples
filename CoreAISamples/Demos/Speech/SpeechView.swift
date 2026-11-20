@@ -4,7 +4,7 @@ import SpeechFeature
 import SwiftUI
 
 struct SpeechView: View {
-    private struct OpenKey: Equatable {
+    private struct OpenKey: Hashable {
         let path: String
         var identity: ModelArtifactIdentity?
         var location: String?
@@ -12,7 +12,7 @@ struct SpeechView: View {
         var grant: LibraryTicket?
     }
 
-    private struct Attempt: Equatable {
+    private struct Attempt: Hashable {
         let key: OpenKey
         var verification: LibraryTicket?
     }
@@ -57,12 +57,23 @@ struct SpeechView: View {
         .onChange(of: library.resource(inUse: model)?.directory) { _, new in
             if new == nil { attempted = nil }
         }
-        .onChange(of: bundleToOpen, initial: true) {
-            guard let attempt = bundleToOpen else { return }
+        .onChange(of: model == .voxcpm2 ? nil : bundleToOpen, initial: true) {
+            guard model != .voxcpm2, let attempt = bundleToOpen else { return }
             attempted = attempt
             store.send(.openBundle(attempt.key.path))
         }
         .background {
+            if model == .voxcpm2, let expected = bundleToOpen {
+                Color.clear.frame(width: 0, height: 0)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                    .onAppear {
+                        guard expected == bundleToOpen else { return }
+                        attempted = expected
+                        store.send(.openBundle(expected.key.path))
+                    }
+                    .id(expected)
+            }
             if let ticket = store.state.exportTicket, let audio = store.state.audio {
                 SpeechExportPresenter(
                     ticket: ticket, data: audio.wav, filename: model.libraryID + "-speech.wav", send: store.send
