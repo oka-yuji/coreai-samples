@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "name": "voxcpm2_reference_bundle",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/voxcpm2"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4",
+    "USE_OS_COREAI": "1"
+  },
+  "steps": [
+    {
+      "id": "reference_bundle",
+      "role": "verify",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.voxcpm2.reference_bundle",
+        "--base-bundle",
+        "$base_bundle",
+        "--encoder-run",
+        "$encoder_run",
+        "--selection",
+        "$selection",
+        "--output",
+        "$out/bundle"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/reference_bundle.py",
+        "$adapters/strip.py",
+        "$adapters/bundle.py",
+        "$adapters/runtime.py",
+        "$adapters/source.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/bundle-notice.txt",
+        "$repo/CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp32.inventory.json",
+        "$base_bundle",
+        "$selection",
+        "$encoder_run/report.json",
+        "$encoder_run/refenc-fp32.aimodel"
+      ],
+      "outputs": [
+        "bundle/reference_fp32",
+        "bundle/reference_fp32.inventory.json",
+        "bundle/check.json"
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 12000000000,
+      "checks": [
+        {
+          "file": "bundle/check.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        },
+        {
+          "file": "bundle/check.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
+    }
+  ]
+}

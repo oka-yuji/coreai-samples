@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -49,10 +50,31 @@ def passed(rows, count):
     return len(rows) == count and all(row["semantic_equal"] and row["bytecode_changed"] for row in rows)
 
 
-def strip(args):
+def strip_one(asset, precision, source, target):
     from coreai.authoring import AIModelAsset
     from coreai_torch.debugging.debug_info import strip_debug_info
 
+    source, target = Path(source), Path(target)
+    if os.path.lexists(target):
+        raise FileExistsError(f"The stripped asset already exists: {target.name}")
+    if target.resolve().is_relative_to(source.resolve()):
+        raise ValueError("The stripped asset must be saved outside its source")
+    files_before = folder_files(source)
+    loaded = AIModelAsset.load(source)
+    program = loaded.program
+    before = semantic(program)
+    strip_debug_info(program)
+    after = semantic(program)
+    program.save_asset(target, loaded.metadata)
+    del loaded, program
+    reloaded = json.loads(subprocess.run([sys.executable, "-m", __spec__.name, "digest", str(target)], check=True,
+                                         capture_output=True, text=True).stdout)
+    if folder_files(source) != files_before:
+        raise ValueError(f"The source asset changed while removing debug information: {asset}-{precision}")
+    return record(asset, precision, before, after, reloaded, files_before, folder_files(target))
+
+
+def strip(args):
     contract = load_contract(args.contract)
     args.output.mkdir(parents=True)
     report = {"complete": False, "passed": False, "method": "AIModelAsset.load, strip_debug_info, save_asset",
@@ -63,18 +85,8 @@ def strip(args):
         if not export["complete"] or export["contract"] != contract:
             raise ValueError("Unexpected or incomplete export")
         for precision, entry in sorted(export["precisions"].items()):
-            source, target = directory / entry["file"], args.output / f"{export['asset']}-{precision}.aimodel"
-            loaded = AIModelAsset.load(source)
-            program = loaded.program
-            before = semantic(program)
-            strip_debug_info(program)
-            after = semantic(program)
-            program.save_asset(target, loaded.metadata)
-            del loaded, program
-            reloaded = json.loads(subprocess.run([sys.executable, "-m", __spec__.name, "digest", str(target)], check=True,
-                                                 capture_output=True, text=True).stdout)
-            report["assets"].append(record(export["asset"], precision, before, after, reloaded, folder_files(source),
-                                           folder_files(target)))
+            report["assets"].append(strip_one(export["asset"], precision, directory / entry["file"],
+                                              args.output / f"{export['asset']}-{precision}.aimodel"))
             write_json(args.output / "strip.json", report)
     report["passed"] = passed(report["assets"], 2 * len(contract["assets"]))
     report["complete"] = True
