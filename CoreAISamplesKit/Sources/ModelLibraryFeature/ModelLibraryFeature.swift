@@ -64,8 +64,16 @@ public enum ModelLibraryFeature: Feature {
     public typealias Operation = Command<Effect, EffectID>
 
     public static func reduce(_ state: inout State, _ action: Action) -> [Operation] {
+        let previous = state.previewIdentity
         let operations = respond(&state, action)
-        return operations + serveUsages(&state)
+        let usages = serveUsages(&state)
+        switch action {
+        case .suspendDemo, .closeDemo:
+            if previous.selection != nil { state.previewGeneration += 1 }
+        default:
+            if previous != state.previewIdentity { state.previewGeneration += 1 }
+        }
+        return operations + usages
     }
 
     private static func respond(_ state: inout State, _ action: Action) -> [Operation] {

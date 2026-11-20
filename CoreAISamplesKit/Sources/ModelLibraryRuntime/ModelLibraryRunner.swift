@@ -38,6 +38,7 @@ public final class ModelLibraryRunner {
     private var libraries: [UUID: LibraryReference] = [:]
     private var registered: [UUID: LibraryReference] = [:]
     private var usages: [UsageKey: [ResourceLease]] = [:]
+    private var onDemandRequest: UUID?
     private var resident: ModelDemoSession? {
         willSet { gateChanges.invalidate() }
     }
@@ -106,6 +107,63 @@ public final class ModelLibraryRunner {
         await lease.release()
     }
 
+    func access(for selection: DemoSelection, in library: Store<ModelLibraryFeature>) -> OnDemandModelAccess? {
+        let state = library.state
+        let owner = state.owner
+        let generation = state.previewGeneration
+        guard registered[owner]?.store === library, releasedThrough[owner] != .max,
+            let resource = state.previewResource(for: selection), let registration = resource.registrationGeneration,
+            let model = state.catalog.model(selection.modelID), let artifact = model.artifact(resource.artifactID),
+            resource.sizeBytes == artifact.totalFileBytes
+        else { return nil }
+
+        return OnDemandModelAccess(resource: resource, generation: generation) { [weak self, weak library] in
+            guard let self else { throw CancellationError() }
+            return try await acquireOnDemand(model: model, artifact: artifact, resource: resource, owner: owner) {
+                guard let library, registered[owner]?.store === library, releasedThrough[owner] != .max,
+                    library.state.previewGeneration == generation,
+                    let current = library.state.previewResource(for: selection)
+                else { return false }
+                return current == resource && current.registrationGeneration == registration
+            }
+        }
+    }
+
+    private func acquireOnDemand(
+        model: LibraryModel, artifact: ModelArtifact, resource: ValidatedModelResource, owner: UUID,
+        isCurrent: @MainActor () -> Bool
+    ) async throws -> @MainActor @Sendable () async -> Void {
+        try Task.checkCancellation()
+        guard isCurrent() else { throw CancellationError() }
+        guard resident == nil, onDemandRequest == nil else { throw ManagedModelStoreError.inUse }
+        let request = UUID()
+        onDemandRequest = request
+        do {
+            let registration = await store.generation(of: resource.identity)
+            try Task.checkCancellation()
+            guard isCurrent() else { throw CancellationError() }
+            guard let registration, registration == resource.registrationGeneration else {
+                throw ManagedModelStoreError.notInstalled
+            }
+            let lease = try await store.acquire(
+                model: model, artifact: artifact, directory: resource.directory, owner: owner)
+            let currentRegistration = await store.generation(of: resource.identity)
+            guard !Task.isCancelled, isCurrent(), currentRegistration == registration else {
+                await lease.release()
+                throw CancellationError()
+            }
+            return { [weak self] in
+                await lease.release()
+                if self?.onDemandRequest == request { self?.onDemandRequest = nil }
+            }
+        } catch {
+            onDemandRequest = nil
+            try Task.checkCancellation()
+            guard isCurrent() else { throw CancellationError() }
+            throw error
+        }
+    }
+
     public func abandon(owner: UUID) {
         releasedThrough[owner] = .max
         work.send(.abandon(owner))
@@ -161,7 +219,7 @@ public final class ModelLibraryRunner {
             publish(.permissionRequired, for: session)
             return
         }
-        guard resident == nil || resident == session else {
+        guard onDemandRequest == nil, resident == nil || resident == session else {
             publish(.occupied, for: session)
             return
         }

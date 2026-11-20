@@ -28,10 +28,11 @@ public struct ValidatedModelResource: Equatable, Sendable {
     public let directory: URL
     public let sizeBytes: Int64
     public let sourceKind: ModelSourceKind
+    public package(set) var registrationGeneration: Int?
 
     public init(
         modelID: String, artifactID: String, contract: String, revision: String, upstreamRevision: String?,
-        directory: URL, sizeBytes: Int64, sourceKind: ModelSourceKind = .huggingFace
+        directory: URL, sizeBytes: Int64, sourceKind: ModelSourceKind = .huggingFace, registrationGeneration: Int? = nil
     ) {
         self.modelID = modelID
         self.artifactID = artifactID
@@ -41,6 +42,12 @@ public struct ValidatedModelResource: Equatable, Sendable {
         self.directory = directory
         self.sizeBytes = sizeBytes
         self.sourceKind = sourceKind
+        self.registrationGeneration = registrationGeneration
+    }
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.identity == rhs.identity && lhs.upstreamRevision == rhs.upstreamRevision && lhs.directory == rhs.directory
+            && lhs.sizeBytes == rhs.sizeBytes
     }
 
     public var identity: ModelArtifactIdentity {
@@ -176,6 +183,7 @@ public struct ModelLibraryState: Equatable, Sendable {
     public internal(set) var installations: [String: ModelInstallation]
     public internal(set) var selectedArtifacts: [String: String]
     public internal(set) var selection: DemoSelection?
+    public internal(set) var previewGeneration = 0
     public internal(set) var session: ModelDemoSession?
     public internal(set) var demoPreparation: DemoPreparation = .pending
     public internal(set) var pendingDestination: ModelDestination?
@@ -239,8 +247,32 @@ public struct ModelLibraryState: Equatable, Sendable {
 
     public func permits(_ ticket: LibraryTicket, selection: DemoSelection) -> Bool {
         guard case .ready(let session) = access(to: selection), session.id == ticket,
-            executableResource(for: selection) == session.resource,
-            let link = catalog.model(selection.modelID)?.demos.first(where: { $0.demoID == selection.demoID })
+            executableResource(for: selection) == session.resource
+        else { return false }
+        return allowsCapabilities(for: selection)
+    }
+
+    package func previewResource(for selection: DemoSelection) -> ValidatedModelResource? {
+        guard self.selection == selection, pendingDestination == nil, allowsCapabilities(for: selection) else {
+            return nil
+        }
+        return executableResource(for: selection)
+    }
+
+    var previewIdentity:
+        (
+            selection: DemoSelection?, artifactID: String?, resource: ValidatedModelResource?, registration: Int?
+        )
+    {
+        let artifact = selection.flatMap { selectedArtifacts[$0.modelID] }
+        let installation = artifact.flatMap { installations[$0] }
+        let enabled = selection.map { allowsCapabilities(for: $0) } == true
+        let resource = enabled && installation?.phase == .ready ? installation?.resource : nil
+        return (selection, artifact, resource, resource?.registrationGeneration)
+    }
+
+    private func allowsCapabilities(for selection: DemoSelection) -> Bool {
+        guard let link = catalog.model(selection.modelID)?.demos.first(where: { $0.demoID == selection.demoID })
         else { return false }
         return link.requiredCapabilities.allSatisfy { capability in
             switch environment.capabilities[capability] ?? .undetermined {
