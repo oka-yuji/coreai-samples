@@ -17,6 +17,7 @@
         }
 
         private let backend: MacSpeechRecordingBackend
+        private let cleanup: MacSpeechRecordingCleanup
         private let didRequestStop: @Sendable () -> Void
         private var activeTicket: Int?
         private var isRecording = false
@@ -26,14 +27,21 @@
         private var isStopRequested = false
         private var waiters: [CheckedContinuation<Void, Never>] = []
 
-        init(backend: MacSpeechRecordingBackend = .live, didRequestStop: @escaping @Sendable () -> Void = {}) {
+        init(
+            backend: MacSpeechRecordingBackend = .live, cleanup: MacSpeechRecordingCleanup = .shared,
+            didRequestStop: @escaping @Sendable () -> Void = {}
+        ) {
             self.backend = backend
+            self.cleanup = cleanup
             self.didRequestStop = didRequestStop
         }
 
         func record(ticket: Int, started: @Sendable () async -> Void) async throws -> URL {
             guard activeTicket == nil else { throw SpeechError.busy }
             try Task.checkCancellation()
+            let resolved = cleanup.retryPending()
+            try Task.checkCancellation()
+            guard resolved else { throw SpeechReferenceError.recordingFailed }
             let (events, sink) = AsyncStream.makeStream(of: MacSpeechRecordingEvent.self)
             activeTicket = ticket
             continuation = sink
@@ -61,7 +69,10 @@
         }
 
         func stop() async {
-            guard activeTicket != nil else { return }
+            guard activeTicket != nil else {
+                _ = cleanup.retryPending()
+                return
+            }
             isStopRequested = true
             continuation?.yield(.cancelled)
             continuation?.finish()
@@ -131,7 +142,7 @@
             continuation = nil
             device?.stop()
             device = nil
-            if let ownedURL, ownedURL != result { try? FileManager.default.removeItem(at: ownedURL) }
+            if let ownedURL, ownedURL != result { cleanup.discard(ownedURL) }
             ownedURL = nil
             activeTicket = nil
             isRecording = false
