@@ -244,7 +244,10 @@ final class RuntimeHarness {
     let adapters: [String: FakeAdapter]
     let runner: ModelLibraryRunner
 
-    init(embeddingModelID: String = "image", demoOverrides: [String: DemoDescriptor] = [:]) throws {
+    init(
+        embeddingModelID: String = "image", additionalEmbeddingArtifacts: [String] = [],
+        demoOverrides: [String: DemoDescriptor] = [:]
+    ) throws {
         var files: [String: Data] = [:]
         for name in [
             "text.aimodel/main.mlirb", "vision.aimodel/main.mlirb", "tokenizer.json", "tokenizer_config.json",
@@ -274,7 +277,9 @@ final class RuntimeHarness {
             root: base.appending(path: "ModelLibrary"), writeLedger: ledger.write, availableCapacity: { _ in .max })
         self.transfer = transfer
         resources = ModelLibraryResourceRunner(store: store, transfer: transfer)
-        catalog = try Self.catalog(files, embeddingModelID: embeddingModelID, demoOverrides: demoOverrides)
+        catalog = try Self.catalog(
+            files, embeddingModelID: embeddingModelID, additionalEmbeddingArtifacts: additionalEmbeddingArtifacts,
+            demoOverrides: demoOverrides)
         var adapters: [String: FakeAdapter] = [:]
         for demoID in registeredDemos {
             let adapter = FakeAdapter(demoID, label: labels, sink: sink)
@@ -304,7 +309,8 @@ final class RuntimeHarness {
     }
 
     private static func catalog(
-        _ files: [String: Data], embeddingModelID: String, demoOverrides: [String: DemoDescriptor]
+        _ files: [String: Data], embeddingModelID: String, additionalEmbeddingArtifacts: [String],
+        demoOverrides: [String: DemoDescriptor]
     ) throws -> ModelCatalog {
         let definitions = files.map {
             ModelArtifactFile(path: $0.key, bytes: Int64($0.value.count), sha256: sha256($0.value))
@@ -329,7 +335,8 @@ final class RuntimeHarness {
                 ModelDemoLink(demoID: $0, platforms: [.iOS])
             })
         let image = LibraryModel(
-            id: embeddingModelID, name: "Image model", category: "Fixture", artifacts: [artifact("image-fp16")],
+            id: embeddingModelID, name: "Image model", category: "Fixture",
+            artifacts: (["image-fp16"] + additionalEmbeddingArtifacts).map(artifact),
             defaultArtifactID: "image-fp16", platforms: [.iOS],
             demos: [
                 ModelDemoLink(demoID: "image-search", platforms: [.iOS]),

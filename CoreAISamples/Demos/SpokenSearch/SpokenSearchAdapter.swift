@@ -3,19 +3,30 @@ import ModelLibraryRuntime
 import SpokenSearchRuntime
 import SwiftUI
 
-final class SpokenSearchAdapter: ModelDemoAdapter {
+final class SpokenSearchAdapter: ModelOnDemandDemoAdapter {
     let demoID = SpokenSearchCatalog.selection.demoID
     private var sessions: [UUID: (model: ModelDemoSession, search: SpokenSearchSession)] = [:]
     private var retiredThrough: [UUID: Int] = [:]
 
     func preview(for selection: DemoSelection) -> AnyView {
+        preview(for: selection, access: nil)
+    }
+
+    func preview(for selection: DemoSelection, access: OnDemandModelAccess?) -> AnyView {
         guard selection == SpokenSearchCatalog.selection else { return AnyView(EmptyView()) }
-        return AnyView(SpokenSearchPreview())
+        let source = access.map { access in
+            let resource = access.resource
+            return SpokenTopicSource(
+                identity: "\(resource.artifactID)/\(resource.revision)/\(access.generation)",
+                directory: resource.directory, isCurrent: access.isCurrent, validate: access.validate,
+                acquire: { try await access.acquire() })
+        }
+        return AnyView(SpokenSearchPreview(source: source))
     }
 
     func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
         guard let search = bind(session, gate: gate) else {
-            return AnyView(Text("Reopen spoken word search and choose the recording again."))
+            return AnyView(Text("Reopen recording search and choose the file again."))
         }
         return AnyView(SpokenSearchScreen(store: search.store).id(session.id))
     }

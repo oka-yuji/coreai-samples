@@ -20,7 +20,7 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
-| macos | ✅ | FP16 local-folder image-search UI recorded; this mark does not cover PTQ camera acceptance. | [E1](validation/embeddinggemma2-ready-20261016.md) |
+| macos | ✅ | FP16 image search and one Japanese recording query verified on Mac. PTQ camera and recording acceptance are pending. | [E1](validation/embeddinggemma2-ready-20261016.md) · [E8](validation/embeddinggemma2-recording-search-20261121.md) |
 | ios | △ | Older FP16 diagnostic passed. The current Models route acquires and validates the published FP16 and PTQ bundles (self-test on iPhone 17 Pro, no model loaded); demo execution there and PTQ device inference remain pending. | [E2](validation/embeddinggemma2-ready-20261016.md) · [E4](validation/ios-models-integration-20261018.md#device-checks) · [E3](validation/embeddinggemma2-int4-int8-20261018.md) · [E7](validation/ios-models-integration-20261018.md#acquisition) |
 
 ### Performance and quality
@@ -68,6 +68,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E5](validation/embeddinggemma2-ready-20261016.md) | 2026-10-16 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 5 refrigerator images, 6 held-out queries; 768D, threshold 0.67; local-folder image-search UI. · variant=safe FP16 S128 / vision70; backend=Core AI; GPU preferred; route=held-out retrieval quality evaluation; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; batch_size=1; concurrency=1; unrecorded: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E6](validation/embeddinggemma2-int4-int8-20261018.md) | 2026-10-18 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Matched-PTQ 20-vector comparison; original-precision quality degradation retained; iPhone launch was locked. · variant=INT4 text / INT8 vision PTQ; backend=Core AI; GPU preferred; route=held-out retrieval quality evaluation; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; artifact_revision=7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85; code_revision=71fb61afd24e1fc5324f57a1abc02744d07ae09c; batch_size=1; concurrency=1; unrecorded: warmups, power, thermal, plan_sha256 |
 | [E7](validation/ios-models-integration-20261018.md#acquisition) | 2026-10-19 / legacy / diagnostic | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | The library refresh migrated both variants (13 and 16 listed files; 913,677,333 B and 341,880,041 B) from the existing Documents folders after size and SHA-256 checks, then inspected them; no model loaded. · variant=safe FP16 S128 / vision70; INT4/INT8 PTQ; route=Models self-test (--acquire all); source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; artifact_revision=daab6dbfbae1610a87d9f181458419e3ea5ce682; unrecorded: backend, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
+| [E8](validation/embeddinggemma2-recording-search-20261121.md) | 2026-11-21 / standard / diagnostic | M5 Max, 128 GiB unified memory / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52), Swift 6.4.2 | One Japanese synthetic WAV, four passages and one question. The highest-ranked result played from 6.12 seconds. · variant=safe FP16 S128 / vision70; backend=Apple Speech and Core AI EmbeddingModel (text); route=Japanese audio file to timed transcript, EG2 passage ranking and AVPlayer seek; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; artifact_revision=daab6dbfbae1610a87d9f181458419e3ea5ce682; code_revision=e9e936c9a2a5829533951cdaa35221b230d30e72; batch_size=1; concurrency=1; warmups=0; power=AC power, low-power mode off at start and finish; thermal=Nominal at start and finish |
 
 ### Setup, limitations and progress
 
@@ -144,15 +145,16 @@ COREAI_TEST_BUNDLES=/path/to/embeddinggemma2 swift test --package-path CoreAISam
 
 It runs only when a path in `COREAI_TEST_BUNDLES` contains `embedding-manifest.json`, so language-model bundles passed to the same variable skip it. Choosing, playing and searching a video on an iPhone remain user checks.
 
-## Search spoken words in a recording
+## Search a recording by word or topic
 
-On iPhone, open **Models → EmbeddingGemma 2 → Search spoken words**. On Mac, choose **Search spoken words** under **EmbeddingGemma 2** in the sidebar. This demo uses Apple Speech on the device. Word search works with or without an installed EmbeddingGemma 2 variant. Preparing that model while a recording is open keeps the recording and its results available.
+On iPhone, open **Models → EmbeddingGemma 2 → Search a recording**. On Mac, choose **Search a recording** under **EmbeddingGemma 2** in the sidebar. Select **Choose a recording…** and open a Japanese audio file from Files or Finder. Apple Speech transcribes it on the device and provides the playback times. The first transcription may need a connection to prepare Japanese speech recognition data.
 
-1. Select **Choose a recording…** and open a Japanese audio file from Files or Finder. The first transcription may need a connection to prepare Japanese speech recognition data.
-2. When **Transcript ready** appears, enter a word such as **天気** and select **Search**. Each occurrence in the recognized text appears in recording order, including words that span adjacent recognition segments.
-3. Select **Play** beside a match to hear the original recording from the first timestamp assigned to that word. **Play again** repeats the start and **Stop playback** stops listening.
+When **Transcript ready** appears, choose a search mode.
 
-Matches depend on what Apple Speech recognized. For example, a recording about rain only returns a match for **天気** if the transcript contains **天気**. Choosing another file, leaving the screen or putting the app in the background clears the current recording. Select the file again to transcribe it again.
+- **Word** finds the words you enter in the transcript. For example, search for **天気** to see each occurrence in recording order. A match can span adjacent recognition segments. Select **Play** to hear the original recording from the first timestamp assigned to that word. This mode works before downloading EmbeddingGemma 2.
+- **Topic** finds passages related to a question. For example, **傘は必要ですか** (Do I need an umbrella?) can lead to a passage about rain even when that question never appears in the transcript. If the model is missing, select **Download model** beside **Model for topic search** on iPhone, or use the download control beside **EmbeddingGemma 2** in the Mac sidebar. When the selected variant is ready, choose **Topic**, enter the question and select **Search**. The model compares the question with the transcribed passages and ranks them by similarity. Equally scored passages appear in recording order. **Play** starts the original audio at the beginning of the selected passage.
+
+You can switch modes or finish preparing the model while the same recording stays open. Topic search uses the selected model when you select **Search**. **Play again** repeats a result from its start and **Stop playback** stops listening. Choosing another file, leaving the screen or putting the app in the background clears the current recording.
 
 The opt-in `SpokenNativeTests.fixedRecordings` check uses a Japanese synthetic recording with two occurrences of the same word and a second file, `related.wav`, in the same directory. With the shared heavy-job lock held, set `COREAI_SPOKEN_WORD_AUDIO` to the first WAV and run `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenNativeTests.fixedRecordings`. On M5 Max / macOS 27.2.1 with Xcode 27.2, the two matches started at 3.06 and 4.86 seconds. The player reached both positions and played to the end. In the Mac sidebar and Finder picker, the second result played from 4.86 seconds. Replacing the recording produced a nonempty transcript and zero literal matches; the English and Japanese screens both showed that empty result. The iOS build uses the same code. Listening to natural speech on a physical iPhone remains an owner check.
 
@@ -164,6 +166,15 @@ say -v Kyoko -r 180 -o related.aiff '午後から雨が降ります。傘を持�
 afconvert -f WAVE -d LEI16@16000 -c 1 twice.aiff twice.wav
 afconvert -f WAVE -d LEI16@16000 -c 1 related.aiff related.wav
 ```
+
+The opt-in `SpokenTopicNativeTests.relatedPassage` check reads one recording with four utterances. It transcribes the file on the device, runs the selected FP16 model with the document and query roles, and seeks the original recording to the highest-ranked passage. Recreate the input in an empty directory:
+
+```sh
+say -v Kyoko -r 180 -o topic.aiff 'この電車は東京行きです。本日の天気は晴れです。午後から雨が降ります。傘を持ってお出かけください。'
+afconvert -f WAVE -d LEI16@16000 -c 1 topic.aiff topic.wav
+```
+
+With the shared heavy-job lock held, set `COREAI_SPOKEN_TOPIC_AUDIO` to that WAV and `COREAI_SPOKEN_TOPIC_MODEL` to the verified EG2 FP16 directory, then run `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenTopicNativeTests.relatedPassage`. The expected top result for **傘は必要ですか** is **傘を持ってお出かけください。** The fixed input and expectations are in [the test fixture](../CoreAISamplesKit/Tests/SpokenSearchTests/Resources/topic-search.json).
 
 ## Runtime contract
 

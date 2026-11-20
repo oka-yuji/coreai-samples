@@ -5,4 +5,7 @@ public enum SpokenNotice: Equatable, Sendable {
     case recognitionFailed
     case noSpeech
     case playbackFailed
+    case topicUnavailable
+    case topicFailed
+    case shortenQuery
 }
