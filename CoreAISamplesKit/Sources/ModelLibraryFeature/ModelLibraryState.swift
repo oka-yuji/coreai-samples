@@ -257,6 +257,7 @@ public struct ModelLibraryState: Equatable, Sendable {
 
     mutating func activateIfReady() {
         guard session == nil, pendingDestination == nil, let selection,
+            catalog.demo(selection.demoID)?.preparesModelOnOpen == true,
             let resource = executableResource(for: selection)
         else { return }
         session = ModelDemoSession(id: allocateID(), selection: selection, resource: resource)

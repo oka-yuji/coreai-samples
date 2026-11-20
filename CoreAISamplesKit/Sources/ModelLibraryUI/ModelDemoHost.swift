@@ -154,6 +154,8 @@
                 } else {
                     ProgressView { libraryText("Stopping the previous demo…") }
                 }
+            case .preview where selection == SpokenSearchCatalog.selection:
+                renderer.preview(for: selection)
             case .preview:
                 VStack(alignment: .leading, spacing: 12) {
                     if artifact?.sourceKind == nil {

@@ -16,6 +16,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case recipes
     case imageSearch
     case videoSearch
+    case spokenSearch
     case extract
     case speech
     case voiceDesign
@@ -32,8 +33,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "Choose model"
         case .decide: "Clef-Flash 9B"
         case .recipes: "Clef-Flash 9B"
-        case .imageSearch: "EmbeddingGemma 2"
-        case .videoSearch: "EmbeddingGemma 2"
+        case .imageSearch, .videoSearch, .spokenSearch: "EmbeddingGemma 2"
         case .extract: "GLiNER2.5-multi"
         case .speech: "Irodori"
         case .voiceDesign: "VoxCPM2"
@@ -50,6 +50,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .recipes: "Can you make this recipe with what you have?"
         case .imageSearch: "Find selected images with your own words"
         case .videoSearch: "Find moments in a video with your own words"
+        case .spokenSearch: SpokenSearchCatalog.title
         case .extract: "Compare product specifications from official descriptions"
         case .speech: "Generate and play speech from text with Irodori"
         case .voiceDesign: "Generate and play speech from text and a voice description with VoxCPM2"
@@ -68,6 +69,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .recipes: "carrot"
         case .imageSearch: "photo.badge.magnifyingglass"
         case .videoSearch: "film.stack"
+        case .spokenSearch: SpokenSearchCatalog.symbol
         case .extract: "text.magnifyingglass"
         case .speech: "waveform"
         case .voiceDesign: "person.wave.2"
@@ -127,6 +129,7 @@ extension Demo {
         switch self {
         case .imageSearch: "image-search"
         case .videoSearch: "video-search"
+        case .spokenSearch: SpokenSearchCatalog.selection.demoID
         case .extract: "comparison"
         case .voiceDesign: "voice-design"
         case .ocr: TeleOCRDemoCatalog.selection.demoID
@@ -142,7 +145,7 @@ extension Demo {
         switch self {
         case .chat: .qwen
         case .decide, .recipes: .clefFlash
-        case .imageSearch, .videoSearch: .embeddingGemma
+        case .imageSearch, .videoSearch, .spokenSearch: .embeddingGemma
         case .extract: .gliner
         case .speech: .irodori
         case .voiceDesign: .voxcpm2
@@ -219,8 +222,24 @@ struct DemoRootView: View {
         return "\(choice.state.request):" + ModelStorage.key(resource.directory)
     }
 
+    private var spokenDestination: ModelDestination? {
+        guard scenePhase == .active, let state = library.store?.state, state.pendingDestination == nil else {
+            return nil
+        }
+        let selection = SpokenSearchCatalog.selection
+        if navigator.selection == .spokenSearch { return state.selection == selection ? nil : .demo(selection) }
+        return state.selection == selection ? .library : nil
+    }
+
     var body: some View {
         lifetimeContent
+            .onChange(of: spokenDestination, initial: true) { _, destination in
+                switch destination {
+                case .demo(let selection): library.store?.send(.openDemo(selection))
+                case .library: library.leave()
+                case nil: break
+                }
+            }
             .onChange(of: host.state.id) { host.restorePreferences() }
             .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
             .onChange(of: library.store?.state.usages[DemoModel.qwen.libraryID]) { _, usage in
@@ -319,6 +338,7 @@ struct DemoRootView: View {
                 ImageSearchView(store: imageSearch).environment(ImageSearchAssembly.launchBundle == nil ? library : nil)
             case .videoSearch?:
                 VideoSearchView(store: videoSearch).environment(ImageSearchAssembly.launchBundle == nil ? library : nil)
+            case .spokenSearch?: SpokenSearchHost(library: library)
             case .extract?:
                 if LaunchArguments.value("--gui-e2e") != nil && LaunchArguments.value("--extract") != nil {
                     ExtractView(store: extract).environment(nil as MacModelLibrary?)

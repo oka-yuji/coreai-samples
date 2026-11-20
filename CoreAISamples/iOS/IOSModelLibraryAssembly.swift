@@ -19,7 +19,8 @@
         static let adapters: [any ModelDemoAdapter] = {
             var result: [any ModelDemoAdapter] = [
                 ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
-                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(), ChronosAdapter(), ForecastAdapter(),
+                VideoSearchAdapter(), SpokenSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(), ChronosAdapter(),
+                ForecastAdapter(),
                 ForecastAdapter(kind: .seoulBike),
             ]
             if (try? IOSDemoCatalog.make().demos.contains { $0.id == "image-generation" }) == true {

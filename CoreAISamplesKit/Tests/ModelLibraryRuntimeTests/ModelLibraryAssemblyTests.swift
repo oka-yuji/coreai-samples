@@ -298,7 +298,7 @@ struct ModelLibraryAssemblyTests {
         #expect(registry?["connectedDemos"] as? [String] == registeredDemos.sorted())
         #expect(registry?["matchesCatalog"] as? Bool == true)
         #expect(passed["capabilities"] as? [String: String] == ["camera": "denied", "network": "available"])
-        #expect(passed["visibleModels"] as? Int == 2 && passed["visibleDemos"] as? Int == 6)
+        #expect(passed["visibleModels"] as? Int == 2 && passed["visibleDemos"] as? Int == 7)
         let artifacts = try #require(passed["artifacts"] as? [[String: Any]])
         let defined = app.catalog.models.flatMap(\.artifacts)
         #expect(artifacts.map { $0["artifactID"] as? String } == defined.map(\.id))

@@ -9,7 +9,7 @@ struct ChronosPreviewPolicyTests {
         let chronos = ChronosDemoCatalog.demo(platforms: [.iOS], searchTerms: [:])
         let other = DemoDescriptor(
             id: "other", title: "Other", systemImage: "circle", summary: "Other", platforms: [.iOS])
-        #expect(chronos.allowsPreviewInteraction)
+        #expect(chronos.allowsPreviewInteraction && chronos.preparesModelOnOpen)
         #expect(!other.allowsPreviewInteraction)
     }
 
@@ -20,7 +20,8 @@ struct ChronosPreviewPolicyTests {
         let oldData = try JSONEncoder().encode(old)
         let object = try #require(JSONSerialization.jsonObject(with: oldData) as? [String: Any])
         #expect(object["interactivePreview"] == nil)
-        #expect(try !JSONDecoder().decode(DemoDescriptor.self, from: oldData).allowsPreviewInteraction)
+        let legacy = try JSONDecoder().decode(DemoDescriptor.self, from: oldData)
+        #expect(!legacy.allowsPreviewInteraction && legacy.preparesModelOnOpen && object["automaticPreparation"] == nil)
         let interactive = DemoDescriptor(
             id: "preview", title: "Preview", systemImage: "circle", summary: "Preview", platforms: [.iOS],
             allowsPreviewInteraction: true)
