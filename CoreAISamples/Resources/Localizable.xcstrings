@@ -1809,6 +1809,17 @@
         }
       }
     },
+    "Choose a voice recording no longer than 10 seconds." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "10秒以内の音声を選んでください。"
+          }
+        }
+      }
+    },
     "Choose audio file" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9099,6 +9110,17 @@
         }
       }
     },
+    "Record or choose the reference voice again for this model." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルで使う声をもう一度録音するか、音声ファイルを選び直してください。"
+          }
+        }
+      }
+    },
     "This model folder is incomplete or incompatible. Open a valid EmbeddingGemma 2 bundle." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9477,6 +9499,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "0.5秒以上の音声を用意してください。"
+          }
+        }
+      }
+    },
+    "Use a voice recording of at least 5 seconds." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5秒以上の音声を用意してください。"
           }
         }
       }

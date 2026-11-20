@@ -81,6 +81,50 @@ struct SpeechReferenceRuntimeTests {
         await runtime.release()
     }
 
+    @Test("VPC-04 A VoxCPM2 reference is rejected before tokenizing and keeps the warm Irodori pipeline")
+    func incompatibleFormatKeepsWarmPipeline() async throws {
+        let driver = TestDriver()
+        let runtime = IrodoriRuntime(dependencies: testDependencies(driver, referenceVoice: true))
+        _ = try await runtime.open(URL(filePath: "/fixture"))
+        let first = try await runtime.generate(text: "13", seed: 1)
+        let vox = try SpeechReferenceAudio(
+            samples: [Float](repeating: 0.25, count: 80_000), source: .recording, format: .voxcpm2)
+        await #expect(throws: SpeechReferenceError.incompatibleFormat) {
+            try await runtime.generate(text: "empty", seed: 2, reference: vox)
+        }
+        let last = try await runtime.generate(text: "13", seed: 1)
+        #expect(await driver.factoryCount == 1)
+        #expect(await driver.references == [nil, nil])
+        #expect(first.wav == last.wav)
+        #expect(!driver.log.snapshot().contains("pipeline-ended"))
+        await runtime.release()
+    }
+
+    @Test("VPC-04 Four-asset models keep reporting an unsupported reference for a VoxCPM2 value")
+    func legacyPrecedenceForVoxReference() async throws {
+        let driver = TestDriver()
+        let runtime = IrodoriRuntime(dependencies: testDependencies(driver))
+        _ = try await runtime.open(URL(filePath: "/fixture"))
+        let vox = try SpeechReferenceAudio(
+            samples: [Float](repeating: 0.25, count: 80_000), source: .recording, format: .voxcpm2)
+        await #expect(throws: SpeechError.referenceNotSupported) {
+            try await runtime.generate(text: "13", seed: 1, reference: vox)
+        }
+        #expect(await driver.factoryCount == 0)
+        await runtime.release()
+    }
+
+    @Test("VPC-03 The reference preview writes the unpadded PCM at the reference sample rate")
+    func previewUsesReferenceRate() async throws {
+        let vox = try SpeechReferenceAudio(
+            samples: [Float](repeating: 0.25, count: 80_000), source: .recording, format: .voxcpm2)
+        let preview = try await referenceWAV(vox)
+        #expect(preview == (try floatWAV(reference: vox)))
+        #expect(preview.count == 58 + 80_000 * 4)
+        let irodori = try voice(24_001)
+        #expect(try await referenceWAV(irodori) == (try floatWAV(samples: irodori.samples)))
+    }
+
     private func voice(_ count: Int) throws -> SpeechReferenceAudio {
         try SpeechReferenceAudio(samples: [Float](repeating: 0.25, count: count), source: .recording)
     }
