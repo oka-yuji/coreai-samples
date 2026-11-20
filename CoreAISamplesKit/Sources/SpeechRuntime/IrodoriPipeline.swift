@@ -40,6 +40,9 @@
         @concurrent
         func prepare(_ input: IrodoriTextInput, reference: SpeechReferenceAudio?) async throws -> any SpeechContext {
             guard reference == nil || stages.count == 6 else { throw SpeechError.referenceNotSupported }
+            guard reference.map({ $0.format == .irodori }) ?? true else {
+                throw SpeechReferenceError.incompatibleFormat
+            }
             let ids = NDArray(scalars: input.tokenIDs, shape: [1, 256])
             let mask = NDArray(scalars: input.attentionMask, shape: [1, 256])
             let text = try await stages[0].run(["input_ids": ids, "attention_mask": mask])

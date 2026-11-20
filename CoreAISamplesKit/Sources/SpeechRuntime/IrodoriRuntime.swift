@@ -42,6 +42,9 @@
             try Task.checkCancellation()
             guard let bundle else { throw SpeechError.noModel }
             guard reference == nil || bundle.assets.count == 6 else { throw SpeechError.referenceNotSupported }
+            guard reference.map({ $0.format == .irodori }) ?? true else {
+                throw SpeechReferenceError.incompatibleFormat
+            }
             if tokenizer == nil { tokenizer = try dependencies.tokenizer(bundle.tokenizer) }
             guard let tokenizer else { throw SpeechError.noModel }
             let input: IrodoriTextInput
