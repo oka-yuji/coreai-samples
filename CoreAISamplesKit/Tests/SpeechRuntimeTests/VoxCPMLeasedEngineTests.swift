@@ -12,9 +12,10 @@ private struct LeaseRefusal: Error {}
 
 private final class LeaseTrace: Sendable {
     private struct Waiter {
+        let id: UUID
         let label: String
         let count: Int
-        let continuation: CheckedContinuation<Void, Never>
+        let continuation: AsyncStream<Void>.Continuation
     }
     private struct Book {
         var log: [String] = []
@@ -31,18 +32,30 @@ private final class LeaseTrace: Sendable {
             book.waiters.removeAll { $0.label == label && $0.count <= count }
             return ready.map(\.continuation)
         }
-        for waiter in ready { waiter.resume() }
+        for waiter in ready {
+            waiter.yield(())
+            waiter.finish()
+        }
     }
 
-    func wait(_ label: String, _ count: Int = 1) async {
-        await withCheckedContinuation { continuation in
-            let arrived = book.withLock { book in
-                if book.log.count(where: { $0 == label }) >= count { return true }
-                book.waiters.append(Waiter(label: label, count: count, continuation: continuation))
-                return false
-            }
-            if arrived { continuation.resume() }
+    func wait(_ label: String, _ count: Int = 1) async throws {
+        try Task.checkCancellation()
+        let id = UUID()
+        let (stream, continuation) = AsyncStream<Void>.makeStream()
+        let arrived = book.withLock { book in
+            if book.log.count(where: { $0 == label }) >= count { return true }
+            book.waiters.append(Waiter(id: id, label: label, count: count, continuation: continuation))
+            return false
         }
+        defer {
+            book.withLock { $0.waiters.removeAll { $0.id == id } }
+            continuation.finish()
+        }
+        if !arrived {
+            var iterator = stream.makeAsyncIterator()
+            guard await iterator.next() != nil else { throw CancellationError() }
+        }
+        try Task.checkCancellation()
     }
 
     func count(_ label: String) -> Int { log.count { $0 == label } }
@@ -178,23 +191,34 @@ struct VoxCPMLeasedEngineTests {
         let inner = TraceEngine(trace: trace, generates: false, releases: false)
         let bank = TraceBank(trace: trace)
         let engine = leased(inner, bank)
+        let unblock: @Sendable () -> Void = {
+            inner.generating.open()
+            inner.releasing.open()
+        }
         _ = try await engine.open(first)
         #expect(trace.precedes("acquired:voxcpm2-reference_fp32", "open:voxcpm2-reference_fp32"))
-        async let generation = engine.generate(text: "hello", seed: 7)
-        await trace.wait("generate:hello:7:0")
-        async let leaving: Void = engine.release()
-        await trace.wait("release-requested")
-        async let joining: Void = engine.release()
-        await trace.wait("release-requested", 2)
-        await #expect(throws: SpeechError.busy) { try await engine.generate(text: "late", seed: 1) }
-        inner.generating.open()
-        await trace.wait("release-enter")
-        let protected = await bank.held(first)
-        #expect(protected == 1 && trace.count("returned:voxcpm2-reference_fp32") == 0)
-        inner.releasing.open()
-        _ = try await generation
-        await leaving
-        await joining
+        try await withTaskCancellationHandler {
+            async let generation = engine.generate(text: "hello", seed: 7)
+            defer { unblock() }
+            try await trace.wait("generate:hello:7:0")
+            async let leaving: Void = engine.release()
+            defer { unblock() }
+            try await trace.wait("release-requested")
+            async let joining: Void = engine.release()
+            defer { unblock() }
+            try await trace.wait("release-requested", 2)
+            await #expect(throws: SpeechError.busy) { try await engine.generate(text: "late", seed: 1) }
+            inner.generating.open()
+            try await trace.wait("release-enter")
+            let protected = await bank.held(first)
+            #expect(protected == 1 && trace.count("returned:voxcpm2-reference_fp32") == 0)
+            inner.releasing.open()
+            _ = try await generation
+            await leaving
+            await joining
+        } onCancel: {
+            unblock()
+        }
         let remaining = await bank.held(first)
         #expect(remaining == 0 && trace.count("release-enter") == 1)
         #expect(trace.count("returned:voxcpm2-reference_fp32") == 1 && trace.count("double-return") == 0)
@@ -210,17 +234,24 @@ struct VoxCPMLeasedEngineTests {
         let delivery = LeaseLatch(open: false)
         await bank.delayNext(delivery)
         let engine = leased(inner, bank)
-        async let opening = engine.open(first)
-        await trace.wait("acquired:voxcpm2-reference_fp32")
-        async let closing: Void = engine.release()
-        await trace.wait("release-requested")
-        delivery.open()
-        var opened = false
-        do {
-            _ = try await opening
-            opened = true
-        } catch {}
-        await closing
+        let opened = try await withTaskCancellationHandler {
+            async let opening = engine.open(first)
+            defer { delivery.open() }
+            try await trace.wait("acquired:voxcpm2-reference_fp32")
+            async let closing: Void = engine.release()
+            defer { delivery.open() }
+            try await trace.wait("release-requested")
+            delivery.open()
+            var opened = false
+            do {
+                _ = try await opening
+                opened = true
+            } catch {}
+            await closing
+            return opened
+        } onCancel: {
+            delivery.open()
+        }
         let remaining = await bank.held(first)
         #expect(!opened && remaining == 0 && trace.count("open:voxcpm2-reference_fp32") == 0)
         #expect(trace.count("returned:voxcpm2-reference_fp32") == 1 && trace.count("double-return") == 0)

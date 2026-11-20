@@ -22,6 +22,7 @@
         let problem: String?
         private(set) var downloadedSize: Int64 = 0
         private(set) var availableSpace: Int64 = 0
+        private(set) var isBackgrounded = false
 
         init() {
             do {
@@ -105,8 +106,14 @@
         func leave() { store?.send(.closeDemo) }
 
         func enter(_ phase: ScenePhase) {
-            if phase == .background { leave() }
-            if phase == .active { MacModelLibraryServices.assembly.runner.retryAbandoned() }
+            if phase == .background {
+                isBackgrounded = true
+                leave()
+            }
+            if phase == .active {
+                isBackgrounded = false
+                MacModelLibraryServices.assembly.runner.retryAbandoned()
+            }
         }
 
         func close() {

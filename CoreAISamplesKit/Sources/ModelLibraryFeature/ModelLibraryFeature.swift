@@ -102,7 +102,7 @@ public enum ModelLibraryFeature: Feature {
             state.environment.capabilities[capability] = value
         case .inspected(let artifactID, let request, let resource):
             guard matches(state, artifactID, request, phase: .inspecting) else { return [] }
-            complete(&state, artifactID: artifactID, resource: resource)
+            complete(&state, artifactID: artifactID, resource: resource, verifiedBy: request)
         case .downloadRequested(let artifactID):
             return download(&state, artifactID: artifactID)
         case .importRequested(let artifactID, let source):
@@ -147,7 +147,7 @@ public enum ModelLibraryFeature: Feature {
             complete(&state, artifactID: artifactID, resource: resource)
         case .validated(let artifactID, let request, let resource):
             guard matches(state, artifactID, request, phase: .validating) else { return [] }
-            complete(&state, artifactID: artifactID, resource: resource)
+            complete(&state, artifactID: artifactID, resource: resource, verifiedBy: request)
         case .failed(let artifactID, let request, let failure):
             guard let installation = state.installations[artifactID], installation.requestID == request,
                 installation.phase.isBusy, installation.phase != .stopping
@@ -401,7 +401,7 @@ public enum ModelLibraryFeature: Feature {
 
     private static func complete(
         _ state: inout State, artifactID: String, resource: ValidatedModelResource? = nil,
-        failure: ModelLibraryFailure? = nil
+        failure: ModelLibraryFailure? = nil, verifiedBy request: LibraryTicket? = nil
     ) {
         guard let model = state.catalog.model(containing: artifactID), let artifact = model.artifact(artifactID)
         else { return }
@@ -417,6 +417,11 @@ public enum ModelLibraryFeature: Feature {
         let accepted =
             rejection == nil && (failure == nil || importing)
             ? resource : retained ? state.installations[artifactID]?.resource : nil
+        let verification: LibraryTicket? =
+            if let request, resource != nil, failure == nil { request } else if accepted == nil { nil } else {
+                state.installations[artifactID]?.lastSuccessfulVerification
+            }
+        state.installations[artifactID]?.lastSuccessfulVerification = verification
         state.installations[artifactID]?.requestID = nil
         state.installations[artifactID]?.resource = accepted
         state.installations[artifactID]?.importInProgress = false

@@ -9,6 +9,12 @@ struct SpeechView: View {
         var identity: ModelArtifactIdentity?
         var location: String?
         var registration: Int?
+        var grant: LibraryTicket?
+    }
+
+    private struct Attempt: Equatable {
+        let key: OpenKey
+        var verification: LibraryTicket?
     }
 
     @Bindable var store: Store<SpeechFeature>
@@ -16,8 +22,9 @@ struct SpeechView: View {
     let limit: LocalizedStringKey
     let missing: LocalizedStringKey
     var voiceHint: LocalizedStringKey?
+    var canPresent: @MainActor () -> Bool = { true }
     @Environment(MacModelLibrary.self) private var library
-    @State private var attempted: OpenKey?
+    @State private var attempted: Attempt?
 
     static func present(_ store: Store<SpeechFeature>, model: DemoModel, in library: MacModelLibrary) {
         guard !store.state.presented else { return }
@@ -37,7 +44,9 @@ struct SpeechView: View {
             voiceHint: voiceHint, canGenerate: canGenerate
         )
         .navigationTitle(model.title)
-        .onAppear { Self.present(store, model: model, in: library) }
+        .onAppear {
+            if canPresent() { Self.present(store, model: model, in: library) }
+        }
         .onDisappear {
             Self.dismiss(store, model: model, in: library)
             attempted = nil
@@ -48,10 +57,10 @@ struct SpeechView: View {
         .onChange(of: library.resource(inUse: model)?.directory) { _, new in
             if new == nil { attempted = nil }
         }
-        .onChange(of: bundleToOpen, initial: true) { _, key in
-            guard let key else { return }
-            attempted = key
-            store.send(.openBundle(key.path))
+        .onChange(of: bundleToOpen, initial: true) {
+            guard let attempt = bundleToOpen else { return }
+            attempted = attempt
+            store.send(.openBundle(attempt.key.path))
         }
         .background {
             if let ticket = store.state.exportTicket, let audio = store.state.audio {
@@ -63,26 +72,40 @@ struct SpeechView: View {
         }
     }
 
-    private var openKey: OpenKey? {
-        guard let resource = library.resource(inUse: model) else { return nil }
-        guard model == .voxcpm2 else { return OpenKey(path: resource.directory.path) }
-        return OpenKey(
+    private var current: Attempt? {
+        guard model == .voxcpm2 else {
+            return library.resource(inUse: model).map { Attempt(key: OpenKey(path: $0.directory.path)) }
+        }
+        guard canPresent(), let state = library.store?.state,
+            let artifact = state.selectedArtifact(for: model.libraryID),
+            let installation = state.installations[artifact.id], installation.phase == .ready,
+            let installed = installation.resource, let usage = state.usages[model.libraryID],
+            let grant = usage.latestGrantTicket, grant.owner == state.owner, let resource = usage.resource,
+            resource == installed, resource.registrationGeneration == installed.registrationGeneration
+        else { return nil }
+        let key = OpenKey(
             path: resource.directory.path, identity: resource.identity,
-            location: resource.directory.standardizedFileURL.path, registration: resource.registrationGeneration)
+            location: resource.directory.standardizedFileURL.path, registration: resource.registrationGeneration,
+            grant: grant)
+        return Attempt(key: key, verification: installation.lastSuccessfulVerification)
     }
 
     private var canGenerate: Bool {
-        let key = openKey
-        guard store.state.canGenerate(usingModelAt: key?.path) else { return false }
-        return model != .voxcpm2 || attempted == key
+        guard let current, store.state.canGenerate(usingModelAt: current.key.path) else { return false }
+        return model != .voxcpm2 || attempted?.key == current.key
     }
 
-    private var bundleToOpen: OpenKey? {
-        guard let key = openKey, store.state.editable else { return nil }
-        if model == .voxcpm2 { return attempted == key ? nil : key }
-        guard store.state.model == nil || store.state.lastPath != key.path, attempted?.path != key.path else {
-            return nil
+    private var bundleToOpen: Attempt? {
+        guard let current, store.state.editable else { return nil }
+        let path = current.key.path
+        guard model == .voxcpm2 else {
+            guard store.state.model == nil || store.state.lastPath != path, attempted?.key.path != path else {
+                return nil
+            }
+            return current
         }
-        return key
+        guard let attempted, attempted.key == current.key else { return current }
+        let opened = store.state.model != nil && store.state.lastPath == path
+        return opened || attempted.verification == current.verification ? nil : current
     }
 }

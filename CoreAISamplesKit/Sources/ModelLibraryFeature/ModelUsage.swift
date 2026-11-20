@@ -10,6 +10,7 @@ public struct ModelUsage: Equatable, Sendable {
     var rechecked: ModelArtifactIdentity?
 
     public var isActive: Bool { !held.isEmpty || !pending.isEmpty }
+    public var latestGrantTicket: LibraryTicket? { held.last }
 }
 
 extension ModelLibraryFeature {

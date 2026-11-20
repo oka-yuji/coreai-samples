@@ -205,7 +205,7 @@ struct DemoRootView: View {
                 resumeModels: {
                     if navigator.selection == .decide { decide.send(.appeared) }
                     if navigator.selection == .recipes { recipes.send(.appeared) }
-                    if navigator.selection == .voiceDesign {
+                    if navigator.selection == .voiceDesign, !library.isBackgrounded {
                         SpeechView.present(voiceDesign, model: .voxcpm2, in: library)
                     }
                 },
@@ -228,7 +228,7 @@ struct DemoRootView: View {
     private func rebindVoiceDesign(_ phase: ScenePhase) {
         switch phase {
         case .background: SpeechView.dismiss(voiceDesign, model: .voxcpm2, in: library)
-        case .active where navigator.selection == .voiceDesign:
+        case .active where navigator.selection == .voiceDesign && !host.state.isTerminating:
             SpeechView.present(voiceDesign, model: .voxcpm2, in: library)
         default: break
         }
@@ -382,7 +382,8 @@ struct DemoRootView: View {
                     limit: "Short passages work best. The text and the voice description share a limit of 144 tokens.",
                     missing: "Prepare VoxCPM2 from its heading in the sidebar.",
                     voiceHint:
-                        "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model; if the translation changes, the same seed can give different audio. Without a description the model chooses the voice."
+                        "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model; if the translation changes, the same seed can give different audio. Without a description the model chooses the voice.",
+                    canPresent: { !host.state.isTerminating && !library.isBackgrounded }
                 )
             case .ocr?: OCRHostView(library: library)
             case .receipts?: ReceiptHostView(library: library)
