@@ -88,9 +88,13 @@
 
     @MainActor
     package enum PlaybackSessions {
+        #if os(iOS)
+            private static let coordinator = PlaybackSessionCoordinator(device: PhonePlaybackSessionDevice())
+        #endif
+
         package static func make() -> any PlaybackSession {
             #if os(iOS)
-                ManagedPlaybackSession(device: PhonePlaybackSessionDevice())
+                PlaybackSessionOwner(coordinator: coordinator)
             #else
                 PassivePlaybackSession()
             #endif

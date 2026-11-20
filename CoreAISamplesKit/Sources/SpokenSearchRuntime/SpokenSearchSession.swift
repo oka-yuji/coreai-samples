@@ -12,8 +12,13 @@ public final class SpokenSearchSession {
         store = Store(initialState: SpokenSearchState(), run: runner.run)
     }
 
-    public func close() async {
+    public func suspend() {
         store.send(.disappeared)
+        runner.stopPlayback()
+    }
+
+    public func close() async {
+        suspend()
         await runner.close()
     }
 }

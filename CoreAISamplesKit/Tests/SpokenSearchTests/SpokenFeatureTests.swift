@@ -21,6 +21,8 @@ struct SpokenFeatureTests {
         _ = SpokenSearchFeature.reduce(&state, .cancel)
         _ = SpokenSearchFeature.reduce(&state, .found(second, []))
         #expect(!state.hasSearched && !state.isWorking)
+        #expect(state.hasTranscript && state.filename == "second.wav")
+        #expect(SpokenSearchFeature.reduce(&state, .search) == [.run(.find(second, "forecast"), id: .search)])
         _ = SpokenSearchFeature.reduce(&state, .disappeared)
         _ = SpokenSearchFeature.reduce(&state, .appeared)
         #expect(SpokenSearchFeature.reduce(&state, .fileSelected(file, generation: second)).isEmpty)

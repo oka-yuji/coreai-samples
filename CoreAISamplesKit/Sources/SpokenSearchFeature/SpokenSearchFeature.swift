@@ -19,6 +19,10 @@ public enum SpokenSearchFeature: Feature {
             return [.cancelAll, .run(.clear(state.generation), id: .cleanup)]
         case .cancel:
             guard state.isActive, state.isWorking else { return [] }
+            if state.isSearching {
+                state.isSearching = false
+                return [.cancel(.search)]
+            }
             reset(&state)
             return [.cancelAll, .run(.clear(state.generation), id: .cleanup)]
         case .fileSelected(let url, let generation):

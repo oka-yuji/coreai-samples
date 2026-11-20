@@ -5,7 +5,7 @@ import SpokenSearchFeature
 final class SpokenSearchRunner {
     private let isPermitted: @MainActor () -> Bool
     private let speech: any SpokenTranscribing
-    private let player = SpokenRecordingPlayer()
+    private let player: SpokenRecordingPlayer
     private var recording: SpokenRecording?
     private var generation = 0
     private var closed = false
@@ -16,10 +16,12 @@ final class SpokenSearchRunner {
 
     init(
         isPermitted: @escaping @MainActor () -> Bool,
-        speech: any SpokenTranscribing = SpokenFileTranscriber()
+        speech: any SpokenTranscribing = SpokenFileTranscriber(),
+        player: SpokenRecordingPlayer = SpokenRecordingPlayer()
     ) {
         self.isPermitted = isPermitted
         self.speech = speech
+        self.player = player
     }
 
     func run(_ effect: SpokenSearchEffect, send: (SpokenSearchAction) -> Void) async {
@@ -48,12 +50,17 @@ final class SpokenSearchRunner {
             }
             do {
                 try await player.play(record.url, from: hit.start) { _ in }
-                if current(id) === record { send(.playbackEnded(id, hit.id)) }
             } catch {
-                if current(id) === record { send(.failed(id, .playbackFailed)) }
+                if !(error is CancellationError) {
+                    if current(id) === record { send(.failed(id, .playbackFailed)) }
+                    return
+                }
             }
+            if current(id) === record { send(.playbackEnded(id, hit.id)) }
         }
     }
+
+    func stopPlayback() { player.stop() }
 
     func close() async {
         if closed {

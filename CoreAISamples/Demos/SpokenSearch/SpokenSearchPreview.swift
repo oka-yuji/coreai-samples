@@ -21,7 +21,7 @@ struct SpokenSearchPreview: View {
         }
         .onDisappear {
             owner = nil
-            session?.store.send(.disappeared)
+            session?.suspend()
             session = nil
         }
     }
