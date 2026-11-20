@@ -1,5 +1,6 @@
 #if os(macOS) || os(iOS)
     import Foundation
+    import SpeechCore
     import VoxCPMCore
 
     struct VoxCPMPipeline<Components: VoxCPMComponents>: Sendable {
@@ -15,23 +16,21 @@
         func generate(
             ids: [Int32], seed: UInt64, observer: (@Sendable (VoxCPMPatchRecord) throws -> [Float]?)?
         ) async throws -> VoxCPMSpeech {
+            try await generate(ids: ids, seed: seed, reference: nil, observer: observer)
+        }
+
+        @concurrent
+        func generate(
+            ids: [Int32], seed: UInt64, reference: SpeechReferenceAudio?,
+            observer: (@Sendable (VoxCPMPatchRecord) throws -> [Float]?)? = nil
+        ) async throws -> VoxCPMSpeech {
             try Task.checkCancellation()
-            guard ids.count > 1, ids.last == VoxCPMPrompt.audioStartTokenID, ids.allSatisfy({ $0 >= 0 }) else {
-                throw VoxCPMGenerationError.invalidTokenIDs
-            }
-            let length = ids.count
-            guard length <= contract.prefillLength else { throw VoxCPMGenerationError.textTooLong(length - 1) }
-            let limit = try VoxCPMStopRule.patchLimit(textTokenCount: length - 1, capacity: contract.capacity)
+            let prompt = try checkedPrompt(ids: ids, reference: reference)
+            let limit = try VoxCPMStopRule.patchLimit(
+                prompt: prompt, capacity: contract.capacity, maximumPatches: contract.manifest.generation.maxLen)
+            let length = prompt.inputIDs.count
             var states = try components.makeStates()
-            let count = VoxCPMInput.integers([Int32(length)])
-            let padded = ids + [Int32](repeating: contract.padToken, count: contract.prefillLength - length)
-            let embeds = try await run(.embed, ["ids": .integers(padded)], &states, "embeds")
-            let hidden = try await run(.prefill, ["embeds": .floats(embeds), "length": count], &states, "hidden")
-            let residual = try await run(.prefillFuse, ["hidden": .floats(hidden)], &states, "residual_inputs")
-            let residualHidden = try await run(
-                .residualPrefill, ["embeds": .floats(residual), "length": count], &states, "hidden")
-            var lmRow = Self.row(hidden, length - 1)
-            var residualRow = Self.row(residualHidden, length - 1)
+            var (lmRow, residualRow) = try await prefill(prompt, reference: reference, &states)
             var condition = [Float](repeating: 0, count: VoxCPMSolver.patchSize)
             var noise = VoxCPMNoise(seed: seed)
             var samples: [Float] = []
@@ -80,7 +79,7 @@
             throw VoxCPMGenerationError.reachedPatchLimit(limit)
         }
 
-        private func run(
+        func run(
             _ function: VoxCPMFunction, _ inputs: [String: VoxCPMInput], _ states: inout Components.States,
             _ name: String
         ) async throws -> [Float] {
@@ -113,7 +112,7 @@
             return values
         }
 
-        private static func row(_ values: [Float], _ index: Int) -> [Float] {
+        static func row(_ values: [Float], _ index: Int) -> [Float] {
             let width = VoxCPMSolver.hiddenSize
             return Array(values[(index * width)..<((index + 1) * width)])
         }
