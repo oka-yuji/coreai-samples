@@ -214,14 +214,16 @@ struct VoxCPMBundleTests {
         #expect(try fixture.copyFolders().isEmpty)
     }
 
-    @Test("VRA-03 Opening a reference FP32 bundle gives it its own name and leaves reference audio disabled")
+    @Test("VRA-03 Opening bundles names each profile and enables reference audio only for reference FP32")
     func referenceOpen() async throws {
         let directory = URL(filePath: "/unused-model")
         var names: [VoxCPMBundleProfile: String] = [:]
         for profile in VoxCPMBundleProfile.allCases {
             let runtime = VoxCPMRuntime(dependencies: FakeVoxCPMDriver().dependencies(profile: profile))
             let model = try await runtime.open(directory)
-            #expect(!model.supportsReferenceAudio && model.directory == directory, "\(profile)")
+            #expect(
+                model.supportsReferenceAudio == (profile == .referenceFP32) && model.directory == directory,
+                "\(profile)")
             names[profile] = model.name
             await runtime.release()
         }
