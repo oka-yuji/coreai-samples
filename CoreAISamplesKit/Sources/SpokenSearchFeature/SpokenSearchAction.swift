@@ -10,6 +10,7 @@ public enum SpokenSearchAction: Sendable {
     case topicSourceChanged(String?)
     case topicFound(Int, String, [SpokenHit])
     case topicStopped(Int)
+    case topicExpired(Int, String)
     case search
     case play(Int)
     case stopPlayback

@@ -18,7 +18,8 @@ final class SpokenSearchAdapter: ModelOnDemandDemoAdapter {
             let resource = access.resource
             return SpokenTopicSource(
                 identity: "\(resource.artifactID)/\(resource.revision)/\(access.generation)",
-                directory: resource.directory, isCurrent: access.isCurrent, acquire: { try await access.acquire() })
+                directory: resource.directory, isCurrent: access.isCurrent, validate: access.validate,
+                acquire: { try await access.acquire() })
         }
         return AnyView(SpokenSearchPreview(source: source))
     }

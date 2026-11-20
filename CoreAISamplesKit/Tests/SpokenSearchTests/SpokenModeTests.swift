@@ -31,5 +31,14 @@ struct SpokenModeTests {
         #expect(!state.isWorking)
         #expect(state.hits.isEmpty && !state.hasSearched && state.hasTranscript)
         #expect(state.filename == "rain.wav" && state.query == "coat")
+        _ = SpokenSearchFeature.reduce(&state, .search)
+        let stop = SpokenSearchFeature.reduce(&state, .cancel)
+        #expect(stop.contains(.run(.waitForTopic(file, discardIndex: true), id: .topicStop)))
+        _ = SpokenSearchFeature.reduce(&state, .topicStopped(file))
+        _ = SpokenSearchFeature.reduce(&state, .search)
+        _ = SpokenSearchFeature.reduce(&state, .topicFound(file, "third", [match]))
+        _ = SpokenSearchFeature.reduce(&state, .topicExpired(file, "third"))
+        #expect(state.hits.isEmpty && !state.hasSearched && state.hasTranscript)
+        #expect(state.notice == .topicUnavailable)
     }
 }

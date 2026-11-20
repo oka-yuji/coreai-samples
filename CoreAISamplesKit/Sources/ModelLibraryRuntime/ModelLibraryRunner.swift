@@ -38,7 +38,7 @@ public final class ModelLibraryRunner {
     private var libraries: [UUID: LibraryReference] = [:]
     private var registered: [UUID: LibraryReference] = [:]
     private var usages: [UsageKey: [ResourceLease]] = [:]
-    private var onDemandRequest: UUID?
+    private var onDemandRequest: OnDemandModelRequest?
     private var resident: ModelDemoSession? {
         willSet { gateChanges.invalidate() }
     }
@@ -78,7 +78,35 @@ public final class ModelLibraryRunner {
                 send(.demoStopped(session.id, ticket))
             }
         default:
-            await resources.run(effect, send: send)
+            await resources.run(effect) { action in
+                send(action)
+                shareRegistration(action, from: effect)
+            }
+        }
+    }
+
+    private func shareRegistration(_ action: ModelLibraryAction, from effect: ModelLibraryEffect) {
+        let identity: ModelArtifactIdentity
+        let resource: ValidatedModelResource?
+        let owner: UUID
+        switch action {
+        case .validated(_, let ticket, let verified), .inspected(_, let ticket, .some(let verified)),
+            .importStopped(_, let ticket, .some(let verified)):
+            identity = verified.identity
+            resource = verified
+            owner = ticket.owner
+        case .deleted(_, let ticket):
+            guard case .delete(let deleted, _) = effect else { return }
+            identity = deleted.identity
+            resource = nil
+            owner = ticket.owner
+        default:
+            return
+        }
+        for (other, reference) in registered where other != owner && releasedThrough[other] != .max {
+            if let library = reference.store, library.state.previews(identity) {
+                library.send(.previewRegistrationChanged(identity, resource))
+            }
         }
     }
 
@@ -124,21 +152,50 @@ public final class ModelLibraryRunner {
             else { return false }
             return current == resource && current.registrationGeneration == registration
         }
-        return OnDemandModelAccess(resource: resource, generation: generation, isCurrent: isCurrent) { [weak self] in
+        let recheck: @MainActor @Sendable () -> Void = { [weak library] in
+            if isCurrent() { library?.send(.recheckPreview(resource.identity, generation: generation)) }
+        }
+        let validate: @MainActor @Sendable () async -> Bool = { [weak self] in
+            guard let self, !Task.isCancelled, isCurrent() else { return false }
+            let current = await store.generation(of: resource.identity)
+            guard !Task.isCancelled, isCurrent() else { return false }
+            guard current == registration else {
+                recheck()
+                return false
+            }
+            return true
+        }
+        return OnDemandModelAccess(resource: resource, generation: generation, isCurrent: isCurrent, validate: validate)
+        {
+            [weak self] in
             guard let self else { throw CancellationError() }
-            return try await acquireOnDemand(
-                model: model, artifact: artifact, resource: resource, owner: owner, isCurrent: isCurrent)
+            do {
+                return try await acquireOnDemand(
+                    model: model, artifact: artifact, resource: resource, owner: owner, generation: generation,
+                    isCurrent: isCurrent)
+            } catch ManagedModelStoreError.notInstalled {
+                recheck()
+                throw ManagedModelStoreError.notInstalled
+            }
         }
     }
 
     private func acquireOnDemand(
         model: LibraryModel, artifact: ModelArtifact, resource: ValidatedModelResource, owner: UUID,
-        isCurrent: @MainActor () -> Bool
+        generation: Int, isCurrent: @escaping @MainActor () -> Bool
     ) async throws -> @MainActor @Sendable () async -> Void {
+        while let previous = onDemandRequest {
+            try Task.checkCancellation()
+            guard isCurrent() else { throw CancellationError() }
+            guard previous.owner == owner, previous.generation != generation || !previous.isCurrent() else {
+                throw ManagedModelStoreError.inUse
+            }
+            await previous.wait()
+        }
         try Task.checkCancellation()
         guard isCurrent() else { throw CancellationError() }
-        guard resident == nil, onDemandRequest == nil else { throw ManagedModelStoreError.inUse }
-        let request = UUID()
+        guard resident == nil else { throw ManagedModelStoreError.inUse }
+        let request = OnDemandModelRequest(owner: owner, generation: generation, isCurrent: isCurrent)
         onDemandRequest = request
         do {
             let registration = await store.generation(of: resource.identity)
@@ -156,18 +213,25 @@ public final class ModelLibraryRunner {
             }
             return { [weak self] in
                 await lease.release()
-                if self?.onDemandRequest == request { self?.onDemandRequest = nil }
+                self?.finishOnDemand(request)
             }
         } catch {
-            onDemandRequest = nil
+            finishOnDemand(request)
             try Task.checkCancellation()
             guard isCurrent() else { throw CancellationError() }
             throw error
         }
     }
 
+    private func finishOnDemand(_ request: OnDemandModelRequest) {
+        guard onDemandRequest === request else { return }
+        onDemandRequest = nil
+        request.endWaiting()
+    }
+
     public func abandon(owner: UUID) {
         releasedThrough[owner] = .max
+        if onDemandRequest?.owner == owner { onDemandRequest?.endWaiting() }
         work.send(.abandon(owner))
     }
 
@@ -213,17 +277,25 @@ public final class ModelLibraryRunner {
 
     func prepare(_ session: ModelDemoSession) async {
         retryAbandoned()
-        guard !Task.isCancelled, session.id.number > releasedThrough[session.id.owner, default: 0],
-            stopping[session.id] == nil, let state = libraries[session.id.owner]?.store?.state,
-            state.session == session, state.pendingDestination == nil
-        else { return }
-        guard state.permits(session.id, selection: session.selection) else {
-            publish(.permissionRequired, for: session)
-            return
-        }
-        guard onDemandRequest == nil, resident == nil || resident == session else {
-            publish(.occupied, for: session)
-            return
+        while true {
+            guard !Task.isCancelled, session.id.number > releasedThrough[session.id.owner, default: 0],
+                stopping[session.id] == nil, let state = libraries[session.id.owner]?.store?.state,
+                state.session == session, state.pendingDestination == nil
+            else { return }
+            guard state.permits(session.id, selection: session.selection) else {
+                publish(.permissionRequired, for: session)
+                return
+            }
+            if let previous = onDemandRequest, previous.owner == session.id.owner {
+                publish(.preparing, for: session)
+                await previous.wait()
+                continue
+            }
+            guard onDemandRequest == nil, resident == nil || resident == session else {
+                publish(.occupied, for: session)
+                return
+            }
+            break
         }
         resident = session
         switch leases[session.id]?.lease {
@@ -259,6 +331,7 @@ public final class ModelLibraryRunner {
         libraries[owner] = nil
         registered[owner] = nil
         releasedThrough[owner] = .max
+        if onDemandRequest?.owner == owner { onDemandRequest?.endWaiting() }
         let used = usages.filter { $0.key.owner == owner }
         for key in used.keys { usages[key] = nil }
         for lease in used.values.joined() { await lease.release() }

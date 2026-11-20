@@ -21,7 +21,7 @@ public enum SpokenSearchFeature: Feature {
             guard state.isActive, state.isWorking else { return [] }
             if state.isStoppingTopic { return [] }
             if state.isSearching {
-                return clearResults(&state)
+                return clearResults(&state, discardTopicIndex: true)
             }
             reset(&state)
             return [.cancelAll, .run(.clear(state.generation), id: .cleanup)]
@@ -88,6 +88,14 @@ public enum SpokenSearchFeature: Feature {
             found(&state, generation: generation, hits: hits)
         case .topicStopped(let generation):
             if state.generation == generation { state.isStoppingTopic = false }
+        case .topicExpired(let generation, let identity):
+            guard state.isActive, state.generation == generation, state.mode == .topic, state.topicIdentity == identity
+            else { return [] }
+            state.hits = []
+            state.hasSearched = false
+            state.isSearching = false
+            state.notice = .topicUnavailable
+            return stopPlaying(&state)
         case .playbackEnded(let generation, let id):
             guard state.generation == generation, state.playingID == id else { return [] }
             state.playingID = nil
@@ -101,11 +109,11 @@ public enum SpokenSearchFeature: Feature {
         return []
     }
 
-    private static func clearResults(_ state: inout State) -> [Output] {
+    private static func clearResults(_ state: inout State, discardTopicIndex: Bool = false) -> [Output] {
         var commands: [Output] = [.cancel(.search)]
         if state.isSearching && state.mode == .topic {
             state.isStoppingTopic = true
-            commands.append(.run(.waitForTopic(state.generation), id: .topicStop))
+            commands.append(.run(.waitForTopic(state.generation, discardIndex: discardTopicIndex), id: .topicStop))
         }
         state.hits = []
         state.hasSearched = false

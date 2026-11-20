@@ -21,6 +21,10 @@ actor SpokenTopicIndex {
         if let cached, cached.generation < minimumGeneration { self.cached = nil }
     }
 
+    func discardCache(for generation: Int) {
+        if cached?.generation == generation { cached = nil }
+    }
+
     func search(_ query: String, transcript: SpokenTranscript, generation: Int) async throws -> [SpokenHit] {
         while busy {
             try check(generation)

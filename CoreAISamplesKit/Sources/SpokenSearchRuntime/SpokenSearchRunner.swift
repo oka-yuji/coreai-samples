@@ -61,17 +61,25 @@ final class SpokenSearchRunner {
             if current(id) === record { send(.found(id, hits)) }
         case .findTopic(let id, let query, let identity):
             await findTopic(id, query: query, identity: identity, send: send)
-        case .waitForTopic(let id):
+        case .waitForTopic(let id, let discardIndex):
+            let index = topicIndex
             await waitForTopics()
+            if discardIndex { await index?.discardCache(for: id) }
             if !Task.isCancelled { send(.topicStopped(id)) }
         case .play(let id, let hit, let identity):
-            if let identity, topicSource?.identity != identity || topicSource?.isCurrent() != true {
-                send(.failed(id, .topicUnavailable))
-                return
-            }
             guard let record = current(id) else {
                 send(.failed(id, .unavailable))
                 return
+            }
+            if let identity {
+                let source = topicSource
+                let valid = source?.identity == identity && source?.isCurrent() == true
+                let registered = valid ? await source?.validate() : false
+                guard current(id) === record else { return }
+                guard registered == true, topicSource?.identity == identity, source?.isCurrent() == true else {
+                    send(.topicExpired(id, identity))
+                    return
+                }
             }
             do {
                 try await player.play(record.url, from: hit.start) { _ in }
@@ -154,16 +162,22 @@ final class SpokenSearchRunner {
             for waiter in pending { waiter.resume() }
         }
         func isCurrent() -> Bool {
-            current(id) === record && topicIndex === index && topicSource?.identity == identity && source.isCurrent()
+            current(id) === record && topicIndex === index && topicSource?.identity == identity
+        }
+        func deliver(_ result: SpokenSearchAction) async {
+            guard isCurrent() else { return }
+            let registered = await source.validate()
+            guard isCurrent() else { return }
+            send(registered && source.isCurrent() ? result : .topicExpired(id, identity))
         }
         let release: SpokenTopicSource.Release
         do {
             release = try await source.acquire()
         } catch {
-            if isCurrent() { send(.failed(id, .topicUnavailable)) }
+            await deliver(.failed(id, .topicUnavailable))
             return
         }
-        guard isCurrent() else {
+        guard isCurrent(), source.isCurrent() else {
             await release()
             return
         }
@@ -177,7 +191,7 @@ final class SpokenSearchRunner {
             result = .failed(id, .topicFailed)
         }
         await release()
-        if isCurrent() { send(result) }
+        await deliver(result)
     }
 
     private func waitForTopics() async {

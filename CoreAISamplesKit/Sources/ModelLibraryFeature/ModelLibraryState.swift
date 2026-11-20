@@ -259,6 +259,14 @@ public struct ModelLibraryState: Equatable, Sendable {
         return executableResource(for: selection)
     }
 
+    package func previews(_ identity: ModelArtifactIdentity) -> Bool {
+        guard let selection = onDemandSelection, selection.modelID == identity.modelID,
+            let artifact = selectedArtifact(for: selection.modelID)
+        else { return false }
+        return artifact.id == identity.artifactID && artifact.contract == identity.contract
+            && artifact.sourceKind == identity.sourceKind && artifact.sourceRevision == identity.revision
+    }
+
     var previewIdentity:
         (
             selection: DemoSelection?, artifactID: String?, resource: ValidatedModelResource?, registration: Int?

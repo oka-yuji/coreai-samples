@@ -2,6 +2,7 @@
 final class SpokenTopicLeaseProbe {
     private(set) var acquisitions = 0
     private(set) var releases = 0
+    var isRegistered = true
     private var waiter: CheckedContinuation<Void, Never>?
     private var continuation: CheckedContinuation<Void, Never>?
     private let delayed: Bool

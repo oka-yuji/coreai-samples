@@ -9,8 +9,8 @@ import Testing
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct OnDemandModelAccessTests {
-    private let selection = SpokenSearchCatalog.selection
-    private let residentSelection = DemoSelection(
+    let selection = SpokenSearchCatalog.selection
+    let residentSelection = DemoSelection(
         modelID: SpokenSearchCatalog.selection.modelID, demoID: "image-search")
 
     @Test("Rendering an installed demo without a resident session holds no lease until an explicit request")
@@ -240,26 +240,27 @@ struct OnDemandModelAccessTests {
         let identity = oldAccess.resource.identity
         _ = try await harness.store.delete(identity: identity)
         await #expect(throws: ManagedModelStoreError.notInstalled) { try await oldAccess.acquire() }
+        await awaitDemoState(stale) { $0.installations[identity.artifactID]?.phase == .missing }
         let second = harness.scene("second")
         try await second.download("image-fp16", &events)
         let current = sessionless(second, in: harness)
         let newAccess = try #require(harness.runner.access(for: selection, in: current))
         #expect(oldAccess.resource == newAccess.resource)
         #expect(oldAccess.resource.registrationGeneration != newAccess.resource.registrationGeneration)
-        await #expect(throws: ManagedModelStoreError.notInstalled) { try await oldAccess.acquire() }
+        await #expect(throws: CancellationError.self) { try await oldAccess.acquire() }
         #expect(await harness.store.activeLeases(identity: identity) == 0)
         let release = try await newAccess.acquire()
         await release()
     }
 
-    private func makeHarness() throws -> RuntimeHarness {
+    func makeHarness() throws -> RuntimeHarness {
         let descriptor = try #require(IOSDemoCatalog.make().demo(selection.demoID))
         return try RuntimeHarness(
             embeddingModelID: selection.modelID, additionalEmbeddingArtifacts: ["image-int4"],
             demoOverrides: [selection.demoID: descriptor])
     }
 
-    private func sessionless(
+    func sessionless(
         _ source: LibraryScene, in harness: RuntimeHarness, resource: ValidatedModelResource? = nil
     ) -> Store<ModelLibraryFeature> {
         var state = ModelLibraryState(
