@@ -25,5 +25,16 @@
             case .voxcpm2: VoxCPMRuntime()
             }
         }
+
+        func makeRecorder() -> any SpeechReferenceRecording {
+            #if os(macOS)
+                switch self {
+                case .irodori: return SpeechReferenceRecorder()
+                case .voxcpm2: return MacSpeechReferenceRecorder()
+                }
+            #else
+                return SpeechReferenceRecorder()
+            #endif
+        }
     }
 #endif

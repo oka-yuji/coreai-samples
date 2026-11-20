@@ -48,7 +48,8 @@
                 }
             self.init(
                 engine: engine, playback: AudioPlayback(), defaults: defaults,
-                modelPathKey: kind.modelPathKey, references: SpeechReferenceReader(format: kind.referenceFormat))
+                modelPathKey: kind.modelPathKey, references: SpeechReferenceReader(format: kind.referenceFormat),
+                recorder: kind.makeRecorder())
         }
         init(
             engine: any SpeechGenerating, playback: AudioPlayback, defaults: UserDefaults?,
