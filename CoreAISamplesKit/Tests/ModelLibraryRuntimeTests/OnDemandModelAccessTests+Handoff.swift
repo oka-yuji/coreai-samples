@@ -1,3 +1,4 @@
+import FeatureStore
 import Foundation
 import ModelLibraryStorage
 import Testing
@@ -94,8 +95,10 @@ extension OnDemandModelAccessTests {
         #expect(await harness.store.activeLeases(identity: original.resource.identity) == 0)
     }
 
-    @Test("Cancellation removes only its own waiter while the previous model and surviving request remain protected")
-    func cancelsOneWindowWaiter() async throws {
+    @Test(
+        "Cancellation removes only its own waiter after the same window changes generation or replaces its store",
+        arguments: [false, true])
+    func cancelsOneWindowWaiter(replacedStore: Bool) async throws {
         let harness = try makeHarness()
         defer { harness.close() }
         var events = harness.events.makeAsyncIterator()
@@ -104,8 +107,17 @@ extension OnDemandModelAccessTests {
         let library = sessionless(source, in: harness)
         let original = try #require(harness.runner.access(for: selection, in: library))
         let release = try await original.acquire()
-        library.send(.suspendDemo)
-        let current = try #require(harness.runner.access(for: selection, in: library))
+        let active: Store<ModelLibraryFeature>
+        if replacedStore {
+            active = Store(initialState: library.state, run: harness.runner.run)
+            harness.runner.register(active)
+        } else {
+            library.send(.suspendDemo)
+            active = library
+        }
+        let current = try #require(harness.runner.access(for: selection, in: active))
+        #expect(!original.isCurrent() && current.isCurrent())
+        #expect((current.generation == original.generation) == replacedStore)
         let cancelled = Task.immediate { try await current.acquire() }
         let surviving = Task.immediate { try await current.acquire() }
         cancelled.cancel()
