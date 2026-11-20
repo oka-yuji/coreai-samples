@@ -115,22 +115,29 @@ public struct VoxCPMBundleManifest: Decodable, Sendable {
     public let generation: Generation
     public let structure: Structure
     public let tokenizer: String
+    public let reference: VoxCPMReferenceConfiguration?
 
     public func validate() throws -> VoxCPMBundleProfile {
         typealias Contract = VoxCPMBundleInventory
-        guard format == 1 else { throw Self.invalid("has an unsupported format") }
+        guard VoxCPMBundleProfile.allCases.contains(where: { $0.format == format }) else {
+            throw Self.invalid("has an unsupported format")
+        }
         guard model.modelID == Contract.modelID, model.revision == Contract.revision,
             model.upstreamRevision == Contract.upstreamRevision
         else { throw Self.invalid("describes another model or revision") }
         guard let profile = VoxCPMBundleProfile(rawValue: configuration.name),
             configuration.precisions == profile.precisions
         else { throw Self.invalid("has an unsupported configuration") }
+        guard format == profile.format else { throw Self.invalid("has another format than its configuration") }
+        guard reference == profile.reference else {
+            throw Self.invalid("has other reference audio settings than its configuration")
+        }
         guard structure.sampleRate == Contract.sampleRate, structure.patch == Contract.patch else {
             throw Self.invalid("has another sample rate or patch shape")
         }
         guard tokenizer == Contract.tokenizerPath else { throw Self.invalid("names another tokenizer") }
-        guard Set(assets.keys) == Set(Contract.assetNames) else { throw Self.invalid("lists other assets") }
-        for name in Contract.assetNames {
+        guard Set(assets.keys) == Set(profile.assetNames) else { throw Self.invalid("lists other assets") }
+        for name in profile.assetNames {
             guard let asset = assets[name], let precision = profile.precisions[name], asset.precision == precision,
                 asset.path == "artifacts/\(name)-\(precision).aimodel",
                 Set(asset.functions.keys) == Contract.functions[name]

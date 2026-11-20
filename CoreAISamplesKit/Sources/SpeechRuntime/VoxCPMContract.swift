@@ -7,8 +7,12 @@
         typealias Tensor = VoxCPMSignature.Tensor
 
         static let specialization = "gpu_preferred"
+        static let maximumCapacity = 8_192
         static let decoderStateNames = (0..<26).map { $0 < 10 ? "state_0\($0)" : "state_\($0)" }
         static let cacheStateNames = ["k_cache", "v_cache"]
+        static let referenceInput = Tensor(
+            name: "pcm", type: "float32", shape: [1, 1, VoxCPMReferenceConfiguration.paddedSamples])
+        static let referenceOutput = Tensor(name: "mu", type: "float32", shape: [1, 64, 252])
 
         let manifest: VoxCPMBundleManifest
         let profile: VoxCPMBundleProfile
@@ -36,7 +40,8 @@
             else { throw Self.invalid("Its generation settings differ from the VoxCPM2 solver and stop rule.") }
             guard execution.audioStartToken == VoxCPMPrompt.audioStartTokenID, execution.prefillLength > 1,
                 execution.maxTextTokens == execution.prefillLength - 1,
-                execution.capacity > execution.prefillLength, execution.padToken >= 0,
+                execution.capacity > execution.prefillLength, execution.capacity <= Self.maximumCapacity,
+                execution.padToken >= 0,
                 execution.stateInitialValue == 0, execution.specialization == Self.specialization,
                 manifest.structure.patch.reduce(1, *) == VoxCPMSolver.patchSize
             else { throw Self.invalid("Its execution settings differ from the VoxCPM2 pipeline.") }
@@ -45,7 +50,17 @@
 
         func outputCount(_ function: VoxCPMFunction, _ name: String) -> Int? {
             manifest.assets[function.asset]?.functions[function.name]?.outputs.first { $0.name == name }
-                .map { $0.shape.reduce(1, *) }
+                .flatMap { Self.count($0.shape) }
+        }
+
+        static func count(_ shape: [Int]) -> Int? {
+            var count = 1
+            for dimension in shape {
+                let product = count.multipliedReportingOverflow(by: dimension)
+                guard dimension > 0, !product.overflow else { return nil }
+                count = product.partialValue
+            }
+            return count
         }
 
         func check(asset: String, functionNames: [String], observed: [String: VoxCPMSignature]) throws {
@@ -119,6 +134,8 @@
                 expected = (
                     [value("latent", patch)], [value("audio", [1, 1, samplesPerPatch])], Self.decoderStateNames
                 )
+            case .referenceEncode:
+                expected = ([Self.referenceInput], [Self.referenceOutput], [])
             }
             let caches = expected.states == Self.cacheStateNames
             return signature.inputs == expected.inputs && signature.outputs == expected.outputs

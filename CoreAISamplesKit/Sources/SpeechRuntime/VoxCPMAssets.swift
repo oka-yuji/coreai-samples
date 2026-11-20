@@ -15,8 +15,9 @@
         static func load(assets urls: [URL], contract: VoxCPMContract) async throws -> (
             assets: Self, seconds: [String: Double]
         ) {
-            guard urls.count == VoxCPMBundleInventory.assetNames.count else {
-                throw SpeechError.invalidAsset("The VoxCPM2 bundle does not list its six assets.")
+            let names = contract.profile.assetNames
+            guard urls.count == names.count else {
+                throw SpeechError.invalidAsset("The VoxCPM2 bundle does not list its \(names.count) assets.")
             }
             let clock = ContinuousClock()
             var models: [AIModel] = []
@@ -24,7 +25,7 @@
             var signatures: [VoxCPMFunction: VoxCPMSignature] = [:]
             var states: [String: NDArrayDescriptor] = [:]
             var seconds: [String: Double] = [:]
-            for (asset, url) in zip(VoxCPMBundleInventory.assetNames, urls) {
+            for (asset, url) in zip(names, urls) {
                 try Task.checkCancellation()
                 let start = clock.now
                 let model = try await AIModel.specialize(contentsOf: url, options: options)

@@ -107,6 +107,8 @@ struct FakeVoxCPMComponents: VoxCPMComponents {
             return ["lm_hidden": zip(raw, embed).map { $0 + 0.25 * $1 }, "residual_input": zip(raw, embed).map(-)]
         case .residualStep:
             return ["hidden": values("embed").map { $0 * 0.75 + position * 0.02 }]
+        case .referenceEncode:
+            return ["mu": spread(values("pcm"), "mu") { $0 * 0.25 }]
         }
     }
 }

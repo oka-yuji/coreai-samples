@@ -7,6 +7,11 @@ import VoxCPMCore
 @testable import SpeechRuntime
 
 struct VoxCPMPipelineTests {
+    static let generationFunctions: [VoxCPMFunction] = [
+        .embed, .prefill, .step, .residualPrefill, .residualStep, .heads, .fuse, .prefillFuse, .encode, .estimate,
+        .decode,
+    ]
+
     static func contract(_ profile: VoxCPMBundleProfile = .fp32) throws -> VoxCPMContract {
         try VoxCPMContract(manifest: VoxCPMBundleInventory.manifest(in: VoxCPMBundleFixture.manifest(profile)))
     }
@@ -212,7 +217,7 @@ struct VoxCPMPipelineTests {
 
     @Test(
         "VPL-05 A non-finite part output fails the generation before any later part",
-        arguments: VoxCPMFunction.allCases)
+        arguments: VoxCPMPipelineTests.generationFunctions)
     func nonFiniteOutput(_ function: VoxCPMFunction) async throws {
         let log = FakeVoxCPMLog()
         let pipeline = try Self.pipeline(log, [FakeVoxCPMBehavior(stopPatch: 3, nonFinite: function)])
@@ -222,6 +227,18 @@ struct VoxCPMPipelineTests {
         #expect(Self.outcome(result) == "nonFiniteValue(\"\(function.rawValue).\(name)\")")
         #expect(log.calls.last?.function == function)
         #expect(log.calls.filter { $0.function == function }.count == 1)
+    }
+
+    @Test("VRA-02 Text generation calls only the eleven original functions and refenc.main is the twelfth")
+    func twelfthFunction() async throws {
+        #expect(VoxCPMFunction.allCases == Self.generationFunctions + [.referenceEncode])
+        let log = FakeVoxCPMLog()
+        let pipeline = try Self.pipeline(log)
+        _ = try await pipeline.generate(ids: [11, 12, 101], seed: 1)
+        #expect(Set(log.calls.map(\.function)) == Set(Self.generationFunctions))
+        #expect(VoxCPMFunction.encode.rawValue == "locenc.main" && VoxCPMFunction.encode.asset == "locenc")
+        #expect(VoxCPMFunction.referenceEncode.rawValue == "refenc.main")
+        #expect(VoxCPMFunction.referenceEncode.asset == "refenc" && VoxCPMFunction.referenceEncode.name == "main")
     }
 
     @Test("VPL-05 Token IDs outside the prefill or without the audio start token are rejected before any part call")
