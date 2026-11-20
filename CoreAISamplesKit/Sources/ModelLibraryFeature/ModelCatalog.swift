@@ -191,14 +191,16 @@ public struct DemoDescriptor: ModelDemoDefinition, Codable, Equatable, Identifia
     public let visibility: CatalogVisibility
     public let searchTerms: [String]?
     private let interactivePreview: Bool?
+    private let automaticPreparation: Bool?
 
     public var allowsPreviewInteraction: Bool { interactivePreview == true }
+    public var preparesModelOnOpen: Bool { automaticPreparation != false }
 
     public init(
         id: String, title: String, systemImage: String, summary: String,
         explanation: [DemoExplanation] = [], platforms: Set<LibraryPlatform>,
         visibility: CatalogVisibility = .published, searchTerms: [String]? = nil,
-        allowsPreviewInteraction: Bool = false
+        allowsPreviewInteraction: Bool = false, preparesModelOnOpen: Bool = true
     ) {
         self.id = id
         self.title = title
@@ -209,6 +211,7 @@ public struct DemoDescriptor: ModelDemoDefinition, Codable, Equatable, Identifia
         self.visibility = visibility
         self.searchTerms = searchTerms
         interactivePreview = allowsPreviewInteraction ? true : nil
+        automaticPreparation = preparesModelOnOpen ? nil : false
     }
 }
 

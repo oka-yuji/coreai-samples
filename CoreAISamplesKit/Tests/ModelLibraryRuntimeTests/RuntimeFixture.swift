@@ -13,7 +13,9 @@ import Testing
 
 let distributionRevision = "0123456789abcdef0123456789abcdef01234567"
 let upstreamRevision = "914f7f89142e33e77833254d9c9b90c3cef7303b"
-let registeredDemos = ["comparison", "extraction", "inspection", "image-search", "video-search", "object-finder"]
+let registeredDemos = [
+    "comparison", "extraction", "inspection", "image-search", "video-search", "spoken-search", "object-finder",
+]
 
 extension DemoSelection {
     static let comparison = DemoSelection(modelID: "text", demoID: "comparison")
@@ -22,8 +24,9 @@ extension DemoSelection {
     static let notes = DemoSelection(modelID: "text", demoID: "notes")
     static let imageSearch = DemoSelection(modelID: "image", demoID: "image-search")
     static let videoSearch = DemoSelection(modelID: "image", demoID: "video-search")
+    static let spokenSearch = DemoSelection(modelID: "image", demoID: "spoken-search")
     static let objectFinder = DemoSelection(modelID: "image", demoID: "object-finder")
-    static let registered = [comparison, extraction, inspection, imageSearch, videoSearch, objectFinder]
+    static let registered = [comparison, extraction, inspection, imageSearch, videoSearch, spokenSearch, objectFinder]
 }
 
 struct MissingEvents: Error {
@@ -241,7 +244,10 @@ final class RuntimeHarness {
     let adapters: [String: FakeAdapter]
     let runner: ModelLibraryRunner
 
-    init() throws {
+    init(
+        embeddingModelID: String = "image", additionalEmbeddingArtifacts: [String] = [],
+        demoOverrides: [String: DemoDescriptor] = [:]
+    ) throws {
         var files: [String: Data] = [:]
         for name in [
             "text.aimodel/main.mlirb", "vision.aimodel/main.mlirb", "tokenizer.json", "tokenizer_config.json",
@@ -271,7 +277,9 @@ final class RuntimeHarness {
             root: base.appending(path: "ModelLibrary"), writeLedger: ledger.write, availableCapacity: { _ in .max })
         self.transfer = transfer
         resources = ModelLibraryResourceRunner(store: store, transfer: transfer)
-        catalog = try Self.catalog(files)
+        catalog = try Self.catalog(
+            files, embeddingModelID: embeddingModelID, additionalEmbeddingArtifacts: additionalEmbeddingArtifacts,
+            demoOverrides: demoOverrides)
         var adapters: [String: FakeAdapter] = [:]
         for demoID in registeredDemos {
             let adapter = FakeAdapter(demoID, label: labels, sink: sink)
@@ -300,7 +308,10 @@ final class RuntimeHarness {
         try? FileManager.default.removeItem(at: base)
     }
 
-    private static func catalog(_ files: [String: Data]) throws -> ModelCatalog {
+    private static func catalog(
+        _ files: [String: Data], embeddingModelID: String, additionalEmbeddingArtifacts: [String],
+        demoOverrides: [String: DemoDescriptor]
+    ) throws -> ModelCatalog {
         let definitions = files.map {
             ModelArtifactFile(path: $0.key, bytes: Int64($0.value.count), sha256: sha256($0.value))
         }
@@ -312,8 +323,9 @@ final class RuntimeHarness {
                 upstream: ModelUpstream(repository: "fixture/source", revision: upstreamRevision), files: definitions)
         }
         let demos = (registeredDemos + ["notes"]).map {
-            DemoDescriptor(
-                id: $0, title: $0 + " demo", systemImage: "doc.text", summary: "Fixture " + $0, platforms: [.iOS])
+            demoOverrides[$0]
+                ?? DemoDescriptor(
+                    id: $0, title: $0 + " demo", systemImage: "doc.text", summary: "Fixture " + $0, platforms: [.iOS])
         }
         let text = LibraryModel(
             id: "text", name: "Text model", category: "Fixture",
@@ -323,11 +335,13 @@ final class RuntimeHarness {
                 ModelDemoLink(demoID: $0, platforms: [.iOS])
             })
         let image = LibraryModel(
-            id: "image", name: "Image model", category: "Fixture", artifacts: [artifact("image-fp16")],
+            id: embeddingModelID, name: "Image model", category: "Fixture",
+            artifacts: (["image-fp16"] + additionalEmbeddingArtifacts).map(artifact),
             defaultArtifactID: "image-fp16", platforms: [.iOS],
             demos: [
                 ModelDemoLink(demoID: "image-search", platforms: [.iOS]),
                 ModelDemoLink(demoID: "video-search", platforms: [.iOS]),
+                ModelDemoLink(demoID: "spoken-search", platforms: [.iOS]),
                 ModelDemoLink(demoID: "object-finder", platforms: [.iOS], requiredCapabilities: [.camera]),
             ])
         return try ModelCatalog(models: [text, image], demos: demos)

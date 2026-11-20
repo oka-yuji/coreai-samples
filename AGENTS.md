@@ -62,6 +62,8 @@
 | `VoxCPMPipeline` / `VoxCPMAssets` (`SpeechRuntime/VoxCPMPipeline.swift`、`VoxCPMAssets.swift`) | パイプラインの値がprofile順の6資産（参照FP32は7資産）の`AIModel`と関数を所有し、生成の間に変えない。コピー側とロード側で同じprofileの資産順を使い、追加の`refenc.main`はstateを持たない。KVとVAEのstate(`VoxCPMAssetStates`。VAEの26本は`VoxCPMDecoderStates`の別々のstored property)は`generate`の局所の値として記述子どおりに確保して0で埋め、`@concurrent`の部品の呼び出しへ`inout`で渡す。完了・失敗・取消のどれで抜けても破棄し、次の生成へ持ち越さない。stateを共有するprefillとstepは、読み込んだstateの記述子の全体が等しいことを確かめてから使う。stateのviewは`run`の直前に同じ関数の中で作り、保持しない。取消は各部品の呼び出しの前と後で確かめ、呼び出し中の取消は部品が投げた誤りより先に`CancellationError`として伝える。進行中の処理を1つに保つのは下の`VoxCPMRuntime`。`@unchecked Sendable`・`nonisolated(unsafe)`・`_overrideLifetime`は使わない。 | `VoxCPMPipelineTests`(偽の部品で、呼び出しの順と形、部品の間の値のつなぎ、生成ごとにstateを新しく作り完了・失敗・取消の後に破棄すること、取消の位置と取消の後の誤り、上限と非有限値)、`VoxCPMContractTests`(記述子とgenerationの拒否、prefillとstepのstateの記述子の一致)、共有ロック下の`VoxCPMNativeTests`(`makeStates()`の直後のKV 4本とVAE 26本が0であること、呼び出しごとと記録の潜在を与えた通しの照合。自走は記録だけで、元実装やPythonのホストとの一致の証拠にしない)。 |
 | `VoxCPMRuntime` (`SpeechRuntime/VoxCPMRuntime.swift`) | actorが検査済みのbundleと契約(`VoxCPMOpenedBundle`)・トークナイザ(非Sendable。actorの外へ出さない)・パイプライン・busy・解放待ちを所有する。`open`はbundleの全hashの検査とトークナイザの準備だけでモデルを動かさず、資産は最初の`generate`で読む。生成ごとにbundleを開き直さない。処理は1つずつで、busyはawait中も保持し、重なった`generate`・`open`は待ち行列に入れずbusyを返す。文の整形・token化・上限の検査はbusyの前に行い、拒否してもパイプラインを捨てない。`release`は進行中の処理が終わり、パイプラインとトークナイザを捨ててから返し(検査済みのbundleは残す)、再開した複数の解放待ちは状態を書き換えない。失敗・取消ではパイプラインだけを捨て、次の依頼で読み直す。パイプラインは補助関数の局所でだけ持ち、`generate`の範囲に保持しない。`@unchecked Sendable`・`nonisolated(unsafe)`は使わない。 | `VoxCPMRuntimeTests`(取消を無視する偽のパイプライン・止められる偽の読み込み・偽のトークナイザで、処理中と読み込み中のbusyの拒否と後で実行しないこと、取消した処理・取消しない処理・読み込み中のどれでも2つの`release`が処理の終了とパイプラインの破棄の後に返ること、解放の後に読み直すこと、失敗・取消の後の回復、入力で断ってもパイプラインを捨てず読み込まないこと。変異で検出を確認。`.serialized`で、TSanと繰り返しでも流す)、共有ロック下の`VoxCPMRuntimeNativeTests`(構成ごとに、開く→生成→読み込まずに生成→解放→読み直して生成と、解放の前後のメモリ)。 |
 
+録音検索では表示時のモデル準備を行わない。話題検索が権限を要求した時だけ、ModelLibraryRunnerが通常の常駐枠と相互排他で資産の利用を予約する。取得前後に現在のowner・画面世代・選択資産・登録世代が一致することを確かめ、取得したleaseは推論の終了・modelの解放後に返す。再登録・取消・複数window・古いreleaseは `OnDemandModelAccessTests` と `SpokenTopicRunnerTests` で確認する。
+
 ## 公開物の規約
 
 - 手書きのソース・テスト・設定には、doc コメントを含めてコメントを書かない。SwiftPM の `swift-tools-version` と shell の先頭 shebang は、ツールが解釈する宣言として保持する。
@@ -71,6 +73,10 @@
 - Issue と PR に投稿した後の点検(タイトル・本文・コメント・レビュー・レビューコメントの現在の文と、本文側の削除していない編集履歴の版。変更前のタイトルは読まない)は `python3 -I Tools/Privacy/check-public-text.py oka-yuji/coreai-samples` で行う。手元でだけ実行する。認証済みの `gh` が要る。`check.sh` と CI には入れない。当たりは終了コード 1、読めなければ 2。
 
 ## 重いジョブ
+
+- 録音の語検索の実結合は共有ロック下で `COREAI_SPOKEN_WORD_AUDIO=/path/to/twice.wav swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenNativeTests.fixedRecordings`。同じフォルダの `related.wav` とともに、生成手順は `docs/embeddinggemma2.md`。Macの端末内認識・各語頭からの原音再生・関連する録音の0件を確かめる。通常suiteではskip。実iPhoneでの自然な発話の聴取は別に確認する。
+
+- 録音の話題検索の実結合は共有ロック下で `COREAI_SPOKEN_TOPIC_AUDIO=/path/to/topic.wav COREAI_SPOKEN_TOPIC_MODEL=/path/to/eg2-fp16 swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenTopicNativeTests.relatedPassage`。固定4発話の日本語音声からSpeechで時刻を取得し、実FP16のdocument/queryで傘を勧める発話の順位と原音の開始位置を確かめる。通常はskip。音源とモデル条件は `docs/embeddinggemma2.md`。
 
 - Mobile Image Labの公開取得は共有heavy-jobロック下で `COREAI_MOBILE_IMAGE_DOWNLOAD_OUTPUT=/new/output swift test --package-path CoreAISamplesKit --filter MobileImageDownloadNativeTests.freshDownload`。既存出力を拒否し、親folderは先に作る。空のModelsと移行候補0から固定HF revisionの51filesを実取得し、全量inspect・新manifest・lease中の削除拒否・解放後lease0を確認する。取得物とacquisition/download JSONは保持する。生成・編集・新しい品質/性能評価・実iPhone操作は行わず、既定はskip。
 

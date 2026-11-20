@@ -123,6 +123,10 @@ targets:
         product: ReceiptDemoRuntime
       - package: CoreAISamplesKit
         product: ReceiptUI
+      - package: CoreAISamplesKit
+        product: SpokenSearchFeature
+      - package: CoreAISamplesKit
+        product: SpokenSearchRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp
@@ -151,6 +155,7 @@ targets:
       - path: CoreAISamples/Demos/ImageSearch
       - path: CoreAISamples/Demos/ImageGeneration
       - path: CoreAISamples/Demos/VideoSearch
+      - path: CoreAISamples/Demos/SpokenSearch
       - path: CoreAISamples/Resources/Recipes
       - path: CoreAISamples/Demos/Products
       - path: CoreAISamples/Localization/DemoLanguage.swift
@@ -253,6 +258,10 @@ targets:
       - package: CoreAISamplesKit
         product: OCRRuntime
       - sdk: AVKit.framework
+      - package: CoreAISamplesKit
+        product: SpokenSearchFeature
+      - package: CoreAISamplesKit
+        product: SpokenSearchRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp.ios
