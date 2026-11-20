@@ -1,5 +1,6 @@
 import copy
 import json
+import math
 from pathlib import Path
 import sys
 import tempfile
@@ -51,7 +52,7 @@ class ReferenceRecipeTests(unittest.TestCase):
 
     def test_incomplete_failed_wrong_precision_count_nonfinite_and_error_reports_are_rejected(self):
         stage = load_recipe(RECIPE / "reference-recipe.json", bindings(), ROOT)["steps"][0]
-        changes = [(["complete"], False), (["passed"], False), (["precision"], "fp16"), (["summary", "cases"], 3), (["summary", "passed_cases"], 3), (["summary", "original_inputs_matched"], 3), (["summary", "coreai", "nonfinite"], 1), (["summary", "fixed", "normalized_max"], 0.002), (["summary", "coreai", "normalized_max"], 0.002), (["source_encoder", "unchanged"], False)]
+        changes = [(["complete"], False), (["passed"], False), (["precision"], "fp16"), (["summary", "cases"], 3), (["summary", "passed_cases"], 3), (["summary", "original_inputs_matched"], 3), (["summary", "required_cases"], 3), (["summary", "fixed", "count"], 3), (["summary", "fixed", "passed"], 3), (["summary", "fixed", "nonfinite"], 1), (["summary", "coreai", "count"], 3), (["summary", "coreai", "passed"], 3), (["summary", "coreai", "nonfinite"], 1), (["summary", "fixed", "normalized_max"], 0.002), (["summary", "coreai", "normalized_max"], 0.002), (["source_encoder", "unchanged"], False)]
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             path = directory / "encoder/report.json"
@@ -66,6 +67,23 @@ class ReferenceRecipeTests(unittest.TestCase):
                 target[keys[-1]] = value
                 path.write_text(json.dumps(report))
                 with self.subTest(keys=keys), self.assertRaises(PipelineError):
+                    check_results(directory, stage["checks"])
+
+
+    def test_error_threshold_is_inclusive_without_allowing_the_next_number(self):
+        stage = load_recipe(RECIPE / "reference-recipe.json", bindings(), ROOT)["steps"][0]
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            path = directory / "encoder/report.json"
+            path.parent.mkdir()
+            for kind in ["fixed", "coreai"]:
+                report = passing_report()
+                report["summary"][kind]["normalized_max"] = 0.001
+                path.write_text(json.dumps(report))
+                check_results(directory, stage["checks"])
+                report["summary"][kind]["normalized_max"] = math.nextafter(0.001, math.inf)
+                path.write_text(json.dumps(report))
+                with self.assertRaises(PipelineError):
                     check_results(directory, stage["checks"])
 
 
