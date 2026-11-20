@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "name": "voxcpm2_reference",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/voxcpm2"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4",
+    "USE_OS_COREAI": "1"
+  },
+  "steps": [
+    {
+      "id": "reference_encoder",
+      "role": "verify",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.voxcpm2.reference_encoder",
+        "--snapshot",
+        "$snapshot",
+        "--upstream",
+        "$upstream",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--voices",
+        "$voices",
+        "--precision",
+        "fp32",
+        "--output",
+        "$out/encoder"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/reference_encoder.py",
+        "$adapters/source.py",
+        "$adapters/convert.py",
+        "$adapters/runtime.py",
+        "$adapters/wrappers.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$recipe_dir/reference-voices.json",
+        "$snapshot",
+        "$upstream/src/voxcpm",
+        "$upstream/pyproject.toml",
+        "$voices/README.md",
+        "$voices/voice-donations/0a67.wav",
+        "$voices/voice-donations/1410.wav"
+      ],
+      "outputs": [
+        "encoder/report.json",
+        "encoder/export.json",
+        "encoder/refenc-fp32.aimodel/main.hash",
+        "encoder/refenc-fp32.aimodel/main.mlirb",
+        "encoder/refenc-fp32.aimodel/metadata.json",
+        "encoder/cases/0a67-5s/pcm.npy",
+        "encoder/cases/0a67-5s/original.npy",
+        "encoder/cases/0a67-5s/fixed-mu.npy",
+        "encoder/cases/0a67-5s/fixed.npy",
+        "encoder/cases/0a67-5s/coreai-mu.npy",
+        "encoder/cases/0a67-5s/coreai.npy",
+        "encoder/cases/0a67-10s/pcm.npy",
+        "encoder/cases/0a67-10s/original.npy",
+        "encoder/cases/0a67-10s/fixed-mu.npy",
+        "encoder/cases/0a67-10s/fixed.npy",
+        "encoder/cases/0a67-10s/coreai-mu.npy",
+        "encoder/cases/0a67-10s/coreai.npy",
+        "encoder/cases/1410-5s/pcm.npy",
+        "encoder/cases/1410-5s/original.npy",
+        "encoder/cases/1410-5s/fixed-mu.npy",
+        "encoder/cases/1410-5s/fixed.npy",
+        "encoder/cases/1410-5s/coreai-mu.npy",
+        "encoder/cases/1410-5s/coreai.npy",
+        "encoder/cases/1410-10s/pcm.npy",
+        "encoder/cases/1410-10s/original.npy",
+        "encoder/cases/1410-10s/fixed-mu.npy",
+        "encoder/cases/1410-10s/fixed.npy",
+        "encoder/cases/1410-10s/coreai-mu.npy",
+        "encoder/cases/1410-10s/coreai.npy",
+        "encoder/voices/0a67-5s.wav",
+        "encoder/voices/0a67-10s.wav",
+        "encoder/voices/1410-5s.wav",
+        "encoder/voices/1410-10s.wav"
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 4000000000,
+      "checks": [
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "precision"
+          ],
+          "equals": "fp32"
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "cases"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "required_cases"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "passed_cases"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "original_inputs_matched"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "fixed",
+            "count"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "fixed",
+            "passed"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "fixed",
+            "nonfinite"
+          ],
+          "equals": 0
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "coreai",
+            "count"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "coreai",
+            "passed"
+          ],
+          "equals": 4
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "coreai",
+            "nonfinite"
+          ],
+          "equals": 0
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "source_encoder",
+            "unchanged"
+          ],
+          "equals": true
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "fixed",
+            "normalized_max"
+          ],
+          "max": 0.001
+        },
+        {
+          "file": "encoder/report.json",
+          "key": [
+            "summary",
+            "coreai",
+            "normalized_max"
+          ],
+          "max": 0.001
+        }
+      ]
+    }
+  ]
+}

@@ -34,12 +34,15 @@ def prompt_ids(token_ids, vocabulary, audio_start_token):
     return ids + [operator.index(audio_start_token)]
 
 
-def patch_limit(text_tokens, capacity, generation):
+def patch_limit(text_tokens, capacity, generation, *, prompt_length=None):
     text_tokens, capacity = operator.index(text_tokens), operator.index(capacity)
     if text_tokens < 0:
         raise ValueError(f"The text token count must not be negative: {text_tokens}")
+    prompt_length = text_tokens + 1 if prompt_length is None else operator.index(prompt_length)
+    if prompt_length < text_tokens + 1:
+        raise ValueError(f"The prompt length {prompt_length} is shorter than {text_tokens} text tokens and the audio start")
     limit = min(int(generation["max_patches_ratio"] * text_tokens + generation["max_patches_offset"]),
-                operator.index(generation["max_len"]), capacity - text_tokens - 1)
+                operator.index(generation["max_len"]), capacity - prompt_length)
     if limit < 1:
         raise ValueError(f"{text_tokens} text tokens leave no patch in capacity {capacity}")
     return limit
