@@ -11,8 +11,9 @@ one compares the FP32 generation of the same five sentences with the original, a
 one records FP32 and FP16 configurations and writes audio for listening. The last
 three stages remove debug information from the assets, assemble three app bundles
 with a manifest and fixed inventories, and compare the FP32 bundle with the original
-again. The Swift runtime, iPhone, quantization, reference audio and listening
-quality are not covered. `model.json` is the asset contract that a native host
+again. The six-asset recipe does not cover the Swift runtime, iPhone, quantization,
+reference-audio generation or listening quality. A separate FP32 reference encoder
+check is described below. `model.json` is the asset contract that a native host
 follows.
 
 ## Fixed inputs
@@ -90,6 +91,45 @@ stages run offline and reject existing output directories. A complete FP32 and
 FP16 run writes about 21 GB of assets and 14 GB of assets without debug information,
 plus Core AI specialization caches. The bundles hold another 19 GB of asset files,
 which take no further space when they are cloned (see [App bundles](#app-bundles)).
+
+## Reference-audio encoder
+
+`reference-recipe.json` is a separate FP32 encoder check. It uses the same pinned
+model snapshot, upstream checkout and Python environment as the component recipe,
+plus the three files listed by `reference-voices.json`: the voice-donation README
+and two CC0 recordings at their fixed revision. The recordings are inputs and are
+not stored in this repository.
+
+Add `voices` to a separate bindings file, pointing to a folder that contains
+`README.md` and `voice-donations/0a67.wav` and `voice-donations/1410.wav`. Keep the
+existing component bindings unchanged. Download the files at revision
+`323332d33f997de8394f24a193e1a76df720e01a` from `kyutai/tts-voices`, without changing
+their bytes.
+
+```sh
+.local/conversion/voxcpm2/.venv/bin/python -m Tools.Conversion plan Tools/Conversion/recipes/voxcpm2/reference-recipe.json \
+  --bindings .local/conversion/voxcpm2-reference.paths.json
+.local/conversion/voxcpm2/.venv/bin/python -m Tools.Conversion run Tools/Conversion/recipes/voxcpm2/reference-recipe.json \
+  --bindings .local/conversion/voxcpm2-reference.paths.json \
+  --work-dir .local/conversion/work/voxcpm2-reference \
+  --lock-dir "$HOME/Library/Caches/coreai-samples/heavy-job"
+```
+
+The verify stage checks both recordings at five and ten seconds. It requires four
+complete comparisons, finite outputs, normalized maximum error at most 0.001, the
+same original PCM inputs and an unchanged source encoder. The fixed encoder input
+is Float32 `[1,1,161280]`; its `mu` output is `[1,64,252]`, with no states. Only the
+frames corresponding to the recording are compared. The runner checks required
+outputs and their hashes before reusing a successful run; use `--refresh` for a
+new conversion and comparison.
+
+The stage preserves original, fixed-length PyTorch and Core AI arrays, cropped
+recordings, descriptors and timings under its `encoder` output. These are research
+outputs. The encoder asset still needs debug-information removal, bundle assembly
+and distribution checks before publication. This recipe does not establish Swift,
+normal-UI or listening acceptance. FP16 encoder comparisons failed three of the
+four fixed cases at the separately recorded 0.01 threshold; this recipe exports
+only the accepted FP32 candidate.
 
 ## Stages
 
@@ -664,5 +704,6 @@ The macOS app downloads the `fp16` bundle, published in
 [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai), and uses it.
 FP16 parts and configurations are recorded, not
 accepted. The Python runtime cannot set `expectFrequentReshapes`; all shapes here are
-static. Reference-audio prompts,
-the VAE encoder, quantization and iPhone are out of scope.
+static. The original six-asset recipe excludes reference-audio prompts, the VAE
+encoder, quantization and iPhone. The separate reference recipe checks the FP32 VAE
+encoder; it does not assemble a reference-audio app bundle.
