@@ -14,7 +14,8 @@ public enum MacDemoCatalog {
             ("comparison", "Compare product specifications from official descriptions", "text.magnifyingglass"),
             ("speech", "Generate and play speech from text with Irodori", "waveform"),
             (
-                "voice-design", "Generate and play speech from text and a voice description with VoxCPM2",
+                "voice-design",
+                "Generate and play speech from text with VoxCPM2, using a voice description or a reference voice",
                 "person.wave.2"
             ),
             (TeleOCRDemoCatalog.selection.demoID, "Read text and tables from a document image", "doc.viewfinder"),

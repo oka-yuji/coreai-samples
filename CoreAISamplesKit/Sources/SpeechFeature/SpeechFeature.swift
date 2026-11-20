@@ -71,7 +71,11 @@ public struct SpeechState: Sendable, Equatable {
     public var reference: SpeechReferenceAudio?
     public var referenceMessage: String?
     public var microphoneDenied = false
-    public var message: String?
+    public var statusMessage: SpeechStatusMessage?
+    public var message: String? {
+        get { statusMessage?.renderedText }
+        set { statusMessage = newValue.map(SpeechStatusMessage.text) }
+    }
     public var examples: [SpeechExample]
     public var lastPath: String?
     public var exportTicket: SpeechExportTicket?
@@ -122,6 +126,7 @@ public enum SpeechAction: Equatable, Sendable {
     case generate
     case generated(Int, SpeechAudio)
     case failed(Int, String)
+    case textLimitExceeded(Int, count: Int, limit: Int)
     case play, stop
     case playbackFinished(Int)
     case playbackInterrupted(Int)
@@ -251,6 +256,10 @@ public enum SpeechFeature: Feature {
                 state.message = message
             }
             state.phase = .idle
+        case .textLimitExceeded(let session, let count, let limit):
+            guard state.session == session, state.phase == .generating else { return [] }
+            state.phase = .idle
+            state.statusMessage = .tokenLimit(count: count, limit: limit)
         case .play:
             guard state.canPlay, let audio = state.audio else { return [] }
             state.session += 1

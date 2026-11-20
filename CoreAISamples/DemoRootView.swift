@@ -53,7 +53,8 @@ enum Demo: String, CaseIterable, Identifiable {
         case .spokenSearch: SpokenSearchCatalog.title
         case .extract: "Compare product specifications from official descriptions"
         case .speech: "Generate and play speech from text with Irodori"
-        case .voiceDesign: "Generate and play speech from text and a voice description with VoxCPM2"
+        case .voiceDesign:
+            "Generate and play speech from text with VoxCPM2, using a voice description or a reference voice"
         case .ocr: "Read text and tables from a document image"
         case .receipts: "Sort receipts into a reviewed expense ledger"
         case .taxiForecast: "NYC taxi pickup forecast"
@@ -348,7 +349,7 @@ struct DemoRootView: View {
     @ViewBuilder private var content: some View {
         @Bindable var navigator = navigator
         NavigationSplitView {
-            ConversationSidebar()
+            ConversationSidebar(voiceDesign: voiceDesign)
         } detail: {
             switch navigator.selection {
             case .chat?: ConversationView()

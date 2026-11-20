@@ -1,4 +1,5 @@
 import FeatureStore
+import SpeechCore
 import SpeechFeature
 import SwiftUI
 
@@ -9,7 +10,34 @@ struct SpeechForm: View {
     let missing: LocalizedStringKey?
     let voiceHint: LocalizedStringKey?
     let canGenerate: Bool
+    let showsVoxReference: Bool
     @Environment(\.locale) private var locale
+
+    static let voxPrefillLength = 145
+
+    init(
+        store: Store<SpeechFeature>, title: String, limit: LocalizedStringKey, missing: LocalizedStringKey?,
+        voiceHint: LocalizedStringKey?, canGenerate: Bool, showsVoxReference: Bool = false
+    ) {
+        self.store = store
+        self.title = title
+        self.limit = limit
+        self.missing = missing
+        self.voiceHint = voiceHint
+        self.canGenerate = canGenerate
+        self.showsVoxReference = showsVoxReference
+    }
+
+    private var voxReferenceLimit: Int? {
+        guard showsVoxReference, let reference = store.state.reference, reference.format == .voxcpm2 else {
+            return nil
+        }
+        return Self.voxPrefillLength - reference.conditioningPositionCount - 3
+    }
+
+    private var showsReferenceCancel: Bool {
+        showsVoxReference && MacSpeechReferenceControls.activePhases.contains(store.state.phase)
+    }
 
     var body: some View {
         ScrollView {
@@ -52,7 +80,17 @@ struct SpeechForm: View {
                     .disabled(!store.state.editable)
                     .accessibilityLabel("Text to speak")
                     .accessibilityIdentifier("speech.text")
-                Text(limit).font(.caption).foregroundStyle(.secondary)
+                if let voxReferenceLimit {
+                    Text(
+                        "Short passages work best. With a reference voice only the text is read, up to \(voxReferenceLimit) tokens."
+                    )
+                    .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text(limit).font(.caption).foregroundStyle(.secondary)
+                }
+                if showsVoxReference {
+                    MacSpeechReferenceControls(state: store.state, send: store.send)
+                }
                 if let voiceHint {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Voice description").font(.headline)
@@ -62,10 +100,15 @@ struct SpeechForm: View {
                         )
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
-                        .disabled(!store.state.editable)
+                        .disabled(!store.state.canEditVoice)
                         .accessibilityIdentifier("speech.voice")
-                        Text(voiceHint)
-                            .font(.caption).foregroundStyle(.secondary)
+                        if store.state.usesVoiceDescription {
+                            Text(voiceHint)
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text("Remove the reference voice to use this description.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                 }
                 VStack(alignment: .leading, spacing: 6) {
@@ -92,7 +135,7 @@ struct SpeechForm: View {
                     Button("Play", systemImage: "play.fill") { store.send(.play) }
                         .disabled(!store.state.canPlay)
                         .accessibilityIdentifier("speech.play")
-                    if store.state.busy {
+                    if store.state.busy && !showsReferenceCancel {
                         Button("Stop", systemImage: "stop.fill") { store.send(.stop) }
                             .disabled(store.state.phase == .stopping)
                             .keyboardShortcut(.cancelAction)
@@ -124,6 +167,11 @@ struct SpeechForm: View {
                     if store.state.busy {
                         ProgressView().controlSize(.small)
                         Text(verbatim: Self.phaseText(store.state.phase, locale: locale))
+                    } else if case .tokenLimit(let count, let limit)? = store.state.statusMessage {
+                        Text(
+                            verbatim: SpeechTokenLimitPresentation.message(count: count, limit: limit, locale: locale)
+                        )
+                        .textSelection(.enabled)
                     } else if let message = store.state.message {
                         RuntimeMessageText(message).textSelection(.enabled)
                     } else {
