@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "repository": "kyutai/tts-voices",
+  "revision": "323332d33f997de8394f24a193e1a76df720e01a",
+  "license": "CC0 for voice-donations/",
+  "readme_sha256": "47c610f38e0e0bfb4b353a2afa84a5277b748b1b808d5f77fb8ef74fb836689b",
+  "sample_rate": 16000,
+  "hop_samples": 640,
+  "patch_frames": 4,
+  "feature_channels": 64,
+  "maximum_samples": 161280,
+  "maximum_patches": 63,
+  "criteria": {
+    "fp32": 0.001,
+    "fp16": 0.01,
+    "nonfinite": 0
+  },
+  "voices": [
+    {
+      "id": "0a67",
+      "path": "voice-donations/0a67.wav",
+      "bytes": 480044,
+      "sha256": "4bd75d0ef0ad3f4e82ac075eab2a132651d2463f83bec210edeeccaf69294886",
+      "pcm_f32le_sha256": {
+        "5": "39a131b173006629c050512cf0821bdef47e1514f1b916667b766f7860ba2ee3",
+        "10": "8fb8eed29872b4ae894694e0c6d2cbd03cef6dc24f4ea82f3c479f642a982ab6"
+      }
+    },
+    {
+      "id": "1410",
+      "path": "voice-donations/1410.wav",
+      "bytes": 480044,
+      "sha256": "8edd516de8c2171b67757cacb29e1effd3e6a8b78f5d6b035069273fadefac2b",
+      "pcm_f32le_sha256": {
+        "5": "89a770aefa2cb04c80484ab0c20888e4f21fd57696c3f79af83943b05e963027",
+        "10": "a3fc94cbbdc3eb071e239e2016d51d3c8298a36196bf03cdf7e7412f08218b87"
+      }
+    }
+  ]
+}
