@@ -1,8 +1,8 @@
 public enum MacDemoCatalog {
     public static func make(
         searchTerms: [String: [String]] = [:], speechArtifact: ModelArtifact, voxcpmArtifact: ModelArtifact,
-        ocrArtifact: ModelArtifact, qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact,
-        jevArtifact: ModelArtifact, chronosArtifact: ModelArtifact
+        voxcpmReferenceArtifact: ModelArtifact? = nil, ocrArtifact: ModelArtifact, qwenArtifact: ModelArtifact,
+        clefArtifact: ModelArtifact, jevArtifact: ModelArtifact, chronosArtifact: ModelArtifact
     ) throws -> ModelCatalog {
         let mac: Set<LibraryPlatform> = [.macOS]
         let demos = [
@@ -49,7 +49,9 @@ public enum MacDemoCatalog {
                     "gliner2.5-multi", "GLiNER2.5-multi", "Information Extraction",
                     [PublishedModelArtifacts.glinerFP32(platforms: mac)], ["comparison"]),
                 model("irodori", "Irodori", "Speech Synthesis", [speechArtifact], ["speech"]),
-                model("voxcpm2", "VoxCPM2", "Speech Synthesis", [voxcpmArtifact], ["voice-design"]),
+                model(
+                    "voxcpm2", "VoxCPM2", "Speech Synthesis",
+                    [voxcpmArtifact, voxcpmReferenceArtifact].compactMap { $0 }, ["voice-design"]),
                 TeleOCRDemoCatalog.model(artifact: ocrArtifact),
                 ReceiptDemoCatalog.model(artifact: jevArtifact),
                 ChronosDemoCatalog.model(artifact: chronosArtifact, platforms: mac, searchTerms: searchTerms),

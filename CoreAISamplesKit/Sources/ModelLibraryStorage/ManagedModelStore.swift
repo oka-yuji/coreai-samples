@@ -108,6 +108,7 @@ public actor ManagedModelStore {
     private let availableCapacity: @Sendable (URL) throws -> Int64
     private let removeMigratedSources: Bool
     private let voxcpmInventory: Data?
+    private let voxcpmReferenceInventory: Data?
     private var leases: [UUID: ModelArtifactIdentity] = [:]
     private var generation = 0
 
@@ -121,13 +122,14 @@ public actor ManagedModelStore {
     ) {
         self.init(
             root: root, removeMigratedSources: removeMigratedSources, clock: clock, writeLedger: writeLedger,
-            availableCapacity: availableCapacity, voxcpmInventory: nil)
+            availableCapacity: availableCapacity, voxcpmInventory: nil, voxcpmReferenceInventory: nil)
     }
 
     init(
         root: URL, removeMigratedSources: Bool, clock: @escaping @Sendable () -> Date,
         writeLedger: @escaping @Sendable (Data, URL) throws -> Void,
-        availableCapacity: @escaping @Sendable (URL) throws -> Int64, voxcpmInventory: Data?
+        availableCapacity: @escaping @Sendable (URL) throws -> Int64, voxcpmInventory: Data?,
+        voxcpmReferenceInventory: Data? = nil
     ) {
         self.root = root
         self.removeMigratedSources = removeMigratedSources
@@ -135,6 +137,7 @@ public actor ManagedModelStore {
         self.writeLedger = writeLedger
         self.availableCapacity = availableCapacity
         self.voxcpmInventory = voxcpmInventory
+        self.voxcpmReferenceInventory = voxcpmReferenceInventory
     }
 
     public func stagingDirectory(for model: LibraryModel, artifact: ModelArtifact) throws -> URL {
@@ -160,7 +163,9 @@ public actor ManagedModelStore {
         guard sourcePath != managedPath, !sourcePath.hasPrefix(managedPath + "/"),
             !managedPath.hasPrefix(sourcePath + "/")
         else { throw ManagedModelStoreError.pathEscape }
-        if artifact.contract == VoxCPMModelArtifact.contract { try VoxCPMModelArtifact.verifyConfiguration(of: source) }
+        if let profile = VoxCPMModelArtifact.profile(for: artifact) {
+            try VoxCPMModelArtifact.verifyConfiguration(of: source, profile: profile)
+        }
         try verifyStructure(source, artifact, allowingExtraneous: false)
         let area = try stagingDirectory(for: model, artifact: artifact)
         guard try availableCapacity(area) >= resource.sizeBytes else { throw ManagedModelStoreError.insufficientSpace }
@@ -490,9 +495,8 @@ public actor ManagedModelStore {
         guard artifact.download.map({ $0.root.isEmpty || isRelative($0.root) }) ?? true,
             artifact.files.allSatisfy({ isRelative($0.path) })
         else { throw ManagedModelStoreError.pathEscape }
-        if case .voxcpm = try family(artifact) {
-            let trusted = try voxcpmInventory.map(VoxCPMModelArtifact.make(inventory:)) ?? VoxCPMModelArtifact.make()
-            guard try artifact == trusted || artifact == VoxCPMModelArtifact.makeDownload(from: trusted) else {
+        if case .voxcpm(let profile) = try family(artifact) {
+            guard try voxcpmDefinitions(profile).contains(artifact) else {
                 throw ManagedModelStoreError.contractMismatch("VoxCPM2 inventory")
             }
         }
@@ -500,6 +504,17 @@ public actor ManagedModelStore {
             modelID: model.id, artifactID: artifact.id, contract: artifact.contract, revision: revision,
             upstreamRevision: artifact.upstream?.revision,
             directory: try location("artifacts", artifact.id, revision), sizeBytes: bytes, sourceKind: kind)
+    }
+
+    private func voxcpmDefinitions(_ profile: VoxCPMBundleProfile) throws -> [ModelArtifact] {
+        if profile == VoxCPMModelArtifact.referenceProfile {
+            return [
+                try voxcpmReferenceInventory.map(VoxCPMModelArtifact.makeReference(inventory:))
+                    ?? VoxCPMModelArtifact.makeReference()
+            ]
+        }
+        let local = try voxcpmInventory.map(VoxCPMModelArtifact.make(inventory:)) ?? VoxCPMModelArtifact.make()
+        return [local, try VoxCPMModelArtifact.makeDownload(from: local)]
     }
 
     private func readLedger() throws -> Ledger? {
@@ -584,7 +599,7 @@ private enum ContractFamily {
     case embedding(precision: String)
     case image
     case speech
-    case voxcpm
+    case voxcpm(VoxCPMBundleProfile)
     case ocr
     case chronos
 }
@@ -617,7 +632,7 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
         }
         return .speech
     }
-    if artifact.contract == VoxCPMModelArtifact.contract { return .voxcpm }
+    if let profile = VoxCPMModelArtifact.profile(for: artifact) { return .voxcpm(profile) }
     if artifact.localBundle != nil {
         if artifact.contract == TeleOCRModelArtifact.contract {
             guard artifact == (try TeleOCRModelArtifact.make()) else {
@@ -761,9 +776,9 @@ private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
         }
     case .speech:
         try IrodoriBundleInventory.validateManifest(Data(contentsOf: directory.appending(path: "irodori.json")))
-    case .voxcpm:
+    case .voxcpm(let profile):
         try VoxCPMModelArtifact.validateManifest(
-            Data(contentsOf: directory.appending(path: VoxCPMBundleInventory.manifestPath)))
+            Data(contentsOf: directory.appending(path: VoxCPMBundleInventory.manifestPath)), profile: profile)
     case .ocr:
         try TeleOCRModelArtifact.validateManifest(Data(contentsOf: directory.appending(path: "metadata.json")))
     case .chronos:
@@ -830,7 +845,7 @@ private func verifyLocalManifest(_ raw: Data, _ artifact: ModelArtifact) throws 
     switch try family(artifact) {
     case .image: try verifyImageManifest(raw, artifact)
     case .speech: try IrodoriBundleInventory.validateManifest(raw)
-    case .voxcpm: try VoxCPMModelArtifact.validateManifest(raw)
+    case .voxcpm(let profile): try VoxCPMModelArtifact.validateManifest(raw, profile: profile)
     case .ocr: try TeleOCRModelArtifact.validateManifest(raw)
     case .chronos: try ChronosModelArtifact.validateManifest(raw)
     default: throw ManagedModelStoreError.invalidDefinition
