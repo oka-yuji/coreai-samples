@@ -45,22 +45,20 @@
             let (events, sink) = AsyncStream.makeStream(of: MacSpeechRecordingEvent.self)
             activeTicket = ticket
             continuation = sink
+            let url: URL
             do {
-                let url = try await withTaskCancellationHandler {
+                url = try await withTaskCancellationHandler {
                     try await capture(events, sink: sink, started: started)
                 } onCancel: {
                     sink.yield(.cancelled)
                     sink.finish()
                 }
-                try checkCancellation()
-                settle(keeping: url)
-                return url
             } catch {
-                let cancelled = isStopRequested || Task.isCancelled
-                settle(keeping: nil)
-                if cancelled { throw CancellationError() }
+                if settle(keeping: nil) { throw CancellationError() }
                 throw error
             }
+            if settle(keeping: url) { throw CancellationError() }
+            return url
         }
 
         func finish(ticket: Int) {
@@ -137,12 +135,14 @@
             if isStopRequested { throw CancellationError() }
         }
 
-        private func settle(keeping result: URL?) {
+        private func settle(keeping result: URL?) -> Bool {
             continuation?.finish()
             continuation = nil
             device?.stop()
             device = nil
             if let ownedURL, ownedURL != result { cleanup.discard(ownedURL) }
+            let cancelled = isStopRequested || Task.isCancelled
+            if cancelled, let result, result == ownedURL { cleanup.discard(result) }
             ownedURL = nil
             activeTicket = nil
             isRecording = false
@@ -150,6 +150,7 @@
             let pending = waiters
             waiters.removeAll()
             for waiter in pending { waiter.resume() }
+            return cancelled
         }
     }
 #endif
