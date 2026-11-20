@@ -92,7 +92,9 @@ public struct SpeechState: Sendable, Equatable {
         seed = previous?.seed ?? seed
         voice = previous?.voice ?? voice
     }
-    public var prompt: String { assemblePrompt(voice: voice, text: text) }
+    public var usesVoiceDescription: Bool { reference?.format != .voxcpm2 }
+    public var canEditVoice: Bool { editable && usesVoiceDescription }
+    public var prompt: String { usesVoiceDescription ? assemblePrompt(voice: voice, text: text) : text }
     public var busy: Bool { phase != .idle }
     public var exportVisible: Bool { exportTicket != nil && !exportDismissed }
     public var editable: Bool { presented && !busy && !exportVisible }
@@ -206,13 +208,13 @@ public enum SpeechFeature: Feature {
             state.seed = seed
             invalidateAudio(&state)
         case .setVoice(let voice):
-            guard state.editable else { return [] }
+            guard state.canEditVoice else { return [] }
             state.voice = voice
             invalidateAudio(&state)
         case .selectExample(let example):
             guard state.editable else { return [] }
             state.text = example.text
-            state.voice = example.voice ?? ""
+            if state.usesVoiceDescription { state.voice = example.voice ?? "" }
             invalidateAudio(&state)
         case .generate:
             guard state.canGenerate, let seed = UInt64(state.seed) else { return [] }
