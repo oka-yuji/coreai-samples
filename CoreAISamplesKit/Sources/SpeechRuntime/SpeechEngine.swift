@@ -1,4 +1,6 @@
 #if os(macOS) || os(iOS)
+    import SpeechCore
+
     public enum SpeechEngine: Sendable {
         case irodori
         case voxcpm2
@@ -7,6 +9,13 @@
             switch self {
             case .irodori: "irodoriModelPath"
             case .voxcpm2: "voxcpm2ModelPath"
+            }
+        }
+
+        var referenceFormat: SpeechReferenceFormat {
+            switch self {
+            case .irodori: .irodori
+            case .voxcpm2: .voxcpm2
             }
         }
 

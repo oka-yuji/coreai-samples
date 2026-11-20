@@ -29,7 +29,7 @@
         public convenience init(engine kind: SpeechEngine, defaults: UserDefaults? = .standard) {
             self.init(
                 engine: kind.makeRuntime(), playback: AudioPlayback(), defaults: defaults,
-                modelPathKey: kind.modelPathKey)
+                modelPathKey: kind.modelPathKey, references: SpeechReferenceReader(format: kind.referenceFormat))
         }
         init(
             engine: any SpeechGenerating, playback: AudioPlayback, defaults: UserDefaults?,
