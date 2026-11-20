@@ -91,7 +91,9 @@ struct MacDemoCatalogTests {
             #expect(matches.map(\.id) == ["embeddinggemma2"])
             #expect(matches.first?.demos.map(\.id) == [selection.demoID])
             let descriptor = try #require(catalog.demo(selection.demoID))
-            #expect(descriptor.allowsPreviewInteraction && descriptor.title == SpokenSearchCatalog.title)
+            #expect(
+                descriptor.allowsPreviewInteraction && !descriptor.preparesModelOnOpen
+                    && descriptor.title == SpokenSearchCatalog.title)
             let link = try #require(catalog.model(selection.modelID)?.demos.first { $0.demoID == selection.demoID })
             #expect(link.requiredCapabilities.isEmpty)
             var state = ModelLibraryState(
@@ -101,32 +103,60 @@ struct MacDemoCatalogTests {
         }
     }
 
-    @Test("AUD-04 Spoken word search can use a recording while another window holds the model")
-    func spokenSearchWhileOccupied() throws {
-        let harness = try RuntimeHarness()
-        defer { harness.close() }
-        let catalog = try MacDemoCatalog.make()
+    @Test(
+        "AUD-04 Spoken word search stays in its asset-free view while another window runs a model",
+        arguments: [true, false])
+    func spokenSearchWhileOccupied(spokenFirst: Bool) async throws {
         let selection = SpokenSearchCatalog.selection
-        let artifact = try #require(catalog.model(selection.modelID)?.artifacts.first)
-        let adapter = FakeAdapter(selection.demoID, label: harness.labels, sink: harness.sink)
-        harness.registry.register(adapter)
-        let environment = LibraryEnvironment(platform: .macOS, connectedDemos: [selection.demoID])
-        var state = ModelLibraryState(catalog: catalog, environment: environment, owner: UUID())
-        state.installations[artifact.id]?.phase = .ready
-        state.installations[artifact.id]?.resource = ValidatedModelResource(
-            modelID: selection.modelID, artifactID: artifact.id, contract: artifact.contract,
-            revision: try #require(artifact.sourceRevision), upstreamRevision: artifact.upstream?.revision,
-            directory: harness.base, sizeBytes: artifact.sizeBytes ?? 0)
-        _ = ModelLibraryFeature.reduce(&state, .openDemo(selection))
-        let session = try #require(state.session)
-        _ = ModelLibraryFeature.reduce(&state, .demoPreparationChanged(session.id, .occupied))
-        let store = Store<ModelLibraryFeature>(initialState: state) { _, _ in }
-        let rendering = ModelLibraryRendering(registry: harness.registry, runner: harness.runner, library: store)
-        _ = rendering.content(for: session)
-        #expect(adapter.previews == [selection] && adapter.contents.isEmpty)
-        store.send(.closeDemo)
-        _ = rendering.content(for: session)
-        #expect(adapter.previews == [selection] && adapter.contents.isEmpty)
+        let descriptor = try #require(IOSDemoCatalog.make().demo(selection.demoID))
+        let harness = try RuntimeHarness(
+            embeddingModelID: selection.modelID, demoOverrides: [selection.demoID: descriptor])
+        defer { harness.close() }
+        let recorder = harness.scene("recording")
+        let other = harness.scene("comparison")
+        var events = harness.events.makeAsyncIterator()
+        try await other.download("text-fp16", &events)
+
+        func showRecording() async throws {
+            switch recorder.library.state.access(to: selection) {
+            case .preview: _ = recorder.rendering.preview(for: selection)
+            case .ready: _ = try await recorder.show()
+            default: Issue.record("The spoken word search cannot open.")
+            }
+        }
+
+        if spokenFirst {
+            try await recorder.download("image-fp16", &events)
+            recorder.library.send(.openDemo(selection))
+            try await showRecording()
+            #expect(recorder.library.state.session == nil)
+        }
+        other.library.send(.openDemo(.comparison))
+        let otherSession = try await other.show()
+        let otherAdapter = try other.adapter("comparison")
+        #expect(otherAdapter.start(.comparison, input: "use the other model"))
+        #expect(await harness.leases(otherSession) == 1)
+        if !spokenFirst {
+            recorder.library.send(.openDemo(selection))
+            try await showRecording()
+            #expect(recorder.library.state.access(to: selection) == .preview(.missing))
+            try await recorder.download("image-fp16", &events)
+            try await showRecording()
+        }
+        let installed = try #require(recorder.library.state.installations["image-fp16"]?.resource)
+        #expect(recorder.library.state.selection == selection && recorder.library.state.session == nil)
+        #expect(recorder.library.state.access(to: selection) == .preview(.ready))
+        #expect(await harness.store.activeLeases(identity: installed.identity) == 0)
+        let adapter = try recorder.adapter(selection.demoID)
+        #expect(
+            adapter.contents.isEmpty && adapter.stops.isEmpty
+                && adapter.previews == Array(repeating: selection, count: spokenFirst ? 1 : 2))
+
+        recorder.library.send(.closeDemo)
+        #expect(otherAdapter.gate(for: .comparison)?.isPermitted() == true && otherAdapter.stops.isEmpty)
+        other.library.send(.closeDemo)
+        try await next(&events, "comparison stopDemo")
+        #expect(await harness.leases(otherSession) == 0)
     }
 
     @Test("VUI-01 VoxCPM2 and its speech demo are listed on the Mac only, after Irodori, and not in the iOS catalog")

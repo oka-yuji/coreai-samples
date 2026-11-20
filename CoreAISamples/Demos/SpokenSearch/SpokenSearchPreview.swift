@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SpokenSearchPreview: View {
     @State private var session: SpokenSearchSession?
+    @State private var owner: UUID?
 
     var body: some View {
         Group {
@@ -13,7 +14,15 @@ struct SpokenSearchPreview: View {
             }
         }
         .onAppear {
-            if session == nil { session = SpokenSearchSession() }
+            guard session == nil else { return }
+            let id = UUID()
+            owner = id
+            session = SpokenSearchSession { owner == id }
+        }
+        .onDisappear {
+            owner = nil
+            session?.store.send(.disappeared)
+            session = nil
         }
     }
 }

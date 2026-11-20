@@ -36,10 +36,6 @@ public struct ModelLibraryRendering {
         let content: AnyView
         if library.state.demoPreparation == .available, let gate = runner.bind(session, in: library) {
             content = adapter.content(for: session, gate: gate)
-        } else if session.selection == SpokenSearchCatalog.selection, library.state.demoPreparation == .occupied,
-            library.state.permits(session.id, selection: session.selection)
-        {
-            content = adapter.preview(for: session.selection)
         } else {
             content = AnyView(DemoPreparationView(session: session, library: library))
         }

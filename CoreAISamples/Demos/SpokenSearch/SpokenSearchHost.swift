@@ -15,10 +15,7 @@
                             if store.state.failure != nil {
                                 Button("Try again") { store.send(.retryDemoStop) }
                             }
-                        } else if let session = store.state.session, session.selection == SpokenSearchCatalog.selection
-                        {
-                            rendering.content(for: session)
-                        } else {
+                        } else if store.state.selection == SpokenSearchCatalog.selection {
                             rendering.preview(for: SpokenSearchCatalog.selection)
                         }
                     } else {

@@ -33,7 +33,7 @@ final class SpokenSearchRunner {
             generation = id
             await clear()
         case .stopPlayback(let id):
-            if id == generation { player.stop() }
+            if id == generation { await player.stopAndWait() }
         case .find(let id, let query):
             guard let record = current(id), let transcript = record.transcript else {
                 send(.failed(id, .unavailable))
@@ -108,8 +108,9 @@ final class SpokenSearchRunner {
 
     private func clear() async {
         recording = nil
-        player.stop()
+        let playbackStop = player.beginStopping()
         await speech.cancel()
+        await playbackStop.wait()
     }
 
     private func finished() {

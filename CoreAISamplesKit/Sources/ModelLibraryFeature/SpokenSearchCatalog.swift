@@ -14,6 +14,7 @@ public enum SpokenSearchCatalog {
                         "Apple Speech transcribes the recording on this device. Word search works without downloading EmbeddingGemma 2."
                 )
             ],
-            platforms: [platform], searchTerms: searchTerms[selection.demoID], allowsPreviewInteraction: true)
+            platforms: [platform], searchTerms: searchTerms[selection.demoID], allowsPreviewInteraction: true,
+            preparesModelOnOpen: false)
     }
 }

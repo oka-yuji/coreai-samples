@@ -146,7 +146,7 @@ It runs only when a path in `COREAI_TEST_BUNDLES` contains `embedding-manifest.j
 
 ## Search spoken words in a recording
 
-On iPhone, open **Models → EmbeddingGemma 2 → Search spoken words**. On Mac, choose **Search spoken words** under **EmbeddingGemma 2** in the sidebar. This demo uses Apple Speech on the device. You can search recordings before downloading either EmbeddingGemma 2 variant.
+On iPhone, open **Models → EmbeddingGemma 2 → Search spoken words**. On Mac, choose **Search spoken words** under **EmbeddingGemma 2** in the sidebar. This demo uses Apple Speech on the device. Word search works with or without an installed EmbeddingGemma 2 variant. Preparing that model while a recording is open keeps the recording and its results available.
 
 1. Select **Choose a recording…** and open a Japanese audio file from Files or Finder. The first transcription may need a connection to prepare Japanese speech recognition data.
 2. When **Transcript ready** appears, enter a word such as **天気** and select **Search**. Each occurrence in the recognized text appears in recording order, including words that span adjacent recognition segments.
@@ -154,7 +154,7 @@ On iPhone, open **Models → EmbeddingGemma 2 → Search spoken words**. On Mac,
 
 Matches depend on what Apple Speech recognized. For example, a recording about rain only returns a match for **天気** if the transcript contains **天気**. Choosing another file, leaving the screen or putting the app in the background clears the current recording. Select the file again to transcribe it again.
 
-The opt-in `SpokenNativeTests.fixedRecordings` check uses a Japanese synthetic recording with two occurrences of the same word and a second file, `related.wav`, in the same directory. With the shared heavy-job lock held, set `COREAI_SPOKEN_WORD_AUDIO` to the first WAV and run `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenNativeTests.fixedRecordings`. On M5 Max / macOS 27.2.1 with Xcode 27.2, the two matches started at 3.06 and 4.86 seconds. The player reached both positions and played to the end. The related recording produced a nonempty transcript and zero literal matches. The iOS build uses the same code. Listening to natural speech on a physical iPhone remains an owner check.
+The opt-in `SpokenNativeTests.fixedRecordings` check uses a Japanese synthetic recording with two occurrences of the same word and a second file, `related.wav`, in the same directory. With the shared heavy-job lock held, set `COREAI_SPOKEN_WORD_AUDIO` to the first WAV and run `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenNativeTests.fixedRecordings`. On M5 Max / macOS 27.2.1 with Xcode 27.2, the two matches started at 3.06 and 4.86 seconds. The player reached both positions and played to the end. In the Mac sidebar and Finder picker, the second result played from 4.86 seconds. Replacing the recording produced a nonempty transcript and zero literal matches; the English and Japanese screens both showed that empty result. The iOS build uses the same code. Listening to natural speech on a physical iPhone remains an owner check.
 
 To recreate the two fixtures in an empty directory on a Mac with the Japanese Kyoko voice installed, run
 
