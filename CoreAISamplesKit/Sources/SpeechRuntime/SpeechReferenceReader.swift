@@ -50,7 +50,8 @@ actor SpeechReferenceReader: SpeechReferenceReading {
                     mono.append(first)
                     continue
                 }
-                var sum = first / divisor
+                var sum: Float = 0
+                sum += first / divisor
                 for channel in 1..<channels {
                     let sample = values[channel][frame]
                     guard sample.isFinite else { throw SpeechReferenceError.invalidSamples }
