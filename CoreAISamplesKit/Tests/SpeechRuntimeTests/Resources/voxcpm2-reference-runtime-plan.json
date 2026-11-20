@@ -1,0 +1,55 @@
+{
+  "format": 1,
+  "seed": 1708,
+  "text": "こんにちは。今日はよい天気ですね。",
+  "referenceWAVManifestSHA256": "a50c6b7004618e6633fbd8a20407b1b9e378549394283fe7ac4884f740fef5a1",
+  "pytorchGoldenReportSHA256": "0631f1c4d1a8d3a232cf2c5085a96cd3ff530208f27f159e796180f260f793ec",
+  "cases": [
+    {
+      "id": "none",
+      "text_tokens": 19,
+      "reference_patches": 0,
+      "length": 20,
+      "patches": 15,
+      "stopped_by_head": true,
+      "audio_seconds": 2.4
+    },
+    {
+      "id": "0a67-5",
+      "text_tokens": 19,
+      "reference_patches": 32,
+      "length": 54,
+      "patches": 22,
+      "stopped_by_head": true,
+      "audio_seconds": 3.52
+    },
+    {
+      "id": "0a67-10",
+      "text_tokens": 19,
+      "reference_patches": 63,
+      "length": 85,
+      "patches": 16,
+      "stopped_by_head": true,
+      "audio_seconds": 2.56
+    },
+    {
+      "id": "1410-5",
+      "text_tokens": 19,
+      "reference_patches": 32,
+      "length": 54,
+      "patches": 14,
+      "stopped_by_head": true,
+      "audio_seconds": 2.24
+    },
+    {
+      "id": "1410-10",
+      "text_tokens": 19,
+      "reference_patches": 63,
+      "length": 85,
+      "patches": 18,
+      "stopped_by_head": true,
+      "audio_seconds": 2.88
+    }
+  ],
+  "source": "original-encoder/reference.json"
+}

@@ -13,7 +13,7 @@ struct VoxCPMDownloadTests {
         let artifact = try #require(model.artifacts.first)
         let local = try VoxCPMModelArtifact.make()
         let inventory = try VoxCPMBundleInventory.files(profile: VoxCPMModelArtifact.profile)
-        #expect(model.artifacts == [try VoxCPMModelArtifact.makeDownload()])
+        #expect(model.artifacts == [try VoxCPMModelArtifact.makeDownload(), try VoxCPMModelArtifact.makeReference()])
         #expect(
             artifact.download
                 == ModelDownload(

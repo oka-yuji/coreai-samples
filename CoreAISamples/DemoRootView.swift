@@ -360,7 +360,7 @@ struct DemoRootView: View {
                 SpeechView(
                     store: voiceDesign, model: .voxcpm2,
                     limit: "Short passages work best. The text and the voice description share a limit of 144 tokens.",
-                    missing: "Download VoxCPM2 from its heading in the sidebar.",
+                    missing: "Prepare VoxCPM2 from its heading in the sidebar.",
                     voiceHint:
                         "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model; if the translation changes, the same seed can give different audio. Without a description the model chooses the voice."
                 )

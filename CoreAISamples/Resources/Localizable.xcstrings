@@ -6697,6 +6697,16 @@
         }
       }
     },
+    "Prepare VoxCPM2 from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーのVoxCPM2見出しからモデルを準備してください。"
+          }
+        }
+      }
+    },
     "Prepare a model before starting voice input. Tap answers are available now." : {
       "extractionState" : "manual",
       "localizations" : {

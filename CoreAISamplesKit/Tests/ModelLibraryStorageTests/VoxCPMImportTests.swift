@@ -145,8 +145,8 @@ struct VoxCPMImportTests {
             expected: .contractMismatch("VoxCPM2 configuration " + profile.rawValue), copiesFirst: false)
     }
 
-    @Test("VRA-03 Models keeps the FP16 definition and has no download or import for reference FP32")
-    func referenceStaysOutOfModels() throws {
+    @Test("VRA-03 The legacy FP16 defaults reject reference FP32 and do not define its download")
+    func legacyDefaultsRejectReferenceProfile() throws {
         #expect(VoxCPMModelArtifact.profile == .fp16)
         #expect(VoxCPMModelArtifact.downloadFolder(for: .referenceFP32) == nil)
         let manifest = try VoxCPMImportFixture.manifest(.referenceFP32)

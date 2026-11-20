@@ -33,7 +33,7 @@ struct MacDemoCatalogTests {
                 ["voice-design"], ["ocr"], ["receipt-desk"],
                 ["taxi-forecast", "product-sales-forecast", "seoul-bike-forecast"],
             ])
-        #expect(sections.map { $0.artifacts.count } == [1, 1, 2, 1, 1, 1, 1, 1, 1])
+        #expect(sections.map { $0.artifacts.count } == [1, 1, 2, 1, 1, 2, 1, 1, 1])
         #expect(catalog.sections(platform: .iOS, audience: .release).isEmpty)
         #expect(
             catalog.models.filter { $0.id != "chronos2" }.flatMap(\.artifacts).allSatisfy { $0.platforms == [.macOS] })
@@ -73,7 +73,10 @@ struct MacDemoCatalogTests {
         #expect(
             try catalog.model("irodori")?.artifacts == [IrodoriModelArtifact.makeReferenceDownload(platforms: [.macOS])]
         )
-        #expect(try catalog.model("voxcpm2")?.artifacts == [VoxCPMModelArtifact.makeDownload()])
+        #expect(
+            try catalog.model("voxcpm2")?.artifacts == [
+                VoxCPMModelArtifact.makeDownload(), VoxCPMModelArtifact.makeReference(),
+            ])
         #expect(try catalog.model("teleocr")?.artifacts == [TeleOCRModelArtifact.make()])
         #expect(try catalog.model("chronos2")?.artifacts == [ChronosModelArtifact.make()])
     }
@@ -164,7 +167,9 @@ struct MacDemoCatalogTests {
         let catalog = try MacDemoCatalog.make()
         let model = try #require(catalog.model("voxcpm2"))
         #expect(model.name == "VoxCPM2" && model.category == "Speech Synthesis" && model.platforms == [.macOS])
-        #expect(model.artifacts == [try VoxCPMModelArtifact.makeDownload()] && model.artifacts[0].platforms == [.macOS])
+        #expect(
+            model.artifacts == [try VoxCPMModelArtifact.makeDownload(), try VoxCPMModelArtifact.makeReference()]
+                && model.artifacts[0].platforms == [.macOS])
         #expect(model.demos == [ModelDemoLink(demoID: "voice-design", platforms: [.macOS])])
         let demo = try #require(catalog.demo("voice-design"))
         #expect(demo.platforms == [.macOS] && demo.title == demo.summary)
@@ -229,6 +234,6 @@ struct MacDemoCatalogTests {
         #expect(report["capabilities"] == nil)
         #expect(report["scope"] as? String == "Catalog, registry and store checks of the Mac app.")
         let artifacts = try #require(report["artifacts"] as? [[String: Any]])
-        #expect(artifacts.count == 10 && artifacts.allSatisfy { $0["inspection"] as? String == "missing" })
+        #expect(artifacts.count == 11 && artifacts.allSatisfy { $0["inspection"] as? String == "missing" })
     }
 }
