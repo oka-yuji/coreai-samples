@@ -114,7 +114,7 @@ def eligible(report, files, contract):
     wrong = [".".join(keys) for keys, value in expected.items() if canonical(lookup(report, keys)) != canonical(value)]
     for kind in ("fixed", "coreai"):
         value = lookup(report, ("summary", kind, "normalized_max"))
-        if type(value) not in (int, float) or not math.isfinite(value) or value > LIMIT:
+        if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= LIMIT:
             wrong.append(f"summary.{kind}.normalized_max")
     if wrong:
         raise ValueError(f"The selected report is not an eligible FP32 encoder run: {wrong}")
@@ -170,8 +170,7 @@ def destination(output, inputs):
     output = Path(os.path.abspath(output))
     if os.path.lexists(output):
         raise FileExistsError("The output already exists; use a new folder")
-    resolved = output.parent.resolve() / output.name
-    if any(resolved.is_relative_to(Path(path).resolve()) for path in inputs):
+    if strip.inside_source(output, inputs):
         raise ValueError("The output must be outside the base bundle and the encoder run")
     return output
 

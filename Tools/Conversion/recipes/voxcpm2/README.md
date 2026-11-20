@@ -137,7 +137,10 @@ only the accepted FP32 candidate.
 `reference-bundle-recipe.json` makes `reference_fp32`: the published FP32 bundle with
 the reference encoder of one selected, passing `reference-recipe.json` run added. It
 converts and compares nothing again, and it does not run the reference recipe, so
-the selected files keep their bytes. Its bindings are `python`, `base_bundle` (the
+the selected files keep their bytes. This assembly stage has `cache: false`: every
+run validates the current inputs and creates a new stripped asset, whose metadata
+timestamp and inventory can change. A same-content symbolic link must not bypass
+the input checks through a previously cached result. Its bindings are `python`, `base_bundle` (the
 `fp32/` folder of [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai)
 at revision `afe11d61de9dd7c3609140aa040b777ef77b2555`), `encoder_run` (the `encoder`
 folder of the selected run) and `selection`:
@@ -216,9 +219,11 @@ the fixed encoder input of 161,280 samples; the input length is not the audio li
 `check.json` records `complete`, `passed`, `selection_sha256`,
 `base_inventory_sha256`, `manifest_sha256`, `inventory_sha256`, the `strip` record,
 the cloned and copied counts, `path_scan`, the scan of the encoder before the removal
-and the canaries. A failed run exits with an error and writes no inventory; a
-rejected input leaves no output at all, and a later failure leaves `check.json` with
-`passed` false. The inputs and an existing folder are not changed. A pass covers this
+and the canaries. A rejected input leaves no output at all. A later failure exits
+with an error and leaves the earlier `check.json` checkpoint without a passing
+result. An inventory may already exist if saving the final check fails; it is not
+usable without both a successful command exit and a complete, passing check. The
+inputs and an existing folder are not changed. A pass covers this
 assembly only. Before publication, the encoder inside the finished bundle still has
 to run in a new process with the OS Core AI runtime on the two voices at 5 and 10
 seconds against the original PyTorch features, the manifest and inventory handed on

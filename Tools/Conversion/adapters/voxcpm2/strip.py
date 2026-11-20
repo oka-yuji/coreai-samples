@@ -50,6 +50,22 @@ def passed(rows, count):
     return len(rows) == count and all(row["semantic_equal"] and row["bytecode_changed"] for row in rows)
 
 
+def inside_source(path, roots):
+    identities = set()
+    for root in roots:
+        value = Path(root).stat()
+        identities.add((value.st_dev, value.st_ino))
+    parent = Path(path).parent.resolve()
+    for ancestor in (parent, *parent.parents):
+        try:
+            value = ancestor.stat()
+        except FileNotFoundError:
+            continue
+        if (value.st_dev, value.st_ino) in identities:
+            return True
+    return False
+
+
 def strip_one(asset, precision, source, target):
     from coreai.authoring import AIModelAsset
     from coreai_torch.debugging.debug_info import strip_debug_info
@@ -57,7 +73,7 @@ def strip_one(asset, precision, source, target):
     source, target = Path(source), Path(target)
     if os.path.lexists(target):
         raise FileExistsError(f"The stripped asset already exists: {target.name}")
-    if target.resolve().is_relative_to(source.resolve()):
+    if inside_source(target, (source,)):
         raise ValueError("The stripped asset must be saved outside its source")
     files_before = folder_files(source)
     loaded = AIModelAsset.load(source)

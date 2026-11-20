@@ -69,7 +69,8 @@
           ],
           "equals": true
         }
-      ]
+      ],
+      "cache": false
     }
   ]
 }
