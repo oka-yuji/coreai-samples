@@ -276,7 +276,7 @@ struct ModelLibraryLifecycleTests {
     }
 
     @Test(
-        "SESSION-06 Six registered fake adapters share the host and the operation gate, and an unregistered demo stays browse-only"
+        "SESSION-06 Seven registered fake adapters share the host and the operation gate, and an unregistered demo stays browse-only"
     )
     func sharedHost() async throws {
         let harness = try RuntimeHarness()

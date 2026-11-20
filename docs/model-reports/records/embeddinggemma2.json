@@ -6,12 +6,12 @@
     "ja": "EmbeddingGemma 2 · FP16／INT4-INT8 PTQ"
   },
   "use": {
-    "en": "Image search, video moment search, camera object search",
-    "ja": "画像検索・動画の場面検索・カメラで物探し"
+    "en": "Image search, video moment search, camera object search and spoken word search with Apple Speech",
+    "ja": "画像検索・動画の場面検索・カメラで物探し・Apple Speechによる録音内の語検索"
   },
   "overview": {
-    "en": "Image search, video moment search, camera object search",
-    "ja": "画像検索・動画の場面検索・カメラで物探し"
+    "en": "Image search, video moment search, camera object search and spoken word search with Apple Speech",
+    "ja": "画像検索・動画の場面検索・カメラで物探し・Apple Speechによる録音内の語検索"
   },
   "release": "released",
   "release_note": {
