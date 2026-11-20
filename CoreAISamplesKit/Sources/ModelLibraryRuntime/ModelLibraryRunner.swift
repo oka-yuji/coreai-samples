@@ -20,6 +20,32 @@ public final class ModelLibraryRunner {
         let identity: ModelArtifactIdentity
     }
 
+    private struct ExecutionCandidate: Equatable {
+        let model: LibraryModel
+        let artifact: ModelArtifact
+        let resource: ValidatedModelResource
+        let registration: Int
+    }
+
+    private final class ExecutionLease {
+        private var lease: ResourceLease?
+        private let modelID: String
+        private let runtimeUses: Store<ModelRuntimeUses>
+
+        init(lease: ResourceLease, modelID: String, runtimeUses: Store<ModelRuntimeUses>) {
+            self.lease = lease
+            self.modelID = modelID
+            self.runtimeUses = runtimeUses
+        }
+
+        func release() async {
+            guard let lease else { return }
+            self.lease = nil
+            await lease.release()
+            runtimeUses.send(.released(modelID))
+        }
+    }
+
     private let resources: ModelLibraryResourceRunner
     private let registry: ModelDemoAdapterRegistry
     private let store: ManagedModelStore
@@ -227,6 +253,64 @@ public final class ModelLibraryRunner {
         guard onDemandRequest === request else { return }
         onDemandRequest = nil
         request.endWaiting()
+    }
+
+    public func executionLeaseAcquirer(
+        for modelID: String, in library: Store<ModelLibraryFeature>, runtimeUses: Store<ModelRuntimeUses>
+    ) -> @Sendable (URL, Int?) async throws -> (registrationGeneration: Int, release: @Sendable () async -> Void) {
+        let window = LibraryReference(store: library)
+        let owner = library.state.owner
+        let executionOwner = UUID()
+        return { @MainActor [weak self] directory, expected in
+            guard let self else { throw ManagedModelStoreError.notInstalled }
+            let current: () -> ExecutionCandidate? = { [weak self] in
+                guard let self, !Task.isCancelled, let library = window.store else { return nil }
+                return executionCandidate(
+                    for: modelID, at: directory, expected: expected, owner: owner, in: library)
+            }
+            return try await acquireExecution(
+                modelID: modelID, current: current, owner: executionOwner, runtimeUses: runtimeUses)
+        }
+    }
+
+    private func executionCandidate(
+        for modelID: String, at directory: URL, expected: Int?, owner: UUID, in library: Store<ModelLibraryFeature>
+    ) -> ExecutionCandidate? {
+        let state = library.state
+        guard registered[owner]?.store === library, releasedThrough[owner] != .max, state.owner == owner,
+            let model = state.catalog.model(modelID), let artifact = state.selectedArtifact(for: modelID),
+            let used = state.usages[modelID]?.resource, let installed = state.installations[artifact.id],
+            installed.phase == .ready, let resource = installed.resource, used == resource,
+            resource.matches(model: model, artifact: artifact), resource.sizeBytes == artifact.totalFileBytes,
+            let registration = resource.registrationGeneration, used.registrationGeneration == registration,
+            expected == nil || expected == registration,
+            directory.standardizedFileURL.path == resource.directory.standardizedFileURL.path,
+            used.directory.standardizedFileURL.path == resource.directory.standardizedFileURL.path
+        else { return nil }
+        return ExecutionCandidate(model: model, artifact: artifact, resource: resource, registration: registration)
+    }
+
+    private func acquireExecution(
+        modelID: String, current: () -> ExecutionCandidate?, owner: UUID, runtimeUses: Store<ModelRuntimeUses>
+    ) async throws -> (registrationGeneration: Int, release: @Sendable () async -> Void) {
+        guard let candidate = current() else { throw executionRefusal() }
+        let before = await store.generation(of: candidate.resource.identity)
+        guard before == candidate.registration, current() == candidate else { throw executionRefusal() }
+        let lease = try await store.acquire(
+            model: candidate.model, artifact: candidate.artifact, directory: candidate.resource.directory,
+            owner: owner)
+        let after = await store.generation(of: candidate.resource.identity)
+        guard after == candidate.registration, current() == candidate else {
+            await lease.release()
+            throw executionRefusal()
+        }
+        runtimeUses.send(.acquired(modelID))
+        let execution = ExecutionLease(lease: lease, modelID: modelID, runtimeUses: runtimeUses)
+        return (candidate.registration, { await execution.release() })
+    }
+
+    private func executionRefusal() -> any Error {
+        Task.isCancelled ? CancellationError() : ManagedModelStoreError.notInstalled
     }
 
     public func abandon(owner: UUID) {

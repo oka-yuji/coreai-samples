@@ -171,7 +171,7 @@ struct DemoRootView: View {
     @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
-    @State private var voiceDesign = SpeechAssembly.makeStore(.voxcpm2)
+    @State private var voiceDesign: Store<SpeechFeature>
     @State private var library: MacModelLibrary
     @State private var choice: MacModelChoice
     @State private var showingExtractionLab = false
@@ -190,6 +190,8 @@ struct DemoRootView: View {
         _choice = State(initialValue: choice)
         let library = MacModelLibrary()
         _library = State(initialValue: library)
+        let voiceDesign = SpeechAssembly.makeVoiceDesignStore(library: library)
+        _voiceDesign = State(initialValue: voiceDesign)
         let managed = LaunchArguments.value("--gui-e2e") == nil || LaunchArguments.value("--model") == nil
         let chat = ChatViewModel(managed: managed)
         let decide = DecideAssembly.makeStore(managed: managed)
@@ -203,6 +205,9 @@ struct DemoRootView: View {
                 resumeModels: {
                     if navigator.selection == .decide { decide.send(.appeared) }
                     if navigator.selection == .recipes { recipes.send(.appeared) }
+                    if navigator.selection == .voiceDesign, !library.isBackgrounded {
+                        SpeechView.present(voiceDesign, model: .voxcpm2, in: library)
+                    }
                 },
                 modelUnloaded: {
                     choice.send(.reset)
@@ -211,10 +216,22 @@ struct DemoRootView: View {
                 releaseModels: {
                     decide.send(.ended)
                     recipes.send(.ended)
-                    for await phases in Observations({ (decide.state.phase, recipes.state.phase) }) {
-                        if phases.0 != .closing && phases.1 != .closing { break }
+                    SpeechView.dismiss(voiceDesign, model: .voxcpm2, in: library)
+                    for await phases in Observations({
+                        (decide.state.phase, recipes.state.phase, voiceDesign.state.phase)
+                    }) {
+                        if phases.0 != .closing && phases.1 != .closing && phases.2 != .stopping { break }
                     }
                 }))
+    }
+
+    private func rebindVoiceDesign(_ phase: ScenePhase) {
+        switch phase {
+        case .background: SpeechView.dismiss(voiceDesign, model: .voxcpm2, in: library)
+        case .active where navigator.selection == .voiceDesign && !host.state.isTerminating:
+            SpeechView.present(voiceDesign, model: .voxcpm2, in: library)
+        default: break
+        }
     }
 
     private var modelLoadID: String? {
@@ -321,7 +338,10 @@ struct DemoRootView: View {
                 decide.send(.ended)
                 recipes.send(.ended)
             }
-            .onChange(of: scenePhase) { _, phase in library.enter(phase) }
+            .onChange(of: scenePhase) { _, phase in
+                library.enter(phase)
+                rebindVoiceDesign(phase)
+            }
             .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
     }
 
@@ -362,7 +382,8 @@ struct DemoRootView: View {
                     limit: "Short passages work best. The text and the voice description share a limit of 144 tokens.",
                     missing: "Prepare VoxCPM2 from its heading in the sidebar.",
                     voiceHint:
-                        "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model; if the translation changes, the same seed can give different audio. Without a description the model chooses the voice."
+                        "Optional. Describe the voice in a few words, for example: A young woman, gentle and calm voice. A description that contains hiragana or katakana is translated to English on this Mac before it reaches the model; if the translation changes, the same seed can give different audio. Without a description the model chooses the voice.",
+                    canPresent: { !host.state.isTerminating && !library.isBackgrounded }
                 )
             case .ocr?: OCRHostView(library: library)
             case .receipts?: ReceiptHostView(library: library)

@@ -140,6 +140,7 @@ public struct ModelInstallation: Equatable, Sendable {
     public internal(set) var requestID: LibraryTicket?
     public internal(set) var resource: ValidatedModelResource?
     public internal(set) var failure: ModelLibraryFailure?
+    public internal(set) var lastSuccessfulVerification: LibraryTicket?
     var importInProgress = false
 
     public init() {}

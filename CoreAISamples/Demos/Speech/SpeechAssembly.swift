@@ -11,6 +11,12 @@ enum SpeechAssembly {
         LiveSpeechService.makeStore(engine: engine, examples: (try? examples(engine)) ?? [])
     }
 
+    static func makeVoiceDesignStore(library: MacModelLibrary) -> Store<SpeechFeature> {
+        LiveSpeechService.makeStore(
+            engine: .voxcpm2, examples: (try? examples(.voxcpm2)) ?? [],
+            acquireVoxCPM: library.executionLeaseAcquirer(for: .voxcpm2))
+    }
+
     static func examples(_ engine: SpeechEngine) throws -> [SpeechExample] {
         let resource =
             switch engine {

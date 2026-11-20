@@ -22,6 +22,7 @@
         let problem: String?
         private(set) var downloadedSize: Int64 = 0
         private(set) var availableSpace: Int64 = 0
+        private(set) var isBackgrounded = false
 
         init() {
             do {
@@ -65,6 +66,16 @@
             availableSpace = ModelStorage.availableSpace()
         }
 
+        func executionLeaseAcquirer(for model: DemoModel)
+            -> @Sendable (URL, Int?) async throws -> (
+                registrationGeneration: Int, release: @Sendable () async -> Void
+            )
+        {
+            guard let store else { return { _, _ in throw ManagedModelStoreError.notInstalled } }
+            return MacModelLibraryServices.assembly.runner.executionLeaseAcquirer(
+                for: model.libraryID, in: store, runtimeUses: MacModelLibraryServices.runtimeUses)
+        }
+
         func use(_ model: DemoModel) { store?.send(.useRequested(model.libraryID)) }
 
         func stopUsing(_ model: DemoModel) { store?.send(.useEnded(model.libraryID)) }
@@ -95,8 +106,14 @@
         func leave() { store?.send(.closeDemo) }
 
         func enter(_ phase: ScenePhase) {
-            if phase == .background { leave() }
-            if phase == .active { MacModelLibraryServices.assembly.runner.retryAbandoned() }
+            if phase == .background {
+                isBackgrounded = true
+                leave()
+            }
+            if phase == .active {
+                isBackgrounded = false
+                MacModelLibraryServices.assembly.runner.retryAbandoned()
+            }
         }
 
         func close() {
