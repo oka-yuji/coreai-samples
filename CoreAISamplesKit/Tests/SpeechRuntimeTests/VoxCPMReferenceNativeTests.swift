@@ -53,6 +53,8 @@
             var passed = false
             var inventorySHA256: String?
             var manifestSHA256: String?
+            var verifiedCopy = false
+            var verifiedCopyKey: String?
             var files = 0
             var bytes: Int64 = 0
             var models = 0
@@ -90,10 +92,13 @@
             defer { try? FileManager.default.removeItem(at: copies) }
             do {
                 let index = try Self.index(at: fixtures)
-                try Self.sourceIdentity(source, report: &report)
+                let evidence = try Self.sourceIdentity(source, report: &report)
+                report.verifiedCopyKey = evidence.key
                 try Self.save(report, to: file)
                 let loaded = try await VoxCPMPipeline<VoxCPMAssets>.load(bundle: source, copyingInto: copies)
                 report.loadSeconds = loaded.statistics.totalSeconds
+                report.verifiedCopy = evidence.matches(loaded.bundle, source: source, copies: copies)
+                try #require(report.verifiedCopy)
                 let assets = loaded.pipeline.components
                 let kind = try Self.checkLoaded(loaded.pipeline, urls: loaded.bundle.assets)
                 report.models = assets.models.count
@@ -104,7 +109,7 @@
                 }
                 report.complete = true
                 report.passed =
-                    report.rows.map(\.id) == Self.ids && report.rows.allSatisfy(\.passed)
+                    report.verifiedCopy && report.rows.map(\.id) == Self.ids && report.rows.allSatisfy(\.passed)
                     && report.rows.map(\.compared).reduce(0, +) == 48_640
             } catch {
                 report.errorType = String(describing: type(of: error))
@@ -146,7 +151,7 @@
             return index
         }
 
-        private static func sourceIdentity(_ root: URL, report: inout Report) throws {
+        private static func sourceIdentity(_ root: URL, report: inout Report) throws -> VoxCPMVerifiedCopyEvidence {
             let inventory = try Data(contentsOf: URL(filePath: try argument("INVENTORY")))
             let inventoryHash = digest(inventory)
             let selectedHash = try argument("INVENTORY_SHA256")
@@ -163,6 +168,9 @@
             report.inventorySHA256 = inventoryHash
             report.files = files.count
             report.bytes = files.map(\.bytes).reduce(0, +)
+            let key = ValidatedSpeechBundle.verifiedKey(manifest: raw, files: trusted, names: .voxcpm2)
+            let layout = try SpeechBundleLayout.voxcpm2(manifest: raw)
+            return VoxCPMVerifiedCopyEvidence(key: key, assetPaths: layout.assets)
         }
 
         private static func checkLoaded(_ pipeline: VoxCPMPipeline<VoxCPMAssets>, urls: [URL]) throws -> VoxCPMFunction
