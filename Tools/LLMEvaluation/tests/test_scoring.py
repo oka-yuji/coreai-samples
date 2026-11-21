@@ -97,6 +97,22 @@ class FirstObjectTests(unittest.TestCase):
         found = scoring.score({"scorer": {"kind": "json_exact"}, "answer": {"rows": [{"a": 2}]}}, nested)
         self.assertEqual((found["state"], found["correct"]), ("duplicate_key", False))
 
+    def test_an_object_with_a_constant_that_is_not_json_is_skipped(self):
+        item = {"scorer": {"kind": "json_exact"}, "answer": {"x": 1}}
+        for name in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(name):
+                found = scoring.score(item, '{"x": ' + name + '} {"x": 1}')
+                self.assertEqual((found["state"], found["correct"]), ("scored", True))
+        found = scoring.score(item, '{"x": NaN} {"x": [Infinity, -Infinity]}')
+        self.assertEqual((found["state"], found["correct"], found["parsed"]), ("no_json", False, None))
+
+    def test_a_number_that_overflows_is_read_and_compared_as_a_number(self):
+        for answer in ({"x": 1}, {"x": "Infinity"}):
+            with self.subTest(answer):
+                found = scoring.score({"scorer": {"kind": "json_exact"}, "answer": answer}, '{"x": 1e400}')
+                self.assertEqual((found["state"], found["correct"], found["parsed"]),
+                                 ("scored", False, {"x": float("inf")}))
+
     def test_nesting_deeper_than_the_decoder_limit_does_not_stop_the_search(self):
         answer = CASES["JE-17"]["answer"]
         text = '{"a": ' + "[" * 5000 + "\n" + json.dumps(answer, ensure_ascii=False)
@@ -325,6 +341,21 @@ class ScoreRunTests(unittest.TestCase):
         self.assertEqual(scores["ja-reading-0001"]["state"], "missing")
         self.assertEqual((scores["ja-reading-0002"]["state"], scores["ja-reading-0002"]["f1"]), ("scored", 0.8))
         self.assertIs(scores["extract-ja-0002"]["correct"], True)
+
+    def test_scores_are_standard_json_when_a_number_overflows(self):
+        item = {"id": "synth-extract-0001", "category": "synth-extract", "scorer": {"kind": "json_exact"},
+                "answer": {"x": 1}}
+        write_lines(self.items_path, [item])
+        self.tokenizer = Pieces(['{"x": [1e400, -1e400]}'])
+        _, output = self.scored([self.run_folder("overflow", [record(item["id"], [0])])])
+
+        def strict(name):
+            raise ValueError(name)
+
+        text = (output / "overflow" / "scores.jsonl").read_text(encoding="utf-8")
+        rows = [json.loads(line, parse_constant=strict) for line in text.splitlines()]
+        self.assertEqual([(row["state"], row["correct"], row["parsed"]) for row in rows],
+                         [("scored", False, {"x": ["Infinity", "-Infinity"]})])
 
     def test_runs_are_scored_together_into_a_new_folder(self):
         first = self.run_folder("one", [record(key, ids) for key, ids in self.outputs.items()])

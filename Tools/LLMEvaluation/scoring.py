@@ -42,6 +42,10 @@ def final_integer(text):
     return (int(found.group(1)), "scored") if found else (None, "no_integer")
 
 
+def nonstandard(name):
+    raise ValueError(f"Not a JSON value: {name}")
+
+
 def decoded(text, start):
     repeated = []
 
@@ -50,7 +54,7 @@ def decoded(text, start):
             repeated.append(entries)
         return dict(entries)
 
-    value, _ = json.JSONDecoder(object_pairs_hook=pairs).raw_decode(text, start)
+    value, _ = json.JSONDecoder(object_pairs_hook=pairs, parse_constant=nonstandard).raw_decode(text, start)
     return value, bool(repeated)
 
 
@@ -58,7 +62,7 @@ def first_object(text):
     for start in (index for index, character in enumerate(text) if character == "{"):
         try:
             value, repeated = decoded(text, start)
-        except (json.JSONDecodeError, RecursionError):
+        except (ValueError, RecursionError):
             continue
         return (None, "duplicate_key") if repeated else (value, "scored")
     return None, "no_json"
@@ -209,6 +213,10 @@ def pinned(path, contract):
     return tokenizers.Tokenizer.from_str(data.decode("utf-8")), pin["sha256"]
 
 
+def standard(row):
+    return json.loads(json.dumps(row), parse_constant=str)
+
+
 def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
     output, runs = Path(output), [Path(run) for run in runs]
     if output.exists():
@@ -240,8 +248,8 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
     for name, (rows, summary) in results.items():
         (output / name).mkdir()
         (output / name / "scores.jsonl").write_text(
-            "".join(json.dumps({**row, **({"f1": float(row["f1"])} if "f1" in row else {})}) + "\n" for row in rows),
-            encoding="utf-8")
+            "".join(json.dumps(standard({**row, **({"f1": float(row["f1"])} if "f1" in row else {})}),
+                               allow_nan=False) + "\n" for row in rows), encoding="utf-8")
         (output / name / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
                                                     encoding="utf-8")
     return {name: {"checks": {key: len(value) for key, value in summary["checks"].items()},
