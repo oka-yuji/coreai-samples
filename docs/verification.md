@@ -112,7 +112,7 @@ The command prints one JSON line with `record` set to `logits`:
 | `token_count`, `tokens_sha256` | The number of tokens and the SHA-256 of the decimal IDs joined by commas |
 | `start`, `chunk` | The options |
 | `shape`, `dtype`, `byte_order` | `[positions, vocab]`, `float16` and `little` |
-| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the largest number of tokens in one of those calls (the last or only call can be shorter) and the number of calls |
+| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the upper bound of tokens in one of those calls, the engine's prefill chunk size (the last or only call can be shorter), and the number of calls |
 | `main_calls` | The number of `main` calls from `start` |
 | `main_hash` | The asset's `main.hash` in hex, the SHA-256 of `main.mlirb`; absent when the file is missing |
 | `requested_compute`, `expect_frequent_reshapes`, `cached`, `cache_query_error`, `specialize_s` | The own engine's specialization request and cache state, as in the `own-load` record |
