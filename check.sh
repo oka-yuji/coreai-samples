@@ -23,6 +23,9 @@ fi
 check_stage=format-tests
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m unittest discover -s Tools/Format/tests -v
+check_stage=metal-run-schemes
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -I Tools/Testing/test_metal_run_schemes.py -v
 check_stage=local-paths
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m unittest discover -s Tools/Privacy/tests -v

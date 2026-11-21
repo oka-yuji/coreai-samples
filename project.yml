@@ -5,7 +5,7 @@ options:
   deploymentTarget:
     macOS: "27.0"
   createIntermediateGroups: false
-  minimumXcodeGenVersion: "2.0.0"
+  minimumXcodeGenVersion: "2.43.0"
   developmentLanguage: en
   knownRegions:
     - en
@@ -376,6 +376,7 @@ schemes:
         CoreAISamples: all
     run:
       config: Release
+      enableGPUValidationMode: false
     profile:
       config: Release
     archive:
@@ -386,6 +387,7 @@ schemes:
         CoreAISamples: all
     run:
       config: Debug
+      enableGPUValidationMode: false
     profile:
       config: Release
     archive:
@@ -396,6 +398,7 @@ schemes:
         CoreAISamples-iOS: all
     run:
       config: Release
+      enableGPUValidationMode: false
     profile:
       config: Release
     archive:
@@ -406,6 +409,8 @@ schemes:
       targets:
         CoreAISamples-iOS: all
         CoreAISamplesImageTests: [test]
+    run:
+      enableGPUValidationMode: false
     test:
       config: Release
       targets:
@@ -417,6 +422,7 @@ schemes:
         SpeechPhone: all
     run:
       config: Release
+      enableGPUValidationMode: false
     profile:
       config: Release
     archive:

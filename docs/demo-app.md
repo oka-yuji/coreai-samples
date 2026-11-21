@@ -14,7 +14,7 @@
 ## Requirements
 
 - Rust/Cargo for the Mac and iPhone speech input adapter; the Xcode pre-build phase builds it automatically. For iPhone builds, install the target with `rustup target add aarch64-apple-ios`.
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen), only to regenerate the demo app's project
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.43.0 or later to regenerate the demo app's project
 
 ## Build and run
 
