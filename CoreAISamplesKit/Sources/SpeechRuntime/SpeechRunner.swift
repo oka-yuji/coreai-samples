@@ -113,9 +113,20 @@
                     }
                 } else if error as? SpeechReferenceError == .permissionDenied {
                     send(.microphoneDenied(session))
+                } else if case .textExceedsLimit(let count, let limit)? = error as? SpeechError,
+                    Self.generates(effect)
+                {
+                    send(.textLimitExceeded(session, count: count, limit: limit))
                 } else {
                     send(.failed(session, error.localizedDescription))
                 }
+            }
+        }
+
+        private static func generates(_ effect: SpeechEffect) -> Bool {
+            switch effect {
+            case .generate, .generateTranslated, .generateReference: true
+            default: false
             }
         }
     }

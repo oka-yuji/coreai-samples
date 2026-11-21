@@ -4245,17 +4245,6 @@
         }
       }
     },
-    "Generate and play speech from text and a voice description with VoxCPM2" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "VoxCPM2で文章と声質の指定から音声を生成・再生"
-          }
-        }
-      }
-    },
     "Generate and play speech from text with Irodori" : {
       "localizations" : {
         "ja" : {
@@ -11385,6 +11374,105 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qwen Image 2.1 Turboを基にしています。非商用の研究・評価用途に限られます。同梱のLICENSEとNOTICEをご確認ください。商用利用には別途ライセンスが必要です。"
+          }
+        }
+      }
+    },
+    "This text contains %lld tokens. Shorten it to %lld tokens or fewer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本文は%1$lldトークンです。%2$lldトークン以内に短くしてください。"
+          }
+        }
+      }
+    },
+    "Generate and play speech from text with VoxCPM2, using a voice description or a reference voice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VoxCPM2で、声質の指定または参照音声を使って文章から音声を生成・再生"
+          }
+        }
+      }
+    },
+    "Reference voice (optional)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声（任意）"
+          }
+        }
+      }
+    },
+    "Record your voice or choose an audio file. The text is read in that voice, and the voice description is not used." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声を録音するか、音声ファイルを選んでください。文章をその声で読み上げ、声質の指定は使いません。"
+          }
+        }
+      }
+    },
+    "Use 5 to 10 seconds of your own voice or a voice you have permission to use. Recording stops automatically after 10 seconds." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の声、または使用許可のある声を5〜10秒で用意してください。録音は10秒で自動停止します。"
+          }
+        }
+      }
+    },
+    "Short passages work best. With a reference voice only the text is read, up to %lld tokens." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短い文章に適しています。参照音声を使うときは文だけを読み上げ、上限は%lldトークンです。"
+          }
+        }
+      }
+    },
+    "Remove the reference voice to use this description." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声を外すと、この声質の指定を使います。"
+          }
+        }
+      }
+    },
+    "Close Demo and Change Variant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモを閉じて版を変更"
+          }
+        }
+      }
+    },
+    "%@ is in use in another window. Close its demo there to change the variant." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@は別のウィンドウで使用中です。そのウィンドウでデモを閉じると、版を変更できます。"
           }
         }
       }

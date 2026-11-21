@@ -41,7 +41,7 @@ struct SpeechView: View {
     var body: some View {
         SpeechForm(
             store: store, title: model.title, limit: limit, missing: library.installed(model) == nil ? missing : nil,
-            voiceHint: voiceHint, canGenerate: canGenerate
+            voiceHint: voiceHint, canGenerate: canGenerate, showsVoxReference: showsVoxReference
         )
         .navigationTitle(model.title)
         .onAppear {
@@ -104,6 +104,13 @@ struct SpeechView: View {
     private var canGenerate: Bool {
         guard let current, store.state.canGenerate(usingModelAt: current.key.path) else { return false }
         return model != .voxcpm2 || attempted?.key == current.key
+    }
+
+    private var showsVoxReference: Bool {
+        guard model == .voxcpm2, let current, let opened = store.state.model, opened.supportsReferenceAudio else {
+            return false
+        }
+        return attempted?.key == current.key && store.state.lastPath == current.key.path
     }
 
     private var bundleToOpen: Attempt? {

@@ -1,9 +1,11 @@
 import FeatureStore
 import ModelLibraryFeature
 import ModelLibraryUI
+import SpeechFeature
 import SwiftUI
 
 struct ConversationSidebar: View {
+    let voiceDesign: Store<SpeechFeature>
     @Environment(DemoNavigator.self) private var navigator
     @Environment(MacModelLibrary.self) private var library
     @State private var deletion: ModelDeletionRequest?
@@ -65,16 +67,30 @@ struct ConversationSidebar: View {
             Text(verbatim: model.title)
             Spacer(minLength: 4)
             if let store = library.store, let entry = store.state.catalog.model(model.libraryID) {
-                ModelInformationButton(store: store, model: entry, inUse: library.isInUse(model))
+                let inUse = blocksChange(model)
+                ModelInformationButton(store: store, model: entry, inUse: inUse, change: variantChange(model))
                 if store.state.selectedArtifact(for: entry.id)?.sourceKind != nil {
                     ModelAcquisitionControls(
                         store: store, model: entry,
                         requestDeletion: { deletion = ModelDeletionRequest(model: entry, artifact: $0) },
-                        deletionDisabled: library.isInUse(model))
+                        deletionDisabled: inUse)
                 }
             }
         }
         .controlSize(.small)
+    }
+
+    private func blocksChange(_ model: DemoModel) -> Bool {
+        library.isInUse(model) || (model == .voxcpm2 && voiceDesign.state.phase == .stopping)
+    }
+
+    private func variantChange(_ model: DemoModel) -> VariantChange? {
+        guard model == .voxcpm2, blocksChange(model) else { return nil }
+        if navigator.selection == .voiceDesign {
+            return .closeDemo { [navigator] in navigator.selection = nil }
+        }
+        let ownUsage = library.store?.state.usages[model.libraryID]?.isActive == true
+        return voiceDesign.state.phase == .stopping || ownUsage ? .finishing : .otherWindow
     }
 
     private func failure(of model: DemoModel) -> ModelLibraryFailure? {
@@ -89,10 +105,17 @@ struct ConversationSidebar: View {
     }
 }
 
+private enum VariantChange {
+    case closeDemo(@MainActor () -> Void)
+    case finishing
+    case otherWindow
+}
+
 private struct ModelInformationButton: View {
     let store: Store<ModelLibraryFeature>
     let model: LibraryModel
     let inUse: Bool
+    var change: VariantChange?
     @State private var showing = false
     @State private var message: Text?
     @Environment(\.locale) private var locale
@@ -115,6 +138,18 @@ private struct ModelInformationButton: View {
         .popover(isPresented: $showing) {
             VStack(alignment: .leading, spacing: 12) {
                 ModelInformationView(store: store, model: model, inUse: inUse)
+                switch change {
+                case .closeDemo(let close)?:
+                    Button("Close Demo and Change Variant") { close() }
+                        .accessibilityIdentifier("models.closeDemo")
+                case .finishing?:
+                    Text("Finishing the previous demo…").font(.callout).foregroundStyle(.secondary)
+                case .otherWindow?:
+                    Text("\(model.name) is in use in another window. Close its demo there to change the variant.")
+                        .font(.callout).foregroundStyle(.secondary)
+                case nil:
+                    EmptyView()
+                }
                 if let artifact = store.state.selectedArtifact(for: model.id),
                     let resource = store.state.installations[artifact.id]?.resource
                 {
