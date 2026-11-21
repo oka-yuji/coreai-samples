@@ -17,7 +17,7 @@ struct PositionLogits: AsyncParsableCommand {
 
     @Option(
         help:
-            "First position whose logits are written. The tokens before it are read without logits, with the prefill function when the bundle has one."
+            "First position whose logits are written. The tokens before it are read but not written: with the prefill function when the bundle has one, otherwise through main, which needs logits for a whole prefill chunk."
     )
     var start: Int
 
