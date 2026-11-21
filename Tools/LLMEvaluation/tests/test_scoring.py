@@ -99,6 +99,32 @@ class FirstObjectTests(unittest.TestCase):
         self.assertIs(scoring.score({"scorer": {"kind": "json_exact"}, "answer": answer}, text)["correct"], True)
 
 
+class RulesOutsideTheTableTests(unittest.TestCase):
+    def test_reading_strips_before_and_after_the_final_mark(self):
+        rule = CONTRACT["scorers"]["reading_exact"]
+        opening, closing = rule["enclosing"][0]
+        word = CASES["RE-01"]["output"]
+        for output in (word + rule["trailing"] + "\n", opening + word + closing + " " + rule["trailing"]):
+            with self.subTest(output):
+                self.assertIs(scoring.score({"scorer": {"kind": "reading_exact"}, "answer": [word]}, output)["correct"],
+                              True)
+
+    def test_an_entity_value_of_another_type_is_incorrect_even_without_names(self):
+        keys = CONTRACT["entity_keys"]
+        answer = {key: [] for key in keys}
+        for value in (None, ""):
+            with self.subTest(value):
+                found = scoring.score({"scorer": {"kind": "entity_sets"}, "answer": answer},
+                                      json.dumps({**answer, keys[5]: value}))
+                self.assertEqual((found["correct"], found["tp"], found["fp"], found["fn"]), (False, 0, 0, 0))
+
+    def test_the_text_after_the_bullet_is_stripped_before_it_is_counted(self):
+        case = CASES["FR-09"]
+        bullet = case["rules"]["bullet"]
+        output = case["output"].replace(bullet, bullet + " ")
+        self.assertIs(scoring.score(table_item(case), output)["correct"], True)
+
+
 class RecordCheckTests(unittest.TestCase):
     def setUp(self):
         self.items = (committed_items("free-ja", 2) + committed_items("synth-format", 2)
