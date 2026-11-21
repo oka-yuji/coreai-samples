@@ -1,0 +1,115 @@
+{
+  "version": "G31-QC-v1",
+  "ja-choice": "次の問いの答えとして最も適切な選択肢を選び、その番号(0〜4)だけを出力してください。\n\n問い: {question}\n0: {choice0}\n1: {choice1}\n2: {choice2}\n3: {choice3}\n4: {choice4}",
+  "ja-reading": "次の文章を読んで、質問に答えてください。答えは文章の中の語句をそのまま使い、その語句だけを出力してください。\n\n文章:\n{context}\n\n質問: {question}",
+  "code-gen-he": "Complete the following Python function. Output only the complete function, including any imports it needs, in a single ```python code block.\n\n```python\n{prompt}```",
+  "code-gen-mbpp": "Write a Python function for the task below. It must pass the tests below. Output only the code, including any imports it needs, in a single ```python code block.\n\nTask: {task}\n\nTests:\n```python\n{tests}\n```",
+  "code-fix": "The following Python function has a bug. Fix it so that the tests below pass. Output only the complete fixed function, including any imports it needs, in a single ```python code block.\n\n```python\n{code}```\n\nTests:\n```python\n{tests}\n```",
+  "extract-ja": "次の文に含まれる固有表現を種類ごとに抜き出し、JSON オブジェクトだけを出力してください。キーは{keys}の 8 つで、値はそれぞれ、文の中の表記どおりの文字列の配列にしてください。当てはまるものが無い種類は空の配列にしてください。\n\n文: {text}",
+  "entity_key": "「{key}」",
+  "synth-extract": {
+    "instruction": "次の記録を読み、内容を下の形の JSON オブジェクトにまとめて、その JSON オブジェクトだけを出力してください。配列の要素は記録に出てくる順に並べ、当てはまるものが無いときは空の配列にしてください。\n\n形: {schema}\n\n記録:\n{records}",
+    "templates": {
+      "orders": {
+        "schema": "{\"注文\": [{\"番号\": 文字列, \"依頼者\": 文字列, \"届け先\": 文字列, \"品物\": [{\"名前\": 文字列, \"個数\": 整数}]}]}",
+        "record": "注文{number}: 依頼者は{customer}、届け先は{place}。品物は{goods}。",
+        "item": "{name}を{quantity}個",
+        "join": "、",
+        "empty": "なし",
+        "separator": "\n",
+        "keys": {"root": "注文", "number": "番号", "customer": "依頼者", "place": "届け先", "goods": "品物", "name": "名前", "quantity": "個数"}
+      },
+      "teams": {
+        "schema": "{\"班\": [{\"名前\": 文字列, \"リーダー\": 文字列, \"メンバー\": [文字列], \"担当地域\": [文字列]}]}",
+        "record": "班: {team}\nリーダー: {leader}\nメンバー: {members}\n担当地域: {areas}",
+        "join": "、",
+        "empty": "なし",
+        "separator": "\n\n",
+        "keys": {"root": "班", "team": "名前", "leader": "リーダー", "members": "メンバー", "areas": "担当地域"}
+      }
+    }
+  },
+  "synth-long": {
+    "instruction": "次の記録を読んで、質問に答えてください。記録は起きた順に並んでいます。関係する記録を短く書き出してから、最後の行に「答え: <整数>」の形で答えを書いてください。\n\n記録:\n{records}\n\n質問: {question}",
+    "separator": "\n",
+    "templates": {
+      "stock": {
+        "in": "{warehouse}に{goods}が{quantity}個入った。",
+        "out": "{warehouse}から{goods}が{quantity}個出た。",
+        "question": "記録の期間の初め、{warehouse}にあった{goods}は{start}個でした。記録の内容をすべて反映すると、期間の終わりに{warehouse}にある{goods}は何個ですか。"
+      },
+      "shipping": {
+        "record": "{person}さんが{place}へ{goods}を{quantity}個送った。",
+        "question": "記録の期間に、{person}さんが{place}へ送った{goods}は合わせて何個ですか。"
+      }
+    }
+  },
+  "synth-format": {
+    "instruction": "「{topic}」について、次の条件をすべて守って書いてください。\n{rules}",
+    "separator": "\n",
+    "bullet": "・",
+    "rules": {
+      "items": "- ちょうど{items}個の項目の箇条書きにし、各項目は「{bullet}」で始まる 1 行にする。",
+      "max_chars": "- 各項目は、「{bullet}」を除いて{max_chars}字以内にする。",
+      "required_one": "- 「{first}」という語を、どこかの項目に必ず入れる。",
+      "required_two": "- 「{first}」と「{second}」という語を、それぞれどこかの項目に必ず入れる。",
+      "only": "- 箇条書きのほかには何も書かない。"
+    },
+    "styles": {
+      "polite": {"rule": "- すべての項目を「です。」か「ます。」で終える。", "endings": ["です。", "ます。"]},
+      "plain": {"rule": "- すべての項目を「である。」で終える。", "endings": ["である。"]}
+    }
+  },
+  "free-ja": [
+    {"id": "explain-1", "kind": "explain", "text": "虹ができる仕組みを、小学生にも分かるように説明してください。"},
+    {"id": "explain-2", "kind": "explain", "text": "なぜ冬は夏より昼の時間が短いのかを、専門用語をできるだけ使わずに説明してください。"},
+    {"id": "explain-3", "kind": "explain", "text": "パソコンの「メモリ」と「ストレージ」の違いを、たとえを使って説明してください。"},
+    {"id": "explain-4", "kind": "explain", "text": "発酵とはどういうことかを、身近な食べ物の例を挙げて説明してください。"},
+    {"id": "explain-5", "kind": "explain", "text": "地震の「震度」と「マグニチュード」の違いを、短く説明してください。"},
+    {"id": "steps-1", "kind": "steps", "text": "卵焼きを作る手順を、材料も含めて順番に書いてください。"},
+    {"id": "steps-2", "kind": "steps", "text": "初めて図書館で本を借りるときの手順を、順番に説明してください。"},
+    {"id": "steps-3", "kind": "steps", "text": "スマートフォンにたまった写真を整理する手順を、具体的に書いてください。"},
+    {"id": "steps-4", "kind": "steps", "text": "引っ越しの一か月前から当日までにすることを、時期ごとに順番に書いてください。"},
+    {"id": "steps-5", "kind": "steps", "text": "観葉植物を植え替える手順を、注意点も添えて書いてください。"},
+    {"id": "letter-1", "kind": "letter", "text": "取引先に、注文の品の納品が三日遅れることをおわびするメールを書いてください。"},
+    {"id": "letter-2", "kind": "letter", "text": "お世話になった先生に、卒業の報告とお礼を伝える手紙を書いてください。"},
+    {"id": "letter-3", "kind": "letter", "text": "来週の会議の日時を変えたいことを、社内の同僚に伝えるメールを書いてください。"},
+    {"id": "letter-4", "kind": "letter", "text": "来月の工事で大きな音が出ることを、近所の方に知らせるお知らせの文を書いてください。"},
+    {"id": "letter-5", "kind": "letter", "text": "友人の結婚を祝うメッセージを、温かい言葉で書いてください。"},
+    {"id": "summary-1", "kind": "summary", "text": "次の文章を一文で要約してください。\n\n駅前の商店街では、毎月第一日曜日に朝市が開かれている。近くの農家が野菜や果物を持ち寄り、とれたての品を安く売る。最近は若い家族連れの客が増え、店の人との会話を楽しみに来る人も多い。商店街の組合は、来年から開催日を月に二回に増やすことを検討している。"},
+    {"id": "summary-2", "kind": "summary", "text": "次の文章を三つの要点に分けて、箇条書きでまとめてください。\n\nある市では、夏の暑さ対策として、公園や駅前に日よけのテントと給水所を設けた。テントの下には、休憩できるベンチも置かれている。市の担当者によると、昨年に比べて、暑さで体調を崩して運ばれる人が少し減ったという。市は今後、設置する場所を学校の通学路にも広げる予定だ。"},
+    {"id": "summary-3", "kind": "summary", "text": "次の文章を五十字以内で要約してください。\n\n山のふもとにある小さな学校では、子どもたちが学校の田んぼで米作りを体験している。春に田植えをし、夏は草取りをして、秋には自分たちで稲を刈る。収穫した米は、地域のお年寄りを招いた食事会で、おにぎりにしてふるまわれる。子どもたちは、米ができるまでの苦労を知り、食べ物を大切にするようになったという。"},
+    {"id": "summary-4", "kind": "summary", "text": "次の会話の内容を、要点が分かるように短くまとめてください。\n\nA「来週の土曜日の歓迎会、場所はもう決まった?」\nB「駅の近くの和食のお店にしようと思ってる。二十人まで入れるんだって。」\nA「いいね。時間は?」\nB「夕方六時から。参加するかどうかは、水曜日までに返事をもらうことにした。」\nA「じゃあ、みんなに連絡しておくね。」"},
+    {"id": "summary-5", "kind": "summary", "text": "次の文章の要点を、二文でまとめてください。\n\n近年、古い家を改装して、カフェや宿として使う例が増えている。新しく建てるより費用を抑えられることに加え、昔ながらの建物の雰囲気が人気を集めている。一方で、耐震の工事や水回りの修理に思ったより費用がかかり、計画どおりに進まないこともある。改装を考える人には、事前に専門家に建物を調べてもらうことがすすめられている。"},
+    {"id": "rewrite-1", "kind": "rewrite", "text": "次の文を、目上の人に送る丁寧な言い方に直してください。\n\n「明日の会議、出られないので資料だけ送ります。」"},
+    {"id": "rewrite-2", "kind": "rewrite", "text": "次の文を、小学生にも分かるやさしい言葉に言い換えてください。\n\n「本施設は老朽化に伴い、改修工事を実施するため一時閉鎖いたします。」"},
+    {"id": "rewrite-3", "kind": "rewrite", "text": "次の文を、意味を変えずにもっと短くしてください。\n\n「私たちは、できるだけ早い時期に、この問題について関係するすべての人と話し合う場を設けることが必要だと考えています。」"},
+    {"id": "rewrite-4", "kind": "rewrite", "text": "次の文を、友だちに話すようなくだけた言い方に直してください。\n\n「本日はご来場いただき、誠にありがとうございます。」"},
+    {"id": "rewrite-5", "kind": "rewrite", "text": "次の文の誤りを直し、読みやすい文にしてください。\n\n「明日わ雨がふるそうなので、かさを持て行ったほうがいいとおもいます。」"},
+    {"id": "compare-1", "kind": "compare", "text": "電車とバスで通勤する場合の、良い点と悪い点を比べてください。"},
+    {"id": "compare-2", "kind": "compare", "text": "紙の本と電子書籍を、読みやすさ・値段・持ち運びの点から比べてください。"},
+    {"id": "compare-3", "kind": "compare", "text": "犬を飼う場合と猫を飼う場合の違いを、世話の手間を中心に比べてください。"},
+    {"id": "compare-4", "kind": "compare", "text": "一人旅と友人との旅行の、それぞれの楽しさを比べてください。"},
+    {"id": "compare-5", "kind": "compare", "text": "朝に運動する場合と夜に運動する場合を比べ、どんな人にどちらが向くかを書いてください。"},
+    {"id": "story-1", "kind": "story", "text": "雨の日に傘をなくした猫が主人公の、短い物語を書いてください。"},
+    {"id": "story-2", "kind": "story", "text": "古い時計屋を舞台にした、少し不思議な短い物語を書いてください。"},
+    {"id": "story-3", "kind": "story", "text": "初めて一人でおつかいに行く子どもの一日を、短い物語にしてください。"},
+    {"id": "story-4", "kind": "story", "text": "月に住むウサギが地球を見下ろす場面から始まる、短い物語を書いてください。"},
+    {"id": "story-5", "kind": "story", "text": "小さな村のパン屋に、ある日見知らぬ旅人が訪れる話を書いてください。"},
+    {"id": "advice-1", "kind": "advice", "text": "朝早く起きる習慣をつけたい人に、具体的な助言を五つ挙げてください。"},
+    {"id": "advice-2", "kind": "advice", "text": "人前で話すときに緊張してしまう人に、役に立つ助言を書いてください。"},
+    {"id": "advice-3", "kind": "advice", "text": "初めて家庭菜園を始める人に、失敗しにくいこつを教えてください。"},
+    {"id": "advice-4", "kind": "advice", "text": "勉強に集中できないと悩む高校生に、助言を書いてください。"},
+    {"id": "advice-5", "kind": "advice", "text": "一人暮らしを始める人に、食費を抑えるための工夫を教えてください。"},
+    {"id": "ideas-1", "kind": "ideas", "text": "町の図書館に人を呼ぶための催しの案を、五つ考えてください。"},
+    {"id": "ideas-2", "kind": "ideas", "text": "雨の日に家族で楽しめる遊びを、五つ挙げてください。"},
+    {"id": "ideas-3", "kind": "ideas", "text": "使わなくなった空き瓶の活用方法を、五つ考えてください。"},
+    {"id": "ideas-4", "kind": "ideas", "text": "小さな喫茶店の新しい名物メニューの案を、三つ考えてください。"},
+    {"id": "ideas-5", "kind": "ideas", "text": "地域の清掃活動に若い人が参加したくなる工夫を、五つ考えてください。"},
+    {"id": "translate-1", "kind": "translate", "text": "次の英文を自然な日本語に訳してください。\n\nThe library will be closed next Monday for maintenance, but the online catalog will remain available."},
+    {"id": "translate-2", "kind": "translate", "text": "次の英文を自然な日本語に訳してください。\n\nPlease bring your own water bottle, because the event will be held outdoors and there are no vending machines nearby."},
+    {"id": "translate-3", "kind": "translate", "text": "次の英文を自然な日本語に訳してください。\n\nShe practiced the piano every evening for a year, and finally played the whole piece without a single mistake."},
+    {"id": "translate-4", "kind": "translate", "text": "次の英文を自然な日本語に訳してください。\n\nIf the train is delayed by more than thirty minutes, passengers can ask for a refund at the ticket office."},
+    {"id": "translate-5", "kind": "translate", "text": "次の英文を自然な日本語に訳してください。\n\nOur team decided to postpone the release by one week so that we could fix the remaining issues."}
+  ]
+}
