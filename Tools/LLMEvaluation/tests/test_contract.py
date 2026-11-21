@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 from Tools.LLMEvaluation import checks, items, selection
+from Tools.LLMEvaluation.synthetic.generate import generate
 
 BUNDLE = items.load()
 
@@ -171,6 +172,25 @@ class ContractTests(unittest.TestCase):
                 entry["source"]["task"] -= 1
 
         self.rejected(both_even, "code-fix-0001: same original as code-gen-he-0001")
+
+    def test_the_same_synthetic_combination_in_two_categories_is_rejected(self):
+        bundle = copy.deepcopy(BUNDLE)
+        seed, prompts, vocabulary = bundle["contract"]["seed"], bundle["prompts"], bundle["vocabulary"]
+
+        def combination(name, index, records):
+            return json.dumps(generate(category(bundle, name), index, seed, prompts, vocabulary, records)["combination"],
+                              ensure_ascii=False)
+
+        seen = {combination("synth-long-4k", entry["source"]["index"], entry["source"]["records"])
+                for name in items.SETS for entry in entries(bundle, "synth-long-4k", name)}
+        entry = entries(bundle, "synth-long-16k")[0]
+        records = entry["source"]["records"]
+        index = next(index for index in range(1000) if combination("synth-long-16k", index, records) in seen)
+        template = generate(category(bundle, "synth-long-16k"), index, seed, prompts, vocabulary, records)["template"]
+        entry["source"] = {"index": index, "template": template, "records": records}
+        found = checks.problems(bundle)
+        self.assertTrue(any("same template combination" in problem and "synth-long-16k-0001" in problem
+                            and "synth-long-4k-" in problem for problem in found), found)
 
     def test_document_header_and_freeze_date_are_compared_exactly(self):
         self.rejected(lambda bundle: bundle.update(document=bundle["document"].replace(

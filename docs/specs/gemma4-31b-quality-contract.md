@@ -9,8 +9,8 @@
 | File | SHA-256 |
 |---|---|
 | `Tools/LLMEvaluation/contract.json` | `1e8143fb6dad5529432b7ee60b7422383de1e13397706d38e629dbb3f949c40f` |
-| `Tools/LLMEvaluation/sets/primary.json` | `06aef4839d2f9c2df36a4597f28fb050587ea4b1ff4dd14737e01a08a8d247f4` |
-| `Tools/LLMEvaluation/sets/reserve.json` | `cf38e09f6efb2d1beb8224f2211f14ef88946c1eed31a8c72f6d44f6861adbba` |
+| `Tools/LLMEvaluation/sets/primary.json` | `68e91b8cab53726506323592fc5c1abb2d7dc553ed1b27d51ac708d4a17ce027` |
+| `Tools/LLMEvaluation/sets/reserve.json` | `01107a2106cbe08e6b22a70b467532c825c52f9b7d4c5dfd2c1e5505249ad5e6` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
 
 `python3 -m Tools.LLMEvaluation validate`, run from the repository root, rejects the contract when this table, the version or the freeze date differs from the files. `check.sh` runs the same check in isolated mode as `python3 -I Tools/LLMEvaluation/__main__.py validate`, because isolated mode does not put the repository on the import path. The [README](../../Tools/LLMEvaluation/README.md) describes both forms and the other tools. `Tools/LLMEvaluation/contract.json` holds the constants, the lists, and the verdict labels with their precedence. The conditions of the four verdicts and the prohibitions of §7.3 are only in this document. Whether the numbers in this text agree with `contract.json` is checked by a machine only through the SHA-256 table above: the table fixes the reviewed `contract.json`, and no tool compares this text with it.
@@ -138,7 +138,7 @@ The train file is the same blob (`20ce716e`) in v1.1.0 and v1.2.0. JGLUE v1.3.0 
 - Item ids are `<category id>-NNNN`, numbered in draw order: the primary items first, then the reserve items.
 - Source keys: JCommonsenseQA `q_id`; JSQuAD article `aN` and question id `aNpMqK` (paragraph key `aNpM`, all taken from the question ids); HumanEval and HumanEvalPack problem number; MBPP `task_id` in 11–510, the test split of `mbpp/README.md`; NER position in `ner.json` together with its `curid`; synthetic generator index; `free-ja` instruction id.
 - JSQuAD: categories draw articles in contract order (`ja-reading`, `long-ja-4k`, `long-ja-16k`), each from articles not yet drawn. The question of an article is the next `choice` of the category generator over its sorted question ids.
-- Synthetic categories generate indexes 0, 1, 2, … and skip an index whose combination (see §6.8) already appeared in the category, so the primary and reserve combinations never overlap.
+- Synthetic categories generate indexes 0, 1, 2, … and skip an index whose combination (see §6.8) already appeared in the same series. `synth-long-4k` and `synth-long-16k` share a generator and form one series; `synth-extract` and `synth-format` are series of their own. Categories are drawn in contract order, so a later category skips the combinations of an earlier one, and no combination appears twice in a series across the primary and reserve sets.
 - `select --check` regenerates both set files and requires them to be byte-identical to the committed files. The recorded `selected_with` gives the Python, tokenizers and jinja2 versions used.
 
 ### 6.3 Overlap rules
@@ -146,7 +146,7 @@ The train file is the same blob (`20ce716e`) in v1.1.0 and v1.2.0. JGLUE v1.3.0 
 - `code-gen-he` uses even HumanEval problem numbers and `code-fix` odd ones, so no original problem is in both.
 - An article is the question article of at most one item across `ja-reading`, `long-ja-4k` and `long-ja-16k`, primary and reserve together.
 - Filler paragraphs come only from articles that are not question articles of any primary or reserve item.
-- Within each category, the primary and reserve sets share no source key; for synthetic categories, no combination.
+- Within each category, the primary and reserve sets share no source key. Within each synthetic series, no combination appears twice across its categories and both sets.
 - These checks guard different things:
   - `validate` checks the item ids and counts, the numbering of the primary and reserve items, the overlaps of articles and problems, the token-count ranges, the scorer kinds and hashes of the synthetic and `free-ja` items, and the version, freeze date and hash table of this document. It checks that the required constants are present and well formed, not that their values are in range; the values are fixed through the SHA-256 table. A malformed contract can stop it with an exception instead of a `FAIL` line, and it still exits with a non-zero status.
   - `build` checks the pins of the source files, and the hash and scorer kind of every item rebuilt from the pinned data.
@@ -156,7 +156,7 @@ The train file is the same blob (`20ce716e`) in v1.1.0 and v1.2.0. JGLUE v1.3.0 
 
 - **`long-ja-*`.** The context is a list of original JSQuAD context strings (each `title [SEP] paragraph`) joined by a blank line. The answer paragraph is first (front), at position ⌊fillers / 2⌋ (middle) or last (back); the strata are assigned front, middle, back in turn by position within each set. Filler paragraphs are shuffled with `random.Random("20261122:<category id>:<item id>")` and added in that order. A paragraph that would push the rendered input above the upper bound is skipped, and assembly stops at the first count that reaches the lower bound. Fillers may recur across items but not within an item. The ordered paragraph keys are recorded in the set.
 - **`synth-long-*`.** The record count is tuned by `select` until the rendered input is in range, and is recorded as `records`.
-- **Ranges** of the whole rendered input: 3,600–4,096 tokens for the 4k categories and 14,800–16,384 for the 16k categories. In `G31-QC-v1`: `long-ja-4k` 3,600 / 3,650.5 / 3,788 (minimum / median / maximum over 90 items), `long-ja-16k` 14,807 / 14,855 / 15,043 (30), `synth-long-4k` 3,773 / 3,795.5 / 3,813 (60) and `synth-long-16k` 15,344 / 15,369 / 15,392 (24).
+- **Ranges** of the whole rendered input: 3,600–4,096 tokens for the 4k categories and 14,800–16,384 for the 16k categories. In `G31-QC-v1`: `long-ja-4k` 3,600 / 3,650.5 / 3,788 (minimum / median / maximum over 90 items), `long-ja-16k` 14,807 / 14,855 / 15,043 (30), `synth-long-4k` 3,773 / 3,795.5 / 3,813 (60) and `synth-long-16k` 15,344 / 15,371.5 / 15,392 (24).
 
 ### 6.5 Items and hashes
 
@@ -220,7 +220,7 @@ The generators in `Tools/LLMEvaluation/synthetic/` build each item from the seed
 | `synth-long-*` | `shipping` | Shipments; the answer is the total that one person sent of one good to one place | Template and the target |
 | `synth-format` | – | 3–5 items, 15–25 characters, polite `です。` or `ます。` endings or plain `である。` endings, 1–2 required words | Topic and the required words |
 
-In `synth-long-*`, the 2–4 relevant records sit at 5%, 95% and evenly spaced points between them, and distractors never use the target. `solve.py` computes every answer, and the format rules, again from the rendered text alone, without the generator's state. The tests require both computations to agree. They also require that unrelated records and reordering leave the `synth-long-*` answer unchanged. They also compare the 7 primary items that were checked by hand in the review (`tests/examples.json`) with the generator and `solve.py`. The passing claim for these tasks is limited to the distribution of these generators. They are made from a self-authored generator and vocabulary; this contract does not claim that they are free of contamination or of licensing questions.
+Combinations are compared within a series (§6.2), so `synth-long-4k` and `synth-long-16k` never share one. In `synth-long-*`, the 2–4 relevant records sit at 5%, 95% and evenly spaced points between them, and distractors never use the target. `solve.py` computes every answer, and the format rules, again from the rendered text alone, without the generator's state. The tests require both computations to agree. They also require that unrelated records and reordering leave the `synth-long-*` answer unchanged. They also compare the 7 primary items that were checked by hand in the review (`tests/examples.json`) with the generator and `solve.py`. The passing claim for these tasks is limited to the distribution of these generators. They are made from a self-authored generator and vocabulary; this contract does not claim that they are free of contamination or of licensing questions.
 
 ### 6.9 free-ja
 

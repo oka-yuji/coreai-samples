@@ -93,7 +93,7 @@ def tune(category, index, bundle, counter):
     raise ValueError(f"No record count reaches the token range: {category['id']} {index}")
 
 
-def sample(category, data, bundle, rng, taken):
+def sample(category, data, bundle, rng, taken, used):
     total = category["primary"] + category["reserve"]
     kind = category["kind"]
     if kind == "choice":
@@ -113,7 +113,7 @@ def sample(category, data, bundle, rng, taken):
     if kind == "free":
         return [{"instruction": key} for key in rng.sample(sorted(row["id"] for row in bundle["prompts"]["free-ja"]), total)]
     if kind == "synthetic":
-        picked, combinations, index = [], set(), 0
+        picked, combinations, index = [], used.setdefault(category["generator"]["prompt"], set()), 0
         while len(picked) < total:
             made = generate(category, index, bundle["contract"]["seed"], bundle["prompts"], bundle["vocabulary"], 64)
             key = json.dumps(made["combination"], ensure_ascii=False)
@@ -128,9 +128,9 @@ def sample(category, data, bundle, rng, taken):
 def choose(bundle, datasets, counter):
     contract = bundle["contract"]
     data = Sources(contract, datasets)
-    taken, rows, counts = set(), {name: [] for name in SETS}, {}
+    taken, used, rows, counts = set(), {}, {name: [] for name in SETS}, {}
     for category in contract["categories"]:
-        picked = sample(category, data, bundle, random.Random(f"{contract['seed']}:{category['id']}"), taken)
+        picked = sample(category, data, bundle, random.Random(f"{contract['seed']}:{category['id']}"), taken, used)
         for number, source in enumerate(picked, start=1):
             name = "primary" if number <= category["primary"] else "reserve"
             position = number - 1 if name == "primary" else number - 1 - category["primary"]

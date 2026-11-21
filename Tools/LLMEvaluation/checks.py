@@ -278,7 +278,7 @@ def set_problems(bundle):
             if category["kind"] == "synthetic":
                 made = generate(category, entry["source"]["index"], contract["seed"], bundle["prompts"],
                                 bundle["vocabulary"], entry["source"].get("records"))
-                key = (category["id"], json.dumps(made["combination"], ensure_ascii=False))
+                key = (category["generator"]["prompt"], json.dumps(made["combination"], ensure_ascii=False))
                 if key in combinations:
                     found.append(f"{entry['id']}: same template combination as {combinations[key]}")
                 combinations[key] = entry["id"]
