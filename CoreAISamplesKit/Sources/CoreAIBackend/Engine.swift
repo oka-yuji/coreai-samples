@@ -355,7 +355,10 @@ public final class Engine {
         _ = try await function.run(inputs: inputs, states: stateViews, outputViews: outputViews)
         context.tokens.append(contentsOf: chunk)
         hasLogits = logits
-        if logits { rowLayout.update(rows: chunk.count, strides: logitsArray.strides) }
+        if logits {
+            rowLayout.update(
+                rows: chunk.count, strides: logitsArray.strides, interleaved: logitsArray.interleaveLayout != nil)
+        }
     }
 
     static func argmax(_ values: UnsafeBufferPointer<Float16>, scratch: inout [Float]) -> Int32 {
