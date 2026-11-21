@@ -8,7 +8,7 @@
 
 | File | SHA-256 |
 |---|---|
-| `Tools/LLMEvaluation/contract.json` | `c911a39c86dee83963a50a04fa5d0fcf3ef892ad3314298d2607bd861fe24ebc` |
+| `Tools/LLMEvaluation/contract.json` | `0560e3b99b6980f1f067dac0396d7636441a436cf44fa4f1f6ad9dae436546d3` |
 | `Tools/LLMEvaluation/sets/primary.json` | `68e91b8cab53726506323592fc5c1abb2d7dc553ed1b27d51ac708d4a17ce027` |
 | `Tools/LLMEvaluation/sets/reserve.json` | `01107a2106cbe08e6b22a70b467532c825c52f9b7d4c5dfd2c1e5505249ad5e6` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
@@ -196,16 +196,16 @@ The scorer is a separate child issue; these rules bind it.
   - `synth-extract`: compared as the canonical serialization (sorted keys), which keeps array order (the order of appearance in the records) and distinguishes `1`, `1.0`, `"1"` and `true`.
 - **`synth-long-*`:** apply NFKC and take the integer (an optional minus sign and digits) after the last `答え:`. NFKC also accepts the full-width colon.
 - **`synth-format`:** split the output into lines with `str.splitlines()`, strip each line with `str.strip()` and drop the empty lines. Every remaining line must start with the bullet, and their number must equal `items`. For each line, the text after the bullet, stripped, has at most `max_chars` Unicode scalar values and ends with one of `endings`. Each required word appears in at least one item.
-- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test`, `call` and a final statement `print("\n" + marker)`, joined by newlines. That statement writes a newline, the marker and a newline, so the marker is always a line of its own, even after output that does not end with a newline. The scorer chooses the marker for each run, so it cannot be known in advance.
+- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test` and `call`, joined by newlines.
   - HumanEval: the program starts with the problem's prompt as `setup`, which defines its imports and helper functions, followed by the code, the test and `check(<entry point>)`.
   - MBPP: `test_imports` and the `test_list` asserts.
   - HumanEvalFix: its test, which already calls `check`.
 
-  The item is correct when the program exits with status 0 and the last line of its standard output equals the marker. A program that ends before the tests have run, for example through `sys.exit(0)`, is therefore incorrect. Each program runs under these execution rules:
+  The scorer runs the program from a driver of its own in a child process. The driver executes the program as a script (`__name__` is `"__main__"`) in a namespace separate from its own. When the program finishes without raising, the driver sends a marker to the scorer through a pipe that the scorer opened, not through standard output or standard error. The scorer chooses the marker for each run, so it cannot be known in advance, and the program's names and its standard input and output cannot affect it. The item is correct when the child exits with status 0 and the scorer received the marker. A program that ends the process early, for example through `sys.exit(0)`, `unittest.main()` or `os._exit(0)`, is incorrect even when the status is 0. Each program runs under these execution rules:
   - **Isolation:** an isolated child process with no network, an empty temporary folder as its working folder, no writes outside that folder and no standard input.
   - **Time limit:** 10 seconds of wall-clock time per program. A program that times out is run once more and is incorrect only when both runs time out. The report gives the number of timeouts and the number of programs that passed on the rerun.
   - **Same run:** the baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine. The report records that Python version. When the baseline and candidate `output_ids` of an item are equal, the program runs once and both receive that result.
-  - The scorer (a separate child issue) implements the isolation. This contract fixes only these rules and constants.
+  - The scorer (a separate child issue) implements the isolation and the driver. This contract fixes only these rules and constants.
 
 The examples of these rules are in `Tools/LLMEvaluation/tests/test_synthetic.py` and `tests/examples.json`. In those examples, a well-formed answer with a wrong value is incorrect.
 

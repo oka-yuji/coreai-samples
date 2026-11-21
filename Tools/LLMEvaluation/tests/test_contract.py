@@ -2,6 +2,7 @@ import copy
 import gzip
 import hashlib
 import json
+import os
 from pathlib import Path
 import secrets
 import subprocess
@@ -23,13 +24,48 @@ def category(bundle, name):
     return next(value for value in bundle["contract"]["categories"] if value["id"] == name)
 
 
-def scored(scorer, code, root):
-    marker = secrets.token_hex(16)
-    parts = {**scorer, "code": code, "marker": "print(" + repr("\n" + marker) + ")"}
+DRIVER = """
+import os
+import sys
+
+
+def drive():
+    marker_fd, result_fd, path = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
+    with os.fdopen(marker_fd, "rb") as handle:
+        marker = handle.read()
+    del sys.argv[1:]
+    with open(path, encoding="utf-8") as handle:
+        program = compile(handle.read(), path, "exec")
+    exec(program, {"__name__": "__main__", "__builtins__": __builtins__})
+    os.write(result_fd, marker)
+
+
+drive()
+"""
+
+
+def scored(scorer, code):
+    parts = {**scorer, "code": code}
     program = "\n".join(parts[name] for name in BUNDLE["contract"]["scorers"]["python_tests"]["program"])
-    result = subprocess.run([sys.executable, "-I", "-c", program], cwd=root, capture_output=True, text=True,
-                            stdin=subprocess.DEVNULL, check=False)
-    return result.returncode == 0 and result.stdout.splitlines()[-1:] == [marker]
+    marker = secrets.token_hex(16).encode("ascii")
+    with tempfile.TemporaryDirectory() as folder, tempfile.TemporaryDirectory() as work:
+        path = Path(folder) / "program.py"
+        path.write_text(program, encoding="utf-8")
+        marker_read, marker_write = os.pipe()
+        result_read, result_write = os.pipe()
+        os.write(marker_write, marker)
+        os.close(marker_write)
+        try:
+            child = subprocess.run([sys.executable, "-I", "-c", DRIVER, str(marker_read), str(result_write), str(path)],
+                                   cwd=work, pass_fds=(marker_read, result_write), stdin=subprocess.DEVNULL,
+                                   capture_output=True, check=False)
+        finally:
+            os.close(marker_read)
+            os.close(result_write)
+        with os.fdopen(result_read, "rb") as handle:
+            received = handle.read()
+    return child.returncode == 0 and received == marker
+
 
 def leaf_paths(value, path=()):
     if isinstance(value, dict) and value:
@@ -160,16 +196,27 @@ class ContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             scorer = self.humaneval_scorer(root)
             solution = "def target(value):\n    return helper(value) + 1\n"
-            self.assertTrue(scored(scorer, solution, root))
-            self.assertFalse(scored({**scorer, "setup": ""}, solution, root))
+            self.assertTrue(scored(scorer, solution))
+            self.assertFalse(scored({**scorer, "setup": ""}, solution))
 
     def test_code_is_correct_only_when_the_tests_ran_to_the_end(self):
+        solution = "def target(value):\n    return helper(value) + 1\n"
+        cases = [
+            ("the function only", solution, True),
+            ("exit before the tests", "import sys\n\n\n" + solution + "\n\nsys.exit(0)\n", False),
+            ("a failing function", "def target(value):\n    return value\n", False),
+            ("output without a newline", "import sys\n\nsys.stdout.write(\"debug\")\n\n\n" + solution, True),
+            ("print bound to another function", "from pprint import pprint as print\n\nprint(\"debug\")\n\n\n" + solution,
+             True),
+            ("standard output closed", "import sys\n\nsys.stdout.close()\n\n\n" + solution, True),
+            ("standard output replaced", "import io\nimport sys\n\nsys.stdout = io.StringIO()\n\n\n" + solution, True),
+            ("process ended before the tests", "import os\n\n\n" + solution + "\n\nos._exit(0)\n", False),
+        ]
         with tempfile.TemporaryDirectory() as root:
             scorer = self.humaneval_scorer(root)
-            self.assertTrue(scored(scorer, "def target(value):\n    return helper(value) + 1\n", root))
-            self.assertFalse(scored(scorer, "import sys\n\n\ndef target(value):\n    return helper(value) + 1\n\n\nsys.exit(0)\n", root))
-            self.assertFalse(scored(scorer, "def target(value):\n    return value\n", root))
-            self.assertTrue(scored(scorer, "import sys\n\nsys.stdout.write(\"debug\")\n\n\ndef target(value):\n    return helper(value) + 1\n", root))
+            for name, code, expected in cases:
+                with self.subTest(name):
+                    self.assertEqual(scored(scorer, code), expected)
 
     def test_every_required_contract_key_is_required(self):
         paths = list(checks.required_paths())
