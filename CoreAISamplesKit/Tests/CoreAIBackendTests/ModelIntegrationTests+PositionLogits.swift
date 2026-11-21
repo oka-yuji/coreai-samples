@@ -90,6 +90,9 @@ extension ModelIntegrationTests {
             try await engine.readInOneCall(Array(tokens[4..<8]), usePrefillFunction: true)
             #expect(throws: LogitRowError.noLogits) { try engine.logits(row: 0) }
         }
+        let read = engine.tokens.count
+        try await engine.readInOneCall(Array(tokens[read..<read + 4]))
+        #expect(try engine.logits(row: 3).count == engine.vocabSize)
         engine.unload()
         #expect(throws: LogitRowError.noLogits) { try engine.logits(row: 0) }
     }
