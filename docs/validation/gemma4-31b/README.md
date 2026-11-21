@@ -13,7 +13,7 @@ runs and of their comparison. It has no fixture text, local paths, commands or e
 ## Conditions
 
 - Mac16,6 (Apple M4 Max, 16 cores) with 128 GiB of memory, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power
-  at the start and end of both runs (`pmset -g batt`; the power log has no change of power source between 06:20 and
+  at the start and end of both runs (`pmset -g batt`; the power log has no change of power source between 07:17 and
   the end of the runs). Each run held the shared machine lock from its input fingerprints to its last check, and no
   model process ran when either run started (`pgrep -x`).
 - Model: revision `842da3794eaa0b77d5f08bae87a17459d91ff475`, all 12 files (62,578,686,256 B). Weight shards
@@ -24,13 +24,15 @@ runs and of their comparison. It has no fixture text, local paths, commands or e
   `a86c373c60bc9f86df95b2d94c9f068b34d536577109993194599c282d67e75e`.
 - Environment: Python 3.11.9, torch 2.15.0, transformers 5.16.1, accelerate 1.15.0, tokenizers 0.23.3, numpy 2.4.6,
   safetensors 0.8.0, huggingface-hub 1.33.0, jinja2 3.1.6.
-- Runs (2026-11-22 JST, run IDs in UTC): `20261121T214327-72fc48b5` from 06:43:23 and `20261121T215114-6e010de9`
-  (`--refresh`, a new process for each step) from 06:51:13. Both ran commit 2c3781c with no local changes.
-- The four runs before the code changes stay in the local work directory: `20261121T181402-3993e870` and
-  `20261121T182226-ec24068e` saved only the scoring rows, and `20261121T203620-82b17299` and `20261121T204316-1480d82e`
-  ran before the checks of the loaded files, the first monitor sample and the second greedy run were added. Their
-  tokens and their logits (the scoring rows of the first two, every saved row of the last two) are identical to
-  these runs.
+- Runs (2026-11-22 JST, run IDs in UTC): `20261121T224129-9bb9ad31` from 07:41:26 and `20261121T224932-a8ee45b6`
+  (`--refresh`, a new process for each step) from 07:49:30. Both ran commit aee4b65 with no local changes.
+- The six runs before the code changes stay in the local work directory: `20261121T181402-3993e870` and
+  `20261121T182226-ec24068e` saved only the scoring rows; `20261121T203620-82b17299` and `20261121T204316-1480d82e`
+  ran before the checks of the loaded files, the first monitor sample and the second greedy run were added; and
+  `20261121T214327-72fc48b5` and `20261121T215114-6e010de9` ran before the check of the snapshot folder right before
+  loading. Their tokens and their logits (the scoring rows of the first two, every saved row of the other four) are
+  identical to these runs; the comparison of the results below also passes between `20261121T214327-72fc48b5` and the
+  first of these runs and between `20261121T215114-6e010de9` and the second, with a largest difference of 0.0.
 
 ## What the runs checked
 
@@ -40,8 +42,9 @@ runs and of their comparison. It has no fixture text, local paths, commands or e
   (`GemmaTokenizer`) equalled the distributed `tokenizer.json`.
 - `reference` started only after the monitor's first sample read swap and the free percentage, and hashed the
   files it loads (both weight shards, `config.json`, `generation_config.json`, `model.safetensors.index.json` and the
-  three tokenizer files) right before loading them: every size and SHA-256 equalled the contract, and the weight
-  hashes in `reference.json` come from this check. It then loaded `Gemma4ForConditionalGeneration` with
+  three tokenizer files) right before loading them: every size and SHA-256 equalled the contract, the snapshot folder
+  still held exactly the 12 pinned files besides the download state under `.cache/`, and the weight hashes in
+  `reference.json` come from this check. It then loaded `Gemma4ForConditionalGeneration` with
   `dtype=torch.bfloat16`, `device_map="mps"` and
   `output_loading_info=True`. The missing, unexpected and mismatched key lists and the error list were empty; all
   31,273,086,512 parameters (the tied embedding counted once) were BF16 on `mps:0`, attention was `sdpa`, and the
@@ -62,8 +65,9 @@ Both runs passed every check of `reference.json`: clean loading, no non-finite v
 step logits of either greedy run, each greedy token at the maximum of its step logits, the same tokens in a second
 greedy run within the process, a clean monitor and recorded resources. The runs in new processes produced the same input and output tokens for every
 case, and the saved logits of all 3,241 positions were byte-identical: the largest absolute difference is 0.0. The
-comparison also found both `reference.json` files passed and every saved array float32 with the shape of its token
-file.
+comparison also found both `reference.json` files passed; every token file and saved array with the size and SHA-256
+that its own `reference.json` records, and the recorded token counts, saved positions and first scoring rows; every
+saved array float32 with the recorded shape; and no NaN or infinite value among the compared logits.
 
 | Case | Input tokens | Output tokens | Stop | Saved positions | Scoring positions | Non-finite (saved, steps) | Forced argmax = greedy |
 |---|---:|---:|---|---:|---:|---|---:|
@@ -97,21 +101,21 @@ only the top two candidates of each step are kept in the token files.
 
 ## Resources and time
 
-| Run | `20261121T214327-72fc48b5` | `20261121T215114-6e010de9` |
+| Run | `20261121T224129-9bb9ad31` | `20261121T224932-a8ee45b6` |
 |---|---:|---:|
-| Pipeline | 469.3 s | 440.2 s |
-| `prepare` step (hashing all files) | 76.1 s | 68.3 s |
-| `reference` step | 389.4 s | 370.6 s |
-| Hashing the loaded files before loading | 22.52 s | 21.03 s |
-| Model load | 6.48 s | 5.74 s |
-| Greedy, 673 tokens of 12 cases (with prefill) | 132.9 s, 5.06 tokens/s | 129.4 s, 5.20 tokens/s |
-| Decode after the first token, short inputs | 5.63 to 6.48 tokens/s | 5.90 to 6.56 tokens/s |
-| `ja_long`: first token, decode | 14.10 s, 4.44 tokens/s | 12.98 s, 4.85 tokens/s |
-| Peak resident memory | 60,409,315,328 B | 57,864,798,208 B |
-| Kernel lifetime footprint peak | 79,959,655,456 B | 79,961,949,144 B |
-| MPS driver allocation, after load / peak | 62,556,012,544 B / 74,663,854,080 B | 62,556,012,544 B / 75,108,450,304 B |
+| Pipeline | 484.0 s | 438.0 s |
+| `prepare` step (hashing all files) | 75.7 s | 68.1 s |
+| `reference` step | 404.8 s | 368.7 s |
+| Hashing the loaded files before loading | 23.22 s | 20.99 s |
+| Model load | 6.29 s | 5.62 s |
+| Greedy, 673 tokens of 12 cases (with prefill) | 138.5 s, 4.86 tokens/s | 129.3 s, 5.21 tokens/s |
+| Decode after the first token, short inputs | 5.06 to 6.49 tokens/s | 6.06 to 6.52 tokens/s |
+| `ja_long`: first token, decode | 15.37 s, 4.32 tokens/s | 12.98 s, 4.88 tokens/s |
+| Peak resident memory | 58,540,212,224 B | 58,720,976,896 B |
+| Kernel lifetime footprint peak | 79,977,628,728 B | 79,962,063,880 B |
+| MPS driver allocation, after load / peak | 62,556,012,544 B / 74,665,508,864 B | 62,556,012,544 B / 75,100,061,696 B |
 | Swap increase (limit 2,000,000,000 B) | 0 B | 0 B |
-| Lowest memory free percentage | 40 | 39 |
+| Lowest memory free percentage | 39 | 39 |
 | Saved logits (12 files) | 3,398,436,352 B | 3,398,436,352 B |
 
 - The model loaded with the weights in the file cache: `prepare` had just read every file. These are not cold loads.
@@ -139,11 +143,11 @@ only the top two candidates of each step are kept in the token files.
 
 | File | SHA-256 |
 |---|---|
-| Report of the first run | `ee72144a77f8946155c8853b005efd9ddd64ac56f13b8693d47807feec3fb27b` |
-| Report of the second run | `b9cded5c844f2c4d32cb6ffcd0943eb6479ce33078d77a25329b8ce1e5f35f2b` |
-| `reference.json` of the first run | `50587bde70990bd8caa6438e367310ce77b39d53af46cbb1a8b2077b5176a7d9` |
-| `reference.json` of the second run | `e42e060c50214f5d7c1430f747659c228ab4bfef9bc6067315eda6c8380824cc` |
-| Comparison of the two runs | `aaf5c99d9c720255ed0f13cfc0a7b9b398af1c8ed511aa177ed2afd78a418864` |
+| Report of the first run | `d80e9d9be8d9e46af1ea4a765b2dce9fb6234d229a47bcbe17a0b57fb8547312` |
+| Report of the second run | `efae6e49720a9e7f2f8dc513a93948d3ca3276bc371613e350de5a9249365f2b` |
+| `reference.json` of the first run | `64380a9cc35781bf78a96c2cf5c9bf19745677e19cccc02ad2a6e5599259f4b1` |
+| `reference.json` of the second run | `ee3444adf42a7c02ad67069cb3bd2c90bb634666ee834c272a6d5cfd0c63b46e` |
+| Comparison of the two runs | `0147a9338039832a64d936bdfc9884d31f67749763a03c3b0b0629197b76da56` |
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.summary \

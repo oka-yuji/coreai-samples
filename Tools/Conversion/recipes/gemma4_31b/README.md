@@ -58,9 +58,9 @@ Setup checks the integrity record against the contract, then under the shared ma
   reads both swap and the free percentage (at most 60 seconds), then hashes the files it loads (both weight
   shards, `config.json`, `generation_config.json`, `model.safetensors.index.json` and the three tokenizer
   files) and stops before loading unless every size and SHA-256 equals the contract and the folder still holds
-  exactly the pinned files under the rule of `prepare` (only the download state under `.cache/` may be added;
-  the loader would prefer a single `model.safetensors` to the pinned shards). `reference.json` records
-  these hashes, not the copies in `ready.json`. It then loads `Gemma4ForConditionalGeneration`
+  exactly the pinned files under the rule of `prepare`, which ignores only the download state under `.cache/` and
+  Finder's `.DS_Store` files (the loader would prefer a single `model.safetensors` to the pinned shards).
+  `reference.json` records these hashes, not the copies in `ready.json`. It then loads `Gemma4ForConditionalGeneration`
   with `dtype=torch.bfloat16`, `device_map="mps"` and `output_loading_info=True` and requires empty loading
   lists, BF16 parameters on MPS and evaluation mode. Inputs are text only; the vision tower is loaded with
   the distributed weights but never called. Conversations are rendered by `apply_chat_template` with
