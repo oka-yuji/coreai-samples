@@ -63,7 +63,7 @@ public final class Engine {
     public let contextLimit: Int
     public let hasPrefillFunction: Bool
     public let isHybrid: Bool
-    let prefillChunkSize: Int
+    @_spi(Verification) public let prefillChunkSize: Int
     public let loadStats: LoadStats
     public var stats = Stats()
     public var measuresPreparation = false
@@ -77,6 +77,7 @@ public final class Engine {
     private var logitsRows = 1
     private var logitsOffset = 0
     private(set) var hasLogits = false
+    private var rowLayout = LogitRowLayout()
     private var scratch: [Float]
 
     public var tokens: [Int32] { context.tokens }
@@ -233,6 +234,17 @@ public final class Engine {
         stats.decodeSeconds += (ContinuousClock.now - start) / .seconds(1)
     }
 
+    @_spi(Verification) public func readInOneCall(_ chunk: [Int32], usePrefillFunction: Bool = false) async throws {
+        precondition(!chunk.isEmpty)
+        guard let main else { throw EngineError.unloaded }
+        try context.checkRoom(chunk.count)
+        if usePrefillFunction, let prefillFunction {
+            try await forward(prefillFunction, chunk[...], logits: false)
+        } else {
+            try await forward(main, chunk[...], logits: true)
+        }
+    }
+
     public func generate(
         _ input: [Int32],
         maxTokens: Int,
@@ -258,6 +270,11 @@ public final class Engine {
         withLogits { Array($0) }
     }
 
+    @_spi(Verification) public func logits(row: Int) throws(LogitRowError) -> [Float16] {
+        let offset = try rowLayout.offset(ofRow: row)
+        return withLogits(at: offset) { Array($0) }
+    }
+
     public func checkpoint() -> Checkpoint {
         var point = context.checkpoint()
         if hasLogits { point.logits = logits() }
@@ -265,6 +282,7 @@ public final class Engine {
     }
 
     public func restore(_ checkpoint: Checkpoint) throws {
+        rowLayout.clear()
         try context.restore(checkpoint)
         hasLogits = checkpoint.logits.count == vocabSize
         guard hasLogits else { return }
@@ -280,6 +298,7 @@ public final class Engine {
     public func reset() {
         context.reset()
         hasLogits = false
+        rowLayout.clear()
     }
 
     public func unload() {
@@ -290,12 +309,16 @@ public final class Engine {
         context.releaseInputs()
         logitsArray = NDArray(shape: [1], scalarType: .float16)
         hasLogits = false
+        rowLayout.clear()
     }
 
     func withLogits<R>(_ body: (UnsafeBufferPointer<Float16>) -> R) -> R {
         precondition(hasLogits, "no logits for the current position")
+        return withLogits(at: logitsOffset, body)
+    }
+
+    private func withLogits<R>(at offset: Int, _ body: (UnsafeBufferPointer<Float16>) -> R) -> R {
         let array = logitsArray
-        let offset = logitsOffset
         return array.view(as: Float16.self).withUnsafePointer { pointer, _, _ in
             body(UnsafeBufferPointer(start: pointer + offset, count: vocabSize))
         }
@@ -303,6 +326,7 @@ public final class Engine {
 
     private func forward(_ function: InferenceFunction, _ chunk: ArraySlice<Int32>, logits: Bool) async throws {
         let prepareStart = measuresPreparation ? ContinuousClock.now : nil
+        rowLayout.clear()
         let end = context.tokens.count + chunk.count
         context.reserve(end)
         context.writeInputs(chunk)
@@ -331,6 +355,10 @@ public final class Engine {
         _ = try await function.run(inputs: inputs, states: stateViews, outputViews: outputViews)
         context.tokens.append(contentsOf: chunk)
         hasLogits = logits
+        if logits {
+            rowLayout.update(
+                rows: chunk.count, strides: logitsArray.strides, interleaved: logitsArray.interleaveLayout != nil)
+        }
     }
 
     static func argmax(_ values: UnsafeBufferPointer<Float16>, scratch: inout [Float]) -> Int32 {
