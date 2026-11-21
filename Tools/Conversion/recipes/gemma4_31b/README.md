@@ -52,7 +52,11 @@ Setup checks the integrity record against the contract, then under the shared ma
   requires the tokenizer that `AutoTokenizer` builds to equal the distributed `tokenizer.json`. It records
   the versions of the environment and the Apple toolchain, requires MPS, and stops when `pyproject.toml` or
   `uv.lock` differ from those recorded by setup.
-- `reference` is heavy and runs under the shared machine lock. It loads `Gemma4ForConditionalGeneration`
+- `reference` is heavy and runs under the shared machine lock. It waits for the first monitor sample that
+  reads both swap and the free percentage (at most 60 seconds), then hashes the files it loads (both weight
+  shards, `config.json`, `generation_config.json`, `model.safetensors.index.json` and the three tokenizer
+  files) and stops before loading unless every size and SHA-256 equals the contract; `reference.json` records
+  these hashes, not the copies in `ready.json`. It then loads `Gemma4ForConditionalGeneration`
   with `dtype=torch.bfloat16`, `device_map="mps"` and `output_loading_info=True` and requires empty loading
   lists, BF16 parameters on MPS and evaluation mode. Inputs are text only; the vision tower is loaded with
   the distributed weights but never called. Conversations are rendered by `apply_chat_template` with
@@ -77,8 +81,9 @@ positions where the forced argmax equals the greedy token (mismatches keep the p
 probability difference of the top two candidates) and the rows whose top two logits are exactly equal.
 These two are recorded, not criteria; where the top two are equal, `argmax` picks the smaller ID. It also
 records a second greedy run in the same process, the times and the greedy tokens per second. Its `passed`
-requires clean loading, no non-finite value, each greedy token at the maximum of its step logits,
-identical tokens in the second run, a clean monitor and recorded resources.
+requires clean loading, no non-finite value (in the saved rows and in the step logits of both greedy runs),
+each greedy token at the maximum of its step logits, identical tokens in the second run, a clean monitor
+and recorded resources.
 
 A thread samples swap, the memory free percentage and the free disk every 5 seconds (`monitor.tsv`,
 from `adapters/jev27b/monitor.py`). The stage stops as failed with `failure.json` and exit code 1 when:
@@ -88,7 +93,8 @@ from `adapters/jev27b/monitor.py`). The stage stops as failed with `failure.json
 - swap is above 16,000,000,000 B and rises on three samples in a row (the condition of the shared monitor);
 - a sample cannot read swap or the free percentage, or the monitor thread ends with an error.
 
-A process still running 120 seconds after a stop is killed. A run that finishes after a stop, with an
+A process still running 120 seconds after a stop is killed, also when the monitor thread itself ended
+with an error (a separate timer takes over the kill). A run that finishes after a stop, with an
 unreadable sample or a monitor error is not `passed`, and neither is a run without its peak resident
 memory, kernel lifetime footprint peak, MPS allocation or swap increase. These are recorded after loading,
 after every case and at the end. The stage needs 20 GiB of free disk; the saved logits of the twelve
@@ -106,10 +112,12 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.summary --report <first report.j
   --report <second report.json> --reference <second reference.json> --comparison .local/conversion/work/gemma4_31b/rerun.json
 ~~~
 
-`compare` requires the same model, environment and fixtures, and records per case whether the input and
-output tokens match, the first position where the forced sequences differ, and the largest absolute logit
-difference over the saved rows whose context is still identical (all rows when the sequences match). It
-passes only when the input and output tokens of every case match. `summary` prints only states, numbers, hashes, versions
+`compare` records per case whether the input and output tokens match, the first position where the forced
+sequences differ, and the largest absolute logit difference over the saved rows whose context is still
+identical (every row when the sequences match). It passes only when both `reference.json` files passed, the
+model, environment, fixtures and cases are the same, every saved array is float32 with the shape
+`[input length + output length, vocabulary]` of its token file, and the input and output tokens of every
+case match; any other finding is listed in `problems`. `summary` prints only states, numbers, hashes, versions
 and case IDs; it lives beside the steps because every `Tools/Conversion/*.py` file is part of each step's
 cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
 

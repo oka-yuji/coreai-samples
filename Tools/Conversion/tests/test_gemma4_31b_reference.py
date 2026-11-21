@@ -1,12 +1,14 @@
 import contextlib
 import copy
 import io
+import itertools
 import json
 import math
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from types import SimpleNamespace
 import unittest
@@ -51,14 +53,17 @@ class FakeTokenizer:
 
 
 class FakeModel:
-    def __init__(self, outputs, last_row=-1.0):
-        self.outputs, self.last_row = outputs, last_row
+    def __init__(self, outputs, last_row=-1.0, rerun_nan=False):
+        self.outputs, self.last_row, self.rerun_nan, self.calls = outputs, last_row, rerun_nan, 0
 
     def generate(self, input_ids, attention_mask, generation_config, stopping_criteria):
+        self.calls += 1
         rows = []
         for token in self.outputs:
             row = torch.full((1, VOCABULARY), -1.0)
             row[0, token] = 2.0
+            if self.rerun_nan and self.calls == 2 and not rows:
+                row[0, 0] = math.nan
             rows.append(row)
             stopping_criteria(input_ids, row)
         return SimpleNamespace(sequences=torch.tensor([input_ids[0].tolist() + self.outputs]), logits=tuple(rows))
@@ -70,6 +75,40 @@ class FakeModel:
             logits[0, position, token] = 2.0
         logits[0, -1, 0] = self.last_row
         return SimpleNamespace(logits=logits)
+
+
+class ReadyMonitor:
+    def __init__(self, on_abort, delay):
+        self.on_abort, self.delay, self.ready = on_abort, delay, threading.Event()
+
+    def start(self):
+        if self.delay is not None:
+            threading.Timer(self.delay, self.ready.set).start()
+
+    def finish(self):
+        return {"samples": 1, "aborts": 0}
+
+
+def write_loaded_files(folder):
+    snapshot = Path(folder) / "model"
+    snapshot.mkdir()
+    files = {}
+    for name in (*reference.LOADED_FILES, "model-00001-of-00002.safetensors", "model-00002-of-00002.safetensors", "README.md"):
+        (snapshot / name).write_bytes(name.encode())
+        files[name] = {"bytes": len(name), "sha256": sha256(snapshot / name)}
+    return snapshot, {"files": files}
+
+
+def run_main(folder, monitor, run):
+    prepare, output = Path(folder) / "prepare", Path(folder) / "out"
+    prepare.mkdir()
+    output.mkdir()
+    (prepare / "ready.json").write_text(json.dumps({"ready": True, "contract_sha256": sha256(RECIPE / "model.json")}))
+    argv = ["reference", "--model", str(RECIPE / "model.json"), "--snapshot", str(folder), "--fixtures",
+            str(RECIPE / "fixtures.json"), "--prepare", str(prepare), "--output", str(output)]
+    with mock.patch.object(sys, "argv", argv), mock.patch.object(reference, "ReferenceMonitor", monitor), \
+            mock.patch.object(reference, "reference", run):
+        return reference.main(), output
 
 
 class FixtureTests(unittest.TestCase):
@@ -192,15 +231,24 @@ class RunCasesTests(unittest.TestCase):
                                              [self.CASE], [1], 2, "cpu", Path(folder))
         self.assertEqual((records[0]["non_finite"]["forced"], records[0]["forced_argmax_matches"]), (1, 3))
 
+    def test_non_finite_values_in_the_second_greedy_run_are_counted(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()):
+            records, _ = reference.run_cases(FakeModel([5, 6, 1], rerun_nan=True), FakeTokenizer([], [7, 3]),
+                                             [self.CASE], [1], 2, "cpu", Path(folder))
+        record = records[0]
+        self.assertEqual((record["non_finite"], record["rerun"]["tokens_match"], record["rerun"]["non_finite"]),
+                         ({"forced": 0, "steps": 0}, True, 1))
+        self.assertFalse(reference.evaluate(loading(), records, "mps")["finite"])
+
 
 def loading(**changes):
     return {"info": {"missing_keys": []}, "parameter_dtypes": ["torch.bfloat16"], "parameter_devices": ["mps:0"],
             "training": False, **changes}
 
 
-def case_record(non_finite=0, rerun=True):
+def case_record(non_finite=0, rerun=True, rerun_non_finite=0):
     return {"non_finite": {"forced": non_finite, "steps": 0}, "greedy_chosen_is_max": True,
-            "rerun": {"tokens_match": rerun}}
+            "rerun": {"tokens_match": rerun, "non_finite": rerun_non_finite}}
 
 
 def checked_record(checks):
@@ -211,7 +259,8 @@ class CheckTests(unittest.TestCase):
     def test_non_finite_values_or_a_different_rerun_fail_the_reference(self):
         clean = reference.evaluate(loading(), [case_record()], "mps")
         self.assertTrue(reference.finalize(checked_record(clean), copy.deepcopy(OBSERVED), dict(MEMORY))["passed"])
-        for record, key in ((case_record(non_finite=1), "finite"), (case_record(rerun=False), "rerun_tokens_match")):
+        for record, key in ((case_record(non_finite=1), "finite"), (case_record(rerun_non_finite=1), "finite"),
+                            (case_record(rerun=False), "rerun_tokens_match")):
             checks = reference.evaluate(loading(), [case_record(), record], "mps")
             with self.subTest(key=key):
                 self.assertFalse(checks[key])
@@ -236,6 +285,47 @@ class CheckTests(unittest.TestCase):
             final = {**reference.memory("cpu"), "mps_driver_allocated_bytes": 8}
         self.assertIsNone(final["lifetime_peak_footprint_bytes"])
         self.assertFalse(reference.finalize(checked_record({"finite": True}), copy.deepcopy(OBSERVED), final)["passed"])
+
+
+class InputTests(unittest.TestCase):
+    def test_the_files_to_load_are_hashed_against_the_contract(self):
+        with tempfile.TemporaryDirectory() as folder:
+            snapshot, contract = write_loaded_files(folder)
+            verified = reference.verify_inputs(snapshot, contract)
+        self.assertEqual(set(verified), set(contract["files"]) - {"README.md"})
+        self.assertEqual(verified["model-00002-of-00002.safetensors"], contract["files"]["model-00002-of-00002.safetensors"])
+
+    def test_a_changed_resized_or_linked_file_to_load_is_rejected(self):
+        def relink(snapshot):
+            copy_path = snapshot.parent / "copy"
+            copy_path.write_bytes((snapshot / "config.json").read_bytes())
+            (snapshot / "config.json").unlink()
+            (snapshot / "config.json").symlink_to(copy_path)
+
+        changes = {"content": lambda snapshot: (snapshot / "chat_template.jinja").write_bytes(b"x" * len("chat_template.jinja")),
+                   "size": lambda snapshot: (snapshot / "tokenizer.json").write_bytes(b"another size"), "link": relink}
+        for label, change in changes.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                snapshot, contract = write_loaded_files(folder)
+                change(snapshot)
+                with self.assertRaises(ValueError):
+                    reference.verify_inputs(snapshot, contract)
+
+    @unittest.skipIf(torch is None, "PyTorch is required to call the reference step")
+    def test_a_snapshot_changed_after_prepare_stops_before_loading(self):
+        with tempfile.TemporaryDirectory() as folder:
+            snapshot, contract = write_loaded_files(folder)
+            args = SimpleNamespace(snapshot=snapshot, fixtures=RECIPE / "fixtures.json", output=Path(folder))
+            with mock.patch.object(reference, "runtime_tokenizer", side_effect=RuntimeError("tokenizer")) as tokenizer, \
+                    mock.patch.object(reference, "load_model") as load:
+                with self.assertRaises(RuntimeError):
+                    reference.reference(args, contract, {})
+                shard = snapshot / "model-00002-of-00002.safetensors"
+                shard.write_bytes(b"y" * shard.stat().st_size)
+                with self.assertRaises(ValueError):
+                    reference.reference(args, contract, {})
+            self.assertEqual(tokenizer.call_count, 1)
+            load.assert_not_called()
 
 
 class MonitorTests(unittest.TestCase):
@@ -275,7 +365,7 @@ class MonitorTests(unittest.TestCase):
         reasons = []
         with tempfile.TemporaryDirectory() as folder, mock.patch(f"{MONITOR}.INTERVAL_S", 0.01), \
                 mock.patch(f"{MONITOR}._thread") as thread:
-            observed = self.wait(self.monitor(folder, reasons, [10**9] + [4 * 10**9] * 100), reasons)
+            observed = self.wait(self.monitor(folder, reasons, itertools.chain([10**9], itertools.repeat(4 * 10**9))), reasons)
         self.assertTrue(reasons and reasons[0].startswith("swap rose"))
         thread.interrupt_main.assert_called_once()
         self.assertEqual(observed["aborts"], 1)
@@ -290,9 +380,11 @@ class MonitorTests(unittest.TestCase):
             return 10**9
 
         with tempfile.TemporaryDirectory() as folder, mock.patch(f"{MONITOR}.INTERVAL_S", 0.01), \
-                mock.patch(f"{MONITOR}._thread") as thread:
+                mock.patch(f"{MONITOR}._thread") as thread, mock.patch.object(reference, "schedule_kill") as kill:
             observed = self.wait(self.monitor(folder, reasons, swap), reasons)
         self.assertTrue(reasons and reasons[0].startswith("monitor stopped: TimeoutExpired"))
+        kill.assert_called_once()
+        self.assertAlmostEqual(kill.call_args.args[0], 120, delta=1)
         thread.interrupt_main.assert_called_once()
         self.assertEqual((observed["aborts"], observed["failure"] is None), (1, False))
         self.assertFalse(reference.finalize(checked_record({"finite": True}), observed, dict(MEMORY))["passed"])
@@ -306,38 +398,65 @@ class MonitorTests(unittest.TestCase):
                 mock.patch(f"{MONITOR}.command_output", side_effect=lambda *command: outputs[command[0]]):
             monitor = reference.ReferenceMonitor(Path(folder) / "monitor.tsv", [folder], [], reasons.append)
             observed = self.wait(monitor, reasons)
+        self.assertFalse(monitor.ready.is_set())
         self.assertEqual(reasons[:1], [reference.UNREADABLE])
         thread.interrupt_main.assert_called_once()
         self.assertGreaterEqual(observed["unreadable_samples"], 1)
         self.assertFalse(reference.finalize(checked_record({"finite": True}), observed, dict(MEMORY))["passed"])
 
+    def test_an_unreadable_sample_still_kills_a_process_that_does_not_stop(self):
+        reasons = []
+        with tempfile.TemporaryDirectory() as folder, mock.patch(f"{MONITOR}.INTERVAL_S", 0.01), \
+                mock.patch(f"{MONITOR}.KILL_AFTER_S", 0.05), mock.patch(f"{MONITOR}._thread"), mock.patch("os.kill") as kill:
+            monitor = self.monitor(folder, reasons, itertools.repeat(10**9), free=None)
+            monitor.start()
+            deadline = time.monotonic() + 5
+            while not kill.called and time.monotonic() < deadline:
+                time.sleep(0.01)
+            monitor.finish()
+        self.assertEqual(reasons[:1], [reference.UNREADABLE])
+        self.assertEqual(kill.call_args.args[1], reference.signal.SIGKILL)
+
     def test_an_aborted_run_fails_without_a_reference_record(self):
-        class Fake:
-            def __init__(self, path, volumes, patterns, on_abort):
-                self.on_abort = on_abort
-
-            def start(self):
-                self.on_abort("swap rose by 2000000001 B, above 2000000000 B")
-
-            def finish(self):
-                return {"samples": 1, "aborts": 1}
+        def monitor(path, volumes, patterns, on_abort):
+            fake = ReadyMonitor(on_abort, delay=None)
+            fake.ready.set()
+            on_abort("swap rose by 2000000001 B, above 2000000000 B")
+            return fake
 
         def interrupted(*arguments):
             raise KeyboardInterrupt
 
         with tempfile.TemporaryDirectory() as folder:
-            prepare, output = Path(folder) / "prepare", Path(folder) / "out"
-            prepare.mkdir()
-            output.mkdir()
-            (prepare / "ready.json").write_text(json.dumps({"ready": True, "contract_sha256": sha256(RECIPE / "model.json")}))
-            argv = ["reference", "--model", str(RECIPE / "model.json"), "--snapshot", folder, "--fixtures",
-                    str(RECIPE / "fixtures.json"), "--prepare", str(prepare), "--output", str(output)]
-            with mock.patch.object(sys, "argv", argv), mock.patch.object(reference, "ReferenceMonitor", Fake), \
-                    mock.patch.object(reference, "reference", interrupted):
-                self.assertEqual(reference.main(), 1)
+            code, output = run_main(folder, monitor, interrupted)
             failure = json.loads((output / "failure.json").read_text())
-            self.assertEqual((failure["passed"], failure["abort"][:9]), (False, "swap rose"))
+            self.assertEqual((code, failure["passed"], failure["abort"][:9]), (1, False, "swap rose"))
             self.assertFalse((output / "reference.json").exists())
+
+    def test_the_model_is_not_loaded_before_the_first_readable_sample(self):
+        seen = {}
+
+        def monitor(path, volumes, patterns, on_abort):
+            seen["monitor"] = ReadyMonitor(on_abort, delay=0.1)
+            return seen["monitor"]
+
+        def interrupted(*arguments):
+            seen["ready"] = seen["monitor"].ready.is_set()
+            seen["monitor"].on_abort("stopped by the test")
+            raise KeyboardInterrupt
+
+        with tempfile.TemporaryDirectory() as folder:
+            code, _ = run_main(folder, monitor, interrupted)
+        self.assertEqual((code, seen["ready"]), (1, True))
+
+    def test_no_readable_first_sample_fails_without_loading(self):
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(reference, "FIRST_SAMPLE_TIMEOUT_S", 0.05):
+            started = mock.Mock()
+            code, output = run_main(folder, lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, None), started)
+            failure = json.loads((output / "failure.json").read_text())
+        started.assert_not_called()
+        self.assertEqual(code, 1)
+        self.assertTrue(failure["abort"].startswith("no readable monitor sample"))
 
 
 ROWS = [[0, 2], [1, 0], [3, 0], [0, 1], [2, 2]]
@@ -400,7 +519,7 @@ def reference_record():
             "forced_mismatches": [{"position": 1, "greedy": 4, "top2": [3, 4], "probability_difference": 0.01}],
             "step_vs_forced_max_abs_logit": 0.125,
             "timing": {"greedy_s": 1.0, "first_token_s": 0.5, "tokens_per_s": 2.0, "decode_tokens_per_s": None, "forced_s": 0.2},
-            "rerun": {"tokens_match": True, "greedy_s": 1.0, "first_difference": None},
+            "rerun": {"tokens_match": True, "greedy_s": 1.0, "non_finite": 0, "first_difference": None},
             "files": {"tokens": {"bytes": 1, "sha256": "a" * 64},
                       "logits": {"bytes": 2, "sha256": "b" * 64, "dtype": "float32", "shape": [5, 262144]}}}
     return {"schema": reference.SCHEMA, "passed": True, "checks": {"finite": True},

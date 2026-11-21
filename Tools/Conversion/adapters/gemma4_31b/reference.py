@@ -4,33 +4,46 @@ import os
 from pathlib import Path
 import re
 import resource
+import signal
 import sys
+import threading
 import time
 
 from ...storage import read_json, write_json
 from ..jev27b import monitor as shared
 from ..pinned import sha256
-from .prepare import load_contract, runtime_tokenizer
+from .prepare import TOKENIZER_FILES, load_contract, runtime_tokenizer
 
 SCHEMA = "gemma4-31b-reference/1"
 CASE_ID = re.compile(r"[a-z][a-z0-9_]*")
 ROLES = ("system", "user", "assistant")
 CASE_KEYS = {"id", "kind", "max_new_tokens"}
 SWAP_INCREASE_LIMIT_BYTES = 2_000_000_000
+FIRST_SAMPLE_TIMEOUT_S = 60
 MODEL_CLASS = "Gemma4ForConditionalGeneration"
+LOADED_FILES = ("config.json", "generation_config.json", "model.safetensors.index.json", *TOKENIZER_FILES)
 UNREADABLE = "the monitor could not read swap or the memory free percentage"
 READINGS = [shared.COLUMNS.index(name) for name in ("swap_used_bytes", "free_percent")]
+
+
+def schedule_kill(delay):
+    timer = threading.Timer(delay, os.kill, (os.getpid(), signal.SIGKILL))
+    timer.daemon = True
+    timer.start()
+    return timer
 
 
 class ReferenceMonitor(shared.Monitor):
     def __init__(self, path, volumes, patterns, on_abort):
         super().__init__(path, volumes, patterns, on_abort)
-        self.failure, self.unreadable = None, 0
+        self.failure, self.unreadable, self.ready = None, 0, threading.Event()
 
     def sample(self):
         row = super().sample()
         if any(row[index] is None for index in READINGS):
             self.unreadable += 1
+        elif not self.unreadable:
+            self.ready.set()
         return row
 
     def verdict(self):
@@ -47,9 +60,10 @@ class ReferenceMonitor(shared.Monitor):
         except BaseException as error:
             self.failure = f"monitor stopped: {type(error).__name__}: {error}"
             if self.reason is None:
-                self.reason = self.failure
+                self.reason, self.aborted_at = self.failure, time.perf_counter()
                 self.on_abort(self.failure)
                 shared._thread.interrupt_main()
+            schedule_kill(max(0.0, shared.KILL_AFTER_S - (time.perf_counter() - self.aborted_at)))
 
     def finish(self):
         return {**super().finish(), "failure": self.failure, "unreadable_samples": self.unreadable}
@@ -248,6 +262,28 @@ def file_record(path):
     return {"bytes": path.stat().st_size, "sha256": sha256(path)}
 
 
+def verify_inputs(snapshot, contract):
+    names = sorted(name for name in contract["files"] if name in LOADED_FILES or name.endswith(".safetensors"))
+    if not set(LOADED_FILES) <= set(names):
+        raise ValueError("The contract does not pin every file that the reference loads")
+    verified = {}
+    for name in names:
+        path, pinned = Path(snapshot) / name, contract["files"][name]
+        if path.is_symlink() or not path.is_file() or path.stat().st_size != pinned["bytes"] \
+                or sha256(path) != pinned["sha256"]:
+            raise ValueError(f"A file to load differs from the contract: {name}")
+        verified[name] = dict(pinned)
+    return verified
+
+
+def load_model(snapshot, device):
+    import torch
+    import transformers
+
+    return getattr(transformers, MODEL_CLASS).from_pretrained(str(snapshot), dtype=torch.bfloat16, device_map=device,
+                                                              output_loading_info=True)
+
+
 def run_cases(model, tokenizer, cases, stops, bos, device, output):
     import numpy as np
 
@@ -286,7 +322,7 @@ def run_cases(model, tokenizer, cases, stops, bos, device, output):
         print(case["id"], len(ids), len(outputs), f"{timing['greedy_s']:.2f}s", flush=True)
     for record, (ids, first, first_steps) in zip(records, kept):
         outputs, steps, timing = greedy(model, ids, record["max_new_tokens"], stops, device)
-        record["rerun"] = {"tokens_match": outputs == first, "greedy_s": timing["greedy_s"],
+        record["rerun"] = {"tokens_match": outputs == first, "greedy_s": timing["greedy_s"], "non_finite": non_finite(steps),
                            "first_difference": first_difference(first, outputs, first_steps, steps)}
         print(record["id"], "rerun", outputs == first, flush=True)
     return records, peaks
@@ -295,7 +331,7 @@ def run_cases(model, tokenizer, cases, stops, bos, device, output):
 def evaluate(loading, records, device):
     return {"loading_clean": not any(loading["info"].values()) and loading["parameter_dtypes"] == ["torch.bfloat16"]
             and all(name.startswith(device) for name in loading["parameter_devices"]) and not loading["training"],
-            "finite": all(not any(record["non_finite"].values()) for record in records),
+            "finite": all(not any(record["non_finite"].values()) and record["rerun"]["non_finite"] == 0 for record in records),
             "greedy_chosen_is_max": all(record["greedy_chosen_is_max"] for record in records),
             "rerun_tokens_match": all(record["rerun"]["tokens_match"] for record in records)}
 
@@ -319,17 +355,16 @@ def finalize(record, observed, final):
 
 def reference(args, contract, ready):
     import torch
-    import transformers
 
     started = time.perf_counter()
+    verified = verify_inputs(args.snapshot, contract)
+    hashed = time.perf_counter()
     tokenizer = runtime_tokenizer(args.snapshot)
     cases = load_fixtures(args.fixtures)
     config = contract["config"]
     device = contract["reference"]["device"]
     loading_started = time.perf_counter()
-    model_class = getattr(transformers, MODEL_CLASS)
-    model, info = model_class.from_pretrained(str(args.snapshot), dtype=torch.bfloat16, device_map=device,
-                                              output_loading_info=True)
+    model, info = load_model(args.snapshot, device)
     model.eval()
     loaded = time.perf_counter()
     parameters = list(model.parameters())
@@ -350,8 +385,9 @@ def reference(args, contract, ready):
     greedy_seconds = sum(record["timing"]["greedy_s"] for record in records)
     return {"schema": SCHEMA, "checks": checks,
             "model": {"id": contract["model_id"], "revision": contract["revision"], "contract_sha256": ready["contract_sha256"],
-                      "weights_sha256": {name: entry["sha256"] for name, entry in ready["files"].items()
-                                         if name.endswith(".safetensors")}},
+                      "weights_sha256": {name: entry["sha256"] for name, entry in verified.items()
+                                         if name.endswith(".safetensors")},
+                      "verified_before_loading": verified},
             "environment": {"python": ready["environment"]["python"], "packages": ready["environment"]["packages"],
                             "os_build": ready["environment"]["os_build"]},
             "dtype": {"weights": "bfloat16", "compute": "bfloat16", "logits_saved": "float32"}, "device": device,
@@ -367,7 +403,8 @@ def reference(args, contract, ready):
             "fixtures_sha256": sha256(args.fixtures), "cases": records,
             "resources": {"cases": peaks, "mps_recommended_max_bytes": torch.mps.recommended_max_memory()
                           if device == "mps" else None},
-            "timing": {"tokenizer_and_fixtures_s": loading_started - started, "load_s": loaded - loading_started,
+            "timing": {"input_hash_s": hashed - started, "tokenizer_and_fixtures_s": loading_started - hashed,
+                       "load_s": loaded - loading_started,
                        "cases_and_rerun_s": finished - loaded, "greedy_tokens": greedy_tokens,
                        "greedy_s": greedy_seconds, "greedy_tokens_per_s": greedy_tokens / greedy_seconds}}
 
@@ -387,18 +424,24 @@ def main():
     reasons = []
     monitor = ReferenceMonitor(args.output / "monitor.tsv", [args.output], [], reasons.append)
     started = time.perf_counter()
-    monitor.start()
-    try:
-        record = reference(args, contract, ready)
-    except KeyboardInterrupt:
-        if not reasons:
-            raise
-        write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "abort": reasons[0],
+
+    def fail(reason):
+        write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "abort": reason,
                                                   "elapsed_s": time.perf_counter() - started,
                                                   "max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                                                   "lifetime_peak_footprint_bytes": footprint()[1],
                                                   "monitor": monitor.finish()})
         return 1
+
+    monitor.start()
+    try:
+        if not monitor.ready.wait(FIRST_SAMPLE_TIMEOUT_S):
+            return fail(reasons[0] if reasons else f"no readable monitor sample within {FIRST_SAMPLE_TIMEOUT_S} s")
+        record = reference(args, contract, ready)
+    except KeyboardInterrupt:
+        if not reasons:
+            raise
+        return fail(reasons[0])
     finalize(record, monitor.finish(), memory(contract["reference"]["device"]))
     record["timing"]["total_s"] = time.perf_counter() - started
     write_json(output, record)

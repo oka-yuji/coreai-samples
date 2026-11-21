@@ -56,6 +56,7 @@ def case(record):
             "step_vs_forced_max_abs_logit": optional(record["step_vs_forced_max_abs_logit"]),
             "timing": {word(key): optional(value) for key, value in record["timing"].items()},
             "rerun_tokens_match": flag(rerun["tokens_match"]), "rerun_greedy_s": summary.number(rerun["greedy_s"]),
+            "rerun_non_finite": count(rerun["non_finite"]),
             "rerun_first_difference": None if rerun["first_difference"] is None
             else count(rerun["first_difference"]["position"]),
             "logits": {"bytes": count(logits["bytes"]), "sha256": matched(logits["sha256"], HEX[64]),
