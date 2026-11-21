@@ -1,10 +1,12 @@
 from collections import Counter
 from fractions import Fraction
+import hashlib
 import json
+from pathlib import Path
 import re
 import unicodedata
 
-from Tools.LLMEvaluation.items import FILES, ROOT, canonical, read_json
+from Tools.LLMEvaluation.items import FILES, ROOT, SETS, canonical, digest, lines, read_json, sha256
 
 CONTRACT = read_json(ROOT / FILES["contract"])
 RULES = CONTRACT["scorers"]
@@ -110,3 +112,93 @@ def score(item, text):
     else:
         raise ValueError(f"Unknown scorer kind: {kind}")
     return {"kind": kind, "correct": correct, "state": state, "parsed": parsed, **extra}
+
+
+def committed(bundle):
+    return {entry["id"]: entry["item_sha256"] for name in SETS for entry in bundle["sets"][name]["items"]}
+
+
+def generated(record):
+    return record["output_ids"] + ([record.get("stop_token")] if record.get("stop") == "stop_token" else [])
+
+
+def record_checks(items, records, hashes):
+    ids = {item["id"] for item in items}
+    seen = Counter(record["id"] for record in records)
+    return {"missing": sorted(ids - set(seen)), "not_in_set": sorted(set(seen) - ids),
+            "duplicate": sorted(key for key, count in seen.items() if count > 1),
+            "top2_differs": sorted({record["id"] for record in records
+                                    if [entry[0] for entry in record["top2"]] != generated(record)}),
+            "item_hash_differs": sorted(item["id"] for item in items if digest(item) != hashes.get(item["id"]))}
+
+
+def ratio(numerator, denominator):
+    return None if denominator == 0 else float(Fraction(numerator, denominator))
+
+
+def summarize(rows):
+    groups = {}
+    for row in rows:
+        groups.setdefault(row["category"], []).append(row)
+    categories = {}
+    for name, group in groups.items():
+        value = {"kind": group[0]["kind"], "items": len(group), "correct": sum(row["correct"] is True for row in group),
+                 "unscored": sum(row["correct"] is None for row in group),
+                 "states": dict(Counter(row["state"] for row in group))}
+        if value["kind"] == "entity_sets":
+            value.update({key: sum(row.get(key, 0) for row in group) for key in ("tp", "fp", "fn")})
+            value["micro_f1"] = ratio(2 * value["tp"], 2 * value["tp"] + value["fp"] + value["fn"])
+        if value["kind"] == "reading_exact":
+            found = [row["f1"] for row in group if "f1" in row]
+            value["mean_f1"] = ratio(sum(found, Fraction(0)), len(found))
+        categories[name] = value
+    return categories
+
+
+def pinned(path, contract):
+    data = Path(path).read_bytes()
+    pin = contract["model"]["files"]["tokenizer.json"]
+    if len(data) != pin["bytes"] or hashlib.sha256(data).hexdigest() != pin["sha256"]:
+        raise ValueError("tokenizer.json differs from the contract")
+    import tokenizers
+
+    return tokenizers.Tokenizer.from_str(data.decode("utf-8")), pin["sha256"]
+
+
+def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
+    output, runs = Path(output), [Path(run) for run in runs]
+    if output.exists():
+        raise FileExistsError(f"Output must be a new folder: {output}")
+    if len({run.name for run in runs}) != len(runs):
+        raise ValueError("Run folders must have distinct names")
+    items = lines(Path(items_path).read_bytes())
+    if len({item["id"] for item in items}) != len(items):
+        raise ValueError("Duplicate item ids in the items file")
+    hashes, results = committed(bundle), {}
+    for run in runs:
+        records = lines((run / "outputs.jsonl").read_bytes())
+        first = {}
+        for record in records:
+            first.setdefault(record["id"], record)
+        rows = [{"id": item["id"], "category": item["category"],
+                 **(score(item, tokenizer.decode(first[item["id"]]["output_ids"], skip_special_tokens=True))
+                    if item["id"] in first else
+                    {"kind": item["scorer"]["kind"], "correct": None, "state": "missing", "parsed": None})}
+                for item in items]
+        results[run.name] = rows, {
+            "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
+            "items": {"file": Path(items_path).name, "sha256": sha256(items_path)},
+            "tokenizer": {"sha256": tokenizer_sha256}, "run": read_json(run / "run.json"),
+            "checks": record_checks(items, records, hashes), "categories": summarize(rows)}
+    output.mkdir(parents=True)
+    for name, (rows, summary) in results.items():
+        (output / name).mkdir()
+        (output / name / "scores.jsonl").write_text(
+            "".join(json.dumps({**row, **({"f1": float(row["f1"])} if "f1" in row else {})}) + "\n" for row in rows),
+            encoding="utf-8")
+        (output / name / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
+                                                    encoding="utf-8")
+    return {name: {"checks": {key: len(value) for key, value in summary["checks"].items()},
+                   "categories": {key: {field: value[field] for field in ("items", "correct", "unscored")}
+                                  for key, value in summary["categories"].items()}}
+            for name, (rows, summary) in results.items()}
