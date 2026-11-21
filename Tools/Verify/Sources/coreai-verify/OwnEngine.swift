@@ -347,7 +347,7 @@ struct SpeedRun: AsyncParsableCommand {
                     loadS: initial ? (loadEnd - loadStart) / .seconds(1) : 0,
                     warmupS: initial ? (start - loadEnd) / .seconds(1) : 0,
                     specializeS: (loadStats?.specializeSeconds).map { initial ? $0 : 0 }, cached: loadStats?.cached,
-                    promptTokens: input.count, prefillS: prefillS,
+                    cacheQueryError: loadStats?.cacheQueryError, promptTokens: input.count, prefillS: prefillS,
                     prefillTokS: prefillS.map { Double(input.count) / $0 },
                     maxTokens: maxTokens, generatedTokens: generated, stopReason: stopReason, decodeS: decodeS,
                     decodeTokS: SpeedRecord.decodeRate(generated: generated, seconds: decodeS),
@@ -476,8 +476,9 @@ func loadOwnModel(
         verification: experiment?.settings ?? .init())
     try emit(
         OwnModelLoadRecord(
-            cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
-            initS: (clock.now - start) / .seconds(1), requestedCompute: model.loadStats.requestedComputeUnit,
+            cached: model.loadStats.cached, cacheQueryError: model.loadStats.cacheQueryError,
+            specializeS: model.loadStats.specializeSeconds, initS: (clock.now - start) / .seconds(1),
+            requestedCompute: model.loadStats.requestedComputeUnit,
             expectFrequentReshapes: model.loadStats.expectsFrequentReshapes, memory: .now()))
     return model
 }
@@ -526,8 +527,9 @@ func loadOwn(_ url: URL) async throws -> (any Tokenizer, CoreAIBackend.Engine) {
     let engine = try await CoreAIBackend.Engine(bundle: bundle)
     try emit(
         OwnLoadRecord(
-            cached: engine.loadStats.cached, specializeS: engine.loadStats.specializeSeconds,
-            loadS: engine.loadStats.totalSeconds, prefillFunction: engine.hasPrefillFunction, hybrid: engine.isHybrid,
+            cached: engine.loadStats.cached, cacheQueryError: engine.loadStats.cacheQueryError,
+            specializeS: engine.loadStats.specializeSeconds, loadS: engine.loadStats.totalSeconds,
+            prefillFunction: engine.hasPrefillFunction, hybrid: engine.isHybrid,
             contextLimit: engine.contextLimit, requestedCompute: engine.loadStats.requestedComputeUnit,
             expectFrequentReshapes: engine.loadStats.expectsFrequentReshapes, memory: .now()))
     return (tokenizer, engine)
@@ -569,6 +571,7 @@ extension JSONDecoder {
 struct OwnLoadRecord: Encodable {
     var record = "own-load"
     let cached: Bool
+    let cacheQueryError: String?
     let specializeS: Double
     let loadS: Double
     let prefillFunction: Bool
@@ -584,6 +587,7 @@ struct OwnModelLoadRecord: Encodable {
     var record = "load"
     var runtime = "own"
     let cached: Bool
+    let cacheQueryError: String?
     let specializeS: Double
     let initS: Double
     let requestedCompute: String?
@@ -698,6 +702,7 @@ struct SpeedRecord: Codable {
     let warmupS: Double
     let specializeS: Double?
     let cached: Bool?
+    var cacheQueryError: String?
     let promptTokens: Int
     let prefillS: Double?
     let prefillTokS: Double?
@@ -744,6 +749,7 @@ extension SpeedRecord {
         warmupS = try values.decode(Double.self, forKey: .warmupS)
         specializeS = try values.decodeIfPresent(Double.self, forKey: .specializeS)
         cached = try values.decodeIfPresent(Bool.self, forKey: .cached)
+        cacheQueryError = try values.decodeIfPresent(String.self, forKey: .cacheQueryError)
         promptTokens = try values.decode(Int.self, forKey: .promptTokens)
         prefillS = try values.decodeIfPresent(Double.self, forKey: .prefillS)
         prefillTokS = try values.decodeIfPresent(Double.self, forKey: .prefillTokS)

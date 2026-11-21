@@ -9,6 +9,7 @@ enum ChatCommand {
 
     struct LoadReport: Encodable {
         let cached: Bool
+        let cacheQueryError: String?
         let specializeS: Double
         let loadS: Double
     }
@@ -57,7 +58,10 @@ enum ChatCommand {
         let start = clock.now
         let model = try await LocalLanguageModel(bundle: URL(filePath: path))
         if stats {
-            report(LoadReport(cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds, loadS: (clock.now - start) / .seconds(1)))
+            report(
+                LoadReport(
+                    cached: model.loadStats.cached, cacheQueryError: model.loadStats.cacheQueryError,
+                    specializeS: model.loadStats.specializeSeconds, loadS: (clock.now - start) / .seconds(1)))
         }
         let session = LanguageModelSession(model: model, instructions: system)
         for (index, prompt) in prompts.enumerated() {
@@ -76,7 +80,9 @@ enum ChatCommand {
                 }.joined()
                 if !reasoning.isEmpty { write("[reasoning]\n\(reasoning)\n[response]\n") }
             }
-            for try await snapshot in session.streamResponse(to: prompt, options: GenerationOptions(maximumResponseTokens: maxTokens)) {
+            for try await snapshot in session.streamResponse(
+                to: prompt, options: GenerationOptions(maximumResponseTokens: maxTokens))
+            {
                 showReasoning()
                 let content = snapshot.content.utf8
                 write(String(decoding: content.dropFirst(printed), as: UTF8.self))
@@ -90,14 +96,15 @@ enum ChatCommand {
                 stopReason = try? response.metadata["stopReason"]?.value(String.self)
             }
             let usage = session.usage
-            report(TurnReport(
-                turn: index + 1,
-                inputTokens: usage.input.totalTokenCount - before.input.totalTokenCount,
-                cachedTokens: usage.input.cachedTokenCount - before.input.cachedTokenCount,
-                outputTokens: usage.output.totalTokenCount - before.output.totalTokenCount,
-                reasoningTokens: usage.output.reasoningTokenCount - before.output.reasoningTokenCount,
-                stopReason: stopReason,
-                totalS: (clock.now - turnStart) / .seconds(1)))
+            report(
+                TurnReport(
+                    turn: index + 1,
+                    inputTokens: usage.input.totalTokenCount - before.input.totalTokenCount,
+                    cachedTokens: usage.input.cachedTokenCount - before.input.cachedTokenCount,
+                    outputTokens: usage.output.totalTokenCount - before.output.totalTokenCount,
+                    reasoningTokens: usage.output.reasoningTokenCount - before.output.reasoningTokenCount,
+                    stopReason: stopReason,
+                    totalS: (clock.now - turnStart) / .seconds(1)))
         }
     }
 
