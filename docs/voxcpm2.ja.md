@@ -6,6 +6,12 @@ Mac のアプリの **VoxCPM2** の画面は、[openbmb/VoxCPM2](https://hugging
 
 アプリは、公開した bundle [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) の `fp16` のフォルダを、固定した revision `afe11d61de9dd7c3609140aa040b777ef77b2555` からダウンロードします。bundle は[変換の手順](../Tools/Conversion/recipes/voxcpm2/README.md)で作りました。変換の照合・時間・メモリの実測は[変換の検証記録](validation/voxcpm2-conversion-20261117.md)にあります。2026-11-18 に本人が、Mac の通常の画面でダウンロード・生成・再生・保存ができ、声に問題が無いことを報告しました([受け入れの記録](validation/voxcpm2-mac-acceptance-20261118.md))。音質の点数の記録はありません。
 
+## デモ録画
+
+同じ「こんにちは。今日はよい天気ですね。」という文を、低く落ち着いた男性の声と、穏やかな女性の声で順に生成して再生したMacの録画です。
+
+[無音のプレビューを見る（1倍速）](media/voxcpm2-mac.gif) · [音声つきの全編を聴く](https://x.com/oka_yuuji/status/2123952954755752189)
+
 ## モデルをダウンロードする
 
 1. **VoxCPM2** の見出しの「モデルをダウンロード」を押します。アプリは、固定した 22 ファイル(合計 4,677,413,664 バイト、約 4.7 GB)を、サインインせずにダウンロードします。全ファイルの大きさと SHA-256、manifest の構成を確かめてから、モデルを準備済みと表示します。後でモデルを開くときに、アプリのキャッシュに検査済みの複製をもう 1 つ作るので、両方の空き容量を用意します。

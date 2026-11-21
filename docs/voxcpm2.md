@@ -6,6 +6,12 @@ The macOS app has a **VoxCPM2** screen that generates speech from text, optional
 
 The app downloads the `fp16` folder of the published bundle [okayuji/voxcpm2-coreai](https://huggingface.co/okayuji/voxcpm2-coreai) at the pinned revision `afe11d61de9dd7c3609140aa040b777ef77b2555`. The bundle was made with the [conversion recipe](../Tools/Conversion/recipes/voxcpm2/README.md). Measured fidelity, times and memory are in the [conversion validation record](validation/voxcpm2-conversion-20261117.md). On 2026-11-18 the owner reported that download, generation, playback and saving worked on the normal screen of a Mac and that the voice had no problem ([acceptance record](validation/voxcpm2-mac-acceptance-20261118.md)). No score for the audio quality has been recorded.
 
+## Demo recording
+
+The Mac recording uses the same Japanese greeting for both takes. The first voice description asks for a middle-aged man with a low, steady voice. The second asks for a young woman with a gentle, calm voice.
+
+[Watch the silent preview (1× speed)](media/voxcpm2-mac.gif) · [Listen to the full recording](https://x.com/oka_yuuji/status/2123952954755752189)
+
 ## Download the model
 
 1. Use **Download model** on the **VoxCPM2** heading. The app downloads 22 pinned files, 4,677,413,664 bytes in total (about 4.7 GB), without signing in. It checks the size and SHA-256 of every file and the configuration in the manifest, then shows the model as ready. Opening the model later makes one more verified copy in the app's caches, so allow space for both.
