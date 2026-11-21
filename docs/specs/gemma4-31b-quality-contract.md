@@ -8,7 +8,7 @@
 
 | File | SHA-256 |
 |---|---|
-| `Tools/LLMEvaluation/contract.json` | `0560e3b99b6980f1f067dac0396d7636441a436cf44fa4f1f6ad9dae436546d3` |
+| `Tools/LLMEvaluation/contract.json` | `311d64c3cc98de8e27ad0d302c3757971a931a7b612d4d47bc478134158d4eb7` |
 | `Tools/LLMEvaluation/sets/primary.json` | `68e91b8cab53726506323592fc5c1abb2d7dc553ed1b27d51ac708d4a17ce027` |
 | `Tools/LLMEvaluation/sets/reserve.json` | `01107a2106cbe08e6b22a70b467532c825c52f9b7d4c5dfd2c1e5505249ad5e6` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
@@ -196,16 +196,16 @@ The scorer is a separate child issue; these rules bind it.
   - `synth-extract`: compared as the canonical serialization (sorted keys), which keeps array order (the order of appearance in the records) and distinguishes `1`, `1.0`, `"1"` and `true`.
 - **`synth-long-*`:** apply NFKC and take the integer (an optional minus sign and digits) after the last `答え:`. NFKC also accepts the full-width colon.
 - **`synth-format`:** split the output into lines with `str.splitlines()`, strip each line with `str.strip()` and drop the empty lines. Every remaining line must start with the bullet, and their number must equal `items`. For each line, the text after the bullet, stripped, has at most `max_chars` Unicode scalar values and ends with one of `endings`. Each required word appears in at least one item.
-- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test` and `call`, joined by newlines.
-  - HumanEval: the program starts with the problem's prompt as `setup`, which defines its imports and helper functions, followed by the code, the test and `check(<entry point>)`.
-  - MBPP: `test_imports` and the `test_list` asserts.
-  - HumanEvalFix: its test, which already calls `check`.
+- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program of an item is four units, run in this order: `setup`, the code, `test` and `call`.
+  - HumanEval: `setup` is the problem's prompt, which defines its imports and helper functions; `test` is the problem's test and `call` is `check(<entry point>)`.
+  - MBPP: `setup` is `test_imports` and `test` is the `test_list` asserts.
+  - HumanEvalFix: `test` is its test, which already calls `check`.
 
-  The scorer runs the program from a driver of its own in a child process. The driver executes the program as a script (`__name__` is `"__main__"`) in a namespace separate from its own. When the program finishes without raising, the driver sends a marker to the scorer through a pipe that the scorer opened, not through standard output or standard error. The scorer chooses the marker for each run, so it cannot be known in advance, and the program's names and its standard input and output cannot affect it. The item is correct when the child exits with status 0 and the scorer received the marker. A program that ends the process early, for example through `sys.exit(0)`, `unittest.main()` or `os._exit(0)`, is incorrect even when the status is 0. Each program runs under these execution rules:
+  The four units run in one module namespace. Each unit is compiled separately; the units are not joined, so a `from __future__` import at the start of the code stays effective. The namespace is a real module that the scorer creates and registers in `sys.modules` under a name other than `__main__`, so code under `if __name__ == "__main__":` does not run. The item is correct when the four units run to the end without raising and without ending the process. The scorer confirms this through a path that the code cannot change by binding names or through standard input and output, not by the exit status 0 alone; for example, the scorer's own side can report through a pipe after the last unit. A program that ends the process early, for example through `sys.exit(0)`, `unittest.main()` or `os._exit(0)`, is incorrect even when the exit status is 0. Each program runs under these execution rules:
   - **Isolation:** an isolated child process with no network, an empty temporary folder as its working folder, no writes outside that folder and no standard input.
   - **Time limit:** 10 seconds of wall-clock time per program. A program that times out is run once more and is incorrect only when both runs time out. The report gives the number of timeouts and the number of programs that passed on the rerun.
   - **Same run:** the baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine. The report records that Python version. When the baseline and candidate `output_ids` of an item are equal, the program runs once and both receive that result.
-  - The scorer (a separate child issue) implements the isolation and the driver. This contract fixes only these rules and constants.
+  - The scorer (a separate child issue) implements these rules. The report records the scorer commit and the Python version (§7.4). When a defect of the scorer changes results, the scorer is fixed and the baseline and candidate of that pair are scored again in one run. This is not a contract change (§11).
 
 The examples of these rules are in `Tools/LLMEvaluation/tests/test_synthetic.py` and `tests/examples.json`. In those examples, a well-formed answer with a wrong value is incorrect.
 
@@ -268,7 +268,7 @@ A candidate with a regression can be adopted only by the owner's explicit decisi
 - Every critical failure, and the separate baseline counts of §7.1.
 - A reference to the layer 1 result.
 - When the same assets are rerun with a different call shape, the counts of correct → incorrect and incorrect → correct. This indicates the swaps caused by computation order alone; it is not used for the verdict.
-- For the code categories, the number of timeouts, the number of programs that passed on the rerun and the Python version used for scoring (§6.7).
+- For the code categories, the number of timeouts, the number of programs that passed on the rerun, and the scorer commit and the Python version used for scoring (§6.7).
 - For the categories with independent units (`ja-choice`, `ja-reading`, `code-gen-mbpp`, `extract-ja`), the one-sided 95% upper bound of the regression rate when there are zero regressions, 1 − 0.05^(1/N). For the primary set this is 1.49% at N = 200 and 2.95% at N = 100.
 
 ### 7.5 Wording
@@ -310,5 +310,7 @@ Any change to a rule, a threshold, a set, a prompt or a generator makes a new ve
 - updates the table at the top and adds its own section.
 - keeps the sections of the old version.
 - keeps the old results with their version.
+
+Only a change to the contract's contents (a rule, a constant, a set, a prompt or a generator) makes a new version; a fix of a scorer defect is not a contract change, and the pair it affects is scored again as in §6.7.
 
 If a procedure, a set or a threshold is changed after results were seen, §8 applies. Unexpected results, slow candidates and failed checks are kept and labeled with the version they ran under; criteria are not relaxed after results are seen.

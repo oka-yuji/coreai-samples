@@ -60,7 +60,7 @@ REQUIRED = {
     "scorers": {
         "choice_digit": dict.fromkeys(["unicode", "digits"]),
         "reading_exact": dict.fromkeys(["unicode", "strip", "trailing", "enclosing", "enclosing_rule", "also_record"]),
-        "python_tests": dict.fromkeys(["code", "program", "driver", "marker", "correct", "wall_clock_seconds",
+        "python_tests": dict.fromkeys(["code", "units", "compile", "module", "correct", "wall_clock_seconds",
                                        "timeout_reruns", "timeout", "isolation", "same_run", "identical_outputs",
                                        "implementation"]),
         "entity_sets": dict.fromkeys(["json", "values", "also_record"]),

@@ -25,8 +25,10 @@ def category(bundle, name):
 
 
 DRIVER = """
+import json
 import os
 import sys
+import types
 
 
 def drive():
@@ -35,8 +37,11 @@ def drive():
         marker = handle.read()
     del sys.argv[1:]
     with open(path, encoding="utf-8") as handle:
-        program = compile(handle.read(), path, "exec")
-    exec(program, {"__name__": "__main__", "__builtins__": __builtins__})
+        units = json.load(handle)
+    module = types.ModuleType("program")
+    sys.modules[module.__name__] = module
+    for name, source in units:
+        exec(compile(source, name, "exec", dont_inherit=True), module.__dict__)
     os.write(result_fd, marker)
 
 
@@ -46,11 +51,11 @@ drive()
 
 def scored(scorer, code):
     parts = {**scorer, "code": code}
-    program = "\n".join(parts[name] for name in BUNDLE["contract"]["scorers"]["python_tests"]["program"])
+    units = [[name, parts[name]] for name in BUNDLE["contract"]["scorers"]["python_tests"]["units"]]
     marker = secrets.token_hex(16).encode("ascii")
     with tempfile.TemporaryDirectory() as folder, tempfile.TemporaryDirectory() as work:
-        path = Path(folder) / "program.py"
-        path.write_text(program, encoding="utf-8")
+        path = Path(folder) / "units.json"
+        path.write_text(json.dumps(units), encoding="utf-8")
         marker_read, marker_write = os.pipe()
         result_read, result_write = os.pipe()
         os.write(marker_write, marker)
@@ -211,6 +216,16 @@ class ContractTests(unittest.TestCase):
             ("standard output closed", "import sys\n\nsys.stdout.close()\n\n\n" + solution, True),
             ("standard output replaced", "import io\nimport sys\n\nsys.stdout = io.StringIO()\n\n\n" + solution, True),
             ("process ended before the tests", "import os\n\n\n" + solution + "\n\nos._exit(0)\n", False),
+            ("a dataclass with a string class variable annotation",
+             "from dataclasses import dataclass\nfrom typing import ClassVar\n\n\n@dataclass\nclass Step:\n"
+             "    size: 'ClassVar[int]' = 1\n    value: int\n\n\n"
+             "def target(value):\n    return Step(helper(value)).value + Step.size\n", True),
+            ("a future import at the start", "from __future__ import annotations\n\n\n"
+             "def target(value: int) -> int:\n    return helper(value) + 1\n", True),
+            ("a main block that reads input", solution + "\n\nif __name__ == \"__main__\":\n    print(target(int(input())))\n",
+             True),
+            ("a main block that exits with status 1",
+             "import sys\n\n\n" + solution + "\n\nif __name__ == \"__main__\":\n    sys.exit(1)\n", True),
         ]
         with tempfile.TemporaryDirectory() as root:
             scorer = self.humaneval_scorer(root)

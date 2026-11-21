@@ -109,7 +109,7 @@
       "baseline outputs with no tokens, control tokens or repetitions, counted separately",
       "a reference to the layer 1 result",
       "correct-to-incorrect and incorrect-to-correct counts when the same assets are rerun with a different call shape",
-      "for python_tests, the number of timeouts, the number of programs that passed on the rerun, and the Python version used for scoring",
+      "for python_tests, the number of timeouts, the number of programs that passed on the rerun, the scorer commit and the Python version used for scoring",
       "the one-sided 95% upper bound for upper_bound categories with zero regressions"
     ],
     "claim": "no regression was detected on this evaluation set"
@@ -122,17 +122,17 @@
                       "also_record": "character_f1"},
     "python_tests": {
       "code": ["first ```python block", "first ``` block", "whole output"],
-      "program": ["setup", "code", "test", "call"],
-      "driver": "in the child process, a driver of the scorer executes the program as a script (__name__ is \"__main__\") in a namespace separate from its own; when the program finishes without raising, the driver sends the marker to the scorer through a pipe that the scorer opened, not through standard output or standard error",
-      "marker": "a value that the scorer chooses for each run, so that it cannot be known in advance; only the driver sends it",
-      "correct": "the child exits with status 0 and the scorer received the marker; a program that ends the process early, for example through sys.exit(0), unittest.main() or os._exit(0), is incorrect even when the status is 0",
+      "units": ["setup", "code", "test", "call"],
+      "compile": "each unit separately, without joining the units, so that a from __future__ import at the start of the code stays effective",
+      "module": "the units run in order in the namespace of one real module, which the scorer creates and registers in sys.modules under a name other than __main__; code under if __name__ == \"__main__\": does not run",
+      "correct": "the four units run to the end without raising and without ending the process; the scorer confirms this through a path that the code cannot change by binding names or through standard input and output, not by the exit status 0 alone; a program that ends the process early, for example through sys.exit(0), unittest.main() or os._exit(0), is incorrect even when the exit status is 0",
       "wall_clock_seconds": 10,
       "timeout_reruns": 1,
       "timeout": "a program that exceeds the limit is run once more and is incorrect when both runs time out",
       "isolation": ["separate child process", "no network", "an empty temporary folder as the working folder", "no writes outside that folder", "no standard input"],
       "same_run": "baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine",
       "identical_outputs": "when the baseline and candidate output_ids of an item are equal, the program runs once and both receive that result",
-      "implementation": "the scorer child issue implements the isolation and the driver; this contract fixes only the rules and constants"
+      "implementation": "the scorer child issue implements these rules; the report records the scorer commit and the Python version; when a scorer defect changes results, the scorer is fixed and the baseline and candidate of that pair are scored again in one run, which is not a contract change"
     },
     "entity_sets": {"json": "first JSON object", "values": "arrays of strings compared as sets", "also_record": "micro_f1"},
     "json_exact": {"json": "first JSON object", "values": "canonical structure, arrays in order"},
