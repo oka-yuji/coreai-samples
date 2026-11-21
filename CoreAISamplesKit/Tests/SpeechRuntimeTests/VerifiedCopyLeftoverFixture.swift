@@ -40,7 +40,7 @@ struct VerifiedCopyLeftoverFixture {
     }
 
     func open() throws -> ValidatedSpeechBundle {
-        try ValidatedSpeechBundle.open(source, copyingInto: copies, layout: Self.layout)
+        try ValidatedSpeechBundle.open(source, copyingInto: copies, layout: Self.layout, inPlaceWhenCloneFails: false)
     }
 
     func makeLeftover(locking flag: Int32) throws {

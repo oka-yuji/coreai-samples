@@ -24,7 +24,8 @@ struct VerifiedCopyLeftoverTests {
         defer { fixture.remove() }
         try fixture.makeLeftover(locking: UF_IMMUTABLE)
         try fixture.write("tokenizer-X", to: "tokenizer.json", in: fixture.source)
-        #expect(throws: SpeechError.self) { try fixture.open() }
+        let message = "Model files do not match the verified Irodori FP32 version: tokenizer.json"
+        #expect(throws: SpeechError.invalidAsset(message)) { try fixture.open() }
         let entries = try fixture.entries()
         #expect(entries.isEmpty)
     }
