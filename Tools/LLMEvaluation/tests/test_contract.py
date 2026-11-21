@@ -226,6 +226,8 @@ class ContractTests(unittest.TestCase):
              True),
             ("a main block that exits with status 1",
              "import sys\n\n\n" + solution + "\n\nif __name__ == \"__main__\":\n    sys.exit(1)\n", True),
+            ("an exit handler that ends with status 2",
+             "import atexit\nimport os\n\n\n" + solution + "\n\natexit.register(os._exit, 2)\n", False),
         ]
         with tempfile.TemporaryDirectory() as root:
             scorer = self.humaneval_scorer(root)

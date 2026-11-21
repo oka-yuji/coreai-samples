@@ -8,10 +8,10 @@
 
 | File | SHA-256 |
 |---|---|
-| `Tools/LLMEvaluation/contract.json` | `311d64c3cc98de8e27ad0d302c3757971a931a7b612d4d47bc478134158d4eb7` |
-| `Tools/LLMEvaluation/sets/primary.json` | `68e91b8cab53726506323592fc5c1abb2d7dc553ed1b27d51ac708d4a17ce027` |
-| `Tools/LLMEvaluation/sets/reserve.json` | `01107a2106cbe08e6b22a70b467532c825c52f9b7d4c5dfd2c1e5505249ad5e6` |
-| `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
+| `Tools/LLMEvaluation/contract.json` | `2ea7959c7fb532d8f108d23a72ad12d600df889793bfc7423c2e5583cc09efad` |
+| `Tools/LLMEvaluation/sets/primary.json` | `16b4e2360cd93a90f56c78db77514a85260999e0cad9c2a603b78bc4cf6b4cde` |
+| `Tools/LLMEvaluation/sets/reserve.json` | `f7581b62c32272d9f714b15795f3b7836e5dedc479fd93df01ebe18403f17e92` |
+| `Tools/LLMEvaluation/prompts.json` | `39bfd2436e157811a664cdad3e727256a0d56f1c056b5906cff527ba32802e34` |
 
 `python3 -m Tools.LLMEvaluation validate`, run from the repository root, rejects the contract when this table, the version or the freeze date differs from the files. `check.sh` runs the same check in isolated mode as `python3 -I Tools/LLMEvaluation/__main__.py validate`, because isolated mode does not put the repository on the import path. The [README](../../Tools/LLMEvaluation/README.md) describes both forms and the other tools. `Tools/LLMEvaluation/contract.json` holds the constants, the lists, and the verdict labels with their precedence. The conditions of the four verdicts and the prohibitions of §7.3 are only in this document. Whether the numbers in this text agree with `contract.json` is checked by a machine only through the SHA-256 table above: the table fixes the reviewed `contract.json`, and no tool compares this text with it.
 
@@ -121,8 +121,8 @@ A run writes one record per item of the set, one JSON object per line, in any or
 | `long-ja-4k` | JSQuAD train, articles not used by `ja-reading` | 60 / 30 | Article | 64 | As `ja-reading`, stratified by the answer paragraph position (front, middle, back) |
 | `long-ja-16k` | The same | 20 / 10 | Article | 64 | The same |
 | `synth-extract` | Synthetic records with nesting and empty lists → JSON | 100 / 50 | Generated template | 384 | The canonical structure equals the answer |
-| `synth-long-4k` | Synthetic records; the answer combines two or more distant records | 40 / 20 | Generated template | 32 | The integer after `答え:` equals the answer |
-| `synth-long-16k` | The same | 16 / 8 | Generated template | 32 | The same |
+| `synth-long-4k` | Synthetic records; the answer combines two or more distant records | 40 / 20 | Generated template | 256 | The integer after `答え:` equals the answer |
+| `synth-long-16k` | The same | 16 / 8 | Generated template | 256 | The same |
 | `synth-format` | Synthetic instructions on item count, length, style and required words | 100 / 50 | Generated template | 160 | Every format rule holds; reported as format compliance, not as correctness of meaning |
 | `free-ja` | Self-authored Japanese instructions, 10 kinds × 5 | 50 / 0 | Instruction | 256 | Not scored; used only to detect critical failures |
 
@@ -156,7 +156,7 @@ The train file is the same blob (`20ce716e`) in v1.1.0 and v1.2.0. JGLUE v1.3.0 
 
 - **`long-ja-*`.** The context is a list of original JSQuAD context strings (each `title [SEP] paragraph`) joined by a blank line. The answer paragraph is first (front), at position ⌊fillers / 2⌋ (middle) or last (back); the strata are assigned front, middle, back in turn by position within each set. Filler paragraphs are shuffled with `random.Random("20261122:<category id>:<item id>")` and added in that order. A paragraph that would push the rendered input above the upper bound is skipped, and assembly stops at the first count that reaches the lower bound. Fillers may recur across items but not within an item. The ordered paragraph keys are recorded in the set.
 - **`synth-long-*`.** The record count is tuned by `select` until the rendered input is in range, and is recorded as `records`.
-- **Ranges** of the whole rendered input: 3,600–4,096 tokens for the 4k categories and 14,800–16,384 for the 16k categories. In `G31-QC-v1`: `long-ja-4k` 3,600 / 3,650.5 / 3,788 (minimum / median / maximum over 90 items), `long-ja-16k` 14,807 / 14,855 / 15,043 (30), `synth-long-4k` 3,773 / 3,795.5 / 3,813 (60) and `synth-long-16k` 15,344 / 15,371.5 / 15,392 (24).
+- **Ranges** of the whole rendered input: 3,600–4,096 tokens for the 4k categories and 14,800–16,384 for the 16k categories. In `G31-QC-v1`: `long-ja-4k` 3,600 / 3,650.5 / 3,788 (minimum / median / maximum over 90 items), `long-ja-16k` 14,807 / 14,855 / 15,043 (30), `synth-long-4k` 3,600 / 3,796.5 / 3,820 (60) and `synth-long-16k` 15,336 / 15,376 / 15,399 (24).
 
 ### 6.5 Items and hashes
 
@@ -175,7 +175,7 @@ The train file is the same blob (`20ce716e`) in v1.1.0 and v1.2.0. JGLUE v1.3.0 
 
 ### 6.6 Prompts
 
-All wording is in `Tools/LLMEvaluation/prompts.json`. Each instruction states only the output form, with no examples (no few-shot). `ja-choice` asks for the number only. `ja-reading` and `long-ja-*` ask for the phrase from the text only. The code categories, written in English like their sources, ask for a single ```python block. `code-gen-mbpp` shows its `test_imports` and `test_list`, and `code-fix` shows the buggy function and its tests. `extract-ja` asks for JSON with the 8 keys 人名, 法人名, 政治的組織名, その他の組織名, 地名, 施設名, 製品名 and イベント名. `synth-extract` gives the target schema. `synth-long-*` asks for a last line `答え: <整数>`.
+All wording is in `Tools/LLMEvaluation/prompts.json`. Each instruction states only the output form, with no examples (no few-shot). `ja-choice` asks for the number only. `ja-reading` and `long-ja-*` ask for the phrase from the text only. The code categories, written in English like their sources, ask for a single ```python block. `code-gen-mbpp` shows its `test_imports` and `test_list`, and `code-fix` shows the buggy function and its tests. `extract-ja` asks for JSON with the 8 keys 人名, 法人名, 政治的組織名, その他の組織名, 地名, 施設名, 製品名 and イベント名. `synth-extract` gives the target schema. `synth-long-*` asks for the relevant records written out briefly and then a last line `答え: <整数>`.
 
 ### 6.7 Scoring rules
 
@@ -201,9 +201,9 @@ The scorer is a separate child issue; these rules bind it.
   - MBPP: `setup` is `test_imports` and `test` is the `test_list` asserts.
   - HumanEvalFix: `test` is its test, which already calls `check`.
 
-  The four units run in one module namespace. Each unit is compiled separately; the units are not joined, so a `from __future__` import at the start of the code stays effective. The namespace is a real module that the scorer creates and registers in `sys.modules` under a name other than `__main__`, so code under `if __name__ == "__main__":` does not run. The item is correct when the four units run to the end without raising and without ending the process. The scorer confirms this through a path that the code cannot change by binding names or through standard input and output, not by the exit status 0 alone; for example, the scorer's own side can report through a pipe after the last unit. A program that ends the process early, for example through `sys.exit(0)`, `unittest.main()` or `os._exit(0)`, is incorrect even when the exit status is 0. Each program runs under these execution rules:
+  The four units run in one module namespace. Each unit is compiled separately; the units are not joined, so a `from __future__` import at the start of the code stays effective. The namespace is a real module that the scorer creates and registers in `sys.modules` under a name other than `__main__`, so code under `if __name__ == "__main__":` does not run. The item is correct when the four units run to the end without raising and without ending the process, and after that the child process exits with status 0. The scorer confirms the run to the end through a path that the code cannot change by binding names or through standard input and output, not by the exit status 0 alone; for example, the scorer's own side can report through a pipe after the last unit. A program that ends the process early, for example through `sys.exit(0)`, `unittest.main()` or `os._exit(0)`, is incorrect even when the exit status is 0. A program that runs to the end and then exits with another status, for example from a function registered with `atexit`, is incorrect. Each program runs under these execution rules:
   - **Isolation:** an isolated child process with no network, an empty temporary folder as its working folder, no writes outside that folder and no standard input.
-  - **Time limit:** 10 seconds of wall-clock time per program. A program that times out is run once more and is incorrect only when both runs time out. The report gives the number of timeouts and the number of programs that passed on the rerun.
+  - **Time limit:** 10 seconds of wall-clock time per program. A run that exceeds the limit is run once more, only once. The result of the item is the result of that rerun, correct or incorrect; when the rerun also exceeds the limit, the item is incorrect. The report gives the number of timeouts and the number of programs that passed on the rerun.
   - **Same run:** the baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine. The report records that Python version. When the baseline and candidate `output_ids` of an item are equal, the program runs once and both receive that result.
   - The scorer (a separate child issue) implements these rules. The report records the scorer commit and the Python version (§7.4). When a defect of the scorer changes results, the scorer is fixed and the baseline and candidate of that pair are scored again in one run. This is not a contract change (§11).
 
@@ -225,6 +225,29 @@ Combinations are compared within a series (§6.2), so `synth-long-4k` and `synth
 ### 6.9 free-ja
 
 `free-ja` has 50 self-authored Japanese instructions: 10 kinds (explanation, steps, letters, summary, rewriting, comparison, story, advice, ideas and English-to-Japanese translation) × 5. The texts and the passages used for summary and translation are in `prompts.json`. The outputs are not scored; they are checked only for critical failures.
+
+### 6.10 Pilot before freezing
+
+This subsection records how the wording was checked; it is not a rule. Before the contract was frozen, the prompts and the output limits were checked on 57 items outside the evaluation sets: public data rows (questions, problems and sentences) that no primary or reserve item of the same category uses, and synthetic tasks generated with another seed (`pilot`). The rows do not avoid the sets completely. `code-gen-he` and `code-fix` together use every HumanEval problem, so their 10 pilot items took problems of the other parity, which the other code category uses. The 12 JSQuAD pilot articles also supply filler paragraphs to long-context items. The original implementation (BF16) generated their outputs with greedy decoding. These outputs are not used for any verdict.
+
+| Category | Items | Cut at the limit | Longest output (tokens) |
+|---|---|---|---|
+| `ja-choice` | 6 | 0 | 1 |
+| `ja-reading` | 6 | 0 | 9 |
+| `code-gen-he` | 5 | 0 | 238 |
+| `code-gen-mbpp` | 5 | 0 | 171 |
+| `code-fix` | 5 | 0 | 132 |
+| `extract-ja` | 6 | 0 | 98 |
+| `long-ja-4k` | 4 | 0 | 13 |
+| `synth-extract` | 6 | 0 | 209 |
+| `synth-format` | 6 | 0 | 57 |
+| `synth-long-4k`, the previous prompt with a limit of 32 | 4 | 4 | 32 |
+| `synth-long-4k`, the current prompt with a limit of 256 | 4 | 0 | 115 |
+
+- With the previous `synth-long` prompt and a limit of 32 tokens, all 4 outputs reached the limit before the answer line, and none was correct. With the current prompt, which asks for the relevant records written out briefly before the answer line, and a limit of 256, all 4 followed the form and were correct.
+- The 12 outputs of the two JSON categories were all inside a ```json fence, and the JSON rule of §6.7, which takes the first JSON object, read every one of them.
+- The 4 items of the two 16k categories (`long-ja-16k` and `synth-long-16k`) had not been confirmed when this record was written; they are checked separately.
+- Only the `synth-long` prompt and its limit were changed after this check.
 
 ## 7. Layer 2 verdicts
 
