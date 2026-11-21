@@ -62,7 +62,11 @@
                     root.appending(path: ".lock").path, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
                 guard lock >= 0 else { throw CloneFailure(code: errno) }
                 defer { close(lock) }
-                guard flock(lock, LOCK_EX) == 0, mkdir(incoming.path, 0o700) == 0 else {
+                guard flock(lock, LOCK_EX) == 0 else {
+                    throw CloneFailure(code: errno)
+                }
+                removeLeftovers(root)
+                guard mkdir(incoming.path, 0o700) == 0 else {
                     throw CloneFailure(code: errno)
                 }
                 defer { try? FileManager.default.removeItem(at: incoming) }
@@ -138,6 +142,27 @@
             Self(
                 directory: base, assets: spec.assets.map { base.appending(path: $0, directoryHint: .isDirectory) },
                 tokenizer: base.appending(path: names.tokenizer))
+        }
+
+        private static func removeLeftovers(_ root: URL) {
+            guard let children = try? FileManager.default.contentsOfDirectory(atPath: root.path) else { return }
+            for name in children {
+                guard name.hasPrefix("incoming-") else { continue }
+                var status = stat()
+                guard lstat(root.appending(path: name).path, &status) == 0 else { continue }
+                guard status.st_mode & S_IFMT == S_IFDIR else { continue }
+                let locked = UInt32(UF_IMMUTABLE | UF_APPEND)
+                let folder = root.appending(path: name)
+                for relative in (try? FileManager.default.subpathsOfDirectory(atPath: folder.path)) ?? [] {
+                    let path = folder.appending(path: relative).path
+                    var entry = stat()
+                    guard lstat(path, &entry) == 0 else { continue }
+                    if entry.st_flags & locked != 0 {
+                        lchflags(path, entry.st_flags & ~locked)
+                    }
+                }
+                try? FileManager.default.removeItem(at: folder)
+            }
         }
 
         private static func cloneFiles(
