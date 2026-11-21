@@ -13,8 +13,21 @@ HEADER = {"version": re.compile(r"^\| Version \| `([^`|]*)` \|$", re.MULTILINE),
           "frozen": re.compile(r"^\| Frozen \| ([^|]*?) \|$", re.MULTILINE)}
 VERDICTS = ["no_regression_found", "regression_found", "critical_failure", "incomplete"]
 PRECEDENCE = ["incomplete", "critical_failure", "regression_found", "no_regression_found"]
+GENERATOR_SETTINGS = {"extract": ["records", "list_items", "quantity"], "long": ["relevant", "quantity", "start"],
+                      "format": ["items", "max_chars", "required_words"]}
+CATEGORY_SETTINGS = [
+    ("ja-choice", ["source"], None), ("ja-reading", ["source"], None), ("code-gen-he", ["source", "parity"], None),
+    ("code-gen-mbpp", ["source", "task_ids"], None), ("code-fix", ["source", "parity"], None),
+    ("extract-ja", ["source"], None), ("long-ja-4k", ["source", "token_range", "strata"], None),
+    ("long-ja-16k", ["source", "token_range", "strata"], None), ("synth-extract", [], "extract"),
+    ("synth-long-4k", ["token_range"], "long"), ("synth-long-16k", ["token_range"], "long"),
+    ("synth-format", [], "format"), ("free-ja", [], None)]
 REQUIRED = {
-    **dict.fromkeys(["version", "frozen", "document", "seed", "pairs", "resources", "entity_keys", "categories"]),
+    **dict.fromkeys(["version", "frozen", "document", "seed", "pairs", "entity_keys"]),
+    "resources": {"synthetic/vocabulary.json": None},
+    "categories": {name: {**dict.fromkeys(["domain", "kind", "unit", "primary", "reserve", "max_new_tokens", "scorer", *extra]),
+                          **({"generator": dict.fromkeys(["kind", "prompt", *GENERATOR_SETTINGS[generator]])} if generator else {})}
+                   for name, extra, generator in CATEGORY_SETTINGS},
     "roles": dict.fromkeys(["reference", "anchor", "fp16", "w8", "w4"]),
     "substitute_baseline": dict.fromkeys(["replaces", "with", "when", "record"]),
     "model": {"repository": None, "revision": None,
@@ -54,7 +67,9 @@ REQUIRED = {
         "final_integer": dict.fromkeys(["unicode", "marker", "occurrence"]),
         "format_rules": dict.fromkeys(["length"]),
         "unscored": {}},
-    "sources": dict.fromkeys(["jcqa", "jsquad", "humaneval", "mbpp", "humanevalpack", "ner"]),
+    "sources": {name: dict.fromkeys(["host", "repository", "revision", "folder", "path", "bytes", "sha256", "git_blob_sha1",
+                                     "license", "attribution", "url"])
+                for name in ("jcqa", "jsquad", "humaneval", "mbpp", "humanevalpack", "ner")},
     "reserve": dict.fromkeys(["uses_allowed", "when", "then", "record"]),
     "candidate_selection": dict.fromkeys(["eligible", "primary_metric", "overlap", "details"]),
 }
@@ -93,9 +108,14 @@ def text(value):
 
 def lookup(value, path):
     for key in path:
-        if not isinstance(value, dict) or key not in value:
+        if isinstance(value, list):
+            value = next((item for item in value if isinstance(item, dict) and item.get("id") == key), None)
+        elif isinstance(value, dict):
+            value = value.get(key)
+        else:
             return None
-        value = value[key]
+        if value is None:
+            return None
     return value
 
 

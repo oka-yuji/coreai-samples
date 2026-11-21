@@ -31,6 +31,16 @@ def scored(scorer, code, root):
                             stdin=subprocess.DEVNULL, check=False)
     return result.returncode == 0 and result.stdout.splitlines()[-1:] == [marker]
 
+def leaf_paths(value, path=()):
+    if isinstance(value, dict) and value:
+        for key, child in value.items():
+            yield from leaf_paths(child, path + (key,))
+    elif isinstance(value, list) and value and all(isinstance(item, dict) and "id" in item for item in value):
+        for item in value:
+            yield from leaf_paths({key: child for key, child in item.items() if key != "id"}, path + (item["id"],))
+    else:
+        yield path
+
 class ContractTests(unittest.TestCase):
     def rejected(self, change, text):
         bundle = copy.deepcopy(BUNDLE)
@@ -98,8 +108,10 @@ class ContractTests(unittest.TestCase):
                 del parent[path[-1]]
 
             self.rejected(change, f"contract key layer1/{'/'.join(path)} is missing")
-        self.rejected(lambda bundle: category(bundle, "code-fix").pop("max_new_tokens"), "code-fix: max_new_tokens is missing")
-        self.rejected(lambda bundle: category(bundle, "synth-long-4k").pop("token_range"), "synth-long-4k: token_range is missing")
+        self.rejected(lambda bundle: category(bundle, "code-fix").pop("max_new_tokens"),
+                      "contract key categories/code-fix/max_new_tokens is missing")
+        self.rejected(lambda bundle: category(bundle, "synth-long-4k").pop("token_range"),
+                      "contract key categories/synth-long-4k/token_range is missing")
         self.rejected(lambda bundle: bundle["contract"]["layer2"]["critical_failures"]["repetition"].pop("min_length"),
                       "contract key layer2/critical_failures/repetition/min_length is missing")
         self.rejected(lambda bundle: bundle["contract"]["layer1"]["bands"].pop(1), "bands are missing or not contiguous")
@@ -161,7 +173,10 @@ class ContractTests(unittest.TestCase):
 
     def test_every_required_contract_key_is_required(self):
         paths = list(checks.required_paths())
-        self.assertGreater(len(paths), 100)
+        informational = {("issue",), ("parent",)} | {("sources", name, key) for name in BUNDLE["contract"]["sources"]
+                                                     for key in ("tag", "same_blob_as", "notice")}
+        self.assertEqual(set(leaf_paths(BUNDLE["contract"])) - informational, set(paths))
+        self.assertIn(("resources", "synthetic/vocabulary.json"), paths)
         for path in paths:
             contract = copy.deepcopy(BUNDLE["contract"])
             parent = checks.lookup(contract, path[:-1]) if len(path) > 1 else contract
