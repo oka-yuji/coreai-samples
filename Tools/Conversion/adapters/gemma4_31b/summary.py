@@ -105,13 +105,15 @@ def reference(record):
 def rerun(comparison):
     if comparison.get("schema") != RERUN_SCHEMA:
         raise PipelineError(f"Expected a {RERUN_SCHEMA} comparison")
-    return {"passed": flag(comparison["passed"]),
-            "max_abs_logit_difference": summary.number(comparison["max_abs_logit_difference"]),
-            "cases": [{"id": word(item["id"]), "input_tokens_match": flag(item["input_tokens_match"]),
+    return {"passed": flag(comparison["passed"]), "problems": len(comparison["problems"]),
+            "vocabulary": count(comparison["vocabulary"]),
+            "max_abs_logit_difference": optional(comparison["max_abs_logit_difference"]),
+            "cases": [{"id": word(item["id"]), "problems": len(item["problems"]),
+                       "input_tokens_match": flag(item["input_tokens_match"]),
                        "output_tokens_match": flag(item["output_tokens_match"]),
                        "first_difference": optional(item["first_difference"], True),
                        "compared_positions": count(item["compared_positions"]),
-                       "max_abs_logit_difference": summary.number(item["max_abs_logit_difference"]),
+                       "max_abs_logit_difference": optional(item["max_abs_logit_difference"]),
                        "argmax_changes": count(item["argmax_changes"])} for item in comparison["cases"]]}
 
 

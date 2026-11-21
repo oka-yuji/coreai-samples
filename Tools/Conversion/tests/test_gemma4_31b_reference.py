@@ -343,14 +343,14 @@ class MonitorTests(unittest.TestCase):
 ROWS = [[0, 2], [1, 0], [3, 0], [0, 1], [2, 2]]
 
 
-def write_run(folder, inputs, outputs, logits):
+def write_run(folder, inputs, outputs, logits, passed=True, dtype="float32", cases=("case",)):
     folder = Path(folder)
     (folder / "cases").mkdir(parents=True)
     common = {"model": {"id": "owner/model"}, "dtype": {"weights": "bfloat16"}, "device": "mps", "fixtures_sha256": "f",
               "environment": {"python": "3.11"}}
-    (folder / "reference.json").write_text(json.dumps({**common, "cases": [{"id": "case"}]}))
+    (folder / "reference.json").write_text(json.dumps({**common, "passed": passed, "cases": [{"id": name} for name in cases]}))
     (folder / "cases/case.tokens.json").write_text(json.dumps({"input_tokens": inputs, "output_tokens": outputs}))
-    np.save(folder / "cases/case.logits.npy", np.asarray(logits, dtype=np.float32))
+    np.save(folder / "cases/case.logits.npy", np.asarray(logits, dtype=dtype))
 
 
 @unittest.skipIf(np is None, "NumPy is required for the comparison")
@@ -361,10 +361,10 @@ class CompareTests(unittest.TestCase):
             write_run(first, [2, 7], [4, 5, 1], ROWS)
             write_run(second, [2, 7], [4, 5, 1], ROWS)
             write_run(third, [2, 7], [4, 6, 1], [[0, 2.5], [1, 0.25], [3, 0.5], [9, 9], [9, 9]])
-            same = compare(first, second)
+            same = compare(first, second, vocabulary=2)
             self.assertEqual((same["passed"], same["max_abs_logit_difference"], same["cases"][0]["compared_positions"]),
                              (True, 0.0, 5))
-            changed = compare(first, third)["cases"][0]
+            changed = compare(first, third, vocabulary=2)["cases"][0]
             self.assertEqual((changed["output_tokens_match"], changed["first_difference"], changed["compared_positions"],
                               changed["max_abs_logit_difference"]), (False, 3, 3, 0.5))
 
@@ -373,11 +373,23 @@ class CompareTests(unittest.TestCase):
             first, second = Path(folder) / "a", Path(folder) / "b"
             write_run(first, [2, 7], [4, 5, 1], ROWS)
             write_run(second, [2, 8], [4, 5, 1], ROWS)
-            result = compare(first, second)
+            result = compare(first, second, vocabulary=2)
         case = result["cases"][0]
         self.assertFalse(result["passed"])
         self.assertEqual((case["input_tokens_match"], case["output_tokens_match"], case["first_difference"],
                           case["compared_positions"]), (False, True, 1, 1))
+
+    def test_missing_rows_another_dtype_a_failed_reference_or_a_missing_case_never_pass(self):
+        variants = {"missing rows": {"logits": ROWS[:3]}, "dtype": {"dtype": "float64"}, "failed reference": {"passed": False},
+                    "missing case": {"cases": ()}, "extra case": {"cases": ("case", "other")}}
+        for label, changes in variants.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                first, second = Path(folder) / "a", Path(folder) / "b"
+                write_run(first, [2, 7], [4, 5, 1], ROWS)
+                write_run(second, [2, 7], [4, 5, 1], changes.pop("logits", ROWS), **changes)
+                result = compare(first, second, vocabulary=2)
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
 
 
 def reference_record():
@@ -421,6 +433,17 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual((case["saved_positions"], case["first_scoring_row"], case["forced_top_ties"],
                           run["resources"]["monitor"]["failed"], run["resources"]["monitor"]["unreadable_samples"]),
                          (5, 2, 1, False, 0))
+
+    def test_the_rerun_projection_counts_problems_without_their_text(self):
+        case = {"id": "case", "problems": ["case: logits dtype float64"], "input_tokens_match": True,
+                "output_tokens_match": True, "first_difference": None, "compared_positions": 0,
+                "max_abs_logit_difference": None, "argmax_changes": 0}
+        comparison = {"schema": "gemma4-31b-rerun/1", "passed": False, "problems": case["problems"], "vocabulary": 2,
+                      "max_abs_logit_difference": None, "cases": [case]}
+        result = summary.project([self.REPORT], [reference_record()], comparison)
+        self.assertEqual((result["rerun"]["passed"], result["rerun"]["problems"], result["rerun"]["cases"][0]["problems"],
+                          result["rerun"]["max_abs_logit_difference"]), (False, 1, 1, None))
+        self.assertNotIn("float64", json.dumps(result))
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         for change in (lambda r: r["environment"].update(os_build="folder/name"),
