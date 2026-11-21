@@ -13,6 +13,7 @@ CONTRACT = BUNDLE["contract"]
 CATEGORIES = {category["id"]: category for category in CONTRACT["categories"]}
 FIELDS = {"id", "kind", "output", "answer", "rules", "parsed", "correct", "f1", "tp", "fp", "fn"}
 STOP = 106
+VOCABULARY = 200
 
 
 def table_item(case):
@@ -40,6 +41,9 @@ class Pieces:
 
     def decode(self, ids, skip_special_tokens=False):
         return "".join(self.pieces[token] for token in ids if not (skip_special_tokens and token in self.special))
+
+    def get_vocab_size(self, with_added_tokens=True):
+        return VOCABULARY
 
 
 def write_lines(path, rows):
@@ -133,17 +137,60 @@ class RecordCheckTests(unittest.TestCase):
         self.hashes = scoring.committed(BUNDLE)
 
     def checked(self, items_list=None, records=None):
+        numbered = list(enumerate(self.records if records is None else records, 1))
         return scoring.record_checks(self.items if items_list is None else items_list,
-                                     self.records if records is None else records, self.hashes)
+                                     *scoring.partition(numbered, VOCABULARY), self.hashes)
 
     def only(self, name, ids):
-        return {**{key: [] for key in ("missing", "not_in_set", "duplicate", "top2_differs", "item_hash_differs")},
-                name: ids}
+        names = ("missing", "not_in_set", "duplicate", "top2_differs", "item_hash_differs", "malformed")
+        return {**{key: [] for key in names}, name: ids}
 
     def test_clean_records_report_nothing(self):
         self.assertEqual(self.checked(), self.only("missing", []))
         limited = [record(item["id"], [7], stop=False) for item in self.items]
         self.assertEqual(self.checked(records=limited), self.only("missing", []))
+        failed = [{**row, "error": "stopped"} for row in self.records]
+        self.assertEqual(self.checked(records=failed), self.only("missing", []))
+
+    def test_each_malformed_record_is_reported_only_as_malformed(self):
+        first = self.items[0]["id"]
+        good = record(first, [7, 8])
+        cases = {f"no {name}": {key: value for key, value in good.items() if key != name}
+                 for name in ("input_sha256", "input_tokens", "output_ids", "stop", "stop_token", "top2", "non_finite")}
+        cases.update({
+            "input_sha256 of another type": {**good, "input_sha256": 0},
+            "input_tokens of another type": {**good, "input_tokens": "1"},
+            "input_tokens a boolean": {**good, "input_tokens": True},
+            "non_finite of another type": {**good, "non_finite": None},
+            "output_ids of another type": {**good, "output_ids": "7"},
+            "output_ids with a string": {**good, "output_ids": [7, "8"]},
+            "output_ids with a float": {**good, "output_ids": [7, 8.0]},
+            "output_ids with a negative id": {**good, "output_ids": [7, -1]},
+            "output_ids past the vocabulary": {**good, "output_ids": [7, VOCABULARY]},
+            "stop_token of another type": {**good, "stop_token": "106"},
+            "stop_token past the vocabulary": {**good, "stop_token": VOCABULARY},
+            "stop_token negative": {**good, "stop_token": -1},
+            "another stop value": {**good, "stop": "eos"},
+            "top2 of another type": {**good, "top2": {}},
+            "top2 entry of another type": {**good, "top2": [7, 8, STOP]},
+            "top2 entry too short": {**good, "top2": [entry[:3] for entry in good["top2"]]},
+            "top2 entry with a string id": {**good, "top2": [["7", 0.75, 0, 0.25]] + good["top2"][1:]},
+            "top2 entry with a string probability": {**good, "top2": [[7, "0.75", 0, 0.25]] + good["top2"][1:]},
+            "error of another type": {**good, "error": None},
+        })
+        for name, broken in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.checked(records=[broken] + self.records[1:]), self.only("malformed", [first]))
+
+    def test_a_record_without_a_readable_id_is_listed_by_line_and_its_item_is_missing(self):
+        first = self.items[0]["id"]
+        good = record(first, [7, 8])
+        cases = {"no id": {key: value for key, value in good.items() if key != "id"},
+                 "id of another type": {**good, "id": 1}, "not an object": [good], "not JSON": None}
+        for name, broken in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.checked(records=self.records[1:] + [broken]),
+                                 {**self.only("malformed", [len(self.records)]), "missing": [first]})
 
     def test_each_problem_is_reported_in_its_own_field(self):
         first, second, third = (item["id"] for item in self.items[:3])
@@ -237,11 +284,12 @@ class ScoreRunTests(unittest.TestCase):
         self.assertEqual(summary["contract"], {"version": CONTRACT["version"],
                                                "sha256": BUNDLE["hashes"]["contract.json"]})
         self.assertEqual(summary["items"], {"file": "primary.jsonl", "sha256": items.sha256(self.items_path)})
-        self.assertEqual(summary["tokenizer"], {"sha256": "f" * 64})
+        self.assertEqual(summary["tokenizer"], {"sha256": "f" * 64, "vocabulary": VOCABULARY})
         self.assertEqual(summary["run"], {"role": "reference", "set": "primary"})
         self.assertEqual(summary["checks"], {"missing": ["synth-long-4k-0001"], "not_in_set": ["ja-choice-9999"],
                                              "duplicate": ["ja-reading-0001"], "top2_differs": [],
-                                             "item_hash_differs": sorted(item["id"] for item in self.items[1:])})
+                                             "item_hash_differs": sorted(item["id"] for item in self.items[1:]),
+                                             "malformed": []})
         categories = summary["categories"]
         self.assertEqual(categories["ja-choice"], {"kind": "choice_digit", "items": 1, "correct": 1, "unscored": 0,
                                                    "states": {"scored": 1}})
@@ -254,6 +302,29 @@ class ScoreRunTests(unittest.TestCase):
         self.assertEqual(categories["synth-long-4k"], {"kind": "final_integer", "items": 1, "correct": 0,
                                                        "unscored": 1, "states": {"missing": 1}})
         self.assertEqual(result["baseline"]["checks"]["not_in_set"], 1)
+
+    def test_broken_records_are_reported_and_the_other_items_are_scored(self):
+        rows = [record(key, ids) for key, ids in self.outputs.items()]
+        rows[1] = {**rows[1], "output_ids": [0, VOCABULARY]}
+        rows[3] = {key: value for key, value in rows[3].items() if key != "id"}
+        rows.append({**record("ja-reading-0002", [2]), "top2": None})
+        folder = self.root / "broken"
+        folder.mkdir()
+        lines = [json.dumps(row).encode("utf-8") for row in rows] + [b'{"id": ', b"\xff\xfe", b"[]"]
+        (folder / "outputs.jsonl").write_bytes(b"\n".join(lines) + b"\n")
+        (folder / "run.json").write_text("{}", encoding="utf-8")
+        _, output = self.scored([folder])
+        scores = {row["id"]: row for row in read_lines(output / "broken" / "scores.jsonl")}
+        checks = items.read_json(output / "broken" / "summary.json")["checks"]
+        self.assertEqual(checks["malformed"], ["ja-choice-0001", 4, "ja-reading-0002", 9, 10, 11])
+        self.assertEqual(checks["missing"], ["ja-reading-0001", "synth-long-4k-0001"])
+        self.assertEqual((checks["duplicate"], checks["not_in_set"], checks["top2_differs"]), ([], [], []))
+        self.assertEqual(scores["ja-choice-0001"], {"id": "ja-choice-0001", "category": "ja-choice",
+                                                    "kind": "choice_digit", "correct": None, "state": "malformed",
+                                                    "parsed": None})
+        self.assertEqual(scores["ja-reading-0001"]["state"], "missing")
+        self.assertEqual((scores["ja-reading-0002"]["state"], scores["ja-reading-0002"]["f1"]), ("scored", 0.8))
+        self.assertIs(scores["extract-ja-0002"]["correct"], True)
 
     def test_runs_are_scored_together_into_a_new_folder(self):
         first = self.run_folder("one", [record(key, ids) for key, ids in self.outputs.items()])

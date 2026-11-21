@@ -122,14 +122,58 @@ def generated(record):
     return record["output_ids"] + ([record.get("stop_token")] if record.get("stop") == "stop_token" else [])
 
 
-def record_checks(items, records, hashes):
+def integer(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def well_formed(record, vocabulary):
+    def token(value):
+        return integer(value) and 0 <= value < vocabulary
+
+    def entry(value):
+        return (isinstance(value, list) and len(value) == 4 and integer(value[0]) and integer(value[2])
+                and all(isinstance(part, (int, float)) and not isinstance(part, bool) for part in value[1::2]))
+
+    return (isinstance(record.get("id"), str) and isinstance(record.get("input_sha256"), str)
+            and integer(record.get("input_tokens")) and integer(record.get("non_finite"))
+            and isinstance(record.get("output_ids"), list) and all(map(token, record["output_ids"]))
+            and record.get("stop") in ("stop_token", "limit")
+            and (record["stop"] == "limit" or token(record.get("stop_token")))
+            and isinstance(record.get("top2"), list) and all(map(entry, record["top2"]))
+            and isinstance(record.get("error", ""), str))
+
+
+def read_records(path):
+    found = []
+    for number, line in enumerate(Path(path).read_bytes().split(b"\n"), 1):
+        if line.strip():
+            try:
+                found.append((number, json.loads(line.decode("utf-8"))))
+            except (ValueError, RecursionError):
+                found.append((number, None))
+    return found
+
+
+def partition(records, vocabulary):
+    good, broken = [], []
+    for number, record in records:
+        if isinstance(record, dict) and well_formed(record, vocabulary):
+            good.append(record)
+        else:
+            name = record.get("id") if isinstance(record, dict) else None
+            broken.append(name if isinstance(name, str) else number)
+    return good, broken
+
+
+def record_checks(items, good, broken, hashes):
     ids = {item["id"] for item in items}
-    seen = Counter(record["id"] for record in records)
-    return {"missing": sorted(ids - set(seen)), "not_in_set": sorted(set(seen) - ids),
+    seen = Counter(record["id"] for record in good)
+    return {"missing": sorted(ids - set(seen) - set(broken)), "not_in_set": sorted(set(seen) - ids),
             "duplicate": sorted(key for key, count in seen.items() if count > 1),
-            "top2_differs": sorted({record["id"] for record in records
+            "top2_differs": sorted({record["id"] for record in good
                                     if [entry[0] for entry in record["top2"]] != generated(record)}),
-            "item_hash_differs": sorted(item["id"] for item in items if digest(item) != hashes.get(item["id"]))}
+            "item_hash_differs": sorted(item["id"] for item in items if digest(item) != hashes.get(item["id"])),
+            "malformed": broken}
 
 
 def ratio(numerator, denominator):
@@ -175,21 +219,23 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
     if len({item["id"] for item in items}) != len(items):
         raise ValueError("Duplicate item ids in the items file")
     hashes, results = committed(bundle), {}
+    vocabulary = tokenizer.get_vocab_size(with_added_tokens=True)
     for run in runs:
-        records = lines((run / "outputs.jsonl").read_bytes())
-        first = {}
-        for record in records:
+        good, broken = partition(read_records(run / "outputs.jsonl"), vocabulary)
+        first, damaged = {}, set(broken)
+        for record in good:
             first.setdefault(record["id"], record)
         rows = [{"id": item["id"], "category": item["category"],
                  **(score(item, tokenizer.decode(first[item["id"]]["output_ids"], skip_special_tokens=True))
                     if item["id"] in first else
-                    {"kind": item["scorer"]["kind"], "correct": None, "state": "missing", "parsed": None})}
+                    {"kind": item["scorer"]["kind"], "correct": None,
+                     "state": "malformed" if item["id"] in damaged else "missing", "parsed": None})}
                 for item in items]
         results[run.name] = rows, {
             "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
             "items": {"file": Path(items_path).name, "sha256": sha256(items_path)},
-            "tokenizer": {"sha256": tokenizer_sha256}, "run": read_json(run / "run.json"),
-            "checks": record_checks(items, records, hashes), "categories": summarize(rows)}
+            "tokenizer": {"sha256": tokenizer_sha256, "vocabulary": vocabulary}, "run": read_json(run / "run.json"),
+            "checks": record_checks(items, good, broken, hashes), "categories": summarize(rows)}
     output.mkdir(parents=True)
     for name, (rows, summary) in results.items():
         (output / name).mkdir()
