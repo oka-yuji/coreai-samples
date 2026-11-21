@@ -8,7 +8,7 @@
 
 | File | SHA-256 |
 |---|---|
-| `Tools/LLMEvaluation/contract.json` | `ce54f74bcc36c052796159c5f56e577a5be8eb5871377d3964cc57829ac091c5` |
+| `Tools/LLMEvaluation/contract.json` | `07ddaa20ee38d308c10ebef680033fa4916a1a4f5c29fc78b2b20e0d61f69a82` |
 | `Tools/LLMEvaluation/sets/primary.json` | `e9ec12b7697e382f61751737d55d24495714e17e88cc155c56f08524b192d1e7` |
 | `Tools/LLMEvaluation/sets/reserve.json` | `cf38e09f6efb2d1beb8224f2211f14ef88946c1eed31a8c72f6d44f6861adbba` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
@@ -178,7 +178,11 @@ The scorer is a separate child issue; these rules bind it.
   - MBPP: `test_imports` and the `test_list` asserts.
   - HumanEvalFix: its test, which already calls `check`.
 
-  The item is correct when the program finishes normally. Isolation and time limits are fixed by the scorer before any run, and a program that does not finish is incorrect.
+  The item is correct when the program finishes normally. Each program runs under these execution rules:
+  - **Isolation:** an isolated child process with no network, an empty temporary folder as its working folder, no writes outside that folder and no standard input.
+  - **Time limit:** 10 seconds of wall-clock time per program. A program that times out is run once more and is incorrect only when both runs time out. The report gives the number of timeouts and the number of programs that passed on the rerun.
+  - **Same run:** the baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine. The report records that Python version.
+  - The scorer (a separate child issue) implements the isolation. This contract fixes only these rules and constants.
 
 The examples of these rules are in `Tools/LLMEvaluation/tests/test_synthetic.py` and `tests/examples.json`. In those examples, a well-formed answer with a wrong value is incorrect.
 
@@ -241,6 +245,7 @@ A candidate with a regression can be adopted only by the owner's explicit decisi
 - Every critical failure, and the separate baseline counts of §7.1.
 - A reference to the layer 1 result.
 - When the same assets are rerun with a different call shape, the counts of correct → incorrect and incorrect → correct. This indicates the swaps caused by computation order alone; it is not used for the verdict.
+- For the code categories, the number of timeouts, the number of programs that passed on the rerun and the Python version used for scoring (§6.7).
 - For the categories with independent units (`ja-choice`, `ja-reading`, `code-gen-mbpp`, `extract-ja`), the one-sided 95% upper bound of the regression rate when there are zero regressions, 1 − 0.05^(1/N). For the primary set this is 1.49% at N = 200 and 2.95% at N = 100.
 
 ### 7.5 Wording

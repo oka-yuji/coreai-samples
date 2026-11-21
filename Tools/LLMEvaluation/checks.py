@@ -89,6 +89,11 @@ def limits(contract):
         found.append("control token ids are missing or include a stop token")
     if not all(integer(lookup(failures, ("repetition", key)), 1) for key in ("min_length", "min_consecutive")):
         found.append("repetition limits are missing")
+    tests = lookup(contract, ("scorers", "python_tests")) or {}
+    if not (number(tests.get("wall_clock_seconds")) and tests["wall_clock_seconds"] > 0):
+        found.append("python_tests wall_clock_seconds is missing")
+    if not integer(tests.get("timeout_reruns"), 1):
+        found.append("python_tests timeout_reruns is missing")
     frame = lookup(contract, ("generation", "template")) or {}
     if not text(frame.get("prefix")) or not text(frame.get("suffix")):
         found.append("template frame is missing")

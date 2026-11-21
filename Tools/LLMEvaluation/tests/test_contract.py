@@ -93,6 +93,17 @@ class ContractTests(unittest.TestCase):
                       "repetition limits are missing")
         self.rejected(lambda bundle: bundle["contract"]["layer1"]["bands"].pop(1), "bands are missing or not contiguous")
 
+    def test_code_execution_limit_and_reruns_are_required(self):
+        tests = ("contract", "scorers", "python_tests")
+        self.assertEqual(checks.lookup(BUNDLE, tests + ("wall_clock_seconds",)), 10)
+        self.assertEqual(checks.lookup(BUNDLE, tests + ("timeout_reruns",)), 1)
+        self.rejected(lambda bundle: bundle["contract"]["scorers"]["python_tests"].pop("wall_clock_seconds"),
+                      "python_tests wall_clock_seconds is missing")
+        self.rejected(lambda bundle: bundle["contract"]["scorers"]["python_tests"].pop("timeout_reruns"),
+                      "python_tests timeout_reruns is missing")
+        self.rejected(lambda bundle: bundle["contract"]["scorers"]["python_tests"].update(timeout_reruns=0),
+                      "python_tests timeout_reruns is missing")
+
     def test_hash_mismatches_are_rejected(self):
         self.rejected(lambda bundle: bundle["hashes"].update({"sets/primary.json": "0" * 64}),
                       "document hash for sets/primary.json differs")

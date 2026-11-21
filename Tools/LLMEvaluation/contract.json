@@ -82,6 +82,7 @@
       "baseline outputs with no tokens, control tokens or repetitions, counted separately",
       "a reference to the layer 1 result",
       "correct-to-incorrect and incorrect-to-correct counts when the same assets are rerun with a different call shape",
+      "for python_tests, the number of timeouts, the number of programs that passed on the rerun, and the Python version used for scoring",
       "the one-sided 95% upper bound for upper_bound categories with zero regressions"
     ],
     "claim": "no regression was detected on this evaluation set"
@@ -89,7 +90,16 @@
   "scorers": {
     "choice_digit": {"unicode": "NFKC", "digits": "01234"},
     "reading_exact": {"unicode": "NFKC", "strip": "whitespace and newlines", "trailing": "。", "enclosing": [["「", "」"], ["『", "』"]], "also_record": "character_f1"},
-    "python_tests": {"code": ["first ```python block", "first ``` block", "whole output"], "program": ["setup", "code", "test", "call"], "limits": "fixed by the scorer before any run; a program that does not finish is incorrect"},
+    "python_tests": {
+      "code": ["first ```python block", "first ``` block", "whole output"],
+      "program": ["setup", "code", "test", "call"],
+      "wall_clock_seconds": 10,
+      "timeout_reruns": 1,
+      "timeout": "a program that exceeds the limit is run once more and is incorrect when both runs time out",
+      "isolation": ["separate child process", "no network", "an empty temporary folder as the working folder", "no writes outside that folder", "no standard input"],
+      "same_run": "baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine",
+      "implementation": "the scorer child issue implements the isolation; this contract fixes only the rules and constants"
+    },
     "entity_sets": {"json": "first JSON object", "values": "arrays of strings compared as sets", "also_record": "micro_f1"},
     "json_exact": {"json": "first JSON object", "values": "canonical structure, arrays in order"},
     "final_integer": {"unicode": "NFKC", "marker": "答え:", "occurrence": "last"},
