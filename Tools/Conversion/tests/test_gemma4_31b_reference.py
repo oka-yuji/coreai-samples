@@ -110,6 +110,21 @@ class FixtureTests(unittest.TestCase):
                     reference.load_fixtures(path)
 
 
+class RenderTests(unittest.TestCase):
+    CHAT = {"id": "chat", "kind": "chat", "messages": [{"role": "user", "content": "x"}]}
+    RAW = {"id": "raw", "kind": "raw", "text": "x"}
+
+    def test_inputs_start_with_exactly_one_bos(self):
+        self.assertEqual(reference.render(FakeTokenizer([2, 5, 6], []), self.CHAT, 2), ([2, 5, 6], "template"))
+        self.assertEqual(reference.render(FakeTokenizer([], [5, 6]), self.RAW, 2), ([2, 5, 6], "explicit"))
+        rejected = [(FakeTokenizer([5, 6], []), self.CHAT), (FakeTokenizer([2, 2, 6], []), self.CHAT),
+                    (FakeTokenizer([2, 6, 2], []), self.CHAT), (FakeTokenizer([], [5, 2]), self.RAW),
+                    (FakeTokenizer([2, 5], [], rendered=[2, 6]), self.CHAT)]
+        for index, (tokenizer, case) in enumerate(rejected):
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                reference.render(tokenizer, case, 2)
+
+
 @unittest.skipIf(np is None, "NumPy is required for the record checks")
 class RecordTests(unittest.TestCase):
     def test_the_scoring_positions_run_from_the_last_input_to_the_second_last_output(self):
@@ -178,11 +193,31 @@ class RunCasesTests(unittest.TestCase):
         self.assertEqual((records[0]["non_finite"]["forced"], records[0]["forced_argmax_matches"]), (1, 3))
 
 
+def loading(**changes):
+    return {"info": {"missing_keys": []}, "parameter_dtypes": ["torch.bfloat16"], "parameter_devices": ["mps:0"],
+            "training": False, **changes}
+
+
+def case_record(non_finite=0, rerun=True):
+    return {"non_finite": {"forced": non_finite, "steps": 0}, "greedy_chosen_is_max": True,
+            "rerun": {"tokens_match": rerun}}
+
+
 def checked_record(checks):
     return {"checks": dict(checks), "loading": {"after_load": dict(MEMORY)}, "resources": {"cases": [dict(MEMORY)]}}
 
 
 class CheckTests(unittest.TestCase):
+    def test_non_finite_values_or_a_different_rerun_fail_the_reference(self):
+        clean = reference.evaluate(loading(), [case_record()], "mps")
+        self.assertTrue(reference.finalize(checked_record(clean), copy.deepcopy(OBSERVED), dict(MEMORY))["passed"])
+        for record, key in ((case_record(non_finite=1), "finite"), (case_record(rerun=False), "rerun_tokens_match")):
+            checks = reference.evaluate(loading(), [case_record(), record], "mps")
+            with self.subTest(key=key):
+                self.assertFalse(checks[key])
+                self.assertFalse(reference.finalize(checked_record(checks), copy.deepcopy(OBSERVED), dict(MEMORY))["passed"])
+        self.assertFalse(reference.evaluate(loading(info={"missing_keys": ["x"]}), [case_record()], "mps")["loading_clean"])
+
     def test_a_stopped_or_unreadable_monitor_or_missing_resources_fail_the_reference(self):
         changes = [("observed", {"aborts": 1}), ("observed", {"failure": "monitor stopped: TimeoutExpired"}),
                    ("observed", {"unreadable_samples": 1}), ("observed", {"samples": 0}), ("observed", {"first": None}),
@@ -332,6 +367,17 @@ class CompareTests(unittest.TestCase):
             changed = compare(first, third)["cases"][0]
             self.assertEqual((changed["output_tokens_match"], changed["first_difference"], changed["compared_positions"],
                               changed["max_abs_logit_difference"]), (False, 3, 3, 0.5))
+
+    def test_runs_with_different_input_tokens_do_not_match(self):
+        with tempfile.TemporaryDirectory() as folder:
+            first, second = Path(folder) / "a", Path(folder) / "b"
+            write_run(first, [2, 7], [4, 5, 1], ROWS)
+            write_run(second, [2, 8], [4, 5, 1], ROWS)
+            result = compare(first, second)
+        case = result["cases"][0]
+        self.assertFalse(result["passed"])
+        self.assertEqual((case["input_tokens_match"], case["output_tokens_match"], case["first_difference"],
+                          case["compared_positions"]), (False, True, 1, 1))
 
 
 def reference_record():
