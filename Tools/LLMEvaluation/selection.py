@@ -180,6 +180,12 @@ def serialize(document):
     return head[:-2] + ',\n  "items": [\n' + items + "\n  ]\n}\n"
 
 
+def compare(document, committed):
+    recorded = json.loads(committed).get("selected_with")
+    same = serialize({**document, "selected_with": recorded}) == committed
+    return same, None if recorded == document["selected_with"] else {"recorded": recorded, "current": document["selected_with"]}
+
+
 def statistics_of(counts):
     return {name: {"items": len(values), "min": min(values), "median": statistics.median(values), "max": max(values)}
             for name, values in counts.items()}

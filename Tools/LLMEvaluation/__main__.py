@@ -29,16 +29,19 @@ def select(arguments):
     counter = selection.Counter(bundle["contract"], arguments.tokenizer, template)
     rows, counts = selection.choose(bundle, arguments.datasets, counter)
     documents = selection.documents(bundle, rows, counter)
-    differs = []
+    differs, versions = [], {}
     for name, document in documents.items():
         path = items.ROOT / items.FILES[name]
-        data = selection.serialize(document)
         if arguments.check:
-            if not path.is_file() or path.read_text(encoding="utf-8") != data:
+            same, note = selection.compare(document, path.read_text(encoding="utf-8")) if path.is_file() else (False, None)
+            if not same:
                 differs.append(items.FILES[name])
+            if note:
+                versions[items.FILES[name]] = note
         else:
-            path.write_text(data, encoding="utf-8")
-    print(json.dumps({"tokens": selection.statistics_of(counts), "differs": differs}, indent=2, ensure_ascii=False))
+            path.write_text(selection.serialize(document), encoding="utf-8")
+    print(json.dumps({"tokens": selection.statistics_of(counts), "differs": differs, "versions": versions}, indent=2,
+                     ensure_ascii=False))
     return 1 if differs else 0
 
 

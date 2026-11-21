@@ -1,3 +1,4 @@
+from datetime import date
 import json
 import re
 
@@ -8,6 +9,8 @@ REVISION = re.compile(r"[0-9a-f]{40}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 PARAGRAPH = re.compile(r"(a\d+)p\d+")
 TABLE = re.compile(r"^\| `([^`]+)` \| `([0-9a-f]{64})` \|$", re.MULTILINE)
+HEADER = {"version": re.compile(r"^\| Version \| `([^`|]*)` \|$", re.MULTILINE),
+          "frozen": re.compile(r"^\| Frozen \| ([^|]*?) \|$", re.MULTILINE)}
 VERDICTS = ["no_regression_found", "regression_found", "critical_failure", "incomplete"]
 SCORERS = {"choice_digit", "reading_exact", "python_tests", "entity_sets", "json_exact", "final_integer",
            "format_rules", "unscored"}
@@ -153,6 +156,16 @@ def categories(contract, prompts):
     return found
 
 
+def frozen(value):
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
 def contract_problems(bundle):
     contract = bundle["contract"]
     found = []
@@ -160,6 +173,8 @@ def contract_problems(bundle):
         found.append("contract or prompts version is missing or differs")
     if not integer(contract.get("seed")):
         found.append("seed is missing")
+    if not frozen(contract.get("frozen")):
+        found.append("frozen is not a YYYY-MM-DD date")
     return found + pins(contract, bundle["resources"]) + limits(contract) + categories(contract, bundle["prompts"])
 
 
@@ -214,6 +229,8 @@ def original(category, source):
     kind = category["kind"]
     if kind == "reading":
         return ("jsquad", source.get("article"))
+    if kind in ("humaneval", "humanevalfix"):
+        return ("humaneval", source.get("task"))
     if kind in SOURCE_FIELDS:
         return (category["id"], json.dumps(source, sort_keys=True, ensure_ascii=False))
     return None
@@ -222,7 +239,7 @@ def original(category, source):
 def set_problems(bundle):
     contract, found = bundle["contract"], []
     categories = {category["id"]: category for category in contract["categories"]}
-    ids, originals, combinations, articles, fillers = set(), {}, {}, set(), []
+    ids, originals, combinations, articles, fillers, numbered = set(), {}, {}, set(), [], {}
     for name in SETS:
         document = bundle["sets"][name]
         if (document.get("contract_version"), document.get("set"), document.get("seed")) != (contract["version"], name, contract["seed"]):
@@ -237,6 +254,7 @@ def set_problems(bundle):
             if entry.get("id") in ids:
                 found.append(f"duplicate item id {entry.get('id')}")
             ids.add(entry.get("id"))
+            numbered.setdefault((name, category["id"]), set()).add(entry.get("id"))
             problems = entry_problems(category, entry)
             found += problems
             if problems:
@@ -255,6 +273,8 @@ def set_problems(bundle):
                 value = item(category, entry, None, bundle)
                 if digest(value) != entry["item_sha256"]:
                     found.append(f"{entry['id']}: item hash differs")
+                if value["scorer"]["kind"] != category["scorer"]:
+                    found.append(f"{entry['id']}: scorer kind differs from its category")
             if category["kind"] == "synthetic":
                 made = generate(category, entry["source"]["index"], contract["seed"], bundle["prompts"],
                                 bundle["vocabulary"], entry["source"].get("records"))
@@ -265,6 +285,12 @@ def set_problems(bundle):
         expected = {category["id"]: category[name] for category in contract["categories"] if category[name]}
         if counts != expected or document.get("summary") != counts:
             found.append(f"{name}: item counts differ from the contract")
+    for category in contract["categories"]:
+        first = category["primary"] + 1
+        for name, start, end in (("primary", 1, first), ("reserve", first, first + category["reserve"])):
+            expected = {f"{category['id']}-{number:04d}" for number in range(start, end)}
+            if numbered.get((name, category["id"]), set()) != expected:
+                found.append(f"{name}: {category['id']} ids are not numbered {start} to {end - 1}")
     for name, match in fillers:
         if match is None or match.group(1) in articles:
             found.append(f"{name}: filler paragraph comes from a question article")
@@ -273,8 +299,10 @@ def set_problems(bundle):
 
 def document_problems(bundle):
     contract, document, found = bundle["contract"], bundle["document"], []
-    if f"`{contract['version']}`" not in document or contract["frozen"] not in document:
-        found.append("document does not state the contract version and freeze date")
+    for key, pattern in HEADER.items():
+        rows = pattern.findall(document)
+        if [value.strip() for value in rows] != [contract[key]]:
+            found.append(f"document header {key} differs from the contract")
     rows = TABLE.findall(document)
     table = dict(rows)
     if len(table) != len(rows):

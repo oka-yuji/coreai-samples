@@ -180,14 +180,18 @@ def build(bundle, datasets, output):
         raise FileExistsError(f"Output must be a new folder: {output}")
     data = Sources(bundle["contract"], datasets)
     categories = {category["id"]: category for category in bundle["contract"]["categories"]}
-    built, differs = {}, []
+    built, differs, kinds = {}, [], []
     for name in SETS:
         built[name] = []
         for entry in bundle["sets"][name]["items"]:
             value = item(categories[entry["category"]], entry, data, bundle)
             if digest(value) != entry["item_sha256"]:
                 differs.append(entry["id"])
+            if value["scorer"]["kind"] != categories[entry["category"]]["scorer"]:
+                kinds.append(entry["id"])
             built[name].append(value)
+    if kinds:
+        raise ValueError(f"{len(kinds)} item scorer kinds differ from their categories, first: {kinds[:5]}")
     if differs:
         raise ValueError(f"{len(differs)} item hashes differ from the sets, first: {differs[:5]}")
     output.mkdir(parents=True)

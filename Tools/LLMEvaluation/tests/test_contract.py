@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-from Tools.LLMEvaluation import checks, items
+from Tools.LLMEvaluation import checks, items, selection
 
 BUNDLE = items.load()
 
@@ -151,7 +151,51 @@ class ContractTests(unittest.TestCase):
         self.rejected(lambda bundle: bundle["resources"].update({"synthetic/vocabulary.json": "0" * 64}),
                       "resource synthetic/vocabulary.json differs from its pin")
         self.rejected(lambda bundle: bundle.update(document=bundle["document"].replace("G31-QC-v1", "G31-QC-v0")),
-                      "document does not state the contract version")
+                      "document header version differs from the contract")
+
+    def test_primary_and_reserve_numbering_is_required(self):
+        def swap(bundle):
+            primary, reserve = bundle["sets"]["primary"]["items"], bundle["sets"]["reserve"]["items"]
+            first = next(index for index, entry in enumerate(primary) if entry["category"] == "ja-choice")
+            second = next(index for index, entry in enumerate(reserve) if entry["category"] == "ja-choice")
+            primary[first], reserve[second] = reserve[second], primary[first]
+
+        self.rejected(swap, "primary: ja-choice ids are not numbered 1 to 200")
+
+    def test_the_same_humaneval_problem_in_both_code_categories_is_rejected(self):
+        def both_even(bundle):
+            category(bundle, "code-fix").update(parity=0)
+            fix = entries(bundle, "code-fix")
+            fix[0]["source"]["task"] = entries(bundle, "code-gen-he")[0]["source"]["task"]
+            for entry in fix[1:]:
+                entry["source"]["task"] -= 1
+
+        self.rejected(both_even, "code-fix-0001: same original as code-gen-he-0001")
+
+    def test_document_header_and_freeze_date_are_compared_exactly(self):
+        self.rejected(lambda bundle: bundle.update(document=bundle["document"].replace(
+            "| Version | `G31-QC-v1` |", "| Version | `G31-QC-v0` |")), "document header version differs from the contract")
+        self.rejected(lambda bundle: bundle.update(document=bundle["document"].replace(
+            "| Frozen | 2026-11-22 |", "| Frozen | 2026-11-21 |")), "document header frozen differs from the contract")
+        for value in ("", "2026", "2026-11-31", "20261122"):
+            self.rejected(lambda bundle, value=value: bundle["contract"].update(frozen=value),
+                          "frozen is not a YYYY-MM-DD date")
+
+    def test_item_scorer_kinds_must_match_their_category(self):
+        self.rejected(lambda bundle: category(bundle, "synth-format").update(scorer="json_exact"),
+                      "synth-format-0001: scorer kind differs from its category")
+
+    def test_select_check_ignores_only_the_recorded_versions(self):
+        committed = (items.ROOT / items.FILES["reserve"]).read_text(encoding="utf-8")
+        document = json.loads(committed)
+        self.assertEqual(selection.serialize(document), committed)
+        self.assertEqual(selection.compare(document, committed), (True, None))
+        newer = {**document, "selected_with": {**document["selected_with"], "tokenizers": "0.0.0"}}
+        same, note = selection.compare(newer, committed)
+        self.assertTrue(same)
+        self.assertEqual(note["current"]["tokenizers"], "0.0.0")
+        changed = {**document, "items": document["items"][1:] + document["items"][:1]}
+        self.assertFalse(selection.compare(changed, committed)[0])
 
     def test_build_rejects_source_and_item_hash_mismatches(self):
         with tempfile.TemporaryDirectory() as root:
@@ -178,6 +222,10 @@ class ContractTests(unittest.TestCase):
                 items.build(bundle, root, Path(root) / "third")
             with self.assertRaises(FileExistsError):
                 items.build(bundle, root, Path(root) / "first")
+            (Path(root) / "fake" / "rows.jsonl").write_bytes(data)
+            category(bundle, "ja-choice").update(scorer="reading_exact")
+            with self.assertRaisesRegex(ValueError, "scorer kinds differ"):
+                items.build(bundle, root, Path(root) / "fourth")
 
     def test_validate_runs_with_only_the_standard_library(self):
         script = items.ROOT / "__main__.py"
