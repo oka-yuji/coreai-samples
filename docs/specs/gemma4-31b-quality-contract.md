@@ -13,7 +13,7 @@
 | `Tools/LLMEvaluation/sets/reserve.json` | `cf38e09f6efb2d1beb8224f2211f14ef88946c1eed31a8c72f6d44f6861adbba` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
 
-`python3 -m Tools.LLMEvaluation validate` rejects the contract when this table, the version or the freeze date differs from the files. The machine-readable form of every rule below is `Tools/LLMEvaluation/contract.json`; the tools are described in [Tools/LLMEvaluation](../../Tools/LLMEvaluation/README.md).
+`python3 -m Tools.LLMEvaluation validate`, run from the repository root, rejects the contract when this table, the version or the freeze date differs from the files. `check.sh` runs the same check in isolated mode as `python3 -I Tools/LLMEvaluation/__main__.py validate`, because isolated mode does not put the repository on the import path. The [README](../../Tools/LLMEvaluation/README.md) describes both forms and the other tools. The machine-readable form of every rule below is `Tools/LLMEvaluation/contract.json`.
 
 This contract is fixed before any candidate is measured. It decides how quality is judged for the Core AI conversions of `google/gemma-4-31B-it` (FP16, 8-bit weights and the conditional 4-bit candidate). It does not contain the correctness rules for speculative decoding or the details of the performance measurement plan; each of those is fixed in its own version before its own measurement.
 
