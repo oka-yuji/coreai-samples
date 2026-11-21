@@ -46,6 +46,37 @@
       "checks": [{"file": "ready.json", "key": ["ready"], "equals": true}],
       "cache": false,
       "timeout_s": 1800
+    },
+    {
+      "id": "reference",
+      "role": "reference",
+      "depends": ["prepare"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.gemma4_31b.reference",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--fixtures", "$recipe_dir/fixtures.json",
+        "--prepare", "$prepare",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/reference.py",
+        "$adapters/prepare.py",
+        "$shared/monitor.py",
+        "$shared/prepare.py",
+        "$shared/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/fixtures.json",
+        "$snapshot/*"
+      ],
+      "outputs": ["reference.json", "cases", "monitor.tsv"],
+      "checks": [{"file": "reference.json", "key": ["passed"], "equals": true}],
+      "heavy": true,
+      "timeout_s": 7200,
+      "min_free_bytes": 21474836480
     }
   ]
 }
