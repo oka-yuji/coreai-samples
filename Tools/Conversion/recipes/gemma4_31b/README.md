@@ -27,8 +27,10 @@ does not convert the model, and the diagnostic inputs are not a quality evaluati
 
 Setup never downloads models. Place all files of the revision under
 `.local/conversion/models/google--gemma-4-31B-it` with a sibling `google--gemma-4-31B-it.integrity.json`
-that records the size and the LFS SHA-256 or git blob SHA-1 of every file, as for JEV-27B. Files of the
-download state under `.cache/` may be listed in `local_files_not_in_scope`; any other extra file fails.
+in the form used for JEV-27B. Its row for every file needs the expected and actual size and the SHA-256 of
+the whole file (`actual_sha256`), which must equal the contract, and `ok` set to true; the git blob SHA-1
+that the small files are checked against upstream is an additional field. Files of the download state under
+`.cache/` may be listed in `local_files_not_in_scope`; any other extra file fails.
 
 ~~~sh
 python3 -m Tools.Conversion.local setup --recipe gemma4_31b
