@@ -228,7 +228,7 @@ Combinations are compared within a series (§6.2), so `synth-long-4k` and `synth
 
 ### 6.10 Pilot before freezing
 
-This subsection records how the wording was checked; it is not a rule. Before the contract was frozen, the prompts and the output limits were checked on 57 items outside the evaluation sets: public data rows (questions, problems and sentences) that no primary or reserve item of the same category uses, and synthetic tasks generated with another seed (`pilot`). The rows do not avoid the sets completely. `code-gen-he` and `code-fix` together use every HumanEval problem, so their 10 pilot items took problems of the other parity, which the other code category uses. The 12 JSQuAD pilot articles also supply filler paragraphs to long-context items. The original implementation (BF16) generated their outputs with greedy decoding. These outputs are not used for any verdict.
+This subsection records how the wording was checked; it is not a rule. Before the contract was frozen, the prompts and the output limits were checked on 57 items outside the evaluation sets, and all 57 were run: public data rows (questions, problems and sentences) that no primary or reserve item of the same category uses, and synthetic tasks generated with another seed (`pilot`). The rows do not avoid the sets completely. `code-gen-he` and `code-fix` together use every HumanEval problem, so their 10 pilot items took problems of the other parity, which the other code category uses. The 12 JSQuAD pilot articles also supply filler paragraphs to long-context items. The original implementation (BF16) generated their outputs with greedy decoding. These outputs are not used for any verdict. The 6 `synth-long` items were run with both the previous and the current prompt, so each `synth-long` category has two rows below. One more prompt was tried; it was not adopted, and its numbers are not listed.
 
 | Category | Items | Cut at the limit | Longest output (tokens) |
 |---|---|---|---|
@@ -239,14 +239,17 @@ This subsection records how the wording was checked; it is not a rule. Before th
 | `code-fix` | 5 | 0 | 132 |
 | `extract-ja` | 6 | 0 | 98 |
 | `long-ja-4k` | 4 | 0 | 13 |
+| `long-ja-16k` | 2 | 0 | 4 |
 | `synth-extract` | 6 | 0 | 209 |
 | `synth-format` | 6 | 0 | 57 |
 | `synth-long-4k`, the previous prompt with a limit of 32 | 4 | 4 | 32 |
 | `synth-long-4k`, the current prompt with a limit of 256 | 4 | 0 | 115 |
+| `synth-long-16k`, the previous prompt with a limit of 32 | 2 | 2 | 32 |
+| `synth-long-16k`, the current prompt with a limit of 256 | 2 | 0 | 125 |
 
-- With the previous `synth-long` prompt and a limit of 32 tokens, all 4 outputs reached the limit before the answer line, and none was correct. With the current prompt, which asks for the relevant records written out briefly before the answer line, and a limit of 256, all 4 followed the form and were correct.
+- With the previous `synth-long` prompt and a limit of 32 tokens, all 6 outputs (4 of `synth-long-4k` and 2 of `synth-long-16k`) reached the limit before the answer line, and none was correct. With the current prompt, which asks for the relevant records written out briefly before the answer line, and a limit of 256, all 6 followed the form and were correct.
 - The 12 outputs of the two JSON categories were all inside a ```json fence, and the JSON rule of §6.7, which takes the first JSON object, read every one of them.
-- The 4 items of the two 16k categories (`long-ja-16k` and `synth-long-16k`) had not been confirmed when this record was written; they are checked separately.
+- Inputs longer than 1,024 tokens were read in chunks of 1,024 tokens, reusing the KV cache. The inputs of about 15,000 tokens (14,817–15,424 tokens) also ran through the original implementation in this way.
 - Only the `synth-long` prompt and its limit were changed after this check.
 
 ## 7. Layer 2 verdicts
