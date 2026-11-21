@@ -13,7 +13,7 @@
 | `Tools/LLMEvaluation/sets/reserve.json` | `cf38e09f6efb2d1beb8224f2211f14ef88946c1eed31a8c72f6d44f6861adbba` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
 
-`python3 -m Tools.LLMEvaluation validate`, run from the repository root, rejects the contract when this table, the version or the freeze date differs from the files. `check.sh` runs the same check in isolated mode as `python3 -I Tools/LLMEvaluation/__main__.py validate`, because isolated mode does not put the repository on the import path. The [README](../../Tools/LLMEvaluation/README.md) describes both forms and the other tools. The machine-readable form of every rule below is `Tools/LLMEvaluation/contract.json`.
+`python3 -m Tools.LLMEvaluation validate`, run from the repository root, rejects the contract when this table, the version or the freeze date differs from the files. `check.sh` runs the same check in isolated mode as `python3 -I Tools/LLMEvaluation/__main__.py validate`, because isolated mode does not put the repository on the import path. The [README](../../Tools/LLMEvaluation/README.md) describes both forms and the other tools. `Tools/LLMEvaluation/contract.json` holds the constants, the lists, and the verdict labels with their precedence. The conditions of the four verdicts and the prohibitions of §7.3 are only in this document. Whether the numbers in this text agree with `contract.json` is checked by a machine only through the SHA-256 table above: the table fixes the reviewed `contract.json`, and no tool compares this text with it.
 
 This contract is fixed before any candidate is measured. It decides how quality is judged for the Core AI conversions of `google/gemma-4-31B-it` (FP16, 8-bit weights and the conditional 4-bit candidate). It does not contain the correctness rules for speculative decoding or the details of the performance measurement plan; each of those is fixed in its own version before its own measurement.
 
@@ -78,8 +78,8 @@ All of these must hold:
 
   | Part | Text |
   |---|---|
-  | Before the content | `<bos><|turn>user\n` |
-  | After the content | `<turn|>\n<|turn>model\n<|channel>thought\n<channel|>` |
+  | Before the content | `<bos><\|turn>user\n` |
+  | After the content | `<turn\|>\n<\|turn>model\n<\|channel>thought\n<channel\|>` |
 
   The generation therefore starts after `<|turn>model\n` and an empty thought channel.
 - `select` renders every item with jinja2 (a sandbox with `trim_blocks`, `lstrip_blocks` and `loopcontrols`), requires the result to equal the frame above, and tokenizes it with `tokenizers` without adding special tokens. The ids must start with [2, 105], and the special tokens must be exactly those of the frame, so no item text produces a control token. The resulting count is `token_count`.
@@ -147,7 +147,10 @@ The train file is the same blob (`20ce716e`) in v1.1.0 and v1.2.0. JGLUE v1.3.0 
 - An article is the question article of at most one item across `ja-reading`, `long-ja-4k` and `long-ja-16k`, primary and reserve together.
 - Filler paragraphs come only from articles that are not question articles of any primary or reserve item.
 - Within each category, the primary and reserve sets share no source key; for synthetic categories, no combination.
-- `validate` rejects any violation. `build` recomputes every item from the pinned data and rejects any item hash that differs.
+- These checks guard different things:
+  - `validate` checks the item ids and counts, the numbering of the primary and reserve items, the overlaps of articles and problems, the token-count ranges, the scorer kinds and hashes of the synthetic and `free-ja` items, and the version, freeze date and hash table of this document. It checks that the required constants are present and well formed, not that their values are in range; the values are fixed through the SHA-256 table. A malformed contract can stop it with an exception instead of a `FAIL` line, and it still exits with a non-zero status.
+  - `build` checks the pins of the source files, and the hash and scorer kind of every item rebuilt from the pinned data.
+  - Only `select --check` checks that the committed sets are exactly the sets that the sampling rules produce. For example, an item replaced by a row that the rules did not draw, together with its new hash, passes `validate` and `build`, and is found only by `select --check`.
 
 ### 6.4 Long-context assembly
 
