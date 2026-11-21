@@ -1,5 +1,6 @@
 from fractions import Fraction
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -370,6 +371,22 @@ class ScoreRunTests(unittest.TestCase):
         rows = [json.loads(line, parse_constant=strict) for line in text.splitlines()]
         self.assertEqual([(row["state"], row["correct"], row["parsed"]) for row in rows],
                          [("scored", False, {"x": ["Infinity", "-Infinity"]})])
+
+    def test_a_run_folder_given_as_a_relative_dot_path_is_named_after_the_folder(self):
+        run = self.run_folder("current", [record(key, ids) for key, ids in self.outputs.items()])
+        (run / "inner").mkdir()
+        start = os.getcwd()
+        try:
+            for name, folder, relative in (("dot", run, "."), ("dot-dot", run / "inner", "..")):
+                with self.subTest(name):
+                    os.chdir(folder)
+                    _, output = self.scored([Path(relative)], output=f"out-{name}")
+                    self.assertEqual([path.name for path in output.iterdir()], ["current"])
+        finally:
+            os.chdir(start)
+        with self.assertRaises(ValueError):
+            self.scored([Path("/")], output="root")
+        self.assertFalse((self.root / "root").exists())
 
     def test_runs_are_scored_together_into_a_new_folder(self):
         first = self.run_folder("one", [record(key, ids) for key, ids in self.outputs.items()])

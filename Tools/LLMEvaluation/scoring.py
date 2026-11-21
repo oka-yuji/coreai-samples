@@ -218,9 +218,11 @@ def standard(row):
 
 
 def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
-    output, runs = Path(output), [Path(run) for run in runs]
+    output, runs = Path(output), [Path(run).resolve() for run in runs]
     if output.exists():
         raise FileExistsError(f"Output must be a new folder: {output}")
+    if not all(run.name for run in runs):
+        raise ValueError("Each run folder needs a name")
     if len({run.name for run in runs}) != len(runs):
         raise ValueError("Run folders must have distinct names")
     items = lines(Path(items_path).read_bytes())
