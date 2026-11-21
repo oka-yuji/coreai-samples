@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "name": "gemma4_31b_reference",
+  "description": "Pinned Gemma 4 31B snapshot and the BF16 MPS reference outputs of the diagnostic fixtures.",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/gemma4_31b",
+    "shared": "$repo/Tools/Conversion/adapters/jev27b"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HOME": "$hf_cache",
+    "HF_HUB_CACHE": "$hf_cache/hub",
+    "HF_HUB_OFFLINE": "1",
+    "HF_HUB_DISABLE_TELEMETRY": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.gemma4_31b.prepare",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--setup", "$setup_record",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/prepare.py",
+        "$shared/prepare.py",
+        "$shared/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/pyproject.toml",
+        "$recipe_dir/uv.lock",
+        "$setup_record",
+        "${snapshot}.integrity.json",
+        "$snapshot/*",
+        "$snapshot/.gitattributes",
+        "$snapshot/.eval_results/*"
+      ],
+      "outputs": ["ready.json"],
+      "checks": [{"file": "ready.json", "key": ["ready"], "equals": true}],
+      "cache": false,
+      "timeout_s": 1800
+    }
+  ]
+}
