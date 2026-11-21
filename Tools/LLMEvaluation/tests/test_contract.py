@@ -97,11 +97,11 @@ class ContractTests(unittest.TestCase):
                     parent = parent[key]
                 del parent[path[-1]]
 
-            self.rejected(change, f"layer1 {'.'.join(path)} is missing")
+            self.rejected(change, f"contract key layer1/{'/'.join(path)} is missing")
         self.rejected(lambda bundle: category(bundle, "code-fix").pop("max_new_tokens"), "code-fix: max_new_tokens is missing")
         self.rejected(lambda bundle: category(bundle, "synth-long-4k").pop("token_range"), "synth-long-4k: token_range is missing")
         self.rejected(lambda bundle: bundle["contract"]["layer2"]["critical_failures"]["repetition"].pop("min_length"),
-                      "repetition limits are missing")
+                      "contract key layer2/critical_failures/repetition/min_length is missing")
         self.rejected(lambda bundle: bundle["contract"]["layer1"]["bands"].pop(1), "bands are missing or not contiguous")
 
     def test_code_execution_limit_and_reruns_are_required(self):
@@ -109,9 +109,9 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(checks.lookup(BUNDLE, tests + ("wall_clock_seconds",)), 10)
         self.assertEqual(checks.lookup(BUNDLE, tests + ("timeout_reruns",)), 1)
         self.rejected(lambda bundle: bundle["contract"]["scorers"]["python_tests"].pop("wall_clock_seconds"),
-                      "python_tests wall_clock_seconds is missing")
+                      "contract key scorers/python_tests/wall_clock_seconds is missing")
         self.rejected(lambda bundle: bundle["contract"]["scorers"]["python_tests"].pop("timeout_reruns"),
-                      "python_tests timeout_reruns is missing")
+                      "contract key scorers/python_tests/timeout_reruns is missing")
         self.rejected(lambda bundle: bundle["contract"]["scorers"]["python_tests"].update(timeout_reruns=0),
                       "python_tests timeout_reruns is missing")
 
@@ -122,8 +122,10 @@ class ContractTests(unittest.TestCase):
             failures = bundle["contract"]["layer2"]["critical_failures"]
             failures["relative_to_reference"] = failures.pop("relative_to_baseline")
 
-        self.rejected(rename, "critical failure lists are missing")
+        self.rejected(rename, "contract key layer2/critical_failures/relative_to_baseline is missing")
         self.rejected(lambda bundle: bundle["contract"]["layer2"].pop("min_baseline_correct"),
+                      "contract key layer2/min_baseline_correct is missing")
+        self.rejected(lambda bundle: bundle["contract"]["layer2"].update(min_baseline_correct=0),
                       "layer2 min_baseline_correct is missing")
 
     def humaneval_scorer(self, root):
@@ -155,6 +157,40 @@ class ContractTests(unittest.TestCase):
             self.assertTrue(scored(scorer, "def target(value):\n    return helper(value) + 1\n", root))
             self.assertFalse(scored(scorer, "import sys\n\n\ndef target(value):\n    return helper(value) + 1\n\n\nsys.exit(0)\n", root))
             self.assertFalse(scored(scorer, "def target(value):\n    return value\n", root))
+
+    def test_every_required_contract_key_is_required(self):
+        paths = list(checks.required_paths())
+        self.assertGreater(len(paths), 100)
+        for path in paths:
+            contract = copy.deepcopy(BUNDLE["contract"])
+            parent = checks.lookup(contract, path[:-1]) if len(path) > 1 else contract
+            del parent[path[-1]]
+            with self.subTest("/".join(path)):
+                self.assertIn(f"contract key {'/'.join(path)} is missing", checks.problems({**BUNDLE, "contract": contract}))
+
+    def test_verdict_precedence_order_is_fixed(self):
+        self.rejected(lambda bundle: bundle["contract"]["layer2"]["precedence"].reverse(),
+                      "layer2 precedence differs from the fixed order")
+
+        def swap(bundle):
+            order = bundle["contract"]["layer2"]["precedence"]
+            order[1], order[2] = order[2], order[1]
+
+        self.rejected(swap, "layer2 precedence differs from the fixed order")
+
+    def test_long_context_items_keep_distinct_fillers_and_the_strata_order(self):
+        def duplicate(bundle):
+            source = entries(bundle, "long-ja-4k")[0]["source"]
+            own = checks.placement(source)
+            fillers = [index for index, key in enumerate(source["paragraphs"]) if key != own]
+            source["paragraphs"][fillers[1]] = source["paragraphs"][fillers[0]]
+
+        def all_front(bundle):
+            for entry in entries(bundle, "long-ja-4k"):
+                entry["source"]["position"] = "front"
+
+        self.rejected(duplicate, "long-ja-4k-0001: a paragraph appears twice")
+        self.rejected(all_front, "long-ja-4k-0002: stratum differs from its place in the set")
 
     def test_hash_mismatches_are_rejected(self):
         self.rejected(lambda bundle: bundle["hashes"].update({"sets/primary.json": "0" * 64}),
@@ -228,6 +264,10 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(note["current"]["tokenizers"], "0.0.0")
         changed = {**document, "items": document["items"][1:] + document["items"][:1]}
         self.assertFalse(selection.compare(changed, committed)[0])
+        recorded = document["selected_with"]["tokenizer_sha256"]
+        self.assertFalse(selection.compare(document, committed.replace(recorded, "0" * 64))[0])
+        recorded = document["selected_with"]["chat_template_sha256"]
+        self.assertFalse(selection.compare(document, committed.replace(recorded, "0" * 64))[0])
 
     def test_build_rejects_source_and_item_hash_mismatches(self):
         with tempfile.TemporaryDirectory() as root:

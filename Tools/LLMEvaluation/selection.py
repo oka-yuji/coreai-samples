@@ -180,10 +180,15 @@ def serialize(document):
     return head[:-2] + ',\n  "items": [\n' + items + "\n  ]\n}\n"
 
 
+VERSIONS = ("python", "tokenizers", "jinja2")
+
+
 def compare(document, committed):
-    recorded = json.loads(committed).get("selected_with")
-    same = serialize({**document, "selected_with": recorded}) == committed
-    return same, None if recorded == document["selected_with"] else {"recorded": recorded, "current": document["selected_with"]}
+    recorded = json.loads(committed).get("selected_with") or {}
+    versions = {key: recorded.get(key) for key in VERSIONS}
+    current = {key: document["selected_with"].get(key) for key in VERSIONS}
+    same = serialize({**document, "selected_with": {**document["selected_with"], **versions}}) == committed
+    return same, None if versions == current else {"recorded": versions, "current": current}
 
 
 def statistics_of(counts):

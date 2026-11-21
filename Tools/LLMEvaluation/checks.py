@@ -12,6 +12,52 @@ TABLE = re.compile(r"^\| `([^`]+)` \| `([0-9a-f]{64})` \|$", re.MULTILINE)
 HEADER = {"version": re.compile(r"^\| Version \| `([^`|]*)` \|$", re.MULTILINE),
           "frozen": re.compile(r"^\| Frozen \| ([^|]*?) \|$", re.MULTILINE)}
 VERDICTS = ["no_regression_found", "regression_found", "critical_failure", "incomplete"]
+PRECEDENCE = ["incomplete", "critical_failure", "regression_found", "no_regression_found"]
+REQUIRED = {
+    **dict.fromkeys(["version", "frozen", "document", "seed", "pairs", "resources", "entity_keys", "categories"]),
+    "roles": dict.fromkeys(["reference", "anchor", "fp16", "w8", "w4"]),
+    "substitute_baseline": dict.fromkeys(["replaces", "with", "when", "record"]),
+    "model": {"repository": None, "revision": None,
+              "files": {name: dict.fromkeys(["bytes", "sha256"]) for name in ("tokenizer.json", "chat_template.jinja")}},
+    "generation": {
+        **dict.fromkeys(["decoding", "tie_break", "disabled", "eos_token_id", "thinking", "tools", "system",
+                         "same_tokens_for_baseline_and_candidate"]),
+        "template": {**dict.fromkeys(["renderer", "messages", "prefix", "suffix", "content_has_no_outer_whitespace"]),
+                     "arguments": dict.fromkeys(["add_generation_prompt", "enable_thinking", "bos_token"]),
+                     "tokenization": dict.fromkeys(["add_special_tokens", "first_ids"])},
+        "not_claimed": dict.fromkeys(["temperature", "top_k", "top_p"])},
+    "outputs": {**dict.fromkeys(["format", "text", "greedy", "positions", "run_record"]),
+                "fields": dict.fromkeys(["id", "input_sha256", "input_tokens", "output_ids", "stop", "stop_token", "top2",
+                                         "error", "non_finite"])},
+    "layer1": {
+        **dict.fromkeys(["max_probability_error", "band_mean_max_probability_error", "non_finite_values",
+                         "significant_top1_mismatches", "near_tie_probability_margin", "bands", "report_only",
+                         "on_failure"]),
+        "same_assets": dict.fromkeys(["float16_ticks", "max_probability_error"]),
+        "items": {"per_category": None, "order": None,
+                  "families": {"long-ja": dict.fromkeys(["long-ja-4k", "long-ja-16k"]),
+                               "synth-long": dict.fromkeys(["synth-long-4k", "synth-long-16k"])}},
+        "positions": dict.fromkeys(["forced_input", "first", "last", "row", "max_per_item", "keep",
+                                    "same_forced_input_for"])},
+    "layer2": {
+        **dict.fromkeys(["verdicts", "precedence", "min_baseline_correct", "baseline_outputs", "report", "claim"]),
+        "critical_failures": {**dict.fromkeys(["candidate_only", "relative_to_baseline", "control_token_ids", "output"]),
+                              "repetition": dict.fromkeys(["min_length", "min_consecutive"])},
+        "upper_bound": dict.fromkeys(["categories", "confidence", "formula", "when"])},
+    "scorers": {
+        "choice_digit": dict.fromkeys(["unicode", "digits"]),
+        "reading_exact": dict.fromkeys(["unicode", "strip", "trailing", "enclosing", "enclosing_rule", "also_record"]),
+        "python_tests": dict.fromkeys(["code", "program", "marker", "correct", "wall_clock_seconds", "timeout_reruns",
+                                       "timeout", "isolation", "same_run", "identical_outputs", "implementation"]),
+        "entity_sets": dict.fromkeys(["json", "values", "also_record"]),
+        "json_exact": dict.fromkeys(["json", "values"]),
+        "final_integer": dict.fromkeys(["unicode", "marker", "occurrence"]),
+        "format_rules": dict.fromkeys(["length"]),
+        "unscored": {}},
+    "sources": dict.fromkeys(["jcqa", "jsquad", "humaneval", "mbpp", "humanevalpack", "ner"]),
+    "reserve": dict.fromkeys(["uses_allowed", "when", "then", "record"]),
+    "candidate_selection": dict.fromkeys(["eligible", "primary_metric", "overlap", "details"]),
+}
 SCORERS = {"choice_digit", "reading_exact", "python_tests", "entity_sets", "json_exact", "final_integer",
            "format_rules", "unscored"}
 PUBLIC = {"choice": "jcqa", "reading": "jsquad", "humaneval": "humaneval", "mbpp": "mbpp",
@@ -23,6 +69,14 @@ THRESHOLDS = [("max_probability_error",), ("band_mean_max_probability_error",), 
               ("significant_top1_mismatches",), ("positions", "max_per_item"), ("items", "per_category")]
 SOURCE_FIELDS = {"choice": {"q_id"}, "humaneval": {"task"}, "humanevalfix": {"task"}, "mbpp": {"task_id"},
                  "entities": {"index", "curid"}, "free": {"instruction"}}
+
+
+def required_paths(spec=REQUIRED, path=()):
+    for key, child in spec.items():
+        if isinstance(child, dict) and child:
+            yield from required_paths(child, path + (key,))
+        else:
+            yield path + (key,)
 
 
 def integer(value, low=0):
@@ -81,8 +135,10 @@ def limits(contract):
             bands[index + 1][0] != bands[index][1] + 1 for index in range(len(bands) - 1)):
         found.append("layer1 bands are missing or not contiguous")
     layer2 = contract.get("layer2", {})
-    if layer2.get("verdicts") != VERDICTS or sorted(layer2.get("precedence", [])) != sorted(VERDICTS):
+    if layer2.get("verdicts") != VERDICTS:
         found.append("layer2 verdicts differ from the four fixed labels")
+    if layer2.get("precedence") != PRECEDENCE:
+        found.append("layer2 precedence differs from the fixed order")
     failures = layer2.get("critical_failures", {})
     eos = lookup(contract, ("generation", "eos_token_id"))
     if not isinstance(eos, list) or not eos or not all(integer(token) for token in eos):
@@ -168,6 +224,9 @@ def frozen(value):
 
 def contract_problems(bundle):
     contract = bundle["contract"]
+    missing = [f"contract key {'/'.join(path)} is missing" for path in required_paths() if lookup(contract, path) is None]
+    if missing:
+        return missing
     found = []
     if not re.fullmatch(r"G31-QC-v\d+", str(contract.get("version"))) or bundle["prompts"].get("version") != contract.get("version"):
         found.append("contract or prompts version is missing or differs")
@@ -218,6 +277,8 @@ def entry_problems(category, entry):
             found.append(f"{name}: reading source is malformed")
         elif "token_range" in category and (source["position"] not in category["strata"] or placement(source) is None):
             found.append(f"{name}: question paragraph position differs")
+        if "token_range" in category and isinstance(source.get("paragraphs"), list) and len(set(source["paragraphs"])) != len(source["paragraphs"]):
+            found.append(f"{name}: a paragraph appears twice")
     if kind == "synthetic":
         fields = {"index", "template"} | ({"records"} if category["generator"]["kind"] == "long" else set())
         if set(source) != fields or not integer(source.get("index")):
@@ -255,6 +316,11 @@ def set_problems(bundle):
                 found.append(f"duplicate item id {entry.get('id')}")
             ids.add(entry.get("id"))
             numbered.setdefault((name, category["id"]), set()).add(entry.get("id"))
+            number = re.fullmatch(re.escape(category["id"]) + r"-(\d{4})", str(entry.get("id")))
+            if "strata" in category and number and isinstance(entry.get("source"), dict):
+                place = int(number.group(1)) - 1 - (category["primary"] if name == "reserve" else 0)
+                if entry["source"].get("position") != category["strata"][place % len(category["strata"])]:
+                    found.append(f"{entry['id']}: stratum differs from its place in the set")
             problems = entry_problems(category, entry)
             found += problems
             if problems:
