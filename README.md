@@ -4,9 +4,9 @@
 
 Swift samples for running open models with Apple's Core AI and Foundation Models. Explore local **chat and research**, **document decisions and extraction**, **image search**, and **speech**, with conversion recipes and recorded verification results.
 
-<a href="https://x.com/oka_yuuji/status/2112517908631040473"><img src="docs/media/truck-inspection-ios.gif" width="280" alt="Truck inspection demo on iPhone: a question is read aloud, GLiNER2.5-multi classifies the spoken answer, and the person confirms by voice before it is recorded"></a>
+<a href="https://x.com/oka_yuuji/status/2123952954755752189"><img src="docs/media/voxcpm2-mac.gif" width="280" alt="VoxCPM2 on Mac generating and playing the same Japanese greeting with two voice descriptions"></a>
 
-*Truck daily inspection on iPhone with Japanese voice input, at 1.5× speed. GLiNER2.5-multi classifies the spoken answer on the device, and nothing is recorded until the person confirms. [Full recording with audio on X](https://x.com/oka_yuuji/status/2112517908631040473) · [How the demo works](docs/truck-inspection.md)*
+*VoxCPM2 on Mac reads the same Japanese greeting in two voices, first low and steady, then gentle and calm (1× speed, silent preview). [Hear both voices in the full recording](https://x.com/oka_yuuji/status/2123952954755752189) · [VoxCPM2 guide](docs/voxcpm2.md#demo-recording)*
 
 Start with a model below. Each guide covers setup, supported devices, measurements and limitations; the status describes the converted bundle's public availability, separately from app integration.
 

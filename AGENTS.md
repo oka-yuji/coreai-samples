@@ -72,6 +72,8 @@
 - 公開物(文書・記録・ログを含む)に、作業環境のホーム・外部ボリューム・ユーザーごとの一時フォルダ(`/var/folders`)の絶対パスを書かない。`~` かリポジトリからの相対パスで書く。`Tools/Privacy/check-local-paths.py` は追跡中の全ファイルを、作業ツリーとステージ済みの両方の内容で読み(symlink はリンク先の文字列)、当たった場所をファイル名と行番号だけで示す。当たった文字列を Issue・PR・コメントへ貼らない。
 - Issue と PR に投稿した後の点検(タイトル・本文・コメント・レビュー・レビューコメントの現在の文と、本文側の削除していない編集履歴の版。変更前のタイトルは読まない)は `python3 -I Tools/Privacy/check-public-text.py oka-yuji/coreai-samples` で行う。手元でだけ実行する。認証済みの `gh` が要る。`check.sh` と CI には入れない。当たりは終了コード 1、読めなければ 2。
 
+- READMEやモデル別ガイドのデモ録画は共通の `demo-media` 手順に従い、[録画台帳](docs/media/README.md)に記録する。`docs/media` を変更したPRでは `python3 ~/claude-config/skills/demo-media/scripts/check_demo_media.py .` を実行する。
+
 ## 重いジョブ
 
 - 録音の語検索の実結合は共有ロック下で `COREAI_SPOKEN_WORD_AUDIO=/path/to/twice.wav swift test --package-path CoreAISamplesKit --force-resolved-versions --filter SpokenNativeTests.fixedRecordings`。同じフォルダの `related.wav` とともに、生成手順は `docs/embeddinggemma2.md`。Macの端末内認識・各語頭からの原音再生・関連する録音の0件を確かめる。通常suiteではskip。実iPhoneでの自然な発話の聴取は別に確認する。
