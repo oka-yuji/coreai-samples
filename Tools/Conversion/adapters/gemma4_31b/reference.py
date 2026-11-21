@@ -8,7 +8,7 @@ import sys
 import time
 
 from ...storage import read_json, write_json
-from ..jev27b.monitor import Monitor
+from ..jev27b import monitor as shared
 from ..pinned import sha256
 from .prepare import load_contract, runtime_tokenizer
 
@@ -18,14 +18,41 @@ ROLES = ("system", "user", "assistant")
 CASE_KEYS = {"id", "kind", "max_new_tokens"}
 SWAP_INCREASE_LIMIT_BYTES = 2_000_000_000
 MODEL_CLASS = "Gemma4ForConditionalGeneration"
+UNREADABLE = "the monitor could not read swap or the memory free percentage"
+READINGS = [shared.COLUMNS.index(name) for name in ("swap_used_bytes", "free_percent")]
 
 
-class ReferenceMonitor(Monitor):
+class ReferenceMonitor(shared.Monitor):
+    def __init__(self, path, volumes, patterns, on_abort):
+        super().__init__(path, volumes, patterns, on_abort)
+        self.failure, self.unreadable = None, 0
+
+    def sample(self):
+        row = super().sample()
+        if any(row[index] is None for index in READINGS):
+            self.unreadable += 1
+        return row
+
     def verdict(self):
+        if self.unreadable:
+            return UNREADABLE
         first = (self.first or {}).get("swap_used_bytes")
         if first is not None and self.previous is not None and self.previous - first > SWAP_INCREASE_LIMIT_BYTES:
             return f"swap rose by {self.previous - first} B, above {SWAP_INCREASE_LIMIT_BYTES} B"
         return super().verdict()
+
+    def run(self):
+        try:
+            super().run()
+        except BaseException as error:
+            self.failure = f"monitor stopped: {type(error).__name__}: {error}"
+            if self.reason is None:
+                self.reason = self.failure
+                self.on_abort(self.failure)
+                shared._thread.interrupt_main()
+
+    def finish(self):
+        return {**super().finish(), "failure": self.failure, "unreadable_samples": self.unreadable}
 
 
 def paragraphs(spec):
@@ -111,21 +138,28 @@ def probabilities(row, indices):
     return [float(weights[index] / weights.sum()) for index in indices]
 
 
-def forced_statistics(logits, outputs):
+def non_finite(values):
     import numpy as np
 
-    predicted = logits.argmax(axis=-1)
+    return int(values.size - np.isfinite(values).sum())
+
+
+def forced_statistics(scoring, outputs):
+    import numpy as np
+
+    predicted = scoring.argmax(axis=-1)
+    top = np.partition(scoring, -2, axis=-1)[:, -2:]
     mismatches = []
     for position in np.flatnonzero(predicted != np.asarray(outputs, dtype=np.int64)):
-        row = logits[position]
+        row = scoring[position]
         indices, values = top_two(row)
         entry = {"position": int(position), "greedy": int(outputs[position]), "top2": indices, "top2_logits": values}
         if np.isfinite(row).all():
             first, second = probabilities(row, indices)
             entry.update(top2_probabilities=[first, second], probability_difference=first - second)
         mismatches.append(entry)
-    return {"positions": len(outputs), "non_finite": int(logits.size - np.isfinite(logits).sum()),
-            "argmax_matches": len(outputs) - len(mismatches), "mismatches": mismatches}
+    return {"positions": len(outputs), "argmax_matches": len(outputs) - len(mismatches), "mismatches": mismatches,
+            "top_ties": int((top[:, 0] == top[:, 1]).sum())}
 
 
 def step_statistics(steps, outputs):
@@ -133,8 +167,7 @@ def step_statistics(steps, outputs):
 
     chosen = steps[np.arange(len(outputs)), outputs]
     tops = [top_two(row) for row in steps]
-    return {"non_finite": int(steps.size - np.isfinite(steps).sum()),
-            "chosen_is_max": bool(np.all(chosen == steps.max(axis=-1))),
+    return {"non_finite": non_finite(steps), "chosen_is_max": bool(np.all(chosen == steps.max(axis=-1))),
             "top_ties": sum(values[0] is not None and values[0] == values[1] for _, values in tops),
             "steps": [{"top2": indices, "top2_logits": values} for indices, values in tops]}
 
@@ -207,8 +240,8 @@ def forced(model, ids, outputs, device):
     sequence = torch.tensor([[*ids, *outputs]], device=device)
     started = time.perf_counter()
     logits = model(input_ids=sequence, attention_mask=torch.ones_like(sequence), use_cache=False).logits
-    selected = logits[0, scoring_slice(len(ids), len(outputs))].float().cpu().numpy()
-    return selected, time.perf_counter() - started
+    saved = logits[0].float().cpu().numpy()
+    return saved, time.perf_counter() - started
 
 
 def file_record(path):
@@ -225,6 +258,7 @@ def run_cases(model, tokenizer, cases, stops, bos, device, output):
         ids, handling = render(tokenizer, case, bos)
         outputs, steps, timing = greedy(model, ids, case["max_new_tokens"], stops, device)
         logits, timing["forced_s"] = forced(model, ids, outputs, device)
+        scoring = logits[scoring_slice(len(ids), len(outputs))]
         statistics = step_statistics(steps, outputs)
         tokens = folder / f"{case['id']}.tokens.json"
         write_json(tokens, {"id": case["id"], "kind": case["kind"], "bos": handling, "input_tokens": ids,
@@ -232,17 +266,18 @@ def run_cases(model, tokenizer, cases, stops, bos, device, output):
                             "steps": statistics.pop("steps")})
         array = folder / f"{case['id']}.logits.npy"
         np.save(array, logits)
-        forced_record = forced_statistics(logits, outputs)
+        forced_record = forced_statistics(scoring, outputs)
         records.append({"id": case["id"], "kind": case["kind"], "bos": handling, "input_tokens": len(ids),
                         "output_tokens": len(outputs), "max_new_tokens": case["max_new_tokens"],
                         "stop_reason": stop_reason(outputs, stops, case["max_new_tokens"]),
                         "stop_token": outputs[-1] if outputs and outputs[-1] in stops else None,
+                        "saved_positions": len(logits), "first_scoring_row": len(ids) - 1,
                         "scoring_positions": forced_record["positions"],
-                        "non_finite": {"forced": forced_record["non_finite"], "steps": statistics["non_finite"]},
+                        "non_finite": {"forced": non_finite(logits), "steps": statistics["non_finite"]},
                         "greedy_chosen_is_max": statistics["chosen_is_max"], "step_top_ties": statistics["top_ties"],
                         "forced_argmax_matches": forced_record["argmax_matches"],
-                        "forced_mismatches": forced_record["mismatches"],
-                        "step_vs_forced_max_abs_logit": finite(np.max(np.abs(steps - logits))) if len(outputs) else 0.0,
+                        "forced_top_ties": forced_record["top_ties"], "forced_mismatches": forced_record["mismatches"],
+                        "step_vs_forced_max_abs_logit": finite(np.max(np.abs(steps - scoring))) if len(outputs) else 0.0,
                         "timing": timing, "files": {"tokens": file_record(tokens),
                                                     "logits": {**file_record(array), "dtype": str(logits.dtype),
                                                                "shape": list(logits.shape)}}})
@@ -255,6 +290,31 @@ def run_cases(model, tokenizer, cases, stops, bos, device, output):
                            "first_difference": first_difference(first, outputs, first_steps, steps)}
         print(record["id"], "rerun", outputs == first, flush=True)
     return records, peaks
+
+
+def evaluate(loading, records, device):
+    return {"loading_clean": not any(loading["info"].values()) and loading["parameter_dtypes"] == ["torch.bfloat16"]
+            and all(name.startswith(device) for name in loading["parameter_devices"]) and not loading["training"],
+            "finite": all(not any(record["non_finite"].values()) for record in records),
+            "greedy_chosen_is_max": all(record["greedy_chosen_is_max"] for record in records),
+            "rerun_tokens_match": all(record["rerun"]["tokens_match"] for record in records)}
+
+
+def finalize(record, observed, final):
+    first = (observed.get("first") or {}).get("swap_used_bytes")
+    peak = observed["peak"]["swap_used_bytes"]
+    swap = {"first_bytes": first, "peak_bytes": peak, "limit_increase_bytes": SWAP_INCREASE_LIMIT_BYTES,
+            "increase_bytes": peak - first if first is not None and peak is not None else None}
+    rows = [record["loading"]["after_load"], *record["resources"]["cases"], final]
+    record["checks"]["monitor_clean"] = observed["aborts"] == 0 and observed.get("failure") is None \
+        and observed.get("unreadable_samples") == 0 and observed["samples"] > 0
+    record["checks"]["resources_recorded"] = all(type(row.get("max_rss_bytes")) is int and row["max_rss_bytes"] > 0
+                                                 and row.get("lifetime_peak_footprint_bytes") is not None
+                                                 and row.get("mps_driver_allocated_bytes") is not None for row in rows) \
+        and swap["increase_bytes"] is not None
+    record["resources"].update(final=final, swap=swap, monitor=observed)
+    record["passed"] = all(record["checks"].values())
+    return record
 
 
 def reference(args, contract, ready):
@@ -285,11 +345,7 @@ def reference(args, contract, ready):
         records, peaks = run_cases(model, tokenizer, cases, config["eos_token_id"], config["bos_token_id"], device,
                                    args.output)
     finished = time.perf_counter()
-    checks = {"loading_clean": not any(loading["info"].values()) and loading["parameter_dtypes"] == ["torch.bfloat16"]
-              and all(name.startswith(device) for name in loading["parameter_devices"]) and not loading["training"],
-              "finite": all(not any(record["non_finite"].values()) for record in records),
-              "greedy_chosen_is_max": all(record["greedy_chosen_is_max"] for record in records),
-              "rerun_tokens_match": all(record["rerun"]["tokens_match"] for record in records)}
+    checks = evaluate(loading, records, device)
     greedy_tokens = sum(record["output_tokens"] for record in records)
     greedy_seconds = sum(record["timing"]["greedy_s"] for record in records)
     return {"schema": SCHEMA, "checks": checks,
@@ -306,6 +362,8 @@ def reference(args, contract, ready):
                                  "explicit": "prepended to text tokenized with add_special_tokens=False"}},
             "generation": {"do_sample": False, "num_beams": 1, "eos_token_id": config["eos_token_id"],
                            "forced_forward": "one forward of input + greedy output, use_cache=False"},
+            "logits": {"saved": "every position of input + greedy output; row j is the output at position j",
+                       "scoring": "rows first_scoring_row .. first_scoring_row + scoring_positions - 1"},
             "fixtures_sha256": sha256(args.fixtures), "cases": records,
             "resources": {"cases": peaks, "mps_recommended_max_bytes": torch.mps.recommended_max_memory()
                           if device == "mps" else None},
@@ -341,14 +399,8 @@ def main():
                                                   "lifetime_peak_footprint_bytes": footprint()[1],
                                                   "monitor": monitor.finish()})
         return 1
-    observed = monitor.finish()
-    swap = {"first_bytes": (observed["first"] or {}).get("swap_used_bytes"), "peak_bytes": observed["peak"]["swap_used_bytes"],
-            "limit_increase_bytes": SWAP_INCREASE_LIMIT_BYTES}
-    swap["increase_bytes"] = swap["peak_bytes"] - swap["first_bytes"] if swap["first_bytes"] is not None else None
-    record["checks"]["monitor_clean"] = observed["aborts"] == 0 and swap["increase_bytes"] is not None
-    record["resources"].update(final=memory(contract["reference"]["device"]), swap=swap, monitor=observed)
+    finalize(record, monitor.finish(), memory(contract["reference"]["device"]))
     record["timing"]["total_s"] = time.perf_counter() - started
-    record["passed"] = all(record["checks"].values())
     write_json(output, record)
     return 0 if record["passed"] else 1
 

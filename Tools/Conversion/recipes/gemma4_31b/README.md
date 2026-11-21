@@ -64,24 +64,35 @@ Setup checks the integrity record against the contract, then under the shared ma
 
 For every case `cases/<id>.tokens.json` holds the rendered input IDs, the greedy output IDs, the stop
 reason and the top two IDs and logits of every step. `cases/<id>.logits.npy` holds float32
-`[scoring positions, 262144]`: the input followed by the greedy output goes through one forward pass
-without a cache, and the logits the implementation returns (after the soft cap) are kept from the last
-input position to the position before the last output token, so row `i` predicts output token `i`.
+`[input length + output length, 262144]`: the input followed by the greedy output goes through one forward
+pass without a cache, and the logits the implementation returns (after the soft cap) are kept for every
+position, so row `j` is the distribution of token `j + 1`. The scoring rows run from the last input
+position (`first_scoring_row`, the input length minus one) to the position before the last output token,
+so scoring row `i` predicts output token `i`.
 
 `reference.json` records the revision, the weight and contract SHA-256, the versions, dtype, device,
-class and loading arguments, the template and BOS handling, and per case the scoring positions, the
-non-finite values of the saved and the per-step logits, the positions where the forced argmax equals the
-greedy token (mismatches keep the position and the probability difference of the top two candidates;
-this is recorded, not a criterion), a second greedy run in the same process, the times and the greedy
-tokens per second. Its `passed` requires clean loading, no non-finite value, each greedy token at the
-maximum of its step logits, identical tokens in the second run and no monitor stop.
+class and loading arguments, the template and BOS handling, and per case the saved and scoring positions,
+the non-finite values of every saved row and of the per-step logits, and, on the scoring rows, the
+positions where the forced argmax equals the greedy token (mismatches keep the position and the
+probability difference of the top two candidates) and the rows whose top two logits are exactly equal.
+These two are recorded, not criteria; where the top two are equal, `argmax` picks the smaller ID. It also
+records a second greedy run in the same process, the times and the greedy tokens per second. Its `passed`
+requires clean loading, no non-finite value, each greedy token at the maximum of its step logits,
+identical tokens in the second run, a clean monitor and recorded resources.
 
 A thread samples swap, the memory free percentage and the free disk every 5 seconds (`monitor.tsv`,
-from `adapters/jev27b/monitor.py`). The stage stops as failed with `failure.json` when swap grows by
-more than 2,000,000,000 B from its first sample or the free percentage stays below 8 for three samples;
-a process still running 120 seconds later is killed. The stage needs 20 GiB of free disk. Peak resident
-memory, the kernel lifetime footprint peak and the MPS allocation are recorded after loading, after
-every case and at the end.
+from `adapters/jev27b/monitor.py`). The stage stops as failed with `failure.json` and exit code 1 when:
+
+- swap grows by more than 2,000,000,000 B from its first sample;
+- the free percentage stays below 8 for three samples in a row;
+- swap is above 16,000,000,000 B and rises on three samples in a row (the condition of the shared monitor);
+- a sample cannot read swap or the free percentage, or the monitor thread ends with an error.
+
+A process still running 120 seconds after a stop is killed. A run that finishes after a stop, with an
+unreadable sample or a monitor error is not `passed`, and neither is a run without its peak resident
+memory, kernel lifetime footprint peak, MPS allocation or swap increase. These are recorded after loading,
+after every case and at the end. The stage needs 20 GiB of free disk; the saved logits of the twelve
+cases take about 3.4 GB per run.
 
 ## Second run and shared numbers
 
@@ -96,8 +107,9 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.summary --report <first report.j
 ~~~
 
 `compare` requires the same model, environment and fixtures, and records per case whether the input and
-output tokens match, the first differing output position and the largest absolute logit difference over
-the positions whose context is still identical. `summary` prints only states, numbers, hashes, versions
+output tokens match, the first position where the forced sequences differ, and the largest absolute logit
+difference over the saved rows whose context is still identical (all rows when the sequences match). It
+passes only when the input and output tokens of every case match. `summary` prints only states, numbers, hashes, versions
 and case IDs; it lives beside the steps because every `Tools/Conversion/*.py` file is part of each step's
 cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
 

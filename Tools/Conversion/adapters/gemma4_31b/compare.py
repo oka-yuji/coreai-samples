@@ -13,17 +13,17 @@ def compare_case(first, second, name):
     import numpy as np
 
     left, right = (read_json(Path(folder) / "cases" / f"{name}.tokens.json") for folder in (first, second))
-    outputs = left["output_tokens"], right["output_tokens"]
-    differs = next((index for index, (a, b) in enumerate(zip(*outputs)) if a != b), None)
-    if differs is None and len(outputs[0]) != len(outputs[1]):
-        differs = min(map(len, outputs))
-    compared = len(outputs[0]) if differs is None else differs + 1
+    sequences = [tokens["input_tokens"] + tokens["output_tokens"] for tokens in (left, right)]
+    differs = next((index for index, (a, b) in enumerate(zip(*sequences)) if a != b), None)
+    if differs is None and len(sequences[0]) != len(sequences[1]):
+        differs = min(map(len, sequences))
+    compared = len(sequences[0]) if differs is None else differs
     logits = [np.load(Path(folder) / "cases" / f"{name}.logits.npy")[:compared] for folder in (first, second)]
     compared = min(compared, *(len(array) for array in logits))
     difference = np.abs(logits[0][:compared].astype(np.float64) - logits[1][:compared].astype(np.float64))
     return {"id": name, "input_tokens_match": left["input_tokens"] == right["input_tokens"],
-            "output_tokens_match": differs is None, "first_difference": differs, "compared_positions": compared,
-            "max_abs_logit_difference": float(difference.max()) if difference.size else 0.0,
+            "output_tokens_match": left["output_tokens"] == right["output_tokens"], "first_difference": differs,
+            "compared_positions": compared, "max_abs_logit_difference": float(difference.max()) if difference.size else 0.0,
             "argmax_changes": int((logits[0][:compared].argmax(-1) != logits[1][:compared].argmax(-1)).sum())}
 
 

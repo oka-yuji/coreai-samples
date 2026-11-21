@@ -44,8 +44,9 @@ def case(record):
     rerun = record["rerun"]
     logits = record["files"]["logits"]
     return {"id": word(record["id"]), "kind": word(record["kind"]), "bos": word(record["bos"]),
-            **{key: count(record[key]) for key in ("input_tokens", "output_tokens", "max_new_tokens", "scoring_positions",
-                                                    "forced_argmax_matches", "step_top_ties")},
+            **{key: count(record[key]) for key in ("input_tokens", "output_tokens", "max_new_tokens", "saved_positions",
+                                                    "first_scoring_row", "scoring_positions", "forced_argmax_matches",
+                                                    "forced_top_ties", "step_top_ties")},
             "stop_reason": word(record["stop_reason"]), "stop_token": optional(record["stop_token"], True),
             "non_finite": {word(key): count(value) for key, value in record["non_finite"].items()},
             "greedy_chosen_is_max": flag(record["greedy_chosen_is_max"]),
@@ -94,7 +95,8 @@ def reference(record):
                           "mps_recommended_max_bytes": optional(resources["mps_recommended_max_bytes"], True),
                           "swap": {word(key): optional(value, True) for key, value in swap.items()},
                           "monitor": {"samples": count(monitor["samples"]), "interval_s": summary.number(monitor["interval_s"]),
-                                      "aborts": count(monitor["aborts"]),
+                                      "aborts": count(monitor["aborts"]), "failed": monitor["failure"] is not None,
+                                      "unreadable_samples": count(monitor["unreadable_samples"]),
                                       "peak_rss_bytes": count(monitor["peak"]["rss_bytes"]),
                                       "lowest_free_percent": optional(monitor["lowest"]["free_percent"], True)}},
             "timing": {word(key): summary.number(value) for key, value in record["timing"].items()}}

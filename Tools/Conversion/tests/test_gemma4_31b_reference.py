@@ -1,10 +1,14 @@
+import contextlib
 import copy
+import io
 import json
 import math
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -12,6 +16,11 @@ try:
     import numpy as np
 except ImportError:
     np = None
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 from Tools.Conversion.adapters.gemma4_31b import reference, summary
 from Tools.Conversion.adapters.gemma4_31b.compare import compare
@@ -22,6 +31,45 @@ RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
 MONITOR = "Tools.Conversion.adapters.jev27b.monitor"
 CASES = ["ja_question", "ja_system", "ja_two_turns", "en_question", "en_system", "code_python", "code_swift", "json_ja",
          "json_en", "ja_long", "one_word", "raw_text"]
+VOCABULARY = 8
+MEMORY = {"max_rss_bytes": 10, "footprint_bytes": 5, "lifetime_peak_footprint_bytes": 12,
+          "mps_driver_allocated_bytes": 8, "mps_current_allocated_bytes": 7}
+OBSERVED = {"samples": 3, "interval_s": 5, "aborts": 0, "failure": None, "unreadable_samples": 0,
+            "first": {"swap_used_bytes": 5}, "peak": {"swap_used_bytes": 5, "rss_bytes": 11},
+            "lowest": {"free_percent": 40, "free_bytes": {"volume/folder": 1}}}
+
+
+class FakeTokenizer:
+    def __init__(self, chat, text, rendered=None):
+        self.chat, self.text, self.rendered = chat, text, chat if rendered is None else rendered
+
+    def apply_chat_template(self, messages, tokenize, return_dict=False, **options):
+        return {"input_ids": self.chat} if tokenize else "rendered"
+
+    def __call__(self, text, add_special_tokens):
+        return {"input_ids": self.rendered if text == "rendered" else self.text}
+
+
+class FakeModel:
+    def __init__(self, outputs, last_row=-1.0):
+        self.outputs, self.last_row = outputs, last_row
+
+    def generate(self, input_ids, attention_mask, generation_config, stopping_criteria):
+        rows = []
+        for token in self.outputs:
+            row = torch.full((1, VOCABULARY), -1.0)
+            row[0, token] = 2.0
+            rows.append(row)
+            stopping_criteria(input_ids, row)
+        return SimpleNamespace(sequences=torch.tensor([input_ids[0].tolist() + self.outputs]), logits=tuple(rows))
+
+    def __call__(self, input_ids, attention_mask, use_cache):
+        tokens = input_ids[0].tolist()
+        logits = torch.full((1, len(tokens), VOCABULARY), -1.0)
+        for position, token in enumerate(tokens[1:]):
+            logits[0, position, token] = 2.0
+        logits[0, -1, 0] = self.last_row
+        return SimpleNamespace(logits=logits)
 
 
 class FixtureTests(unittest.TestCase):
@@ -69,18 +117,19 @@ class RecordTests(unittest.TestCase):
         self.assertEqual(sequence[reference.scoring_slice(5, 3)].tolist(), [4, 5, 6])
         self.assertEqual(sequence[reference.scoring_slice(1, 1)].tolist(), [0])
 
-    def test_forced_statistics_count_matches_mismatches_and_non_finite_values(self):
-        logits = np.array([[0, 5, 1], [2, 0, 1], [0, 1, 3]], dtype=np.float32)
-        record = reference.forced_statistics(logits, [1, 0, 1])
-        self.assertEqual((record["positions"], record["argmax_matches"], record["non_finite"]), (3, 2, 0))
+    def test_forced_statistics_count_matches_mismatches_and_ties(self):
+        logits = np.array([[0, 5, 1], [2, 0, 1], [0, 1, 3], [4, 4, 0]], dtype=np.float32)
+        record = reference.forced_statistics(logits, [1, 0, 1, 0])
+        self.assertEqual((record["positions"], record["argmax_matches"], record["top_ties"]), (4, 3, 1))
         mismatch = record["mismatches"][0]
         weights = [math.exp(value - 3) for value in (0, 1, 3)]
         self.assertEqual((mismatch["position"], mismatch["greedy"], mismatch["top2"]), (2, 1, [2, 1]))
         self.assertAlmostEqual(mismatch["probability_difference"], (weights[2] - weights[1]) / sum(weights))
         logits[0, 0], logits[2, 1] = np.nan, np.inf
-        record = reference.forced_statistics(logits, [1, 0, 1])
-        self.assertEqual(record["non_finite"], 2)
-        self.assertNotIn("probability_difference", record["mismatches"][-1])
+        self.assertEqual(reference.non_finite(logits), 2)
+        record = reference.forced_statistics(logits, [1, 0, 1, 0])
+        self.assertEqual([entry["position"] for entry in record["mismatches"]], [0])
+        self.assertNotIn("probability_difference", record["mismatches"][0])
         json.dumps(record, allow_nan=False)
 
     def test_step_statistics_report_ties_and_non_maximal_choices(self):
@@ -103,6 +152,57 @@ class RecordTests(unittest.TestCase):
         self.assertEqual(reference.stop_reason([5], [1, 106, 50], 2), "other")
 
 
+@unittest.skipIf(np is None or torch is None, "NumPy and PyTorch are required for the case loop")
+class RunCasesTests(unittest.TestCase):
+    CASE = {"id": "raw", "kind": "raw", "text": "x", "max_new_tokens": 4}
+
+    def test_every_forced_position_is_saved_and_the_output_rows_are_scored(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()):
+            records, _ = reference.run_cases(FakeModel([5, 6, 1]), FakeTokenizer([], [7, 3]), [self.CASE], [1], 2, "cpu",
+                                             Path(folder))
+            record = records[0]
+            saved = np.load(Path(folder) / "cases/raw.logits.npy")
+            tokens = json.loads((Path(folder) / "cases/raw.tokens.json").read_text())
+        self.assertEqual(tokens["input_tokens"] + tokens["output_tokens"], [2, 7, 3, 5, 6, 1])
+        self.assertEqual((saved.shape, saved.dtype.name), ((6, VOCABULARY), "float32"))
+        self.assertEqual(saved[2:5].argmax(-1).tolist(), [5, 6, 1])
+        self.assertEqual((record["saved_positions"], record["first_scoring_row"], record["scoring_positions"],
+                          record["forced_argmax_matches"], record["stop_reason"], record["non_finite"]),
+                         (6, 2, 3, 3, "eos", {"forced": 0, "steps": 0}))
+        self.assertTrue(record["rerun"]["tokens_match"])
+
+    def test_non_finite_values_are_counted_over_every_saved_row(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()):
+            records, _ = reference.run_cases(FakeModel([5, 6, 1], last_row=math.nan), FakeTokenizer([], [7, 3]),
+                                             [self.CASE], [1], 2, "cpu", Path(folder))
+        self.assertEqual((records[0]["non_finite"]["forced"], records[0]["forced_argmax_matches"]), (1, 3))
+
+
+def checked_record(checks):
+    return {"checks": dict(checks), "loading": {"after_load": dict(MEMORY)}, "resources": {"cases": [dict(MEMORY)]}}
+
+
+class CheckTests(unittest.TestCase):
+    def test_a_stopped_or_unreadable_monitor_or_missing_resources_fail_the_reference(self):
+        changes = [("observed", {"aborts": 1}), ("observed", {"failure": "monitor stopped: TimeoutExpired"}),
+                   ("observed", {"unreadable_samples": 1}), ("observed", {"samples": 0}), ("observed", {"first": None}),
+                   ("final", {"lifetime_peak_footprint_bytes": None}), ("final", {"mps_driver_allocated_bytes": None}),
+                   ("final", {"max_rss_bytes": 0})]
+        for target, change in changes:
+            observed, final = copy.deepcopy(OBSERVED), dict(MEMORY)
+            (observed if target == "observed" else final).update(change)
+            with self.subTest(change=change):
+                record = reference.finalize(checked_record({"finite": True}), observed, final)
+                self.assertFalse(record["passed"])
+
+    @unittest.skipIf(torch is None, "PyTorch is required to read the memory record")
+    def test_a_missing_footprint_fails_the_reference(self):
+        with mock.patch.object(reference, "footprint", return_value=(None, None)):
+            final = {**reference.memory("cpu"), "mps_driver_allocated_bytes": 8}
+        self.assertIsNone(final["lifetime_peak_footprint_bytes"])
+        self.assertFalse(reference.finalize(checked_record({"finite": True}), copy.deepcopy(OBSERVED), final)["passed"])
+
+
 class MonitorTests(unittest.TestCase):
     def monitor(self, folder, reasons, swaps, free=50):
         patches = [mock.patch(f"{MONITOR}.swap_used", side_effect=swaps), mock.patch(f"{MONITOR}.free_percent", return_value=free),
@@ -111,6 +211,13 @@ class MonitorTests(unittest.TestCase):
             patch.start()
             self.addCleanup(patch.stop)
         return reference.ReferenceMonitor(Path(folder) / "monitor.tsv", [folder], [], reasons.append)
+
+    def wait(self, monitor, reasons):
+        monitor.start()
+        deadline = time.monotonic() + 5
+        while not reasons and time.monotonic() < deadline:
+            time.sleep(0.01)
+        return monitor.finish()
 
     def test_a_swap_increase_above_the_limit_stops_the_stage(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -133,15 +240,41 @@ class MonitorTests(unittest.TestCase):
         reasons = []
         with tempfile.TemporaryDirectory() as folder, mock.patch(f"{MONITOR}.INTERVAL_S", 0.01), \
                 mock.patch(f"{MONITOR}._thread") as thread:
-            monitor = self.monitor(folder, reasons, [10**9] + [4 * 10**9] * 100)
-            monitor.start()
-            deadline = time.monotonic() + 5
-            while not reasons and time.monotonic() < deadline:
-                time.sleep(0.01)
-            summary_record = monitor.finish()
+            observed = self.wait(self.monitor(folder, reasons, [10**9] + [4 * 10**9] * 100), reasons)
         self.assertTrue(reasons and reasons[0].startswith("swap rose"))
         thread.interrupt_main.assert_called_once()
-        self.assertEqual(summary_record["aborts"], 1)
+        self.assertEqual(observed["aborts"], 1)
+
+    def test_a_sampling_error_stops_the_stage_instead_of_ending_the_monitor_silently(self):
+        calls, reasons = [], []
+
+        def swap():
+            calls.append(1)
+            if len(calls) > 1:
+                raise subprocess.TimeoutExpired(["sysctl"], 30)
+            return 10**9
+
+        with tempfile.TemporaryDirectory() as folder, mock.patch(f"{MONITOR}.INTERVAL_S", 0.01), \
+                mock.patch(f"{MONITOR}._thread") as thread:
+            observed = self.wait(self.monitor(folder, reasons, swap), reasons)
+        self.assertTrue(reasons and reasons[0].startswith("monitor stopped: TimeoutExpired"))
+        thread.interrupt_main.assert_called_once()
+        self.assertEqual((observed["aborts"], observed["failure"] is None), (1, False))
+        self.assertFalse(reference.finalize(checked_record({"finite": True}), observed, dict(MEMORY))["passed"])
+
+    def test_unreadable_memory_pressure_output_stops_the_stage(self):
+        outputs = {"ps": "1\n", "sysctl": "total = 6144.00M  used = 1024.00M  free = 5120.00M  (encrypted)\n",
+                   "memory_pressure": "unexpected output\n"}
+        reasons = []
+        with tempfile.TemporaryDirectory() as folder, mock.patch(f"{MONITOR}.INTERVAL_S", 0.01), \
+                mock.patch(f"{MONITOR}._thread") as thread, \
+                mock.patch(f"{MONITOR}.command_output", side_effect=lambda *command: outputs[command[0]]):
+            monitor = reference.ReferenceMonitor(Path(folder) / "monitor.tsv", [folder], [], reasons.append)
+            observed = self.wait(monitor, reasons)
+        self.assertEqual(reasons[:1], [reference.UNREADABLE])
+        thread.interrupt_main.assert_called_once()
+        self.assertGreaterEqual(observed["unreadable_samples"], 1)
+        self.assertFalse(reference.finalize(checked_record({"finite": True}), observed, dict(MEMORY))["passed"])
 
     def test_an_aborted_run_fails_without_a_reference_record(self):
         class Fake:
@@ -172,13 +305,16 @@ class MonitorTests(unittest.TestCase):
             self.assertFalse((output / "reference.json").exists())
 
 
-def write_run(folder, outputs, logits):
+ROWS = [[0, 2], [1, 0], [3, 0], [0, 1], [2, 2]]
+
+
+def write_run(folder, inputs, outputs, logits):
     folder = Path(folder)
     (folder / "cases").mkdir(parents=True)
     common = {"model": {"id": "owner/model"}, "dtype": {"weights": "bfloat16"}, "device": "mps", "fixtures_sha256": "f",
               "environment": {"python": "3.11"}}
     (folder / "reference.json").write_text(json.dumps({**common, "cases": [{"id": "case"}]}))
-    (folder / "cases/case.tokens.json").write_text(json.dumps({"input_tokens": [2, 7], "output_tokens": outputs}))
+    (folder / "cases/case.tokens.json").write_text(json.dumps({"input_tokens": inputs, "output_tokens": outputs}))
     np.save(folder / "cases/case.logits.npy", np.asarray(logits, dtype=np.float32))
 
 
@@ -187,28 +323,28 @@ class CompareTests(unittest.TestCase):
     def test_identical_runs_pass_and_a_changed_output_is_located(self):
         with tempfile.TemporaryDirectory() as folder:
             first, second, third = (Path(folder) / name for name in ("a", "b", "c"))
-            write_run(first, [4, 5, 1], [[0, 2], [1, 0], [3, 0]])
-            write_run(second, [4, 5, 1], [[0, 2], [1, 0], [3, 0]])
-            write_run(third, [4, 6, 1], [[0, 2.5], [1, 0.25], [9, 9]])
+            write_run(first, [2, 7], [4, 5, 1], ROWS)
+            write_run(second, [2, 7], [4, 5, 1], ROWS)
+            write_run(third, [2, 7], [4, 6, 1], [[0, 2.5], [1, 0.25], [3, 0.5], [9, 9], [9, 9]])
             same = compare(first, second)
-            self.assertEqual((same["passed"], same["max_abs_logit_difference"]), (True, 0.0))
+            self.assertEqual((same["passed"], same["max_abs_logit_difference"], same["cases"][0]["compared_positions"]),
+                             (True, 0.0, 5))
             changed = compare(first, third)["cases"][0]
             self.assertEqual((changed["output_tokens_match"], changed["first_difference"], changed["compared_positions"],
-                              changed["max_abs_logit_difference"]), (False, 1, 2, 0.5))
+                              changed["max_abs_logit_difference"]), (False, 3, 3, 0.5))
 
 
 def reference_record():
-    memory = {"max_rss_bytes": 10, "footprint_bytes": 5, "lifetime_peak_footprint_bytes": 12,
-              "mps_driver_allocated_bytes": 8, "mps_current_allocated_bytes": 7}
     case = {"id": "raw_text", "kind": "raw", "bos": "explicit", "input_tokens": 3, "output_tokens": 2, "max_new_tokens": 2,
-            "stop_reason": "length", "stop_token": None, "scoring_positions": 2, "non_finite": {"forced": 0, "steps": 0},
-            "greedy_chosen_is_max": True, "step_top_ties": 0, "forced_argmax_matches": 1,
+            "stop_reason": "length", "stop_token": None, "saved_positions": 5, "first_scoring_row": 2,
+            "scoring_positions": 2, "non_finite": {"forced": 0, "steps": 0}, "greedy_chosen_is_max": True,
+            "step_top_ties": 0, "forced_argmax_matches": 1, "forced_top_ties": 1,
             "forced_mismatches": [{"position": 1, "greedy": 4, "top2": [3, 4], "probability_difference": 0.01}],
             "step_vs_forced_max_abs_logit": 0.125,
             "timing": {"greedy_s": 1.0, "first_token_s": 0.5, "tokens_per_s": 2.0, "decode_tokens_per_s": None, "forced_s": 0.2},
             "rerun": {"tokens_match": True, "greedy_s": 1.0, "first_difference": None},
             "files": {"tokens": {"bytes": 1, "sha256": "a" * 64},
-                      "logits": {"bytes": 2, "sha256": "b" * 64, "dtype": "float32", "shape": [2, 262144]}}}
+                      "logits": {"bytes": 2, "sha256": "b" * 64, "dtype": "float32", "shape": [5, 262144]}}}
     return {"schema": reference.SCHEMA, "passed": True, "checks": {"finite": True},
             "model": {"id": "google/gemma-4-31B-it", "revision": "c" * 40, "contract_sha256": "d" * 64,
                       "weights_sha256": {"model-00001-of-00002.safetensors": "e" * 64}},
@@ -216,12 +352,11 @@ def reference_record():
             "dtype": {"weights": "bfloat16"}, "device": "mps",
             "loading": {"class": "Gemma4ForConditionalGeneration", "attn_implementation": "sdpa", "parameters": 9,
                         "parameter_dtypes": ["torch.bfloat16"], "parameter_devices": ["mps:0"],
-                        "info": {"missing_keys": []}, "tied_embeddings": True, "after_load": memory},
+                        "info": {"missing_keys": []}, "tied_embeddings": True, "after_load": dict(MEMORY)},
             "fixtures_sha256": "f" * 64, "cases": [case],
-            "resources": {"cases": [memory], "final": memory, "mps_recommended_max_bytes": 100,
+            "resources": {"cases": [dict(MEMORY)], "final": dict(MEMORY), "mps_recommended_max_bytes": 100,
                           "swap": {"first_bytes": 1, "peak_bytes": 1, "increase_bytes": 0, "limit_increase_bytes": 2},
-                          "monitor": {"samples": 3, "interval_s": 5, "aborts": 0, "peak": {"rss_bytes": 11},
-                                      "lowest": {"free_percent": 40, "free_bytes": {"volume/folder": 1}}}},
+                          "monitor": copy.deepcopy(OBSERVED)},
             "timing": {"load_s": 1.0, "total_s": 2.0}}
 
 
@@ -234,8 +369,12 @@ class SummaryTests(unittest.TestCase):
         text = json.dumps(result, allow_nan=False)
         self.assertNotIn("volume/folder", text)
         run = result["runs"][0]["reference"]
+        case = run["cases"][0]
         self.assertEqual((run["resources"]["max_rss_bytes"], run["resources"]["lifetime_peak_footprint_bytes"],
-                          run["cases"][0]["forced_mismatches"]), (10, 12, [{"position": 1, "probability_difference": 0.01}]))
+                          case["forced_mismatches"]), (10, 12, [{"position": 1, "probability_difference": 0.01}]))
+        self.assertEqual((case["saved_positions"], case["first_scoring_row"], case["forced_top_ties"],
+                          run["resources"]["monitor"]["failed"], run["resources"]["monitor"]["unreadable_samples"]),
+                         (5, 2, 1, False, 0))
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         for change in (lambda r: r["environment"].update(os_build="folder/name"),
