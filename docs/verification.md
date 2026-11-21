@@ -99,11 +99,11 @@ swift build -c release
 | Option | Meaning |
 |---|---|
 | `--tokens` | A JSON array of token IDs, such as `[151644, 872, 198]`. An empty array is rejected. Every ID must be below `language.vocab_size`, and the sequence can have at most `language.max_context_length` tokens. |
-| `--start` | The first position whose logits are written, from 0 to the last position. The tokens before it are read in calls of the engine's prefill chunk size, recorded as `prefix_chunk`, and their rows are not written to the file. With a `prefill` function, these calls make no logits array. Without one, they go through `main`, which needs a logits array of prefix chunk × vocab × 2 bytes (2 GiB for 4,096 × 262,144) whatever `--chunk` is. |
+| `--start` | The first position whose logits are written, from 0 to the last position. The tokens before it are read in calls of at most the engine's prefill chunk size, recorded as `prefix_chunk`; the last or only call can be shorter. Their rows are not written to the file. With a `prefill` function, these calls make no logits array. Without one, they go through `main`, which needs a logits array of up to prefix chunk × vocab × 2 bytes (2 GiB for 4,096 × 262,144) whatever `--chunk` is. |
 | `--chunk` | A positive number of tokens per `main` call from `--start`. Each call is exactly one `main` call, and the last one can be shorter. |
 | `--output` | The output file. It must not exist yet; the command does not overwrite a file. |
 
-The row of position p is the next-token distribution after reading tokens 0 through p, the logits that `main` returned for position p. The file is little-endian float16 without a header, shaped `[positions, vocab]` with positions = token count − start. Each row is written as soon as its `main` call returns. Memory holds the rows of one `main` call, chunk length × vocab × 2 bytes: with a 262,144-token vocabulary, a chunk of 256 takes 128 MiB, and 16,384 positions in one chunk take 8 GiB. Without a `prefill` function, the reads before `--start` also hold prefix chunk × vocab × 2 bytes, which a smaller `--chunk` does not reduce. The file takes positions × vocab × 2 bytes. When the command fails, it removes the file it created; treat a file as complete only when its record line was printed. NumPy reads it with `np.fromfile(path, dtype="<f2").reshape(shape)`.
+The row of position p is the next-token distribution after reading tokens 0 through p, the logits that `main` returned for position p. The file is little-endian float16 without a header, shaped `[positions, vocab]` with positions = token count − start. Each row is written as soon as its `main` call returns. Memory holds the rows of one `main` call, chunk length × vocab × 2 bytes: with a 262,144-token vocabulary, a chunk of 256 takes 128 MiB, and 16,384 positions in one chunk take 8 GiB. Without a `prefill` function, the reads before `--start` also hold up to prefix chunk × vocab × 2 bytes, which a smaller `--chunk` does not reduce. The file takes positions × vocab × 2 bytes. When the command fails, it removes the file it created; treat a file as complete only when its record line was printed. NumPy reads it with `np.fromfile(path, dtype="<f2").reshape(shape)`.
 
 The command prints one JSON line with `record` set to `logits`:
 
@@ -112,7 +112,7 @@ The command prints one JSON line with `record` set to `logits`:
 | `token_count`, `tokens_sha256` | The number of tokens and the SHA-256 of the decimal IDs joined by commas |
 | `start`, `chunk` | The options |
 | `shape`, `dtype`, `byte_order` | `[positions, vocab]`, `float16` and `little` |
-| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the tokens per call and the number of calls |
+| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the largest number of tokens in one of those calls (the last or only call can be shorter) and the number of calls |
 | `main_calls` | The number of `main` calls from `start` |
 | `main_hash` | The asset's `main.hash` in hex, the SHA-256 of `main.mlirb`; absent when the file is missing |
 | `requested_compute`, `expect_frequent_reshapes`, `cached`, `cache_query_error`, `specialize_s` | The own engine's specialization request and cache state, as in the `own-load` record |

@@ -98,11 +98,11 @@ swift build -c release
 | 指定 | 意味 |
 |---|---|
 | `--tokens` | トークン ID の JSON の配列(例: `[151644, 872, 198]`)。空の配列は断ります。各 ID は `language.vocab_size` 未満、トークンの数は `language.max_context_length` 以下にします。 |
-| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの prefill の塊の長さ(記録の `prefix_chunk`)ごとに読み、その行はファイルに書きません。`prefill` 関数があればそれで読み、logits の配列を作りません。無ければ `main` で読むので、`--chunk` によらず、前置きの塊 × 語彙 × 2 バイトの logits の配列が要ります(4,096 × 262,144 で 2 GiB)。 |
+| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの prefill の塊の長さ(記録の `prefix_chunk`)を上限に区切って読み(最後の、または唯一の呼び出しは、それより短いことがある)、その行はファイルに書きません。`prefill` 関数があればそれで読み、logits の配列を作りません。無ければ `main` で読むので、`--chunk` によらず、最大で前置きの塊 × 語彙 × 2 バイトの logits の配列が要ります(4,096 × 262,144 で 2 GiB)。 |
 | `--chunk` | `--start` から後を 1 回の `main` に通すトークンの数で、正の数。1 回ごとにちょうど 1 回の `main` の呼び出しで、最後の 1 回は短くなることがあります。 |
 | `--output` | 出力のファイル。まだ無いファイルを指定します。あるファイルは上書きしません。 |
 
-位置 p の行は、トークン列の 0 番目から p 番目までを読んだ後の、次のトークンの分布です(`main` が位置 p について返した logits)。ファイルはヘッダの無い little-endian の float16 で、形は `[位置数, 語彙]`、位置数はトークンの数 − 開始位置です。各行はその `main` の呼び出しが返ったらすぐに書きます。メモリに要るのは 1 回の `main` の行(塊の長さ × 語彙 × 2 バイト)です。例えば語彙 262,144 で、塊 256 なら 128 MiB、16,384 位置を 1 つの塊にすると 8 GiB です。`prefill` 関数が無い資産では、`--start` より前を読む間も前置きの塊 × 語彙 × 2 バイトが要り、`--chunk` を小さくしても減りません。ファイルは位置数 × 語彙 × 2 バイトです。失敗したときは自分で作ったファイルを消します。記録の行が出たファイルだけを完全なものとして扱います。NumPy では `np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。
+位置 p の行は、トークン列の 0 番目から p 番目までを読んだ後の、次のトークンの分布です(`main` が位置 p について返した logits)。ファイルはヘッダの無い little-endian の float16 で、形は `[位置数, 語彙]`、位置数はトークンの数 − 開始位置です。各行はその `main` の呼び出しが返ったらすぐに書きます。メモリに要るのは 1 回の `main` の行(塊の長さ × 語彙 × 2 バイト)です。例えば語彙 262,144 で、塊 256 なら 128 MiB、16,384 位置を 1 つの塊にすると 8 GiB です。`prefill` 関数が無い資産では、`--start` より前を読む間も最大で前置きの塊 × 語彙 × 2 バイトが要り、`--chunk` を小さくしても減りません。ファイルは位置数 × 語彙 × 2 バイトです。失敗したときは自分で作ったファイルを消します。記録の行が出たファイルだけを完全なものとして扱います。NumPy では `np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。
 
 記録は `record` が `logits` の JSON の 1 行です。
 
@@ -111,7 +111,7 @@ swift build -c release
 | `token_count`、`tokens_sha256` | トークンの数と、10 進の ID をコンマでつないだ文字列の SHA-256 |
 | `start`、`chunk` | 指定の値 |
 | `shape`、`dtype`、`byte_order` | `[位置数, 語彙]`、`float16`、`little` |
-| `prefix_function`、`prefix_chunk`、`prefix_calls` | `start` より前のトークンを読んだ関数(`prefill`、`prefill` 関数が無ければ `main`。`start` が 0 のときは無い)、1 回あたりのトークンの数、呼び出しの回数 |
+| `prefix_function`、`prefix_chunk`、`prefix_calls` | `start` より前のトークンを読んだ関数(`prefill`、`prefill` 関数が無ければ `main`。`start` が 0 のときは無い)、1 回の呼び出しのトークンの数の上限(最後の、または唯一の呼び出しは、それより短いことがある)、呼び出しの回数 |
 | `main_calls` | `start` から後の `main` の呼び出しの回数 |
 | `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いときは無い |
 | `requested_compute`、`expect_frequent_reshapes`、`cached`、`cache_query_error`、`specialize_s` | 自前のエンジンの特殊化の要求とキャッシュの状態。`own-load` の記録と同じ |
