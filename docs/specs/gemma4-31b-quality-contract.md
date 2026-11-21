@@ -93,7 +93,7 @@ All of these must hold:
 | Category | Source | Primary / reserve | Unit | Max new tokens | Correct when |
 |---|---|---|---|---|---|
 | `ja-choice` | JGLUE JCommonsenseQA v1.1 validation | 200 / 100 | Question | 8 | The first digit 0–4 of the output is the answer |
-| `ja-reading` | JGLUE JSQuAD v1.1 train (the same blob as v1.2 and v1.3) | 200 / 100 | Article, one question per article | 64 | After normalization it equals one of the answers exactly; character F1 is also recorded |
+| `ja-reading` | JGLUE JSQuAD v1.1 train (the same blob as v1.2; see below for v1.3) | 200 / 100 | Article, one question per article | 64 | After normalization it equals one of the answers exactly; character F1 is also recorded |
 | `code-gen-he` | HumanEval, even problem numbers | 82 / 0 | Problem | 512 | The extracted code passes the problem's unit tests |
 | `code-gen-mbpp` | MBPP sanitized, test split | 100 / 100 | Problem | 512 | The same, with `test_imports` and `test_list` |
 | `code-fix` | HumanEvalPack HumanEvalFix, Python, odd problem numbers | 82 / 0 | Problem | 512 | The same |
@@ -109,6 +109,8 @@ All of these must hold:
 The parent's domains map to these categories: Japanese (`ja-choice`, `ja-reading`, `free-ja`), code (`code-gen-he`, `code-gen-mbpp`, `code-fix`), extraction and structured output (`extract-ja`, `synth-extract`, `synth-format`) and long context (`long-ja-4k`, `long-ja-16k`, `synth-long-4k`, `synth-long-16k`). Verdicts are counted per category, never by averages across categories.
 
 **Why JSQuAD train.** The JSQuAD validation file (JGLUE `c96c6af`, the same blob from v1.1 to v1.3) has only 59 articles (titles), 1,145 paragraphs and 4,442 questions. One question per article cannot give 300 `ja-reading` items, nor 120 long-context question articles and their filler articles. The train file at the same revision has 710 articles, 15,652 paragraphs and 62,859 questions, and no title is shared with validation. The validation articles are not used. Train has been public as long as validation, so it may be in model training data as much as or more than validation. Absolute accuracy on these sets is therefore not comparable with published validation scores. These sets exist for the paired comparison of a baseline and a candidate on identical inputs.
+
+The train file is the same blob (`20ce716e`) in v1.1.0 and v1.2.0. JGLUE v1.3.0 (`6f071c0`) discarded 162 low-quality training questions, keeping all 710 articles and every paragraph. Its train file is therefore a different blob (`87b42821`) and is not used. Of the 420 JSQuAD questions in these sets, only `ja-reading-0137` (question `a549351p10q1`, primary set) is among the discarded ones. The item is kept, and its result is reported with this note.
 
 ### 6.2 Sampling
 
