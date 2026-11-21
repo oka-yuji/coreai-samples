@@ -29,7 +29,7 @@ swift build -c release
   --prompt "What is my name?" --max-tokens 1024 --stats
 ```
 
-`--prompt` の 1 つが、同じ会話の 1 ターンです。モデルが考えると、思考は `[reasoning]` の下に、回答は `[response]` の下に出ます。`--stats` は標準エラーに JSON の行を書きます。読み込みの 1 行(`cached`、`specialize_s`、`load_s`)と、ターンごとの 1 行です。ターンの行の `cached_tokens` は、前のターンから使い回したプロンプトの部分です。
+`--prompt` の 1 つが、同じ会話の 1 ターンです。モデルが考えると、思考は `[reasoning]` の下に、回答は `[response]` の下に出ます。`--stats` は標準エラーに JSON の行を書きます。読み込みの 1 行(`cached`、`specialize_s`、`load_s`。特殊化キャッシュの照会が誤りを投げ、特殊化し直して成功したときだけ、誤りの説明文の `cache_query_error` も出ます)と、ターンごとの 1 行です。ターンの行の `cached_tokens` は、前のターンから使い回したプロンプトの部分です。
 
 **3. デモアプリを動かす**。Xcode で `CoreAISamples.xcodeproj` を開き、`CoreAISamples` スキームと `My Mac` を選んで Run を押します。初回は Xcode がパッケージの依存を解決します。`CoreAISamples` スキームは Release でビルドし、`CoreAISamples-Debug` はデバッグ用に Debug でビルドします。アプリではサイドバーの Qwen3.8 27B の見出しから取得し、会話上部のモデルメニューから選びます。手順1の自作バンドルはCLIや明示診断で使います。
 

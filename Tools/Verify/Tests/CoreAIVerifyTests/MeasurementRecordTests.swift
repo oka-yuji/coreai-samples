@@ -97,6 +97,44 @@ import Testing
         #expect(try JSONDecoder.snake.decode(SpeedRecord.self, from: data).repeat == 1)
     }
 
+    @Test(
+        "A speed record omits the cache query error when there is none and writes it under cache_query_error when there is one"
+    )
+    func speedRecordCacheQueryError() throws {
+        var record = speedRun(peakRssBytes: 100, decodeTokS: 10)
+        #expect(try json(record)["cache_query_error"] == nil)
+        record.cacheQueryError = "Missing hash file"
+        var fields = try json(record)
+        #expect(fields["cache_query_error"] as? String == "Missing hash file")
+        let decoded = try JSONDecoder.snake.decode(SpeedRecord.self, from: JSONEncoder.records.encode(record))
+        #expect(decoded.cacheQueryError == "Missing hash file")
+        fields["cache_query_error"] = nil
+        let data = try JSONSerialization.data(withJSONObject: fields)
+        #expect(try JSONDecoder.snake.decode(SpeedRecord.self, from: data).cacheQueryError == nil)
+    }
+
+    @Test(
+        "The own load records omit the cache query error when there is none and write it under cache_query_error when there is one",
+        arguments: [nil, "Missing hash file"])
+    func ownLoadRecordCacheQueryError(_ queryError: String?) throws {
+        let memory = Memory.failed(code: KERN_INVALID_ARGUMENT)
+        let records = try [
+            json(
+                OwnLoadRecord(
+                    cached: false, cacheQueryError: queryError, specializeS: 1, loadS: 2, prefillFunction: true,
+                    hybrid: false, contextLimit: 16, requestedCompute: "default", expectFrequentReshapes: true,
+                    memory: memory)),
+            json(
+                OwnModelLoadRecord(
+                    cached: false, cacheQueryError: queryError, specializeS: 1, initS: 2, requestedCompute: "default",
+                    expectFrequentReshapes: true, memory: memory)),
+        ]
+        for fields in records {
+            #expect((fields["cache_query_error"] == nil) == (queryError == nil))
+            #expect(fields["cache_query_error"] as? String == queryError)
+        }
+    }
+
     @Test("A repeat that observes no token records its prefill as missing and the remaining repeats still run")
     func speedRunWithoutTokens() async throws {
         let run = try SpeedRun.parse(speedRunArguments(["--repeat", "2"]))
