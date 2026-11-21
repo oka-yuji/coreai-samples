@@ -5,7 +5,7 @@ import re
 import unicodedata
 import unittest
 
-from Tools.LLMEvaluation.items import digest, item, load
+from Tools.LLMEvaluation.items import FILES, ROOT, digest, item, load, read_json
 from Tools.LLMEvaluation.synthetic.generate import generate
 from Tools.LLMEvaluation.synthetic.solve import fields, solve_extract, solve_format, solve_long
 
@@ -139,6 +139,19 @@ class GeneratorTests(unittest.TestCase):
             schema=found["schema"], records=part["separator"].join(reversed(records)))
         root, rows = next(iter(extract["answer"].items()))
         self.assertEqual(solve_extract(reordered, PROMPTS), {root: list(reversed(rows))})
+
+    def test_items_checked_by_hand_in_the_review_match_the_generator_and_solver(self):
+        committed = {entry["id"]: entry for entry in read_json(ROOT / FILES["primary"])["items"]}
+        for example in EXAMPLES["review_hand_checked"]:
+            with self.subTest(example["id"]):
+                entry = committed[example["id"]]
+                self.assertEqual(entry["source"], example["source"])
+                generated = made(entry["category"], example["source"]["index"], example["source"].get("records"))
+                self.assertEqual(generated["template"], example["source"]["template"])
+                self.assertEqual(generated["answer"], example["hand_answer"])
+                kind = CATEGORIES[entry["category"]]["generator"]["kind"]
+                solver = solve_extract if kind == "extract" else solve_long
+                self.assertEqual(solver(generated["content"], PROMPTS), example["hand_answer"])
 
 
 class ScoringSpecificationExamples(unittest.TestCase):
