@@ -198,6 +198,19 @@ class RecordCheckTests(unittest.TestCase):
             with self.subTest(name):
                 self.assertEqual(self.checked(records=[broken] + self.records[1:]), self.only("malformed", [first]))
 
+    def test_malformed_records_with_a_string_id_count_for_duplicates_and_the_set(self):
+        first = self.items[0]["id"]
+        good = self.records[0]
+        broken = {key: value for key, value in good.items() if key != "top2"}
+        for name, rows in {"well-formed first": [good, broken], "malformed first": [broken, good],
+                           "two malformed": [broken, broken]}.items():
+            with self.subTest(name):
+                self.assertEqual(self.checked(records=rows + self.records[1:]),
+                                 {**self.only("duplicate", [first]), "malformed": [first] * rows.count(broken)})
+        outside = {**broken, "id": "ja-choice-9999"}
+        self.assertEqual(self.checked(records=self.records + [outside]),
+                         {**self.only("not_in_set", ["ja-choice-9999"]), "malformed": ["ja-choice-9999"]})
+
     def test_a_record_without_a_readable_id_is_listed_by_line_and_its_item_is_missing(self):
         first = self.items[0]["id"]
         good = record(first, [7, 8])
@@ -323,7 +336,7 @@ class ScoreRunTests(unittest.TestCase):
         rows = [record(key, ids) for key, ids in self.outputs.items()]
         rows[1] = {**rows[1], "output_ids": [0, VOCABULARY]}
         rows[3] = {key: value for key, value in rows[3].items() if key != "id"}
-        rows.append({**record("ja-reading-0002", [2]), "top2": None})
+        rows.insert(4, {**record("ja-reading-0002", [2]), "top2": None})
         folder = self.root / "broken"
         folder.mkdir()
         lines = [json.dumps(row).encode("utf-8") for row in rows] + [b'{"id": ', b"\xff\xfe", b"[]"]
@@ -334,7 +347,8 @@ class ScoreRunTests(unittest.TestCase):
         checks = items.read_json(output / "broken" / "summary.json")["checks"]
         self.assertEqual(checks["malformed"], ["ja-choice-0001", 4, "ja-reading-0002", 9, 10, 11])
         self.assertEqual(checks["missing"], ["ja-reading-0001", "synth-long-4k-0001"])
-        self.assertEqual((checks["duplicate"], checks["not_in_set"], checks["top2_differs"]), ([], [], []))
+        self.assertEqual((checks["duplicate"], checks["not_in_set"], checks["top2_differs"]),
+                         (["ja-reading-0002"], [], []))
         self.assertEqual(scores["ja-choice-0001"], {"id": "ja-choice-0001", "category": "ja-choice",
                                                     "kind": "choice_digit", "correct": None, "state": "malformed",
                                                     "parsed": None})

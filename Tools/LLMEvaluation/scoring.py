@@ -171,8 +171,8 @@ def partition(records, vocabulary):
 
 def record_checks(items, good, broken, hashes):
     ids = {item["id"] for item in items}
-    seen = Counter(record["id"] for record in good)
-    return {"missing": sorted(ids - set(seen) - set(broken)), "not_in_set": sorted(set(seen) - ids),
+    seen = Counter([record["id"] for record in good] + [name for name in broken if isinstance(name, str)])
+    return {"missing": sorted(ids - set(seen)), "not_in_set": sorted(set(seen) - ids),
             "duplicate": sorted(key for key, count in seen.items() if count > 1),
             "top2_differs": sorted({record["id"] for record in good
                                     if [entry[0] for entry in record["top2"]] != generated(record)}),
