@@ -42,6 +42,24 @@
     "same_tokens_for_baseline_and_candidate": true,
     "not_claimed": {"temperature": 1.0, "top_k": 64, "top_p": 0.95}
   },
+  "outputs": {
+    "format": "one JSON object per line, one record per item of the set, in any order",
+    "fields": {
+      "id": "item id",
+      "input_sha256": "SHA-256 of the input token ids written in decimal and joined by commas, as UTF-8 (tokens_sha256 of coreai-verify)",
+      "input_tokens": "number of input tokens",
+      "output_ids": "generated token ids before the first stop token",
+      "stop": "stop_token or limit",
+      "stop_token": "the stop token id, present when stop is stop_token",
+      "top2": "for every generated token, including the stop token: [first id, first probability, second id, second probability] of the temperature-1 softmax over the full vocabulary at that step",
+      "error": "absent, or the runtime error that ended the item",
+      "non_finite": "number of non-finite logits seen while generating the item"
+    },
+    "text": "the scorer decodes output_ids with the pinned tokenizer, skipping special tokens; the run does not supply text",
+    "greedy": "the first id of every top2 entry equals the token generated at that step (ties broken by the lowest id)",
+    "positions": "generated token index, counting the stop token",
+    "run_record": ["contract version", "contract.json SHA-256", "set name", "role", "model revision or asset hash", "implementation and its version", "call shape, for example the prefill chunk length"]
+  },
   "layer1": {
     "max_probability_error": 0.03,
     "band_mean_max_probability_error": 0.01,
@@ -59,7 +77,15 @@
         "synth-long": {"synth-long-4k": 6, "synth-long-16k": 2}
       }
     },
-    "positions": {"first": "last input position", "last": "position before the last reference greedy output token", "max_per_item": 128, "keep": "first"},
+    "positions": {
+      "forced_input": "the item input followed by the tokens that the reference role generated for the item: its output_ids, and its stop token when it stopped on one",
+      "first": "last input position",
+      "last": "position before the last token of the forced input",
+      "row": "row i predicts generated token i",
+      "max_per_item": 128,
+      "keep": "first",
+      "same_forced_input_for": ["fp16", "w8", "w4"]
+    },
     "on_failure": ["input ids and weights", "positions, RoPE and window masks", "first diverging layer and operation"]
   },
   "layer2": {
@@ -67,12 +93,13 @@
     "precedence": ["incomplete", "critical_failure", "regression_found", "no_regression_found"],
     "critical_failures": {
       "candidate_only": ["runtime_error", "non_finite_logits"],
-      "relative_to_reference": ["empty_output", "control_token", "repetition"],
+      "relative_to_baseline": ["empty_output", "control_token", "repetition"],
       "control_token_ids": [0, 2, 3, 4, 46, 47, 48, 49, 51, 52, 98, 100, 101, 105, 255999, 256000, 258880, 258881, 258882, 258883, 258884],
       "repetition": {"min_length": 8, "min_consecutive": 4},
       "output": "generated tokens before the first stop token"
     },
     "upper_bound": {"categories": ["ja-choice", "ja-reading", "code-gen-mbpp", "extract-ja"], "confidence": 0.95, "formula": "1 - 0.05 ** (1 / N)", "when": "zero regressions"},
+    "min_baseline_correct": 10,
     "baseline_outputs": "produced only after this contract is frozen",
     "report": [
       "item count and correct count per category for the baseline and the candidate",
@@ -89,7 +116,10 @@
   },
   "scorers": {
     "choice_digit": {"unicode": "NFKC", "digits": "01234"},
-    "reading_exact": {"unicode": "NFKC", "strip": "whitespace and newlines", "trailing": "。", "enclosing": [["「", "」"], ["『", "』"]], "also_record": "character_f1"},
+    "reading_exact": {"unicode": "NFKC", "strip": "str.strip() without arguments (Unicode whitespace)", "trailing": "。",
+                      "enclosing": [["「", "」"], ["『", "』"]],
+                      "enclosing_rule": "when the text starts with an opening mark and ends with its closing mark, remove that first and last character once, without matching the marks inside",
+                      "also_record": "character_f1"},
     "python_tests": {
       "code": ["first ```python block", "first ``` block", "whole output"],
       "program": ["setup", "code", "test", "call"],

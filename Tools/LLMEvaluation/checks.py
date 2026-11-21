@@ -89,6 +89,10 @@ def limits(contract):
         found.append("control token ids are missing or include a stop token")
     if not all(integer(lookup(failures, ("repetition", key)), 1) for key in ("min_length", "min_consecutive")):
         found.append("repetition limits are missing")
+    if not all(isinstance(failures.get(key), list) and failures[key] for key in ("candidate_only", "relative_to_baseline")):
+        found.append("critical failure lists are missing")
+    if not integer(layer2.get("min_baseline_correct"), 1):
+        found.append("layer2 min_baseline_correct is missing")
     tests = lookup(contract, ("scorers", "python_tests")) or {}
     if not (number(tests.get("wall_clock_seconds")) and tests["wall_clock_seconds"] > 0):
         found.append("python_tests wall_clock_seconds is missing")

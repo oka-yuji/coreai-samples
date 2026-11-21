@@ -131,7 +131,8 @@ def content(category, source, data, bundle):
     if kind == "humaneval":
         row = data["humaneval"][source["task"]]
         return (prompts["code-gen-he"].format(prompt=row["prompt"]), None,
-                {"kind": "python_tests", "setup": "", "test": row["test"], "call": f"check({row['entry_point']})"})
+                {"kind": "python_tests", "setup": row["prompt"], "test": row["test"],
+                 "call": f"check({row['entry_point']})"})
     if kind == "mbpp":
         row = data["mbpp"][source["task_id"]]
         tests = "\n".join(row["test_imports"] + row["test_list"])

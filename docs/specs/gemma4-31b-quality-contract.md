@@ -8,8 +8,8 @@
 
 | File | SHA-256 |
 |---|---|
-| `Tools/LLMEvaluation/contract.json` | `07ddaa20ee38d308c10ebef680033fa4916a1a4f5c29fc78b2b20e0d61f69a82` |
-| `Tools/LLMEvaluation/sets/primary.json` | `e9ec12b7697e382f61751737d55d24495714e17e88cc155c56f08524b192d1e7` |
+| `Tools/LLMEvaluation/contract.json` | `1e8143fb6dad5529432b7ee60b7422383de1e13397706d38e629dbb3f949c40f` |
+| `Tools/LLMEvaluation/sets/primary.json` | `06aef4839d2f9c2df36a4597f28fb050587ea4b1ff4dd14737e01a08a8d247f4` |
 | `Tools/LLMEvaluation/sets/reserve.json` | `cf38e09f6efb2d1beb8224f2211f14ef88946c1eed31a8c72f6d44f6861adbba` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
 
@@ -66,8 +66,8 @@ All of these must hold:
 - **Near tie, same assets called differently** (for example chunk length, or speculation on and off): only the top-2 tokens swapped, and on each side the logit distance between its top-2 tokens is within 8 float16 ticks, counted as the difference of ordered float16 bit patterns (`StateCheck` in `CoreAIBackend/Generation.swift`). The maximum probability error ≤ 0.03 is checked separately for these pairs.
 - **Bands** by the input token count of the item: 1–512, 513–2,048, 2,049–4,096 and 4,097–16,896. A band without items is reported as not evaluated.
 - **Reported only, never a pass condition:** KL divergence (mean, p99, maximum), the maximum absolute logit difference, the top-1 agreement rate and the number of near ties.
-- **Items:** from the primary set, the first 8 items of each category in ascending item-id order. The long-context families take 6 items from the 4k category and 2 from the 16k category: `long-ja-4k` 6 and `long-ja-16k` 2, `synth-long-4k` 6 and `synth-long-16k` 2. `free-ja` is included. This gives 88 items.
-- **Scored positions:** from the last input position to the position before the last token of the reference greedy output, at most 128 positions per item (the first 128 when longer).
+- **Items:** from the primary set, the first 8 items of each category in ascending item-id order. The long-context families take 6 items from the 4k category and 2 from the 16k category: `long-ja-4k` 6 and `long-ja-16k` 2, `synth-long-4k` 6 and `synth-long-16k` 2. `free-ja` is included. This gives 88 items. In `G31-QC-v1` they fall into the bands as 71, 1, 12 and 4 items (1–512, 513–2,048, 2,049–4,096 and 4,097–16,896). Inputs longer than the 1,024-token sliding window are checked by the 16 items of 2,049 tokens or more.
+- **Forced input and scored positions:** the forced input is the item input followed by the tokens that the `reference` role generated for that item: its `output_ids`, and its stop token when it stopped on one. The scored positions run from the last input position to the position before the last token of the forced input, at most 128 positions per item (the first 128 when there are more). Row i predicts generated token i. Every pair (`fp16`, `w8` and `w4`) uses the same forced input in layer 1.
 - **When a limit is exceeded:** the comparison does not pass. Investigate in this order: input ids and weights; positions, RoPE and window masks; the first diverging layer and operation. The limits are not changed.
 
 ## 5. Generation conditions and the input frame
@@ -85,6 +85,26 @@ All of these must hold:
 - `select` renders every item with jinja2 (a sandbox with `trim_blocks`, `lstrip_blocks` and `loopcontrols`), requires the result to equal the frame above, and tokenizes it with `tokenizers` without adding special tokens. The ids must start with [2, 105], and the special tokens must be exactly those of the frame, so no item text produces a control token. The resulting count is `token_count`.
 - The run that produces outputs (a separate child issue) renders with transformers. It must confirm that its token sequence has the same length as `token_count` for every item that carries one, and that the rendered text equals the frame around the content. Any difference makes the comparison `incomplete`.
 - Sampling with the distributed defaults (temperature 1.0, top_k 64, top_p 0.95) is not evaluated and is not claimed.
+
+### 5.1 Output records
+
+A run writes one record per item of the set, one JSON object per line, in any order. `contract.json` lists the same fields under `outputs`.
+
+| Field | Value |
+|---|---|
+| `id` | The item id |
+| `input_sha256` | SHA-256 of the input token ids written in decimal and joined by commas, as UTF-8 (the `tokens_sha256` of `coreai-verify`, `tokensDigest` in `Tools/Verify`) |
+| `input_tokens` | The number of input tokens |
+| `output_ids` | The generated token ids before the first stop token |
+| `stop` | `stop_token` or `limit`; with `stop_token`, the field `stop_token` holds that token id |
+| `top2` | For every generated token, including the stop token: `[first id, first probability, second id, second probability]` of the temperature-1 softmax over the full vocabulary at that step |
+| `error` | Absent, or the runtime error that ended the item |
+| `non_finite` | The number of non-finite logits seen while generating the item |
+
+- The scored text is `output_ids` decoded with the pinned tokenizer, skipping special tokens. The scorer decodes it; the run does not supply text.
+- The first id of every `top2` entry equals the token generated at that step (greedy, ties broken by the lowest id).
+- Each run also writes one run record: the contract version and the SHA-256 of `contract.json`, the set name, the role, the model revision or asset hash, the implementation and its version, and the call shape (for example the prefill chunk length).
+- Output positions are counted in these records as the generated token index, counting the stop token.
 
 ## 6. Layer 2 sets
 
@@ -161,20 +181,20 @@ The scorer is a separate child issue; these rules bind it.
 - **`ja-choice`:** apply NFKC and take the first character of the output that is one of `0`–`4`.
 - **`ja-reading` and `long-ja-*`:** normalize both the output and each answer.
   1. Apply NFKC.
-  2. Strip leading and trailing whitespace and newlines.
+  2. Strip with Python's `str.strip()` without an argument, which removes Unicode whitespace including newlines.
   3. Remove one final `。`.
-  4. Strip again.
-  5. Remove one pair of `「」` or `『』` that encloses the whole text.
-  6. Strip again.
+  4. Strip again with `str.strip()`.
+  5. If the text starts with `「` and ends with `」`, or starts with `『` and ends with `』`, remove that first and last character, once. The marks inside are not matched.
+  6. Strip again with `str.strip()`.
 
   The item is correct when the normalized output equals any normalized answer. Character F1 is the multiset overlap of characters after normalization, the maximum over the answers.
 - **JSON (`extract-ja`, `synth-extract`):** use the first JSON object, at the first `{` from which a JSON object decodes. A duplicate key, an extra or missing key, or a type difference is incorrect.
   - `extract-ja`: values are arrays of strings, compared as sets ignoring order and duplicates, without normalization. Micro-F1 is over (item, key, string) triples.
   - `synth-extract`: compared as the canonical serialization (sorted keys), which keeps array order (the order of appearance in the records) and distinguishes `1`, `1.0`, `"1"` and `true`.
 - **`synth-long-*`:** apply NFKC and take the integer (an optional minus sign and digits) after the last `答え:`. NFKC also accepts the full-width colon.
-- **`synth-format`:** split the stripped output into lines and ignore empty lines. Every remaining line must start with the bullet, and their number must equal `items`. For each line, the text after the bullet, stripped, has at most `max_chars` Unicode scalar values and ends with one of `endings`. Each required word appears in at least one item.
+- **`synth-format`:** split the output into lines with `str.splitlines()`, strip each line with `str.strip()` and drop the empty lines. Every remaining line must start with the bullet, and their number must equal `items`. For each line, the text after the bullet, stripped, has at most `max_chars` Unicode scalar values and ends with one of `endings`. Each required word appears in at least one item.
 - **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test` and `call`, joined by newlines.
-  - HumanEval: the test plus `check(<entry point>)`.
+  - HumanEval: the program starts with the problem's prompt as `setup`, which defines its imports and helper functions, followed by the code, the test and `check(<entry point>)`.
   - MBPP: `test_imports` and the `test_list` asserts.
   - HumanEvalFix: its test, which already calls `check`.
 
@@ -224,7 +244,7 @@ Each pair receives exactly one of four labels, in this precedence:
 
 | Precedence | Label | When |
 |---|---|---|
-| 1 | `incomplete` | Missing outputs, interruption, a version or hash mismatch, a duplicate id, or a token count that differs from §5 |
+| 1 | `incomplete` | Missing outputs; interruption; a version or hash mismatch; a duplicate id; a record whose id is not in the set; baseline and candidate records of the same item with different `input_sha256`; an `error` in a baseline record (an `error` in a candidate record is critical failure (a)); a record with a `top2` entry whose first id differs from the generated token; or a token count that differs from §5 |
 | 2 | `critical_failure` | One or more critical failures |
 | 3 | `regression_found` | One or more items where the baseline is correct and the candidate is incorrect. Not adopted automatically |
 | 4 | `no_regression_found` | No critical failure, and no such item in any scored category |
@@ -241,7 +261,7 @@ A candidate with a regression can be adopted only by the owner's explicit decisi
 
 - The item count and the correct count per category, for the baseline and the candidate.
 - The ids of every regression and every improvement.
-- For each changed item, the first diverging output position and the baseline top-2 probability gap there.
+- For each changed item, the first diverging output position and the baseline top-2 probability gap there. Positions are counted as in §5.1.
 - Every critical failure, and the separate baseline counts of §7.1.
 - A reference to the layer 1 result.
 - When the same assets are rerun with a different call shape, the counts of correct → incorrect and incorrect → correct. This indicates the swaps caused by computation order alone; it is not used for the verdict.
@@ -251,6 +271,8 @@ A candidate with a regression can be adopted only by the owner's explicit decisi
 ### 7.5 Wording
 
 A pass is written as "no regression was detected on this evaluation set". It is not extended to all inputs, to sampling with the distributed defaults, or beyond the distribution of the synthetic tasks.
+
+A scored category in which the baseline has fewer than 10 correct items (`layer2.min_baseline_correct`) is named in the claim as a category that could not be evaluated, and the claim does not cover it. The verdict label does not change.
 
 ## 8. Reserve set
 

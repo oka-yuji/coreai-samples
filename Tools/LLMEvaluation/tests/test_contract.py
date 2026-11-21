@@ -1,4 +1,5 @@
 import copy
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -103,6 +104,44 @@ class ContractTests(unittest.TestCase):
                       "python_tests timeout_reruns is missing")
         self.rejected(lambda bundle: bundle["contract"]["scorers"]["python_tests"].update(timeout_reruns=0),
                       "python_tests timeout_reruns is missing")
+
+    def test_critical_failure_lists_and_the_evaluable_minimum_are_required(self):
+        self.assertEqual(checks.lookup(BUNDLE, ("contract", "layer2", "min_baseline_correct")), 10)
+
+        def rename(bundle):
+            failures = bundle["contract"]["layer2"]["critical_failures"]
+            failures["relative_to_reference"] = failures.pop("relative_to_baseline")
+
+        self.rejected(rename, "critical failure lists are missing")
+        self.rejected(lambda bundle: bundle["contract"]["layer2"].pop("min_baseline_correct"),
+                      "layer2 min_baseline_correct is missing")
+
+    def test_humaneval_program_starts_with_the_problem_prompt(self):
+        prompt = 'def helper(value):\n    return value * 2\n\n\ndef target(value):\n    """Return helper(value) plus one."""\n'
+        test = "\n\ndef check(candidate):\n    assert candidate(3) == 7\n    assert helper(2) == 4\n"
+        row = {"task_id": "HumanEval/0", "prompt": prompt, "test": test, "entry_point": "target"}
+        data = gzip.compress((json.dumps(row) + "\n").encode("utf-8"), mtime=0)
+        with tempfile.TemporaryDirectory() as root:
+            (Path(root) / "fake").mkdir()
+            (Path(root) / "fake" / "rows.jsonl.gz").write_bytes(data)
+            bundle = copy.deepcopy(BUNDLE)
+            bundle["contract"]["sources"]["humaneval"].update(folder="fake", path="rows.jsonl.gz", bytes=len(data),
+                                                              sha256=hashlib.sha256(data).hexdigest())
+            entry = {"id": "code-gen-he-0001", "category": "code-gen-he", "unit": "problem", "source": {"task": 0}}
+            scorer = items.item(category(bundle, "code-gen-he"), entry, items.Sources(bundle["contract"], root),
+                                bundle)["scorer"]
+            self.assertEqual(scorer["setup"], prompt)
+
+            def finishes(setup):
+                parts = {**scorer, "setup": setup, "code": "def target(value):\n    return helper(value) + 1\n"}
+                order = bundle["contract"]["scorers"]["python_tests"]["program"]
+                program = "\n".join(parts[name] for name in order)
+                result = subprocess.run([sys.executable, "-I", "-c", program], cwd=root, capture_output=True,
+                                        check=False)
+                return result.returncode == 0
+
+            self.assertTrue(finishes(scorer["setup"]))
+            self.assertFalse(finishes(""))
 
     def test_hash_mismatches_are_rejected(self):
         self.rejected(lambda bundle: bundle["hashes"].update({"sets/primary.json": "0" * 64}),
