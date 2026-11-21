@@ -25,11 +25,15 @@ class MetalRunSchemeTests(unittest.TestCase):
                 self.assertIsNotNone(launch)
                 self.assertEqual(launch.get("enableGPUValidationMode"), "1")
 
-    @unittest.skipUnless(shutil.which("xcodegen"), "XcodeGen is required to inspect the resolved project spec")
-    def test_xcodegen_run_settings_disable_metal_api_validation(self):
-        spec = json.loads(subprocess.check_output(
-            ["xcodegen", "dump", "--spec", "project.yml", "--type", "parsed-json"], cwd=ROOT
-        ))
+    def test_project_run_settings_disable_metal_api_validation(self):
+        if xcodegen := shutil.which("xcodegen"):
+            command = [xcodegen, "dump", "--spec", "project.yml", "--type", "parsed-json"]
+        else:
+            command = [
+                "/usr/bin/ruby", "--disable-gems", "-rpsych", "-rjson", "-e",
+                "puts JSON.generate(Psych.safe_load(File.read(ARGV.fetch(0))))", "project.yml",
+            ]
+        spec = json.loads(subprocess.check_output(command, cwd=ROOT))
         for name in APP_SCHEMES:
             with self.subTest(scheme=name):
                 run = spec["schemes"][name].get("run") or {}
