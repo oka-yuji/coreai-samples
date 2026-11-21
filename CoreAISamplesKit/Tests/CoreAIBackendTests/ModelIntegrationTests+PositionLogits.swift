@@ -86,6 +86,10 @@ extension ModelIntegrationTests {
         #expect(throws: LogitRowError.noLogits) { try engine.logits(row: 0) }
         try await engine.readInOneCall(Array(tokens.prefix(4)))
         #expect(try engine.logits(row: 3).count == engine.vocabSize)
+        if engine.hasPrefillFunction {
+            try await engine.readInOneCall(Array(tokens[4..<8]), usePrefillFunction: true)
+            #expect(throws: LogitRowError.noLogits) { try engine.logits(row: 0) }
+        }
         engine.unload()
         #expect(throws: LogitRowError.noLogits) { try engine.logits(row: 0) }
     }
