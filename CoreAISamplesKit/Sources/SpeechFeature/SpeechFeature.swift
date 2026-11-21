@@ -312,6 +312,7 @@ public enum SpeechFeature: Feature {
             return [.run(.recordReference(state.session), id: .operation)]
         case .referenceSelectionFailed(let selectionSession, let message):
             guard state.canSelectReference, selectionSession == state.session else { return [] }
+            state.microphoneDenied = false
             state.referenceMessage = message
         case .referenceRecordingStarted(let session):
             guard state.session == session, state.phase == .preparingRecording else { return [] }
