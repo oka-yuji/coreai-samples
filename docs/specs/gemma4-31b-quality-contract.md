@@ -8,7 +8,7 @@
 
 | File | SHA-256 |
 |---|---|
-| `Tools/LLMEvaluation/contract.json` | `4c37df8463454514d6b9349dda744196c34ccd27133ec02532720928733fe7c9` |
+| `Tools/LLMEvaluation/contract.json` | `c911a39c86dee83963a50a04fa5d0fcf3ef892ad3314298d2607bd861fe24ebc` |
 | `Tools/LLMEvaluation/sets/primary.json` | `68e91b8cab53726506323592fc5c1abb2d7dc553ed1b27d51ac708d4a17ce027` |
 | `Tools/LLMEvaluation/sets/reserve.json` | `01107a2106cbe08e6b22a70b467532c825c52f9b7d4c5dfd2c1e5505249ad5e6` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
@@ -196,7 +196,7 @@ The scorer is a separate child issue; these rules bind it.
   - `synth-extract`: compared as the canonical serialization (sorted keys), which keeps array order (the order of appearance in the records) and distinguishes `1`, `1.0`, `"1"` and `true`.
 - **`synth-long-*`:** apply NFKC and take the integer (an optional minus sign and digits) after the last `答え:`. NFKC also accepts the full-width colon.
 - **`synth-format`:** split the output into lines with `str.splitlines()`, strip each line with `str.strip()` and drop the empty lines. Every remaining line must start with the bullet, and their number must equal `items`. For each line, the text after the bullet, stripped, has at most `max_chars` Unicode scalar values and ends with one of `endings`. Each required word appears in at least one item.
-- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test`, `call` and a final statement `print(marker)`, joined by newlines. The scorer chooses the marker for each run, so it cannot be known in advance.
+- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test`, `call` and a final statement `print("\n" + marker)`, joined by newlines. That statement writes a newline, the marker and a newline, so the marker is always a line of its own, even after output that does not end with a newline. The scorer chooses the marker for each run, so it cannot be known in advance.
   - HumanEval: the program starts with the problem's prompt as `setup`, which defines its imports and helper functions, followed by the code, the test and `check(<entry point>)`.
   - MBPP: `test_imports` and the `test_list` asserts.
   - HumanEvalFix: its test, which already calls `check`.

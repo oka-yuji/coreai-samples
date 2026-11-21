@@ -123,7 +123,7 @@
     "python_tests": {
       "code": ["first ```python block", "first ``` block", "whole output"],
       "program": ["setup", "code", "test", "call", "marker"],
-      "marker": "a final statement print(value) whose value the scorer chooses for that run, so that it cannot be known in advance",
+      "marker": "a final statement print(\"\\n\" + value) that writes a newline, the value and a newline to standard output, so that the value is always a line of its own; the scorer chooses the value for that run, so that it cannot be known in advance",
       "correct": "the program exits with status 0 and the last line of its standard output equals the chosen value",
       "wall_clock_seconds": 10,
       "timeout_reruns": 1,

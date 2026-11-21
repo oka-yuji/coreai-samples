@@ -25,7 +25,7 @@ def category(bundle, name):
 
 def scored(scorer, code, root):
     marker = secrets.token_hex(16)
-    parts = {**scorer, "code": code, "marker": f"print({marker!r})"}
+    parts = {**scorer, "code": code, "marker": "print(" + repr("\n" + marker) + ")"}
     program = "\n".join(parts[name] for name in BUNDLE["contract"]["scorers"]["python_tests"]["program"])
     result = subprocess.run([sys.executable, "-I", "-c", program], cwd=root, capture_output=True, text=True,
                             stdin=subprocess.DEVNULL, check=False)
@@ -157,6 +157,7 @@ class ContractTests(unittest.TestCase):
             self.assertTrue(scored(scorer, "def target(value):\n    return helper(value) + 1\n", root))
             self.assertFalse(scored(scorer, "import sys\n\n\ndef target(value):\n    return helper(value) + 1\n\n\nsys.exit(0)\n", root))
             self.assertFalse(scored(scorer, "def target(value):\n    return value\n", root))
+            self.assertTrue(scored(scorer, "import sys\n\nsys.stdout.write(\"debug\")\n\n\ndef target(value):\n    return helper(value) + 1\n", root))
 
     def test_every_required_contract_key_is_required(self):
         paths = list(checks.required_paths())
