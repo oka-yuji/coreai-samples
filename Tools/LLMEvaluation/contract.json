@@ -1,0 +1,187 @@
+{
+  "version": "G31-QC-v1",
+  "frozen": "2026-11-22",
+  "issue": "oka-yuji/coreai-samples#666",
+  "parent": "oka-yuji/coreai-samples#658",
+  "document": "docs/specs/gemma4-31b-quality-contract.md",
+  "seed": 20261122,
+  "roles": {
+    "reference": "original implementation, original BF16 weights, BF16 compute",
+    "anchor": "the reference implementation with FP32 compute",
+    "fp16": "Core AI, FP16",
+    "w8": "Core AI, 8-bit weights",
+    "w4": "Core AI, 4-bit weights, conditional"
+  },
+  "pairs": [["reference", "fp16"], ["fp16", "w8"], ["fp16", "w4"]],
+  "substitute_baseline": {"replaces": "fp16", "with": "reference", "when": "fp16 cannot be run", "record": "reason"},
+  "model": {
+    "repository": "google/gemma-4-31B-it",
+    "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+    "files": {
+      "tokenizer.json": {"bytes": 32169626, "sha256": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f"},
+      "chat_template.jinja": {"bytes": 18683, "sha256": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4"}
+    }
+  },
+  "generation": {
+    "decoding": "greedy",
+    "tie_break": "lowest token id",
+    "disabled": ["temperature", "top_k", "top_p", "repetition_penalty", "presence_penalty", "frequency_penalty"],
+    "eos_token_id": [1, 106, 50],
+    "thinking": false,
+    "tools": false,
+    "system": false,
+    "template": {
+      "renderer": "jinja2 sandbox of chat_template.jinja with trim_blocks, lstrip_blocks and loopcontrols",
+      "arguments": {"add_generation_prompt": true, "enable_thinking": false, "bos_token": "<bos>"},
+      "messages": "exactly one user message with string content",
+      "prefix": "<bos><|turn>user\n",
+      "suffix": "<turn|>\n<|turn>model\n<|channel>thought\n<channel|>",
+      "content_has_no_outer_whitespace": true,
+      "tokenization": {"add_special_tokens": false, "first_ids": [2, 105]}
+    },
+    "same_tokens_for_baseline_and_candidate": true,
+    "not_claimed": {"temperature": 1.0, "top_k": 64, "top_p": 0.95}
+  },
+  "layer1": {
+    "max_probability_error": 0.03,
+    "band_mean_max_probability_error": 0.01,
+    "non_finite_values": 0,
+    "significant_top1_mismatches": 0,
+    "near_tie_probability_margin": 0.01,
+    "same_assets": {"float16_ticks": 8, "max_probability_error": 0.03},
+    "bands": [[1, 512], [513, 2048], [2049, 4096], [4097, 16896]],
+    "report_only": ["kl_mean", "kl_p99", "kl_max", "max_abs_logit_difference", "top1_agreement", "near_tie_count"],
+    "items": {
+      "per_category": 8,
+      "order": "item id ascending within the primary set",
+      "families": {
+        "long-ja": {"long-ja-4k": 6, "long-ja-16k": 2},
+        "synth-long": {"synth-long-4k": 6, "synth-long-16k": 2}
+      }
+    },
+    "positions": {"first": "last input position", "last": "position before the last reference greedy output token", "max_per_item": 128, "keep": "first"},
+    "on_failure": ["input ids and weights", "positions, RoPE and window masks", "first diverging layer and operation"]
+  },
+  "layer2": {
+    "verdicts": ["no_regression_found", "regression_found", "critical_failure", "incomplete"],
+    "precedence": ["incomplete", "critical_failure", "regression_found", "no_regression_found"],
+    "critical_failures": {
+      "candidate_only": ["runtime_error", "non_finite_logits"],
+      "relative_to_reference": ["empty_output", "control_token", "repetition"],
+      "control_token_ids": [0, 2, 3, 4, 46, 47, 48, 49, 51, 52, 98, 100, 101, 105, 255999, 256000, 258880, 258881, 258882, 258883, 258884],
+      "repetition": {"min_length": 8, "min_consecutive": 4},
+      "output": "generated tokens before the first stop token"
+    },
+    "upper_bound": {"categories": ["ja-choice", "ja-reading", "code-gen-mbpp", "extract-ja"], "confidence": 0.95, "formula": "1 - 0.05 ** (1 / N)", "when": "zero regressions"},
+    "baseline_outputs": "produced only after this contract is frozen",
+    "report": [
+      "item count and correct count per category for the baseline and the candidate",
+      "every regression and improvement item id",
+      "for each changed item, the first diverging output position and the baseline top-2 probability gap there",
+      "every critical failure",
+      "baseline outputs with no tokens, control tokens or repetitions, counted separately",
+      "a reference to the layer 1 result",
+      "correct-to-incorrect and incorrect-to-correct counts when the same assets are rerun with a different call shape",
+      "the one-sided 95% upper bound for upper_bound categories with zero regressions"
+    ],
+    "claim": "no regression was detected on this evaluation set"
+  },
+  "scorers": {
+    "choice_digit": {"unicode": "NFKC", "digits": "01234"},
+    "reading_exact": {"unicode": "NFKC", "strip": "whitespace and newlines", "trailing": "。", "enclosing": [["「", "」"], ["『", "』"]], "also_record": "character_f1"},
+    "python_tests": {"code": ["first ```python block", "first ``` block", "whole output"], "program": ["setup", "code", "test", "call"], "limits": "fixed by the scorer before any run; a program that does not finish is incorrect"},
+    "entity_sets": {"json": "first JSON object", "values": "arrays of strings compared as sets", "also_record": "micro_f1"},
+    "json_exact": {"json": "first JSON object", "values": "canonical structure, arrays in order"},
+    "final_integer": {"unicode": "NFKC", "marker": "答え:", "occurrence": "last"},
+    "format_rules": {"length": "unicode scalar values"},
+    "unscored": {}
+  },
+  "sources": {
+    "jcqa": {
+      "host": "github", "repository": "yahoojapan/JGLUE", "revision": "c96c6af54200a404f31a3a4cd0b289786aa78809", "tag": "v1.2.0",
+      "folder": "yahoojapan--JGLUE", "path": "datasets/jcommonsenseqa-v1.2/valid-v1.2.json",
+      "bytes": 235633, "sha256": "0d8d76f3bfa0d174866939882faccdd01fbc2bcd5a76c43748ba0c40a7b3b8d4",
+      "git_blob_sha1": "1099679e5bc9a4d70f9ae6a6e7b41dca84897f99",
+      "same_blob_as": ["v1.1.0 datasets/jcommonsenseqa-v1.1/valid-v1.1.json", "v1.3.0 datasets/jcommonsenseqa-v1.3/valid-v1.3.json"],
+      "license": "CC BY-SA 4.0", "attribution": "JGLUE, Yahoo Japan Corporation and Kawahara Lab at Waseda University (Kurihara et al., LREC 2022)",
+      "url": "https://github.com/yahoojapan/JGLUE/tree/c96c6af54200a404f31a3a4cd0b289786aa78809"
+    },
+    "jsquad": {
+      "host": "github", "repository": "yahoojapan/JGLUE", "revision": "c96c6af54200a404f31a3a4cd0b289786aa78809", "tag": "v1.2.0",
+      "folder": "yahoojapan--JGLUE-jsquad", "path": "datasets/jsquad-v1.2/train-v1.2.json",
+      "bytes": 21762421, "sha256": "24a0233a5d2cc80571e499de487fe2188981126312f159fc90136db82f3584b5",
+      "git_blob_sha1": "20ce716ee531e3e23088f5840a3b0751ae803424",
+      "same_blob_as": ["v1.1.0 datasets/jsquad-v1.1/train-v1.1.json"],
+      "license": "CC BY-SA 4.0", "attribution": "JGLUE, Yahoo Japan Corporation and Kawahara Lab at Waseda University (Kurihara et al., LREC 2022)",
+      "url": "https://github.com/yahoojapan/JGLUE/tree/c96c6af54200a404f31a3a4cd0b289786aa78809"
+    },
+    "humaneval": {
+      "host": "github", "repository": "openai/human-eval", "revision": "b9453e8f1865df0a0057a1383767caa400acfbcf",
+      "folder": "openai--human-eval", "path": "data/HumanEval.jsonl.gz",
+      "bytes": 44877, "sha256": "b796127e635a67f93fb35c04f4cb03cf06f38c8072ee7cee8833d7bee06979ef",
+      "git_blob_sha1": "998d25196e17af24daf9b6cb3a975fe752528e46",
+      "license": "MIT", "attribution": "HumanEval, OpenAI (Chen et al., 2021)",
+      "notice": "The repository README has marked HumanEval as deprecated and unmaintained since 2026-10-16.",
+      "url": "https://github.com/openai/human-eval/tree/b9453e8f1865df0a0057a1383767caa400acfbcf"
+    },
+    "mbpp": {
+      "host": "github", "repository": "google-research/google-research", "revision": "f46ca8374b4cddef97ca4208ad986049d74d296a",
+      "folder": "google-research--google-research", "path": "mbpp/sanitized-mbpp.json",
+      "bytes": 255053, "sha256": "ca95deaa9a01ef0a6f439f88bcf0dd3db3563d22f22aad6cae04ebb9a8d8c8e9",
+      "git_blob_sha1": "a999d25df7e489e4c183cadfa5c0ecf557a702b6",
+      "license": "CC BY 4.0", "attribution": "MBPP, Google Research (Austin et al., 2021)",
+      "url": "https://github.com/google-research/google-research/tree/f46ca8374b4cddef97ca4208ad986049d74d296a/mbpp"
+    },
+    "humanevalpack": {
+      "host": "huggingface", "repository": "bigcode/humanevalpack", "revision": "7980d99405b56c9745d51040cabbd9e86a056397",
+      "folder": "bigcode--humanevalpack", "path": "data/python/data/humanevalpack.jsonl",
+      "bytes": 537907, "sha256": "b1376d72be4bd016a62ad043d9de3846edb8d63edf1222da802a31330c14c3a7",
+      "git_blob_sha1": "1fabd2633a633804864444ed1b3193755f49f9f4",
+      "license": "MIT", "attribution": "HumanEvalPack, BigCode (Muennighoff et al., OctoPack, 2023)",
+      "url": "https://huggingface.co/datasets/bigcode/humanevalpack/tree/7980d99405b56c9745d51040cabbd9e86a056397"
+    },
+    "ner": {
+      "host": "huggingface", "repository": "stockmark/ner-wikipedia-dataset", "revision": "d6c4d4821885ed656b9fbc7b2283dc7d165916d1",
+      "folder": "stockmark--ner-wikipedia-dataset", "path": "ner.json",
+      "bytes": 4042700, "sha256": "5796effb85c473aec5b85784545349ed42e408bb0fecdb78f82bc107d53edbe3",
+      "git_blob_sha1": "2285c8e898642e8bea28f4e040036bcca03eb051",
+      "license": "CC BY-SA 3.0", "attribution": "Wikipediaを用いた日本語の固有表現抽出データセット, Stockmark Inc.",
+      "url": "https://huggingface.co/datasets/stockmark/ner-wikipedia-dataset/tree/d6c4d4821885ed656b9fbc7b2283dc7d165916d1"
+    }
+  },
+  "resources": {
+    "synthetic/vocabulary.json": "b7c0a9d391a9d8e439e9ecdf5dbbbd27a1d94198f97850c796834ec69eb2bc27"
+  },
+  "entity_keys": ["人名", "法人名", "政治的組織名", "その他の組織名", "地名", "施設名", "製品名", "イベント名"],
+  "categories": [
+    {"id": "ja-choice", "domain": "japanese", "kind": "choice", "source": "jcqa", "unit": "question", "primary": 200, "reserve": 100, "max_new_tokens": 8, "scorer": "choice_digit"},
+    {"id": "ja-reading", "domain": "japanese", "kind": "reading", "source": "jsquad", "unit": "article", "primary": 200, "reserve": 100, "max_new_tokens": 64, "scorer": "reading_exact"},
+    {"id": "code-gen-he", "domain": "code", "kind": "humaneval", "source": "humaneval", "unit": "problem", "primary": 82, "reserve": 0, "max_new_tokens": 512, "scorer": "python_tests", "parity": 0},
+    {"id": "code-gen-mbpp", "domain": "code", "kind": "mbpp", "source": "mbpp", "unit": "problem", "primary": 100, "reserve": 100, "max_new_tokens": 512, "scorer": "python_tests", "task_ids": [11, 510]},
+    {"id": "code-fix", "domain": "code", "kind": "humanevalfix", "source": "humanevalpack", "unit": "problem", "primary": 82, "reserve": 0, "max_new_tokens": 512, "scorer": "python_tests", "parity": 1},
+    {"id": "extract-ja", "domain": "structured-output", "kind": "entities", "source": "ner", "unit": "sentence", "primary": 200, "reserve": 100, "max_new_tokens": 256, "scorer": "entity_sets"},
+    {"id": "long-ja-4k", "domain": "long-context", "kind": "reading", "source": "jsquad", "unit": "article", "primary": 60, "reserve": 30, "max_new_tokens": 64, "scorer": "reading_exact", "token_range": [3600, 4096], "strata": ["front", "middle", "back"]},
+    {"id": "long-ja-16k", "domain": "long-context", "kind": "reading", "source": "jsquad", "unit": "article", "primary": 20, "reserve": 10, "max_new_tokens": 64, "scorer": "reading_exact", "token_range": [14800, 16384], "strata": ["front", "middle", "back"]},
+    {"id": "synth-extract", "domain": "structured-output", "kind": "synthetic", "unit": "template", "primary": 100, "reserve": 50, "max_new_tokens": 384, "scorer": "json_exact",
+     "generator": {"kind": "extract", "prompt": "synth-extract", "records": [2, 3], "list_items": 2, "quantity": [1, 20]}},
+    {"id": "synth-long-4k", "domain": "long-context", "kind": "synthetic", "unit": "template", "primary": 40, "reserve": 20, "max_new_tokens": 32, "scorer": "final_integer", "token_range": [3600, 4096],
+     "generator": {"kind": "long", "prompt": "synth-long", "relevant": [2, 4], "quantity": [1, 60], "start": [0, 50]}},
+    {"id": "synth-long-16k", "domain": "long-context", "kind": "synthetic", "unit": "template", "primary": 16, "reserve": 8, "max_new_tokens": 32, "scorer": "final_integer", "token_range": [14800, 16384],
+     "generator": {"kind": "long", "prompt": "synth-long", "relevant": [2, 4], "quantity": [1, 60], "start": [0, 50]}},
+    {"id": "synth-format", "domain": "structured-output", "kind": "synthetic", "unit": "template", "primary": 100, "reserve": 50, "max_new_tokens": 160, "scorer": "format_rules",
+     "generator": {"kind": "format", "prompt": "synth-format", "items": [3, 4, 5], "max_chars": [15, 20, 25], "required_words": [1, 2]}},
+    {"id": "free-ja", "domain": "japanese", "kind": "free", "unit": "instruction", "primary": 50, "reserve": 0, "max_new_tokens": 256, "scorer": "unscored"}
+  ],
+  "reserve": {
+    "uses_allowed": 1,
+    "when": "a procedure, set or threshold changed after results were seen",
+    "then": "the seen primary set becomes development data and the change is confirmed on the reserve set",
+    "record": ["reason", "date and time", "contract version"]
+  },
+  "candidate_selection": {
+    "eligible": ["no_regression_found", "explicit owner approval recorded as a contract change"],
+    "primary_metric": "median total completion time, single conversation, warm, 4096 input and 256 output tokens, greedy",
+    "overlap": "when the min-max ranges of the leading candidates overlap, prefer higher precision (fp16, then w8, then w4), then no speculation",
+    "details": "fixed by the performance comparison plan"
+  }
+}

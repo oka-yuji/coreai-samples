@@ -1,0 +1,14 @@
+{
+  "final_integer": {"full_width_marker": "答え："},
+  "format": {
+    "rules": {"kind": "format_rules", "bullet": "・", "items": 3, "max_chars": 12, "endings": ["です。", "ます。"], "required": ["毎日", "工夫"]},
+    "correct": "・毎日歩きます。\n・工夫が大切です。\n・続けます。",
+    "incorrect": {
+      "extra_item": "・毎日歩きます。\n・工夫が大切です。\n・続けます。\n・休みます。",
+      "missing_word": "・時々歩きます。\n・工夫が大切です。\n・続けます。",
+      "too_long": "・毎日歩きます。\n・工夫が大切です。\n・ずっと長く続けていきます。",
+      "wrong_ending": "・毎日歩きます。\n・工夫が大切です。\n・続ける。",
+      "preface": "次のとおりです。\n・毎日歩きます。\n・工夫が大切です。\n・続けます。"
+    }
+  }
+}

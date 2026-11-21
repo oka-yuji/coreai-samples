@@ -1,0 +1,142 @@
+import copy
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+from Tools.LLMEvaluation import checks, items
+
+BUNDLE = items.load()
+
+
+def entries(bundle, category, name="primary"):
+    return [entry for entry in bundle["sets"][name]["items"] if entry["category"] == category]
+
+
+def category(bundle, name):
+    return next(value for value in bundle["contract"]["categories"] if value["id"] == name)
+
+
+class ContractTests(unittest.TestCase):
+    def rejected(self, change, text):
+        bundle = copy.deepcopy(BUNDLE)
+        change(bundle)
+        found = checks.problems(bundle)
+        self.assertTrue(any(text in problem for problem in found), found)
+
+    def test_committed_contract_sets_and_document_agree(self):
+        self.assertEqual(checks.problems(copy.deepcopy(BUNDLE)), [])
+
+    def test_unpinned_revisions_are_rejected(self):
+        self.rejected(lambda bundle: bundle["contract"]["sources"]["jsquad"].update(revision="main"),
+                      "source jsquad revision is not a 40-digit commit")
+        self.rejected(lambda bundle: bundle["contract"]["sources"]["ner"].update(revision="d6c4d48"),
+                      "source ner revision is not a 40-digit commit")
+        self.rejected(lambda bundle: bundle["contract"]["model"].update(revision="main"),
+                      "model revision is not a 40-digit commit")
+
+    def test_duplicate_ids_are_rejected(self):
+        def change(bundle):
+            entries(bundle, "ja-choice", "reserve")[0]["id"] = entries(bundle, "ja-choice")[0]["id"]
+
+        self.rejected(change, "duplicate item id ja-choice-0001")
+
+    def test_the_same_original_in_two_places_is_rejected(self):
+        def primary_and_reserve(bundle):
+            entries(bundle, "extract-ja", "reserve")[0]["source"] = dict(entries(bundle, "extract-ja")[0]["source"])
+
+        def reading_and_long(bundle):
+            long = entries(bundle, "long-ja-4k")[0]["source"]
+            entries(bundle, "ja-reading")[0]["source"] = {"article": long["article"], "question": long["question"]}
+
+        def filler_from_question_article(bundle):
+            long = entries(bundle, "long-ja-16k")[0]["source"]
+            question = entries(bundle, "ja-reading")[0]["source"]["question"]
+            index = next(index for index, key in enumerate(long["paragraphs"]) if key != checks.placement(long))
+            long["paragraphs"][index] = question[:question.rindex("q")]
+
+        def even_fix(bundle):
+            entries(bundle, "code-fix")[0]["source"]["task"] = entries(bundle, "code-gen-he")[0]["source"]["task"]
+
+        self.rejected(primary_and_reserve, "same original as extract-ja-")
+        self.rejected(reading_and_long, "same original as")
+        self.rejected(filler_from_question_article, "filler paragraph comes from a question article")
+        self.rejected(even_fix, "problem number parity differs")
+
+    def test_count_mismatches_are_rejected(self):
+        self.rejected(lambda bundle: bundle["sets"]["primary"]["items"].pop(), "primary: item counts differ")
+        self.rejected(lambda bundle: category(bundle, "ja-choice").update(primary=199), "item counts differ")
+        self.rejected(lambda bundle: category(bundle, "synth-long-16k").update(reserve=0), "reserve: item counts differ")
+
+    def test_unknown_scorer_kinds_are_rejected(self):
+        self.rejected(lambda bundle: category(bundle, "ja-reading").update(scorer="fuzzy_match"),
+                      "ja-reading: unknown scorer kind fuzzy_match")
+        self.rejected(lambda bundle: bundle["contract"]["scorers"].update(fuzzy_match={}),
+                      "unknown scorer kind in the contract: fuzzy_match")
+
+    def test_missing_thresholds_and_limits_are_rejected(self):
+        for path in (("max_probability_error",), ("band_mean_max_probability_error",), ("near_tie_probability_margin",),
+                     ("same_assets", "float16_ticks"), ("positions", "max_per_item")):
+            def change(bundle, path=path):
+                parent = bundle["contract"]["layer1"]
+                for key in path[:-1]:
+                    parent = parent[key]
+                del parent[path[-1]]
+
+            self.rejected(change, f"layer1 {'.'.join(path)} is missing")
+        self.rejected(lambda bundle: category(bundle, "code-fix").pop("max_new_tokens"), "code-fix: max_new_tokens is missing")
+        self.rejected(lambda bundle: category(bundle, "synth-long-4k").pop("token_range"), "synth-long-4k: token_range is missing")
+        self.rejected(lambda bundle: bundle["contract"]["layer2"]["critical_failures"]["repetition"].pop("min_length"),
+                      "repetition limits are missing")
+        self.rejected(lambda bundle: bundle["contract"]["layer1"]["bands"].pop(1), "bands are missing or not contiguous")
+
+    def test_hash_mismatches_are_rejected(self):
+        self.rejected(lambda bundle: bundle["hashes"].update({"sets/primary.json": "0" * 64}),
+                      "document hash for sets/primary.json differs")
+        self.rejected(lambda bundle: entries(bundle, "synth-format", "reserve")[0].update(item_sha256="0" * 64),
+                      "item hash differs")
+        self.rejected(lambda bundle: bundle["resources"].update({"synthetic/vocabulary.json": "0" * 64}),
+                      "resource synthetic/vocabulary.json differs from its pin")
+        self.rejected(lambda bundle: bundle.update(document=bundle["document"].replace("G31-QC-v1", "G31-QC-v0")),
+                      "document does not state the contract version")
+
+    def test_build_rejects_source_and_item_hash_mismatches(self):
+        with tempfile.TemporaryDirectory() as root:
+            row = {"q_id": 7, "question": "q", "label": 2, **{f"choice{index}": f"c{index}" for index in range(5)}}
+            data = (json.dumps(row) + "\n").encode("utf-8")
+            (Path(root) / "fake").mkdir()
+            (Path(root) / "fake" / "rows.jsonl").write_bytes(data)
+            bundle = copy.deepcopy(BUNDLE)
+            bundle["contract"]["sources"]["jcqa"].update(folder="fake", path="rows.jsonl", bytes=len(data),
+                                                         sha256=hashlib.sha256(data).hexdigest())
+            entry = {"id": "ja-choice-0001", "category": "ja-choice", "unit": "question", "source": {"q_id": 7}}
+            value = items.item(category(bundle, "ja-choice"), entry, items.Sources(bundle["contract"], root), bundle)
+            self.assertEqual(value["answer"], 2)
+            entry["item_sha256"] = items.digest(value)
+            bundle["sets"] = {"primary": {"items": [entry]}, "reserve": {"items": []}}
+            manifest = items.build(bundle, root, Path(root) / "first")
+            self.assertEqual(manifest["items"], {"primary": 1, "reserve": 0})
+            entry["item_sha256"] = "0" * 64
+            with self.assertRaisesRegex(ValueError, "item hashes differ"):
+                items.build(bundle, root, Path(root) / "second")
+            entry["item_sha256"] = items.digest(value)
+            (Path(root) / "fake" / "rows.jsonl").write_bytes(data + b"\n")
+            with self.assertRaisesRegex(ValueError, "differs from its pin"):
+                items.build(bundle, root, Path(root) / "third")
+            with self.assertRaises(FileExistsError):
+                items.build(bundle, root, Path(root) / "first")
+
+    def test_validate_runs_with_only_the_standard_library(self):
+        script = items.ROOT / "__main__.py"
+        with tempfile.TemporaryDirectory() as root:
+            result = subprocess.run([sys.executable, "-I", "-S", str(script), "validate"], cwd=root,
+                                    capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("PASS: G31-QC-v1", result.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()
