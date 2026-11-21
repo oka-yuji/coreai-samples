@@ -119,6 +119,8 @@ only the top two candidates of each step are kept in the token files.
 | Saved logits (12 files) | 3,398,436,352 B | 3,398,436,352 B |
 
 - The model loaded with the weights in the file cache: `prepare` had just read every file. These are not cold loads.
+- During the first run, builds and tests of another task ran on the same Mac for about seven minutes; no build is
+  known to have run during the second run. The times and rates of the first run are values under that condition.
 - The decode rates exclude the first token and the cases with four or fewer output tokens. Each step synchronizes MPS
   once to take its time. The first case of each process also includes the first use of the MPS kernels.
 - `torch.mps.current_allocated_memory()` reported 3,840 B after loading, so it does not count the loaded weights;
