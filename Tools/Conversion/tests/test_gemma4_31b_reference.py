@@ -462,14 +462,35 @@ class MonitorTests(unittest.TestCase):
 ROWS = [[0, 2], [1, 0], [3, 0], [0, 1], [2, 2]]
 
 
+def case_files(folder, name):
+    return {kind: reference.file_record(Path(folder) / f"cases/{name}.{kind}.{suffix}")
+            for kind, suffix in (("tokens", "json"), ("logits", "npy"))}
+
+
 def write_run(folder, inputs, outputs, logits, passed=True, dtype="float32", cases=("case",)):
     folder = Path(folder)
     (folder / "cases").mkdir(parents=True)
     common = {"model": {"id": "owner/model"}, "dtype": {"weights": "bfloat16"}, "device": "mps", "fixtures_sha256": "f",
               "environment": {"python": "3.11"}}
-    (folder / "reference.json").write_text(json.dumps({**common, "passed": passed, "cases": [{"id": name} for name in cases]}))
-    (folder / "cases/case.tokens.json").write_text(json.dumps({"input_tokens": inputs, "output_tokens": outputs}))
-    np.save(folder / "cases/case.logits.npy", np.asarray(logits, dtype=dtype))
+    for name in cases:
+        (folder / f"cases/{name}.tokens.json").write_text(json.dumps({"input_tokens": inputs, "output_tokens": outputs}))
+        np.save(folder / f"cases/{name}.logits.npy", np.asarray(logits, dtype=dtype))
+    records = [{"id": name, "input_tokens": len(inputs), "output_tokens": len(outputs),
+                "saved_positions": len(inputs) + len(outputs), "first_scoring_row": len(inputs) - 1,
+                "files": case_files(folder, name)} for name in cases]
+    (folder / "reference.json").write_text(json.dumps({**common, "passed": passed, "cases": records}))
+
+
+def rewrite(folder, name="case", tokens=None, logits=None, record=False, **fields):
+    folder = Path(folder)
+    if tokens is not None:
+        (folder / f"cases/{name}.tokens.json").write_text(tokens)
+    if logits is not None:
+        np.save(folder / f"cases/{name}.logits.npy", np.asarray(logits, dtype="float32"))
+    data = json.loads((folder / "reference.json").read_text())
+    case = next(case for case in data["cases"] if case["id"] == name)
+    case.update(fields, **({"files": case_files(folder, name)} if record else {}))
+    (folder / "reference.json").write_text(json.dumps(data))
 
 
 @unittest.skipIf(np is None, "NumPy is required for the comparison")
@@ -509,6 +530,47 @@ class CompareTests(unittest.TestCase):
                 result = compare(first, second, vocabulary=2)
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
+
+    def test_case_files_that_differ_from_their_own_reference_record_never_pass(self):
+        short = json.dumps({"input_tokens": [2, 7], "output_tokens": [4, 5]})
+        changed = [[0, 2], [1, 0.5], *ROWS[2:]]
+        variants = {"both shortened": {"both": {"tokens": short, "logits": ROWS[:4]}},
+                    "both shortened with their hashes": {"both": {"tokens": short, "logits": ROWS[:4], "record": True}},
+                    "same size logits": {"second": {"logits": changed}},
+                    "same size tokens": {"second": {"tokens": json.dumps({"output_tokens": [4, 5, 1], "input_tokens": [2, 7]})}},
+                    "first scoring row": {"second": {"first_scoring_row": 0}}}
+        for label, changes in variants.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                runs = {"first": Path(folder) / "a", "second": Path(folder) / "b"}
+                for run in runs.values():
+                    write_run(run, [2, 7], [4, 5, 1], ROWS)
+                for side, change in changes.items():
+                    for key in (("first", "second") if side == "both" else (side,)):
+                        rewrite(runs[key], **change)
+                result = compare(runs["first"], runs["second"], vocabulary=2)
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
+
+    def test_non_finite_logits_never_pass_even_at_the_same_position(self):
+        def rows(value):
+            return [[0, 2], [value, 0], *ROWS[2:]]
+
+        variants = {"nan in the second": (ROWS, rows(math.nan), (0, 1)), "nan in both": (rows(math.nan), rows(math.nan), (1, 1)),
+                    "inf in both": (rows(math.inf), rows(math.inf), (1, 1)), "-inf in the first": (rows(-math.inf), ROWS, (1, 0))}
+        for label, (left, right, counts) in variants.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                first, second = Path(folder) / "a", Path(folder) / "b"
+                for run, logits in ((first, left), (second, right)):
+                    write_run(run, [2, 7], [4, 5, 1], ROWS, cases=("case", "other"))
+                    rewrite(run, "other", logits=logits, record=True)
+                with np.errstate(invalid="ignore"):
+                    result = compare(first, second, vocabulary=2)
+                clean, other = result["cases"]
+                self.assertEqual((result["passed"], result["max_abs_logit_difference"], clean["max_abs_logit_difference"],
+                                  other["max_abs_logit_difference"], other["non_finite"]),
+                                 (False, None, 0.0, None, dict(zip(("first", "second"), counts))))
+                self.assertEqual(len(result["problems"]), 1)
+                json.dumps(result, allow_nan=False)
 
 
 def reference_record():
@@ -556,8 +618,8 @@ class SummaryTests(unittest.TestCase):
     def test_the_rerun_projection_counts_problems_without_their_text(self):
         case = {"id": "case", "problems": ["case: logits dtype float64"], "input_tokens_match": True,
                 "output_tokens_match": True, "first_difference": None, "compared_positions": 0,
-                "max_abs_logit_difference": None, "argmax_changes": 0}
-        comparison = {"schema": "gemma4-31b-rerun/1", "passed": False, "problems": case["problems"], "vocabulary": 2,
+                "max_abs_logit_difference": None, "argmax_changes": 0, "non_finite": {"first": 0, "second": 0}}
+        comparison = {"schema": "gemma4-31b-rerun/2", "passed": False, "problems": case["problems"], "vocabulary": 2,
                       "max_abs_logit_difference": None, "cases": [case]}
         result = summary.project([self.REPORT], [reference_record()], comparison)
         self.assertEqual((result["rerun"]["passed"], result["rerun"]["problems"], result["rerun"]["cases"][0]["problems"],

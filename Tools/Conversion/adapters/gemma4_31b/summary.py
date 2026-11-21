@@ -115,7 +115,9 @@ def rerun(comparison):
                        "first_difference": optional(item["first_difference"], True),
                        "compared_positions": count(item["compared_positions"]),
                        "max_abs_logit_difference": optional(item["max_abs_logit_difference"]),
-                       "argmax_changes": count(item["argmax_changes"])} for item in comparison["cases"]]}
+                       "argmax_changes": count(item["argmax_changes"]),
+                       "non_finite": {word(key): count(value) for key, value in item["non_finite"].items()}}
+                      for item in comparison["cases"]]}
 
 
 def project(reports, references, comparison=None):
