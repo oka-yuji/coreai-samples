@@ -207,7 +207,7 @@ The scorer is a separate child issue; these rules bind it.
   - **Same run:** the baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine. The report records that Python version. When the baseline and candidate `output_ids` of an item are equal, the program runs once and both receive that result.
   - The scorer (a separate child issue) implements these rules. The report records the scorer commit and the Python version (§7.4). When a defect of the scorer changes results, the scorer is fixed and the baseline and candidate of that pair are scored again in one run. This is not a contract change (§11).
 
-The examples of these rules are in `Tools/LLMEvaluation/tests/test_synthetic.py` and `tests/examples.json`. In those examples, a well-formed answer with a wrong value is incorrect.
+The examples of these rules are in `Tools/LLMEvaluation/tests/test_contract.py` (code scoring), `tests/test_synthetic.py` and `tests/examples.json`. In those examples, a well-formed answer with a wrong value is incorrect.
 
 ### 6.8 Synthetic tasks
 
