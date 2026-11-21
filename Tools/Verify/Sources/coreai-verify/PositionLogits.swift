@@ -29,13 +29,16 @@ struct PositionLogits: AsyncParsableCommand {
 
     func validate() throws {
         guard chunk > 0 else { throw ValidationError("--chunk takes a positive value.") }
-        let count = try tokenIDs().count
-        guard count > 0 else { throw ValidationError("The token file has no tokens.") }
-        guard (0..<count).contains(start) else {
-            throw ValidationError("--start must be from 0 to \(count - 1), a position in the token file.")
-        }
+        try Self.validateTokens(try tokenIDs(), start: start)
         guard !FileManager.default.fileExists(atPath: output) else {
             throw ValidationError("The output file already exists: \(output)")
+        }
+    }
+
+    static func validateTokens(_ ids: [Int32], start: Int) throws {
+        guard !ids.isEmpty else { throw ValidationError("The token file has no tokens.") }
+        guard ids.indices.contains(start) else {
+            throw ValidationError("--start must be from 0 to \(ids.count - 1), a position in the token file.")
         }
     }
 
@@ -44,11 +47,14 @@ struct PositionLogits: AsyncParsableCommand {
     }
 
     static func pieces(_ range: Range<Int>, size: Int) -> [Range<Int>] {
-        stride(from: range.lowerBound, to: range.upperBound, by: size).map { $0..<min($0 + size, range.upperBound) }
+        stride(from: range.lowerBound, to: range.upperBound, by: size).map {
+            $0..<($0 + min(size, range.upperBound - $0))
+        }
     }
 
     func run() async throws {
         let ids = try tokenIDs()
+        try Self.validateTokens(ids, start: start)
         let bundle = try ModelBundle(url: URL(filePath: model))
         guard ids.count <= bundle.maxContextLength, ids.allSatisfy({ (0..<Int32(bundle.vocabSize)).contains($0) })
         else {

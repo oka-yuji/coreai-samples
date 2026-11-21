@@ -49,12 +49,46 @@ import Testing
         #expect(PositionLogits.message(for: try #require(error)).hasPrefix(message))
     }
 
+    @Test(
+        "The token check rejects an empty token list and a start position outside the tokens",
+        arguments: [
+            ([], 0, "The token file has no tokens."),
+            ([1, 2, 3], 3, "--start must be from 0 to 2, a position in the token file."),
+            ([1, 2, 3], -1, "--start must be from 0 to 2, a position in the token file."),
+        ] as [([Int32], Int, String)])
+    func tokenCheckRejectsMissingStart(tokens: [Int32], start: Int, message: String) {
+        let error = #expect(throws: ValidationError.self) { try PositionLogits.validateTokens(tokens, start: start) }
+        #expect(error?.message == message)
+    }
+
+    @Test("The token check accepts a start position inside the tokens", arguments: [0, 2])
+    func tokenCheckAcceptsStart(start: Int) throws {
+        try PositionLogits.validateTokens([1, 2, 3], start: start)
+    }
+
+    @Test("A token file that becomes shorter after validation is rejected before the output file is created")
+    func runChecksTheTokensItReads() async throws {
+        let (arguments, folder) = try commandLine(tokens: [1, 2, 3], start: 2, chunk: 4)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let command = try PositionLogits.parse(arguments)
+        try JSONEncoder().encode([Int32(7)]).write(to: folder.appending(path: "tokens.json"))
+        let error = await #expect(throws: ValidationError.self) { try await command.run() }
+        #expect(error?.message == "--start must be from 0 to 0, a position in the token file.")
+        #expect(!FileManager.default.fileExists(atPath: folder.appending(path: "logits.f16").path))
+    }
+
     @Test("A range is split into calls of the chunk length, with a shorter last call")
     func splitsRangesIntoCalls() {
         #expect(PositionLogits.pieces(3..<10, size: 4) == [3..<7, 7..<10])
         #expect(PositionLogits.pieces(5..<8, size: 1) == [5..<6, 6..<7, 7..<8])
         #expect(PositionLogits.pieces(0..<3, size: 4096) == [0..<3])
         #expect(PositionLogits.pieces(0..<0, size: 4096).isEmpty)
+    }
+
+    @Test("A chunk length near the largest integer is cut to the remaining positions without overflow")
+    func cutsALargeChunkToTheRemainingPositions() {
+        #expect(PositionLogits.pieces(1..<10, size: .max) == [1..<10])
+        #expect(PositionLogits.pieces(0..<10, size: .max) == [0..<10])
     }
 
     @Test("The record has the keys and the shape of a fixed example")
