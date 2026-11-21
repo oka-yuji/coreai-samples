@@ -6,6 +6,8 @@ Native generation is covered by the [release asset checks](release-asset-validat
 
 ## Build and prepare
 
+The shared `CoreAISamples` (Release) and `CoreAISamples-Debug` schemes disable Metal API Validation for Run. If a local scheme stops in MPSGraph with an `MTLDebugSharedEvent` exception during synthesis, open **Product → Scheme → Edit Scheme → Run → Diagnostics** and set **Metal API Validation** to **Disabled**. Stop the app and run it again to apply the setting.
+
 Use an Apple silicon Mac with macOS 27, Xcode 27 and Rust/Cargo. Xcode invokes `Tools/Irodori/build-inputs.sh` before compiling the Mac app. That script also finds Cargo in `~/.cargo/bin` when Xcode has a restricted PATH. Changes to build settings belong in `project.yml`; regenerate with `xcodegen generate`.
 
 ```sh
