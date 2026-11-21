@@ -35,6 +35,10 @@ check_stage=model-reports
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m Tools.ModelReports check
 python3 -m unittest discover -s Tools/ModelReports/tests -v
+check_stage=llm-evaluation
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -I Tools/LLMEvaluation/__main__.py validate
+python3 -m unittest discover -s Tools/LLMEvaluation/tests -v
 check_stage=package-pins-tests
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m unittest discover -s Tools/Packages/tests -v
