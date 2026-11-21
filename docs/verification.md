@@ -86,6 +86,47 @@ For a memory-growth measurement, add `--memory-sample-turn 10 --memory-sample-tu
 
 The five-second interval is a measurement convention, not a guarantee that memory has stabilized or reclamation has completed on every device. Keep the immediate values and peak alongside the delayed samples. The footprint threshold calibration still uses the maximum immediate post-turn footprint, multiplied by 1.5 and rounded up to a decimal GB. CPU-only checks for the observation option and its wait/capture behavior run with `swift test --package-path Tools/Verify`.
 
+## All-position logits
+
+`coreai-verify logits` reads a token sequence with the own engine and writes the logits of every position from a start position to a file, for comparisons with a reference or between chunk lengths. It loads the model, so take the heavy-job lock described in `AGENTS.md` first.
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify logits --model <bundle> --tokens tokens.json --start 0 --chunk 4 --output logits.f16
+```
+
+| Option | Meaning |
+|---|---|
+| `--tokens` | A JSON array of token IDs, such as `[151644, 872, 198]`. An empty array is rejected. Every ID must be below `language.vocab_size`, and the sequence can have at most `language.max_context_length` tokens. |
+| `--start` | The first position whose logits are written, from 0 to the last position. The tokens before it are read without logits: through the `prefill` function in calls of the engine's prefill chunk size, recorded as `prefix_chunk`, or through `main` when the bundle has no `prefill` function. |
+| `--chunk` | A positive number of tokens per `main` call from `--start`. Each call is exactly one `main` call, and the last one can be shorter. |
+| `--output` | The output file. It must not exist yet; the command does not overwrite a file. |
+
+The row of position p is the next-token distribution after reading tokens 0 through p, the logits that `main` returned for position p. The file is little-endian float16 without a header, shaped `[positions, vocab]` with positions = token count − start. Each row is written as soon as its `main` call returns, so the rows are never all in memory; 16,384 positions of a 262,144-token vocabulary take 8 GiB. When the command fails, it removes the file it created; treat a file as complete only when its record line was printed. NumPy reads it with `np.fromfile(path, dtype="<f2").reshape(shape)`.
+
+The command prints one JSON line with `record` set to `logits`:
+
+| Key | Content |
+|---|---|
+| `token_count`, `tokens_sha256` | The number of tokens and the SHA-256 of the decimal IDs joined by commas |
+| `start`, `chunk` | The options |
+| `shape`, `dtype`, `byte_order` | `[positions, vocab]`, `float16` and `little` |
+| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the tokens per call and the number of calls |
+| `main_calls` | The number of `main` calls from `start` |
+| `main_hash` | The asset's `main.hash` in hex, the SHA-256 of `main.mlirb`; absent when the file is missing |
+| `requested_compute`, `expect_frequent_reshapes`, `cached`, `cache_query_error`, `specialize_s` | The own engine's specialization request and cache state, as in the `own-load` record |
+| `non_finite_count` | NaN and infinite values in the written rows. The command still succeeds, so check this count. |
+| `load_s`, `prefix_s`, `scoring_s` | Seconds to load the engine, to read the tokens before `start`, and to read and write the positions from `start` |
+
+The command uses the Verification SPI of `Engine`. `readInOneCall(_:usePrefillFunction:)` reads a chunk in exactly one call of `main`, or of `prefill` when it is requested and the bundle has one. `logits(row:)` returns one row of the last `main` call; the last row equals `logits()`. A row can be read only until the next read, `restore`, `reset` or `unload`. After a `prefill`-only read or one of these operations, and for a row outside the last call, it throws `LogitRowError`. `prefillChunkSize` is part of the same SPI. These reads leave `prefillTokens`, `prefillSeconds`, `decodeTokens` and `decodeSeconds` of `Engine.Stats` unchanged.
+
+The model-free checks are `swift test --package-path CoreAISamplesKit --filter LogitRowLayoutTests` and `swift test --package-path Tools/Verify -c release --filter PositionLogitsTests`. With a bundle, the model checks compare the last row with `logits()`, single-token chunks with `step`, and chunks of 2, 4 and 8 with single-token chunks. The first two must match bit for bit. Longer chunks change the order of the computation, so they must have no non-finite values and may differ in the top token only where the eight-tick near-tie rule allows; the test prints the largest absolute difference for each chunk length.
+
+```bash
+COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.positionLogits
+```
+
 ## Measurement fields and boundaries
 
 The per-request measurement is opt-in. `chat --runtime own --measure summary` adds a `measurement` object to each `turn` record, and `--measure trace` also adds one row per sample. `--measure off`, the default, leaves the record without this field, and generation, stops, errors, metadata and usage are the same as without the option. `tools` rejects `--measure`, and `bench` has no such option. `CoreAIBackend` collects the values and `coreai-verify` prints them. The Verification SPI `lastRequestMeasurement()` returns the measurement of the last request admitted to execution, like `lastGeneratedTokens()`, and nothing when that request ended before generation, for example on a context overflow or a load failure. A turn record omits `measurement` when its own request has none; a request rejected before execution leaves the previous request's measurement in the SPI, so the CLI compares `request_id` with the previous turn's. Times are seconds from one monotonic clock and counts are integers.
