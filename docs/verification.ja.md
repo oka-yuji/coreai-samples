@@ -109,6 +109,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 | speed の `load_s` | 開始 → `Engine.init`(own)または `EngineFactory.createEngine`(official。`warmup(queryLength: 1)` はもう含まない)の終わり | — | s |
 | speed の `warmup_s` | ロードの終わり → 計測する実行の開始。own は 16 トークンの前置きのあとの 8 トークンの生成と `reset`。official は `warmup(queryLength: 1)`、8 トークンの drain、`reset(to: 0)` | — | s |
 | speed の `specialize_s`、`cached` | own の `Engine.LoadStats` の特殊化の時間。キャッシュ済みのモデルでは 0。cache miss のときは、特殊化の前の資産の幅の検査(要約の読み取り)の時間も含む。以前の記録は含まないので、過去の値と比べるときは注意する | — | s |
+| speed の `cache_query_error` | own の `Engine.LoadStats.cacheQueryError`。特殊化キャッシュの照会が誤りを投げ、続く特殊化が成功したロードで、照会の誤りの説明文が入る。照会が項目を見つけた(hit)ロード、誤りなく見つけなかった(miss)ロードと、official の行には無い。1 回の `speed-run`(1 プロセスで、ロードは 1 回)が `--repeat` で出す行は、どれも同じ値。`speed` が起動する子プロセス(round と engine ごと)は別々にロードするので、子の間では変わりうる。チャットの `load` の記録と `own-load` の記録にも同じ鍵が出る。説明文は誤りの `String(describing:)` で、手元のパスを含みうるので、生の記録をそのまま公開しない。[共通の記録の規約](benchmarking.ja.md)の手順 7 のとおりに除いてから公開する | — | — |
 | speed の `max_tokens`、`generated_tokens` | 要求した上限(以前の `decode_tokens`)と、`onToken` または公式の出力列で実際に受け取ったトークンの数 | トークン | トークン |
 | speed の `prefill_s`、`decode_s` | 実行の開始 → 最初のトークン、最初のトークン → 最後のトークン。最初のトークンを観測しなかった回では `prefill_s` と `prefill_tok_s` は無く(欠測)、`decode_s` は 0 | — | s |
 | speed の `decode_tok_s` | `(generated_tokens − 1) / decode_s`。2 トークン未満では無い | トークン | トークン/s |

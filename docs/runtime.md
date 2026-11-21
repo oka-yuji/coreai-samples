@@ -27,7 +27,7 @@ swift build -c release
   --prompt "What is my name?" --max-tokens 1024 --stats
 ```
 
-Each `--prompt` is one turn of the same conversation. When the model thinks, the thinking prints under `[reasoning]` and the answer under `[response]`. `--stats` writes JSON lines to stderr: one for the load (`cached`, `specialize_s`, `load_s`) and one per turn, where `cached_tokens` is the part of the prompt reused from earlier turns.
+Each `--prompt` is one turn of the same conversation. When the model thinks, the thinking prints under `[reasoning]` and the answer under `[response]`. `--stats` writes JSON lines to stderr: one for the load (`cached`, `specialize_s`, `load_s`, plus `cache_query_error`, the description of the query error, only when the specialization cache query threw an error and specializing again succeeded) and one per turn, where `cached_tokens` is the part of the prompt reused from earlier turns.
 
 **3. Run the demo app.** Install Rust/Cargo for the speech input adapter (Xcode builds it automatically). Open `CoreAISamples.xcodeproj` in Xcode, choose the `CoreAISamples` scheme and `My Mac`, and press Run. Xcode resolves the package dependencies the first time. The `CoreAISamples` scheme runs a Release build, and `CoreAISamples-Debug` runs a Debug build for debugging. In the app, download Qwen3.8 27B from its sidebar heading, then choose it from the conversation model menu. The [Irodori screen](irodori/demo.md) uses the model acquired from its sidebar heading for text-to-speech; its app/GPU/audio acceptance is pending. An [iPhone speech app](irodori/iphone.md) also builds for iOS 27; device execution remains pending.
 
