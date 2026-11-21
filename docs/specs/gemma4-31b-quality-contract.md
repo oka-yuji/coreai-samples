@@ -8,7 +8,7 @@
 
 | File | SHA-256 |
 |---|---|
-| `Tools/LLMEvaluation/contract.json` | `1e8143fb6dad5529432b7ee60b7422383de1e13397706d38e629dbb3f949c40f` |
+| `Tools/LLMEvaluation/contract.json` | `4c37df8463454514d6b9349dda744196c34ccd27133ec02532720928733fe7c9` |
 | `Tools/LLMEvaluation/sets/primary.json` | `68e91b8cab53726506323592fc5c1abb2d7dc553ed1b27d51ac708d4a17ce027` |
 | `Tools/LLMEvaluation/sets/reserve.json` | `01107a2106cbe08e6b22a70b467532c825c52f9b7d4c5dfd2c1e5505249ad5e6` |
 | `Tools/LLMEvaluation/prompts.json` | `8dcb70749a2cfd43d39b44849d7ea577116ae93bb2ee4b646dbcb1c4e8a81cf8` |
@@ -196,15 +196,15 @@ The scorer is a separate child issue; these rules bind it.
   - `synth-extract`: compared as the canonical serialization (sorted keys), which keeps array order (the order of appearance in the records) and distinguishes `1`, `1.0`, `"1"` and `true`.
 - **`synth-long-*`:** apply NFKC and take the integer (an optional minus sign and digits) after the last `答え:`. NFKC also accepts the full-width colon.
 - **`synth-format`:** split the output into lines with `str.splitlines()`, strip each line with `str.strip()` and drop the empty lines. Every remaining line must start with the bullet, and their number must equal `items`. For each line, the text after the bullet, stripped, has at most `max_chars` Unicode scalar values and ends with one of `endings`. Each required word appears in at least one item.
-- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test` and `call`, joined by newlines.
+- **Code:** take the first ```python block; without one, the first ``` block; without one, the whole output. A block runs from its opening fence line to the next fence line or the end of the output. The program is `setup`, the code, `test`, `call` and a final statement `print(marker)`, joined by newlines. The scorer chooses the marker for each run, so it cannot be known in advance.
   - HumanEval: the program starts with the problem's prompt as `setup`, which defines its imports and helper functions, followed by the code, the test and `check(<entry point>)`.
   - MBPP: `test_imports` and the `test_list` asserts.
   - HumanEvalFix: its test, which already calls `check`.
 
-  The item is correct when the program finishes normally. Each program runs under these execution rules:
+  The item is correct when the program exits with status 0 and the last line of its standard output equals the marker. A program that ends before the tests have run, for example through `sys.exit(0)`, is therefore incorrect. Each program runs under these execution rules:
   - **Isolation:** an isolated child process with no network, an empty temporary folder as its working folder, no writes outside that folder and no standard input.
   - **Time limit:** 10 seconds of wall-clock time per program. A program that times out is run once more and is incorrect only when both runs time out. The report gives the number of timeouts and the number of programs that passed on the rerun.
-  - **Same run:** the baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine. The report records that Python version.
+  - **Same run:** the baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine. The report records that Python version. When the baseline and candidate `output_ids` of an item are equal, the program runs once and both receive that result.
   - The scorer (a separate child issue) implements the isolation. This contract fixes only these rules and constants.
 
 The examples of these rules are in `Tools/LLMEvaluation/tests/test_synthetic.py` and `tests/examples.json`. In those examples, a well-formed answer with a wrong value is incorrect.
@@ -264,7 +264,7 @@ A candidate with a regression can be adopted only by the owner's explicit decisi
 
 - The item count and the correct count per category, for the baseline and the candidate.
 - The ids of every regression and every improvement.
-- For each changed item, the first diverging output position and the baseline top-2 probability gap there. Positions are counted as in §5.1.
+- For each changed item, the first diverging output position and the baseline top-2 probability gap there. Positions are counted as in §5.1. An item whose correctness differs between the baseline and the candidate always has different `output_ids`, so this position exists.
 - Every critical failure, and the separate baseline counts of §7.1.
 - A reference to the layer 1 result.
 - When the same assets are rerun with a different call shape, the counts of correct → incorrect and incorrect → correct. This indicates the swaps caused by computation order alone; it is not used for the verdict.

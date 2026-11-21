@@ -122,12 +122,15 @@
                       "also_record": "character_f1"},
     "python_tests": {
       "code": ["first ```python block", "first ``` block", "whole output"],
-      "program": ["setup", "code", "test", "call"],
+      "program": ["setup", "code", "test", "call", "marker"],
+      "marker": "a final statement print(value) whose value the scorer chooses for that run, so that it cannot be known in advance",
+      "correct": "the program exits with status 0 and the last line of its standard output equals the chosen value",
       "wall_clock_seconds": 10,
       "timeout_reruns": 1,
       "timeout": "a program that exceeds the limit is run once more and is incorrect when both runs time out",
       "isolation": ["separate child process", "no network", "an empty temporary folder as the working folder", "no writes outside that folder", "no standard input"],
       "same_run": "baseline and candidate outputs are scored in the same scoring run, with the same Python version on the same machine",
+      "identical_outputs": "when the baseline and candidate output_ids of an item are equal, the program runs once and both receive that result",
       "implementation": "the scorer child issue implements the isolation; this contract fixes only the rules and constants"
     },
     "entity_sets": {"json": "first JSON object", "values": "arrays of strings compared as sets", "also_record": "micro_f1"},

@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import json
 from pathlib import Path
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,14 @@ def entries(bundle, category, name="primary"):
 def category(bundle, name):
     return next(value for value in bundle["contract"]["categories"] if value["id"] == name)
 
+
+def scored(scorer, code, root):
+    marker = secrets.token_hex(16)
+    parts = {**scorer, "code": code, "marker": f"print({marker!r})"}
+    program = "\n".join(parts[name] for name in BUNDLE["contract"]["scorers"]["python_tests"]["program"])
+    result = subprocess.run([sys.executable, "-I", "-c", program], cwd=root, capture_output=True, text=True,
+                            stdin=subprocess.DEVNULL, check=False)
+    return result.returncode == 0 and result.stdout.splitlines()[-1:] == [marker]
 
 class ContractTests(unittest.TestCase):
     def rejected(self, change, text):
@@ -117,32 +126,35 @@ class ContractTests(unittest.TestCase):
         self.rejected(lambda bundle: bundle["contract"]["layer2"].pop("min_baseline_correct"),
                       "layer2 min_baseline_correct is missing")
 
-    def test_humaneval_program_starts_with_the_problem_prompt(self):
+    def humaneval_scorer(self, root):
         prompt = 'def helper(value):\n    return value * 2\n\n\ndef target(value):\n    """Return helper(value) plus one."""\n'
         test = "\n\ndef check(candidate):\n    assert candidate(3) == 7\n    assert helper(2) == 4\n"
         row = {"task_id": "HumanEval/0", "prompt": prompt, "test": test, "entry_point": "target"}
         data = gzip.compress((json.dumps(row) + "\n").encode("utf-8"), mtime=0)
+        (Path(root) / "fake").mkdir()
+        (Path(root) / "fake" / "rows.jsonl.gz").write_bytes(data)
+        bundle = copy.deepcopy(BUNDLE)
+        bundle["contract"]["sources"]["humaneval"].update(folder="fake", path="rows.jsonl.gz", bytes=len(data),
+                                                          sha256=hashlib.sha256(data).hexdigest())
+        entry = {"id": "code-gen-he-0001", "category": "code-gen-he", "unit": "problem", "source": {"task": 0}}
+        scorer = items.item(category(bundle, "code-gen-he"), entry, items.Sources(bundle["contract"], root),
+                            bundle)["scorer"]
+        self.assertEqual(scorer["setup"], prompt)
+        return scorer
+
+    def test_humaneval_program_starts_with_the_problem_prompt(self):
         with tempfile.TemporaryDirectory() as root:
-            (Path(root) / "fake").mkdir()
-            (Path(root) / "fake" / "rows.jsonl.gz").write_bytes(data)
-            bundle = copy.deepcopy(BUNDLE)
-            bundle["contract"]["sources"]["humaneval"].update(folder="fake", path="rows.jsonl.gz", bytes=len(data),
-                                                              sha256=hashlib.sha256(data).hexdigest())
-            entry = {"id": "code-gen-he-0001", "category": "code-gen-he", "unit": "problem", "source": {"task": 0}}
-            scorer = items.item(category(bundle, "code-gen-he"), entry, items.Sources(bundle["contract"], root),
-                                bundle)["scorer"]
-            self.assertEqual(scorer["setup"], prompt)
+            scorer = self.humaneval_scorer(root)
+            solution = "def target(value):\n    return helper(value) + 1\n"
+            self.assertTrue(scored(scorer, solution, root))
+            self.assertFalse(scored({**scorer, "setup": ""}, solution, root))
 
-            def finishes(setup):
-                parts = {**scorer, "setup": setup, "code": "def target(value):\n    return helper(value) + 1\n"}
-                order = bundle["contract"]["scorers"]["python_tests"]["program"]
-                program = "\n".join(parts[name] for name in order)
-                result = subprocess.run([sys.executable, "-I", "-c", program], cwd=root, capture_output=True,
-                                        check=False)
-                return result.returncode == 0
-
-            self.assertTrue(finishes(scorer["setup"]))
-            self.assertFalse(finishes(""))
+    def test_code_is_correct_only_when_the_tests_ran_to_the_end(self):
+        with tempfile.TemporaryDirectory() as root:
+            scorer = self.humaneval_scorer(root)
+            self.assertTrue(scored(scorer, "def target(value):\n    return helper(value) + 1\n", root))
+            self.assertFalse(scored(scorer, "import sys\n\n\ndef target(value):\n    return helper(value) + 1\n\n\nsys.exit(0)\n", root))
+            self.assertFalse(scored(scorer, "def target(value):\n    return value\n", root))
 
     def test_hash_mismatches_are_rejected(self):
         self.rejected(lambda bundle: bundle["hashes"].update({"sets/primary.json": "0" * 64}),
