@@ -1,6 +1,6 @@
 # Gemma 4 31B quality evaluation
 
-The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured. Running models, scoring outputs, paired comparison and reports belong to later child issues.
+The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, and scores output records with every rule except code (issue #668). Running models, code scoring, paired comparison and reports belong to later child issues.
 
 | File | Contents |
 |---|---|
@@ -8,7 +8,8 @@ The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-cont
 | `sets/primary.json`, `sets/reserve.json` | Item ids, source keys or generator arguments, `item_sha256` and token counts only |
 | `prompts.json` | All prompt wording, the synthetic templates and the `free-ja` instructions |
 | `synthetic/` | Synthetic task generators, the independent solvers that read only the rendered text, and the self-authored vocabulary |
-| `tests/` | Unit tests and the scoring specification examples (`examples.json`) |
+| `scoring.py` | The scoring rules of §6.7 except code, the record checks and `score` |
+| `tests/` | Unit tests, the scoring specification examples (`examples.json`) and the expected scoring results derived by hand from §6.7 (`scoring_cases.json`) |
 
 ## Commands
 
@@ -47,6 +48,49 @@ python3 -m Tools.LLMEvaluation select --check \
 ```
 
 Without `--check` it rewrites both set files. Any change to them requires a new contract version.
+
+## Scoring
+
+`score` scores the output records of one or more runs with the rules of §6.7, except code. The runs of one call share the items, the tokenizer and the scorer, so the baseline and the candidate of a pair belong in the same call.
+
+```sh
+python3 -m Tools.LLMEvaluation score \
+  --items .local/conversion/gemma4_31b/evaluation/new-build/primary.jsonl \
+  --run path/to/baseline-run path/to/candidate-run \
+  --tokenizer .local/conversion/models/google--gemma-4-31B-it/tokenizer.json \
+  --output .local/conversion/gemma4_31b/evaluation/new-scores
+```
+
+`--items` is a file written by `build`. Each run folder holds:
+
+| File | Contents |
+|---|---|
+| `outputs.jsonl` | The output records of contract §5.1, one JSON object per line |
+| `run.json` | The run record of contract §5.1, one JSON object; `score` copies it unchanged into the summary |
+
+`score` first runs the checks of `validate`. It stops when `tokenizer.json` differs in size or SHA-256 from its pin in `contract.json`, when the output folder exists, or when two run folders have the same name. Like `select`, it needs `tokenizers`; the rules use only the standard library, and the unit tests replace the tokenizer. The scored text is `output_ids` decoded with the pinned tokenizer, skipping special tokens; text in a record is never used. `python_tests` items stay `pending_code` for the code scorer, and no output code is run.
+
+The output folder gets one folder per run, named after the run folder. Its `scores.jsonl` has one line per item of `--items`, in that order, as ASCII JSON:
+
+| Field | Value |
+|---|---|
+| `id`, `category` | From the item |
+| `kind` | The scorer kind |
+| `correct` | `true` or `false`; `null` for `unscored`, `pending_code` and `missing` |
+| `state` | `scored`, `unscored`, `pending_code`, `missing` (no record), or the reason nothing could be read, which makes the item incorrect: `no_digit`, `no_marker`, `no_integer`, `no_json` or `duplicate_key` |
+| `parsed` | The value read: the digit, the integer, the normalized text, the first JSON object or the stripped non-empty lines; `null` when nothing was read |
+| `f1` | `reading_exact` only: the character F1 |
+| `tp`, `fp`, `fn` | `entity_sets` only: the (key, string) pairs of the item |
+
+The character F1 is 2 × overlap ÷ (output length + answer length), where the overlap is that of the character multisets after normalization; it is the maximum over the answers, and 0 when either side is empty. The `entity_sets` predictions are the (key, string) pairs of those of the 8 keys whose values are arrays of strings, each pair counted once. An output without a JSON object, or whose first object has a duplicate key, predicts nothing.
+
+Its `summary.json` holds:
+
+- `contract` (the version and the SHA-256 of `contract.json`), `items` (the file name and SHA-256 of `--items`), `tokenizer` (its SHA-256) and `run` (the copy of `run.json`).
+- `checks`: facts about the records, each a sorted list of ids. `missing`: an item without a record. `not_in_set`: a record whose id is not an item. `duplicate`: an id with more than one record; only its first record is scored. `top2_differs`: a record whose `top2` first ids differ from the generated tokens, which are `output_ids` followed by `stop_token` when the run stopped on one. `item_hash_differs`: an item whose `item_sha256` differs from `sets/*.json`. The checks give no verdict, and every item that can be scored is scored.
+- `categories`: per category, `kind`, `items`, `correct`, `unscored` (items whose `correct` is `null`) and `states` (the count of each state). `entity_sets` adds the sums `tp`, `fp` and `fn` and `micro_f1` = 2·tp ÷ (2·tp + fp + fn); `reading_exact` adds `mean_f1`, the mean character F1. Either is `null` when its denominator is 0.
+
+`score` prints, for each run, the counts per category and the number of ids in each check.
 
 ## Data
 
