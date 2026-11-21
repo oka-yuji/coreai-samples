@@ -57,7 +57,9 @@ Setup checks the integrity record against the contract, then under the shared ma
 - `reference` is heavy and runs under the shared machine lock. It waits for the first monitor sample that
   reads both swap and the free percentage (at most 60 seconds), then hashes the files it loads (both weight
   shards, `config.json`, `generation_config.json`, `model.safetensors.index.json` and the three tokenizer
-  files) and stops before loading unless every size and SHA-256 equals the contract; `reference.json` records
+  files) and stops before loading unless every size and SHA-256 equals the contract and the folder still holds
+  exactly the pinned files under the rule of `prepare` (only the download state under `.cache/` may be added;
+  the loader would prefer a single `model.safetensors` to the pinned shards). `reference.json` records
   these hashes, not the copies in `ready.json`. It then loads `Gemma4ForConditionalGeneration`
   with `dtype=torch.bfloat16`, `device_map="mps"` and `output_loading_info=True` and requires empty loading
   lists, BF16 parameters on MPS and evaluation mode. Inputs are text only; the vision tower is loaded with

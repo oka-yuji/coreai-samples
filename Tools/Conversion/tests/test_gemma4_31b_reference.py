@@ -327,6 +327,29 @@ class InputTests(unittest.TestCase):
             self.assertEqual(tokenizer.call_count, 1)
             load.assert_not_called()
 
+    @unittest.skipIf(torch is None, "PyTorch is required to call the reference step")
+    def test_a_file_added_after_prepare_stops_before_loading(self):
+        def nested(snapshot):
+            (snapshot / "weights").mkdir()
+            (snapshot / "weights/model.safetensors").write_bytes(b"w")
+
+        additions = {"single checkpoint": lambda snapshot: (snapshot / "model.safetensors").write_bytes(b"w"),
+                     "link": lambda snapshot: (snapshot / "extra.json").symlink_to(snapshot / "config.json"),
+                     "nested": nested}
+        for label, add in additions.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                snapshot, contract = write_loaded_files(folder)
+                (snapshot / ".cache/huggingface/download").mkdir(parents=True)
+                (snapshot / ".cache/huggingface/download/model.safetensors.lock").write_bytes(b"")
+                reference.verify_inputs(snapshot, contract)
+                add(snapshot)
+                args = SimpleNamespace(snapshot=snapshot, fixtures=RECIPE / "fixtures.json", output=Path(folder))
+                with mock.patch.object(reference, "runtime_tokenizer", side_effect=AssertionError("past the check")) \
+                        as tokenizer, mock.patch.object(reference, "load_model") as load, self.assertRaises(ValueError):
+                    reference.reference(args, contract, {})
+                tokenizer.assert_not_called()
+                load.assert_not_called()
+
 
 class MonitorTests(unittest.TestCase):
     def monitor(self, folder, reasons, swaps, free=50):

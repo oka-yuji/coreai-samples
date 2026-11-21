@@ -12,7 +12,7 @@ import time
 from ...storage import read_json, write_json
 from ..jev27b import monitor as shared
 from ..pinned import sha256
-from .prepare import TOKENIZER_FILES, load_contract, runtime_tokenizer
+from .prepare import TOKENIZER_FILES, check_folder, load_contract, runtime_tokenizer
 
 SCHEMA = "gemma4-31b-reference/1"
 CASE_ID = re.compile(r"[a-z][a-z0-9_]*")
@@ -273,6 +273,7 @@ def verify_inputs(snapshot, contract):
                 or sha256(path) != pinned["sha256"]:
             raise ValueError(f"A file to load differs from the contract: {name}")
         verified[name] = dict(pinned)
+    check_folder(snapshot, contract["files"])
     return verified
 
 

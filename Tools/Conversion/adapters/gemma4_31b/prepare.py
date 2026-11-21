@@ -54,6 +54,16 @@ def load_contract(path):
     return contract
 
 
+def check_folder(snapshot, files):
+    snapshot = Path(snapshot)
+    present = {path.relative_to(snapshot).as_posix() for path in snapshot.rglob("*")
+               if (path.is_symlink() or not path.is_dir()) and path.name != ".DS_Store"
+               and path.relative_to(snapshot).parts[0] != DOWNLOAD_STATE}
+    if present != set(files):
+        raise ValueError(f"Snapshot files differ from the contract: missing {sorted(set(files) - present)}, "
+                         f"unexpected {sorted(present - set(files))}")
+
+
 def check_record(snapshot, contract):
     snapshot = Path(snapshot)
     record = read_json(Path(f"{snapshot}.integrity.json"))
@@ -71,12 +81,7 @@ def check_record(snapshot, contract):
         if row.get("ok") is not True or row.get("expected_size") != pinned["bytes"] \
                 or row.get("actual_size") != pinned["bytes"] or row.get("actual_sha256") != pinned["sha256"]:
             raise ValueError(f"The integrity record differs from the contract: {name}")
-    present = {path.relative_to(snapshot).as_posix() for path in snapshot.rglob("*")
-               if (path.is_symlink() or not path.is_dir()) and path.name != ".DS_Store"
-               and path.relative_to(snapshot).parts[0] != DOWNLOAD_STATE}
-    if present != set(files):
-        raise ValueError(f"Snapshot files differ from the contract: missing {sorted(set(files) - present)}, "
-                         f"unexpected {sorted(present - set(files))}")
+    check_folder(snapshot, files)
     for name, pinned in files.items():
         path = snapshot / name
         if path.is_symlink() or not path.is_file() or path.stat().st_size != pinned["bytes"]:
