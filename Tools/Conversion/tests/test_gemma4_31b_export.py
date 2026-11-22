@@ -195,6 +195,7 @@ QUANTIZED_STORAGE = {"UInt8": 2_930_049_024, "Float16": 1_592_466_186, "Float32"
                      "UInt64": 1}
 QUANTIZED_ELEMENTS = {"torch.float16": 1_592_466_182, "torch.uint8": 2_928_672_768}
 SMALLEST = 4 * 512 * 5376
+DEQUANTIZATIONS = 41 + 41 - 5
 PARTS = {"self_attn.q_proj.weight", "self_attn.k_proj.weight", "self_attn.v_proj.weight", "self_attn.o_proj.weight",
          "mlp.gate_proj.weight", "mlp.up_proj.weight", "mlp.down_proj.weight"}
 
@@ -211,7 +212,8 @@ def quantized(functions=BOTH):
                          "quantized_layouts": 41}
     record["quantized"] = {"layers": [layout(name) for name in sorted(export.quantized_names(KINDS))], "skipped": 0,
                            "warnings_enabled": True}
-    record["asset"]["storage_types"] = dict(QUANTIZED_STORAGE)
+    record["asset"].update(storage_types=dict(QUANTIZED_STORAGE),
+                           dequantizations={BOTH: DEQUANTIZATIONS, ("main",): 41}[functions])
     record["metadata"] = export.metadata(CONTRACT, export.name_of(6, functions, "8bit"), 16896, "8bit")
     return record
 
@@ -321,29 +323,36 @@ class QuantizedAssetTests(unittest.TestCase):
             with self.subTest(case=label):
                 self.assertTrue(quantized_problems(change))
 
-    def test_the_storage_counts_may_differ_from_the_pytorch_model_only_by_less_than_the_smallest_quantized_weight(self):
-        self.assertEqual(export.smallest_weight(CONTRACT["config"], KINDS), SMALLEST)
-        self.assertEqual(export.smallest_weight(CONTRACT["config"], check_layers(CONTRACT["config"], 60)), SMALLEST)
-        small = {**CONTRACT["config"], "hidden_size": 64, "intermediate_size": 96, "num_key_value_heads": 2,
-                 "num_global_key_value_heads": 1, "head_dim": 16, "global_head_dim": 32}
-        self.assertEqual(export.smallest_weight(small, KINDS), 2048)
-        self.assertEqual(export.smallest_weight({**small, "num_key_value_heads": 4}, KINDS), 2048)
-        self.assertEqual(export.smallest_weight({**small, "num_global_key_value_heads": 2}, KINDS), 2048)
-        self.assertEqual(export.smallest_weight({**small, "num_key_value_heads": 4, "num_global_key_value_heads": 2}, KINDS),
-                         4096)
-        self.assertEqual(export.smallest_weight({**small, "intermediate_size": 16}, KINDS), 1024)
-        passing = {"one zero offset of the measured asset": counts(1_376_256, 4), "folded float16 tensors": counts(0, -8_703),
-                   "just below the smallest weight": counts(SMALLEST - 1, -(SMALLEST - 1))}
-        for label, change in passing.items():
-            with self.subTest(case=label):
-                self.assertEqual(quantized_problems(change), [])
-        failing = {"the smallest weight moved from UInt8 to Float16": counts(1_376_256 - SMALLEST, 4 + SMALLEST),
-                   "a UInt8 difference of the smallest weight": counts(SMALLEST, 4),
-                   "a Float16 difference of minus the smallest weight": counts(1_376_256, -SMALLEST),
-                   "a query projection stored twice": counts(1_376_256 + 8192 * 5376, 4)}
-        for label, change in failing.items():
+    def test_every_function_dequantizes_each_quantized_weight_that_it_reads_once(self):
+        self.assertEqual(export.dequantizations(export.quantized_names(KINDS), KINDS, BOTH), 77)
+        self.assertEqual(export.dequantizations(export.quantized_names(KINDS), KINDS, ("main",)), 41)
+        twelve, sixty = (check_layers(CONTRACT["config"], layers) for layers in (12, 60))
+        self.assertEqual(export.dequantizations(export.quantized_names(twelve), twelve, BOTH), 82 + 77)
+        self.assertEqual(export.dequantizations(export.quantized_names(sixty), sixty, BOTH), 410 + 405)
+        skipped = {name for name in export.quantized_names(KINDS) if ".o_proj." in name or ".down_proj." in name}
+        self.assertEqual(export.dequantizations(skipped, KINDS, BOTH), 12 + 10)
+
+    def test_an_asset_with_one_dequantization_less_or_more_fails_and_the_storage_counts_are_only_recorded(self):
+        def dequantized(count, uint8=1_376_256, float16=4):
+            def change(record):
+                counts(uint8, float16)(record)
+                record["asset"]["dequantizations"] = count
+            return change
+
+        cases = {"one less": dequantized(DEQUANTIZATIONS - 1), "one more": dequantized(DEQUANTIZATIONS + 1),
+                 "none": dequantized(0),
+                 "the smallest weight folded back to float16": dequantized(
+                     DEQUANTIZATIONS - 1, 1_376_256 - SMALLEST, 4 + SMALLEST - 2 * 344_064)}
+        for label, change in cases.items():
             with self.subTest(case=label):
                 self.assertTrue(quantized_problems(change))
+        for label, change in {"the measured counts": dequantized(DEQUANTIZATIONS),
+                              "large storage differences": dequantized(DEQUANTIZATIONS, 1_376_256 - SMALLEST,
+                                                                       4 + SMALLEST)}.items():
+            with self.subTest(case=label):
+                self.assertEqual(quantized_problems(change), [])
+        self.assertEqual(export.differences(QUANTIZED_STORAGE, QUANTIZED_ELEMENTS),
+                         {"uint8_minus_weights": 1_376_256, "float16_minus_weights": 4})
 
     def test_an_asset_with_other_storage_types_or_float32_elements_fails(self):
         cases = {"uint4 weights": {**QUANTIZED_STORAGE, "UInt4": 64}, "int8 weights": {**QUANTIZED_STORAGE, "Int8": 64},

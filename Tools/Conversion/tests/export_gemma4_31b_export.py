@@ -121,7 +121,7 @@ class QuantizedExportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder, hidden_size=64)
-            config, kinds = read_json(contract)["config"], TEXT["layer_types"][:6]
+            kinds = TEXT["layer_types"][:6]
             output = folder / "out"
             with mock.patch("sys.argv", arguments(contract, snapshot, output, "main,prefill", "8bit")):
                 self.assertEqual(export.main(), 0)
@@ -132,13 +132,14 @@ class QuantizedExportTests(unittest.TestCase):
             self.assertEqual(sorted(entry["name"] for entry in quantized["layers"]), sorted(export.quantized_names(kinds)))
             self.assertEqual((quantized["skipped"], quantized["warnings_enabled"], record["weights"]["quantized_layouts"]),
                              (0, True, 41))
-            limit = export.smallest_weight(config, kinds)
-            self.assertEqual(limit, 2048)
-            for key in ("uint8_minus_weights", "float16_minus_weights"):
-                self.assertLess(abs(record["asset"][key]), limit)
+            self.assertEqual(record["asset"]["dequantizations"],
+                             export.dequantizations(export.quantized_names(kinds), kinds, ("main", "prefill")))
+            self.assertEqual(record["asset"]["dequantizations"], 77)
             storage = record["asset"]["storage_types"]
             self.assertEqual(record["asset"]["uint8_minus_weights"],
                              storage["UInt8"] - record["weights"]["elements_by_dtype"]["torch.uint8"])
+            self.assertEqual(record["asset"]["float16_minus_weights"],
+                             storage["Float16"] - record["weights"]["elements_by_dtype"]["torch.float16"])
             self.assertEqual(storage["Float32"], TEXT["global_head_dim"] // 2 + TEXT["head_dim"] // 2 + 2)
             tensors = output / layers.QUANTIZED
             self.assertEqual(quantized["file"], file_hash(tensors))

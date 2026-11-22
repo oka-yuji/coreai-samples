@@ -465,14 +465,16 @@ Next to `export.json` and the bundle (`gemma4_31b_l<layers>_8bit_<functions>.aim
 `metadata.json`), the step writes `quantized.safetensors`: the uint8 data, the float16 scales and the float16 minimums
 of every quantized weight as the step passed them to the converter, with the SHA-256 of each tensor in `export.json`.
 The asset summary does not give the tensors one by one, so these hashes are of the tensors that the step passed to the
-converter; the asset itself is checked through its storage counts and through the logits of the own engine below. The
+converter; the asset itself is checked through its operations and through the logits of the own engine below. The
 converter's work area `export/quantization/` is removed with `export/layers/`. The step starts only with seven bytes per
 weight element of the chosen layers plus 60 GiB free. `QuantizedAssetTests` in
 `Tools/Conversion/tests/test_gemma4_31b_export.py` fixes the checks of a passing run. Their values: the fixed config,
 the Linear weights of the layers as the quantized tensors (41 for six layers, 410 for 60; the full-attention layers have
-no value projection), no `Skipping quantization.` from the converter, and UInt8 and Float16 counts of the asset that
-differ from the uint8 and float16 elements of the PyTorch model by less than the smallest quantized weight (the key
-projection of a full-attention layer, 11,010,048 elements for this model); `export.json` records both differences.
+no value projection), no `Skipping quantization.` from the converter, and as many `blockwise_shift_scale` operations
+(the dequantization of a weight) in the asset as the functions read quantized weights: every one in `main`, all but the
+query, output and MLP projections of the last layer in `prefill` (77 for six layers, 815 for 60). `export.json` records
+the UInt8 and Float16 counts of the asset minus the uint8 and float16 elements of the PyTorch model without judging
+them.
 `QuantizedExportTests` in `Tools/Conversion/tests/export_gemma4_31b_export.py` runs the step on synthetic models in the
 converter environment.
 

@@ -42,10 +42,12 @@ LINEAR = {SLIDING: ("self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj", 
                     "mlp.up_proj", "mlp.down_proj"),
           FULL: ("self_attn.q_proj", "self_attn.k_proj", "self_attn.o_proj", "mlp.gate_proj", "mlp.up_proj",
                  "mlp.down_proj")}
+CACHED = ("self_attn.k_proj", "self_attn.v_proj")
 PARTS = ("quantized_data", "scale", "minval", "zero_point")
 SAFETENSORS_TYPES = {"torch.uint8": "U8", "torch.int8": "I8", "torch.float16": "F16", "torch.bfloat16": "BF16",
                      "torch.float32": "F32"}
 SKIPPED, QUANTIZER = "Skipping quantization.", "coreai_opt.quantization.spec.fake_quantize"
+DEQUANTIZE = "blockwise_shift_scale"
 
 
 def name_of(layers, functions, precision="fp16"):
@@ -64,11 +66,10 @@ def quantized_names(kinds):
     return {f"model.layers.{index}.{part}.weight" for index, kind in enumerate(kinds) for part in LINEAR[kind]}
 
 
-def smallest_weight(config, kinds):
-    hidden = config["hidden_size"]
-    sizes = {SLIDING: config["num_key_value_heads"] * config["head_dim"] * hidden,
-             FULL: config["num_global_key_value_heads"] * config["global_head_dim"] * hidden}
-    return min(config["intermediate_size"] * hidden, *(sizes[kind] for kind in set(kinds)))
+def dequantizations(names, kinds, functions):
+    last = len(kinds) - 1
+    unused = {f"model.layers.{last}.{part}.weight" for part in LINEAR[kinds[-1]] if part not in CACHED}
+    return len(names) + (len(set(names) - unused) if "prefill" in functions else 0)
 
 
 def differences(storage, elements):
@@ -118,7 +119,7 @@ def float16_problems(record):
     return problems
 
 
-def quantization_problems(record, config, kinds):
+def quantization_problems(record, kinds, functions):
     problems, quantized = [], record["quantized"]
     if record["compression_config"] != QUANTIZATION:
         problems.append(f"the export was given {shown(record['compression_config'])}, not the fixed 8-bit config")
@@ -136,16 +137,16 @@ def quantization_problems(record, config, kinds):
         problems.append(f"the converter logged {SKIPPED!r} {quantized['skipped']} times")
     if not quantized["warnings_enabled"]:
         problems.append("the warnings of the quantizer were not enabled, so skipped weights could not be counted")
-    limit = smallest_weight(config, kinds)
-    for key, value in differences(record["asset"]["storage_types"], record["weights"]["elements_by_dtype"]).items():
-        if abs(value) >= limit:
-            problems.append(f"{key} is {value}; a quantized weight ({limit} elements or more) moved, vanished or appeared")
+    expected = dequantizations(quantized_names(kinds), kinds, functions)
+    if record["asset"]["dequantizations"] != expected:
+        problems.append(f"the asset dequantizes {record['asset']['dequantizations']} times, not {expected}: one for each "
+                        "quantized weight that each function reads")
     return problems
 
 
 def check_asset(record, contract, kinds, functions, context, precision="fp16"):
     eight_bit = precision == "8bit"
-    problems = quantization_problems(record, contract["config"], kinds) if eight_bit else float16_problems(record)
+    problems = quantization_problems(record, kinds, functions) if eight_bit else float16_problems(record)
     storage, expected = record["asset"]["storage_types"], float32_elements(contract["config"])
     stored = ("Float16", "UInt8") if eight_bit else ("Float16",)
     other = sorted(set(storage) - {*stored, *CONSTANT_TYPES})
@@ -275,7 +276,8 @@ def inspect_asset(path):
                ("states", summary.function_states))
     return {"functions": {name: {kind: {item: described(text) for item, text in getter(name)} for kind, getter in getters}
                           for name in summary.function_names},
-            "storage_types": {kind: int(count) for kind, count in summary.storage_types}}
+            "storage_types": {kind: int(count) for kind, count in summary.storage_types},
+            "dequantizations": int(dict(summary.operation_distribution).get(DEQUANTIZE, 0))}
 
 
 def bundle_files(folder):

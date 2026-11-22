@@ -227,7 +227,7 @@ def quantized_record():
                            "skipped": 0, "warnings_enabled": True, "file": {"bytes": 3, "sha256": "7" * 64},
                            "tensors": {"model.layers.0.self_attn.q_proj.weight.scale": "8" * 64}}
     record["asset"].update(storage_types={"UInt8": 132, "Float16": 9, "Int32": 2}, float16_minus_weights=4,
-                           uint8_minus_weights=128)
+                           uint8_minus_weights=128, dequantizations=77)
     name = "gemma4_31b_l6_8bit_main"
     record["metadata"].update(name=name, compression="8bit")
     record["bundle"].update(name=name, files={f"{name}.aimodel/main.mlirb": {"bytes": 4, "sha256": "4" * 64}})
@@ -275,7 +275,8 @@ class QuantizedSummaryTests(Records):
         asset = result["assets"][0]["export"]
         self.assertEqual(asset["quantized"], {"layers": 1, "skipped": 0, "warnings_enabled": True,
                                               "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 1})
-        self.assertEqual((asset["asset"]["uint8_minus_weights"], asset["asset"]["float16_minus_weights"]), (128, 4))
+        self.assertEqual((asset["asset"]["uint8_minus_weights"], asset["asset"]["float16_minus_weights"],
+                          asset["asset"]["dequantizations"]), (128, 4, 77))
         self.assertEqual(result["reference"]["weights"], "8bit")
         self.assertEqual(result["reference"]["quantized"], {"export_sha256": "a" * 64,
                                                             "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 123})

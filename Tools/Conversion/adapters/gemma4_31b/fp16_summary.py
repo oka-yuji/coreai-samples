@@ -93,7 +93,8 @@ def exported(record):
         raise PipelineError(f"Expected an uncompressed {EXPORT_SCHEMA} record or one of the fixed 8-bit config")
     metadata, bundle, resources = record["metadata"], record["bundle"], record["resources"]
     monitor = resources["monitor"]
-    differences = {"uint8_minus_weights": signed(record["asset"]["uint8_minus_weights"])} if eight_bit else {}
+    differences = {"uint8_minus_weights": signed(record["asset"]["uint8_minus_weights"]),
+                   "dequantizations": count(record["asset"]["dequantizations"])} if eight_bit else {}
     return {**(quantization(record) if eight_bit else {}),
             "passed": flag(record["passed"]), "checks": {word(key): flag(value) for key, value in record["checks"].items()},
             "problems": len(record["problems"]), "model": model(record["model"]), "layers": count(record["layers"]),
