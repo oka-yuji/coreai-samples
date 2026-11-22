@@ -188,6 +188,17 @@ class CompareRunTests(unittest.TestCase):
         self.assertIn("`regression_found`", text)
         self.assertIn(f"Regressions: `{self.items[1]['id']}`", text)
 
+    def test_an_id_with_a_lone_surrogate_is_written_to_both_files(self):
+        baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
+        path = candidate / "outputs.jsonl"
+        stray = {**json.loads(path.read_text(encoding="utf-8").splitlines()[0]), "id": "free-ja-9999\ud800"}
+        path.write_text(path.read_text(encoding="utf-8") + json.dumps(stray) + "\n", encoding="utf-8")
+        self.compared(baseline, candidate, self.scored(baseline, candidate))
+        record = items.read_json(self.folder / "verdict" / "verdict.json")
+        self.assertEqual(record["incomplete"], [{"reason": "not_in_set", "ids": [stray["id"]]}])
+        text = (self.folder / "verdict" / "summary.md").read_text(encoding="utf-8")
+        self.assertIn("`not_in_set`: `free-ja-9999\\ud800`", text)
+
     def test_the_claim_names_the_categories_that_could_not_be_evaluated(self):
         baseline, candidate = self.run_folder("base", "fp16"), self.run_folder("cand", "w8")
         self.compared(baseline, candidate, self.scored(baseline, candidate))

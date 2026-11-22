@@ -261,7 +261,7 @@ def compare_runs(bundle, items_path, baseline, candidate, scores, output, rerun=
     output.mkdir(parents=True)
     try:
         (output / "verdict.json").write_text(json.dumps(record, indent=2, allow_nan=False) + "\n", encoding="utf-8")
-        (output / "summary.md").write_text(summary(record), encoding="utf-8")
+        (output / "summary.md").write_text(summary(record), encoding="utf-8", errors="backslashreplace")
     except BaseException:
         shutil.rmtree(output, ignore_errors=True)
         raise
