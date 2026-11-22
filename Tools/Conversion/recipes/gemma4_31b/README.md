@@ -118,18 +118,20 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.summary --report <first report.j
   --report <second report.json> --reference <second reference.json> --comparison .local/conversion/work/gemma4_31b/rerun.json
 ~~~
 
-`compare` records per case whether the input and output tokens match, the first position where the forced
-sequences differ, and the largest absolute logit difference over the saved rows whose context is still
-identical (every row when the sequences match). It passes only when both `reference.json` files passed, the
-model, environment, fixtures and cases are the same, every token file and saved array has the size and SHA-256
-that its own `reference.json` records, the input and output token counts, the saved positions and the first
-scoring row equal that record, every saved array is float32 with the shape `[saved positions, vocabulary]`,
-no compared logit is NaN or infinite, and the input and output tokens of every case match; any other finding
-is listed in `problems`. Non-finite logits are counted per run and leave the largest difference of the case
-and of the comparison unset. `summary` prints only states, numbers, hashes, versions and case IDs, and stops
-unless the comparison lists the SHA-256 of the two `reference.json` files it is given, in the same order (the
-printed record keeps them); it lives beside the steps because every `Tools/Conversion/*.py` file is part of each
-step's cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
+`compare` records per case whether the input and output tokens match, the first position where the forced sequences
+differ, and the largest absolute logit difference over the saved rows whose context is still identical (every row
+when the sequences match). It passes only when both `reference.json` files passed and differ (an artifact compared
+with itself or with a copy fails), the model, environment, fixtures and cases are the same, every token file and
+saved array has the size and SHA-256 that its own `reference.json` records, the input and output token counts, the
+saved positions and the first scoring row equal that record, every saved array is float32 with the shape
+`[saved positions, vocabulary]`, no compared logit is NaN or infinite, and the input and output tokens of every
+case match; any other finding is listed in `problems`. Non-finite logits are counted per run and leave the largest
+difference of the case and of the comparison unset. `summary` prints only states, numbers, hashes, versions and
+case IDs. It stops unless every `--report` is the run that executed the `reference` step whose `reference.json` is
+given with it (the report's artifacts folder of that step holds the file), no report or `reference.json` is given
+twice, and the comparison lists the SHA-256 of the two `reference.json` files, in the same order (the printed
+record keeps them). It lives beside the steps because every `Tools/Conversion/*.py` file is part of each step's
+cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
 
 ## Terms
 

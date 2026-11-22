@@ -5,6 +5,7 @@ import itertools
 import json
 import math
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -553,7 +554,7 @@ def write_run(folder, inputs, outputs, logits, passed=True, dtype="float32", cas
     records = [{"id": name, "input_tokens": len(inputs), "output_tokens": len(outputs),
                 "saved_positions": len(inputs) + len(outputs), "first_scoring_row": len(inputs) - 1,
                 "files": case_files(folder, name)} for name in cases]
-    (folder / "reference.json").write_text(json.dumps({**common, "passed": passed, "cases": records}))
+    (folder / "reference.json").write_text(json.dumps({**common, "passed": passed, "cases": records, "run": folder.name}))
 
 
 def rewrite(folder, name="case", tokens=None, logits=None, record=False, **fields):
@@ -626,6 +627,17 @@ class CompareTests(unittest.TestCase):
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
 
+    def test_an_artifact_compared_with_itself_or_with_a_copy_never_passes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            first, copied = Path(folder) / "a", Path(folder) / "copy"
+            write_run(first, [2, 7], [4, 5, 1], ROWS)
+            shutil.copytree(first, copied)
+            for second in (first, copied):
+                with self.subTest(second=second.name):
+                    result = compare(first, second, vocabulary=2)
+                    self.assertFalse(result["passed"])
+                    self.assertIn("both artifacts are the same run", result["problems"])
+
     def test_non_finite_logits_never_pass_even_at_the_same_position(self):
         def rows(value):
             return [[0, 2], [value, 0], *ROWS[2:]]
@@ -683,6 +695,21 @@ def comparison_record(hashes, passed=True, problems=(), cases=None):
             "cases": [case] if cases is None else cases}
 
 
+def write_summary_run(folder, name, total, origin=None):
+    artifacts = Path(folder) / "objects" / (origin or name) / "artifacts"
+    artifacts.mkdir(parents=True)
+    record = reference_record()
+    record["timing"]["total_s"] = total
+    (artifacts / "reference.json").write_text(json.dumps(record))
+    report = Path(folder) / "runs" / name / "report.json"
+    report.parent.mkdir(parents=True)
+    stage = {"id": "reference", "role": "reference", "status": "reused" if origin else "executed",
+             "origin": origin or name, "artifacts": str(artifacts), "execute_s": 1.0}
+    report.write_text(json.dumps({"version": 1, "run_id": name, "status": "completed",
+                                  "verification": "not_configured", "stages": [stage]}))
+    return report, artifacts / "reference.json"
+
+
 class SummaryTests(unittest.TestCase):
     REPORT = {"version": 1, "status": "completed", "verification": "not_configured",
               "stages": [{"role": "reference", "status": "executed", "execute_s": 1.0}]}
@@ -709,35 +736,48 @@ class SummaryTests(unittest.TestCase):
                           result["rerun"]["max_abs_logit_difference"]), (False, 1, 1, None))
         self.assertNotIn("float64", json.dumps(result))
 
+    def summarize(self, pairs, hashes):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
+            json.dump(comparison_record(hashes), handle)
+        self.addCleanup(Path(handle.name).unlink)
+        argv = ["summary", *(item for report, path in pairs for item in ("--report", str(report), "--reference", str(path))),
+                "--comparison", handle.name]
+        output = io.StringIO()
+        with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), \
+                contextlib.redirect_stderr(io.StringIO()):
+            return summary.main(), output.getvalue()
+
     def test_a_comparison_of_other_reference_records_or_in_another_order_is_rejected(self):
         with self.assertRaises(PipelineError):
             summary.project([self.REPORT], [reference_record()], comparison_record(["a" * 64, "b" * 64]))
         with tempfile.TemporaryDirectory() as folder:
-            paths = {}
-            for name, total in (("first", 2.0), ("second", 3.0), ("other", 4.0)):
-                record = reference_record()
-                record["timing"]["total_s"] = total
-                paths[name] = Path(folder) / f"{name}.json"
-                paths[name].write_text(json.dumps(record))
-            report = Path(folder) / "report.json"
-            report.write_text(json.dumps(self.REPORT))
-            hashes = {name: sha256(path) for name, path in paths.items()}
-            variants = {"same": (["first", "second"], 0), "other run": (["first", "other"], 1),
-                        "swapped": (["second", "first"], 1)}
-            for label, (names, code) in variants.items():
-                comparison = Path(folder) / f"{label}.comparison.json"
-                comparison.write_text(json.dumps(comparison_record([hashes[name] for name in names])))
-                argv = ["summary", "--report", str(report), "--reference", str(paths["first"]), "--report", str(report),
-                        "--reference", str(paths["second"]), "--comparison", str(comparison)]
-                output = io.StringIO()
-                with self.subTest(label=label), mock.patch.object(sys, "argv", argv), \
-                        contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
-                    self.assertEqual(summary.main(), code)
-                    if code == 0:
-                        self.assertEqual(json.loads(output.getvalue())["rerun"]["references_sha256"],
+            runs = {name: write_summary_run(folder, name, total) for name, total in (("first", 2.0), ("second", 3.0),
+                                                                                    ("other", 4.0))}
+            hashes = {name: sha256(path) for name, (_, path) in runs.items()}
+            for label, names, expected in (("same", ["first", "second"], 0), ("other run", ["first", "other"], 1),
+                                           ("swapped", ["second", "first"], 1)):
+                with self.subTest(label=label):
+                    code, output = self.summarize([runs["first"], runs["second"]], [hashes[name] for name in names])
+                    self.assertEqual(code, expected)
+                    if expected == 0:
+                        self.assertEqual(json.loads(output)["rerun"]["references_sha256"],
                                          [hashes["first"], hashes["second"]])
                     else:
-                        self.assertEqual(output.getvalue(), "")
+                        self.assertEqual(output, "")
+
+    def test_each_report_must_be_the_run_that_wrote_its_reference_record_once(self):
+        with tempfile.TemporaryDirectory() as folder:
+            first, second = write_summary_run(folder, "first", 2.0), write_summary_run(folder, "second", 3.0)
+            reused = write_summary_run(folder, "reused", 4.0, origin="earlier")
+            hashes = [sha256(path) for _, path in (first, second, reused)]
+            variants = {"paired": ([first, second], hashes[:2], 0),
+                        "reports swapped": ([(second[0], first[1]), (first[0], second[1])], hashes[:2], 1),
+                        "the same run twice": ([first, first], [hashes[0]] * 2, 1),
+                        "a reused step": ([first, reused], [hashes[0], hashes[2]], 1)}
+            for label, (pairs, given, expected) in variants.items():
+                with self.subTest(label=label):
+                    code, output = self.summarize(pairs, given)
+                    self.assertEqual((code, output == ""), (expected, expected == 1))
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         for change in (lambda r: r["environment"].update(os_build="folder/name"),

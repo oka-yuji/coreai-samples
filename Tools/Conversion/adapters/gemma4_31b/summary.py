@@ -124,6 +124,17 @@ def rerun(comparison, hashes):
                       for item in comparison["cases"]]}
 
 
+def paired(reports, paths):
+    stages = [next((stage for stage in report.get("stages", []) if stage.get("role") == "reference"), {})
+              for report in reports]
+    files = [Path(path).resolve() for path in paths]
+    if len({report.get("run_id") for report in reports}) != len(reports) or len(set(files)) != len(files) \
+            or any(stage.get("status") != "executed" or stage.get("origin") != report.get("run_id")
+                   or not stage.get("artifacts") or Path(stage["artifacts"]).resolve() / "reference.json" != file
+                   for report, stage, file in zip(reports, stages, files, strict=True)):
+        raise PipelineError("Each report must be the run that wrote the reference record given with it, once each")
+
+
 def project(reports, references, comparison=None, hashes=None):
     result = {"schema": SCHEMA,
               "scope": "BF16 MPS reference outputs of the diagnostic fixtures; not a quality evaluation.",
@@ -142,8 +153,10 @@ def main():
     args = parser.parse_args()
     try:
         comparison = read_json(args.comparison) if args.comparison else None
-        result = project([read_json(path) for path in args.report], [read_json(path) for path in args.reference],
-                         comparison, [sha256(path) for path in args.reference])
+        reports = [read_json(path) for path in args.report]
+        paired(reports, args.reference)
+        result = project(reports, [read_json(path) for path in args.reference], comparison,
+                         [sha256(path) for path in args.reference])
         print(json.dumps(result, indent=2, allow_nan=False))
         return 0
     except (OSError, ValueError, TypeError, KeyError) as error:

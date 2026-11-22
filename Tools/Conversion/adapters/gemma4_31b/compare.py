@@ -82,8 +82,11 @@ def compare_case(first, second, vocabulary):
 def compare(first, second, vocabulary=None):
     vocabulary = vocabulary or load_contract(CONTRACT)["config"]["vocab_size"]
     records = [read_json(Path(folder) / "reference.json") for folder in (first, second)]
+    hashes = [sha256(Path(folder) / "reference.json") for folder in (first, second)]
     problems = [f"{label} run: reference.json did not pass" for label, record in zip(("first", "second"), records)
                 if record.get("passed") is not True]
+    if hashes[0] == hashes[1]:
+        problems.append("both artifacts are the same run")
     problems += [f"different {key}" for key in SAME if records[0].get(key) != records[1].get(key)]
     names = [[case["id"] for case in record.get("cases", [])] for record in records]
     if names[0] != names[1]:
@@ -96,7 +99,7 @@ def compare(first, second, vocabulary=None):
     return {"schema": SCHEMA, "vocabulary": vocabulary, "problems": problems,
             "passed": not problems and bool(cases)
             and all(case["input_tokens_match"] and case["output_tokens_match"] for case in cases),
-            "references_sha256": [sha256(Path(folder) / "reference.json") for folder in (first, second)],
+            "references_sha256": hashes,
             "max_abs_logit_difference": None if not differences or None in differences else max(differences),
             "cases": cases}
 
