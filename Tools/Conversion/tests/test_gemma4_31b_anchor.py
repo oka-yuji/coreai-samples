@@ -327,7 +327,10 @@ class CompareTests(unittest.TestCase):
                    "another device": (lambda data: data.update(device="cpu"), ["case"], anchor_compare.UNKNOWN),
                    "an unknown embedding scale": (lambda data: data.update(
                        anchor_record, compute={**anchor_record["compute"], "embed_scale": 73.4}), ["case"], anchor_compare.UNKNOWN),
-                   "no compute": (lambda data: data.update(schema=anchor.SCHEMA, stage="anchor"), ["case"], anchor_compare.UNKNOWN)}
+                   "no compute": (lambda data: data.update(schema=anchor.SCHEMA, stage="anchor"), ["case"], anchor_compare.UNKNOWN),
+                   "a stage inside compute": (lambda data: data.update(
+                       anchor_record, stage="other", compute={**anchor_record["compute"], "stage": "anchor"}), ["case"],
+                       anchor_compare.UNKNOWN)}
         for label, (change, names, message) in changes.items():
             with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
                 a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))

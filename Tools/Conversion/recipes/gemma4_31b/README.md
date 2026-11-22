@@ -194,8 +194,9 @@ values. Each record is checked on its own against values computed from `model.js
 against the other record: the model entries (ID, revision, the SHA-256 of `model.json`, the shard SHA-256 and the files
 verified before loading) must equal the contract, the case IDs must be the twelve fixture IDs in order, the device must
 be the contract device, and the record must be one of the known definitions: the BF16 reference (with its `dtype`
-entries) or an `anchor` or `half` record whose weights, compute, embedding scale and attention rows are those of one of
-its definitions, with the three scales computed from `hidden_size`. The comparison passes only when both records pass
+entries) or an `anchor` or `half` record whose `stage` is the stage of one of its definitions and whose `compute` holds
+exactly the weights, compute, embedding scale and attention rows of that definition and nothing else, with the three
+scales computed from `hidden_size`. The comparison passes only when both records pass
 these checks and passed, differ in SHA-256 and are not the same file (a hard or symbolic link included), every token
 and logits file has the size and SHA-256 that its own record lists and is not the same file as its counterpart, the
 token counts, saved positions, first scoring row and scoring positions equal that record, every array is float32 with

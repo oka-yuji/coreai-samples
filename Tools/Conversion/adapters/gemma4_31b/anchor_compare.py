@@ -70,9 +70,8 @@ def identity(record, expected):
     else:
         known = [definition("anchor", expected, weights, scale) for weights in ("bfloat16", "float16")
                  for scale in expected["scales"]] + [definition("half", expected)]
-        compute = record.get("compute")
-        found = {"stage": record.get("stage"), **compute} if record.get("schema") == anchor.SCHEMA \
-            and isinstance(compute, dict) and {"stage": record.get("stage"), **compute} in known else None
+        found = next((item for item in known if record.get("schema") == anchor.SCHEMA and record.get("stage") == item["stage"]
+                      and record.get("compute") == {key: value for key, value in item.items() if key != "stage"}), None)
     known = found is not None and record.get("device") == expected["device"]
     return found, ([] if known else [UNKNOWN]) + provenance(record, expected)
 
