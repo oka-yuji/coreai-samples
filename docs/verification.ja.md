@@ -140,6 +140,69 @@ COREAI_GEMMA4_SHAPE_BUNDLES=/path/to/bundle-a:/path/to/bundle-b COREAI_GEMMA4_SH
 
 試験はバンドルごとに、固定の英語の文をバンドルの tokenizer で token にし、`<bos>` と続く 299 トークンを使います。`prefill` での読み込みと 1 回の呼び出しでの読み込みは別々のエンジンで行い、それぞれのエンジンで 1 トークンずつ読んだ logits を基準にします。2 関数の資産では、位置 0 から `prefill` 関数で 1 トークン、続けて 2 トークンを読んだエンジンが、次に位置 0 から `main` で 3 トークンを読むと、MPSGraph でプロセスが止まります(`Failed to resolve dynamic dimensions for memref.alloc`。2・3 トークンの後の 4 トークンも同じ)。新しいエンジンでは止まりません。長さ 1〜300 のそれぞれで、エンジンを空にしてから `prefill` で読んだ最後の位置、または 1 回の `main`(`readInOneCall`)で読んだ最後の位置を、そのエンジンの基準との絶対値の差の最大で比べます。`prefill` は全部の長さで 2.0 未満で、予定どおりの呼び出しをすること。1 回の `main` は 97〜112 のどれかで 2.0 以上になり、ほかの長さでは 2.0 未満であること。非有限値が無いこと。2.0 は、#665 で測った正常な形の差(0.17〜0.84)と誤りの形の差(3.06〜6.19)の間に置いた値です。記録には、バンドルごとに `main_hash`、規則、トークン、時間、2 つの基準が等しいかと、長さごとの `prefill` の呼び出しの長さの列、2 つの差、非有限値の数を書きます。
 
+## 品質評価の出力の記録
+
+`coreai-verify evaluate` は、品質評価の入力の token 列から、自前のエンジンで生成し、品質契約の出力の記録と実行の記録を書きます(例えば [Gemma 4 31B の品質契約](specs/gemma4-31b-quality-contract.md)の §5.1)。モデルを読むので、先に `AGENTS.md` にある重いジョブのロックを取ります。
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify evaluate --model <bundle> --inputs inputs.jsonl --contract ../LLMEvaluation/contract.json \
+  --set primary --role fp16 --commit <commit> --output <run-folder>
+```
+
+| 指定 | 意味 |
+|---|---|
+| `--model` | バンドルのフォルダ。資産に `main.hash` が要ります。実行の記録で資産を示すのに使います。 |
+| `--inputs` | 入力の記録。形は下に書きます。 |
+| `--contract` | 契約の `contract.json`。その `version` と SHA-256 を実行の記録に書き、`generation.eos_token_id` を停止 token にします。`--role` は、その `roles` の鍵のどれかにします。 |
+| `--set`、`--role` | 実行の記録に書く集合の名前(例: `primary`)と役割(例: `fp16`)。 |
+| `--commit` | 実行の記録に書くリポジトリの commit。コマンドは git を呼びません。 |
+| `--output` | 既にあるフォルダの中の新しい実行のフォルダか、再開する同じ実行のフォルダ。`run.json` の無い既存のフォルダは、空か、空の `outputs.jsonl` だけ(0 行の `progress.json` があってもよい)のとき(`run.json` を書く前に止まった開始が残す形)に限り、新しい実行として始めます。それ以外の `run.json` の無いフォルダは断ります。 |
+| `--max-minutes` | 任意。コマンドを始めてからこの分数が過ぎたら、いまの item を書いたところで正常に終わります。そのため、残りの item があれば 1 件は必ず流れます。 |
+| `--limit` | 任意。入力の記録の先頭から N 件だけ流します(確認用)。 |
+
+`inputs.jsonl` は 1 行に 1 件の入力の記録で、JSON のオブジェクトに `id`(文字列)、`input_ids`(token ID の配列)、`input_sha256`(ID を 10 進で書いてコンマでつないだ UTF-8 の SHA-256。`logits` の `tokens_sha256` と同じ)、`max_new_tokens`(その item が生成してよい token の数の上限。停止 token も数える)を持ちます。ほかの項目は読みません。モデルを読む前に全件を確かめ、同じ `id` が 2 回ある、`input_ids` が空か `language.vocab_size` の外の ID を含む、`max_new_tokens` が正でない、`input_sha256` が ID と合わない、のどれかがあれば、何も書かずに止まります。
+
+item ごとに、エンジンを空にし、入力を `prefill` で読み(バンドルに `prefill` 関数があればそれで読む)、各 step で最後の位置の logits(float16、語彙の全体)を読みます。logits に非有限値がある step で、その item を終えます。そうでなければ、logits の大きい順に 2 つの token を `top2` に足し(同じ値なら小さい ID が先)、その確率は、最大の logit を引いてから倍精度で取った語彙の全体の温度 1 の softmax の値にします。順位は logits で決めるので、1 位から大きく離れた 2 位は、確率が 0 に丸まっても 2 位のままです。その 1 位が生成する token です。停止 token なら、`stop` を `stop_token` にして item を終えます。それ以外は `output_ids` に足し、`max_new_tokens` に達したら `stop` を `limit` にして終え、達していなければ `step` でその token を読みます。停止 token と、上限に達した最後の token は読みません。
+
+実行のフォルダには 3 つのファイルを置きます。
+
+| ファイル | 内容 |
+|---|---|
+| `outputs.jsonl` | item ごとの出力の記録。1 行に 1 件の JSON のオブジェクトで、item を終えるごとに追記してディスクへ同期します |
+| `progress.json` | `outputs.jsonl` の確定した行の数 `lines` と、それらの行の改行を含むバイト列の SHA-256 `sha256`、これから書く 1 行を足した後の SHA-256 `next_sha256`(行を書いている間だけある)、実行の `id` と再開で照合する条件を、鍵の順を固定した JSON にしたものの SHA-256 `run`。行を追記して同期する前に、atomic に置き換えてその行を予告し、次の予告か実行の終わりで、その行を確定させます。これと、これが指す `outputs.jsonl` の行が、済んだ item の正本です |
+| `run.json` | 実行の記録。実行の始めと終わりに書きます |
+
+| 出力の記録の項目 | 値 |
+|---|---|
+| `id`、`input_sha256` | 入力の記録の値 |
+| `input_tokens` | 入力の token の数 |
+| `output_ids` | 最初の停止 token より前に生成した ID |
+| `stop`、`stop_token` | `stop_token`(`stop_token` にその停止 token の ID)か、`limit`(`stop_token` は無い) |
+| `top2` | 生成した token ごとに(停止 token も数える)1 件の `[1 位の ID, 1 位の確率, 2 位の ID, 2 位の確率]`。`limit` で終わった item の件数は `output_ids` と同じ |
+| `error` | 誤りなく終わった item には無い。それ以外は終わった理由: logits の非有限値か、`prefill`・`step` が投げた誤り(文脈の上限など)。その item は、それまでの `output_ids` と `top2` を残して `stop` を `limit` にし、実行は次の item へ進みます。 |
+| `non_finite` | item を終えた step の logits の非有限値の数。それ以外は 0 |
+
+| 実行の記録の項目 | 値 |
+|---|---|
+| `id` | 実行を最初に始めたときに作る UUID。再開しても変えない。`progress.json` はこれに結び付く |
+| `contract` | `contract.json` の `version` と `sha256` |
+| `set`、`role` | 指定の値 |
+| `asset` | バンドルの `name`、`main_hash`、`metadata.json` に `source.hf_model_id` があれば `source_model_id` |
+| `implementation` | `command`(`coreai-verify evaluate`)、`commit`、`os_version`、`os_build` |
+| `call_shape` | エンジンの `prefill_chunk`、`prefill_function`、`expect_frequent_reshapes`、`requested_compute` と、`metadata.json` の `language.max_context_length` で決まる実効の文脈の上限 `context_limit` |
+| `inputs` | 入力のファイルの `sha256` と `count` |
+| `items` | `run.json` を書いたとき(各回の始めと、`--max-minutes`・`--limit` での終わりを含む正常な終わり)の、済んだ item の数。実行の途中と、異常に止まった後は、これより多く済んでいることがあります。済んだ item の正本は `progress.json` と、それが指す `outputs.jsonl` の行です。 |
+| `started`、`finished` | 実行を最初に始めた時刻と、最後に終えた時刻。実行の途中と、誤りで止まった後は `finished` が無い |
+| `load` | 最初の回のエンジンの読み込みの `cached`、`specialize_s`、`load_s` |
+
+`--output` に `run.json` があるときは、同じ実行のものでなければなりません。`contract`、`set`、`role`、`asset.main_hash`、`asset.source_model_id`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。エンジンは `asset.source_model_id` で入力の読み方を選ぶので、これも、無いことを含めて比べます。`id` の無い `run.json`(このコマンドの前の版が書いたもの)は再開できません。`progress.json` があり、その `run` が `run.json` の `id` と条件の SHA-256 と同じでなければなりません。`run.json` の `items` は 0 から入力の記録の件数まで、`progress.json` の `lines` は 0 から `outputs.jsonl` の改行で終わる行の数まででなければなりません。`outputs.jsonl` の最後の改行より後ろのバイト(書いている途中で切れた行)は脇に置きます。改行で終わる行が `items` 行以上あり、かつ、`lines` 行でその SHA-256 が `sha256` と同じか、1 行多くて `next_sha256` と同じ(予告した行を書き終えた後に止まった)なら、それらの行を済んだ item とし、切れたバイトを消して、その item を流し直します。どちらでもなければ、何も生成せず、何も消さずに止まります。改行で終わる行は、どの場合も消しません。済んだ item は流し直しません(誤りで終わった item も)。その中に、入力の記録に無い `id` か、2 回出てくる `id` があれば止まります。この検査が見つけるのは、途中で切れた末尾、`outputs.jsonl` と `progress.json` の食い違い(片方だけが古い・新しい・変わった)、条件の違う実行のファイル、条件が同じでも別の実行のファイル、`run.json` の `items` より少ない行数です。見つけないのは、同じ回の途中の時点へ `outputs.jsonl` と `progress.json` を揃えて戻すこと(その時点での中断と区別できないので、戻した時点から続けます)と、`outputs.jsonl` と `progress.json` を互いに合うように意図して書き換えること(`run.json` を変えなくても通ります。再開は行の意味を検査し直しません。行の意味は生成の試験が受け持ちます)です。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
+
+標準出力には item ごとに 1 行の JSON を出します。`record` が `evaluate` で、`id`、`input_tokens`、`output_tokens`、`stop`(`stop_token`、`limit`、item に誤りがあれば `error`)、`seconds` を持ちます。文は出しません。取り消しと、入力の記録・契約・バンドル・実行のフォルダを読めないときは、item の誤りにせず、コマンドを止めます。
+
+モデルの要らない確認は `swift test --package-path Tools/Verify -c release --filter "EvaluationRecordTests|EvaluationRunTests"` です。
+
 ## 計測項目と境界
 
 依頼ごとの計測は、明示したときだけ行います。`chat --runtime own --measure summary` は各 `turn` の記録に `measurement` を足し、`--measure trace` はさらにサンプルごとの行を足します。既定の `--measure off` では、この項目は無く、生成、停止、エラー、メタデータ、使用量は、この指定が無いときと同じです。`tools` は `--measure` を断り、`bench` にはこの指定がありません。値は `CoreAIBackend` が採り、`coreai-verify` が出力します。Verification SPI の `lastRequestMeasurement()` は、`lastGeneratedTokens()` と同じく実行に入った最後の依頼の計測を返し、その依頼が生成の前に終わったとき(文脈あふれや読み込みの失敗など)は何も返しません。`turn` の記録は、そのターンの依頼に計測が無ければ `measurement` を持ちません。実行の前に断られた依頼では SPI に前の依頼の計測が残るので、CLI は `request_id` を前のターンのものと比べます。時間は 1 つの単調な時計で測った秒、回数は整数です。

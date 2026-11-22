@@ -141,6 +141,69 @@ COREAI_GEMMA4_SHAPE_BUNDLES=/path/to/bundle-a:/path/to/bundle-b COREAI_GEMMA4_SH
 
 For each bundle, the test encodes a fixed English text with the bundle's tokenizer and keeps `<bos>` and the next 299 tokens. The `prefill` reads and the one-call reads use separate engines, each with its own reference read one token at a time. On the two-function asset, an engine that has run the `prefill` function with 1 and then 2 tokens from position 0 aborts the process in MPSGraph (`Failed to resolve dynamic dimensions for memref.alloc`) when `main` then reads 3 tokens from position 0 (and likewise 4 tokens after 2 and 3); a new engine does not. For every length from 1 to 300, the test resets the engine and compares the last position's logits after `prefill`, or after one `main` call (`readInOneCall`), with that engine's reference, by the largest absolute difference. The prefill read must stay below 2.0 at every length and make the planned calls. The one-call read must reach 2.0 at some length from 97 to 112 and stay below 2.0 at every other length. No logit may be non-finite. The value 2.0 lies between the differences that #665 measured for the normal shapes (0.17 to 0.84) and for the failing shapes (3.06 to 6.19). The report has, for each bundle, `main_hash`, the rule, the tokens, the times, whether the two references are equal, and for each length the calls of the prefill read, both differences and the non-finite counts.
 
+## Evaluation output records
+
+`coreai-verify evaluate` generates from the input token sequences of a quality evaluation with the own engine, and writes the output records and the run record of a quality contract, such as §5.1 of the [Gemma 4 31B quality contract](specs/gemma4-31b-quality-contract.md). It loads the model, so take the heavy-job lock described in `AGENTS.md` first.
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify evaluate --model <bundle> --inputs inputs.jsonl --contract ../LLMEvaluation/contract.json \
+  --set primary --role fp16 --commit <commit> --output <run-folder>
+```
+
+| Option | Meaning |
+|---|---|
+| `--model` | The bundle folder. Its asset must have `main.hash`, which names the asset in the run record. |
+| `--inputs` | The input records, described below. |
+| `--contract` | The contract's `contract.json`. Its `version` and SHA-256 go into the run record, its `generation.eos_token_id` are the stop tokens, and `--role` must be one of the keys of its `roles`. |
+| `--set`, `--role` | The set name, such as `primary`, and the role, such as `fp16`, written to the run record. |
+| `--commit` | The repository commit written to the run record. The command does not run git. |
+| `--output` | A new run folder inside an existing folder, or the folder of the same run to resume. An existing folder without `run.json` starts a new run only when it is empty, or holds nothing but an empty `outputs.jsonl` and possibly a `progress.json` of no lines, as a start that stopped before writing `run.json` leaves it; any other folder without `run.json` is rejected. |
+| `--max-minutes` | Optional. Once this many minutes have passed since the command started, the run ends normally after the item in progress is written, so at least one item runs when items remain. |
+| `--limit` | Optional. Runs only the first N input records, for a check. |
+
+`inputs.jsonl` holds one input record per line, a JSON object with `id` (a string), `input_ids` (an array of token IDs), `input_sha256` (the SHA-256 of the IDs written in decimal and joined by commas, as UTF-8; the `tokens_sha256` of `logits`) and `max_new_tokens` (the most tokens the item may generate, counting a stop token). Other fields are ignored. Before it loads the model, the command checks every record and stops without writing anything when an id appears twice, `input_ids` is empty or holds an ID outside `language.vocab_size`, `max_new_tokens` is not positive, or `input_sha256` differs from the IDs.
+
+For each item the engine is reset, the input is read with `prefill` (through the `prefill` function when the bundle has one), and each step reads the logits of the last position, float16 over the whole vocabulary. A step with non-finite logits ends the item. Otherwise the step appends to `top2` the two tokens with the largest logits, a tie going to the lower ID, with their probabilities from the temperature-1 softmax over the whole vocabulary in double precision, taken after subtracting the largest logit. The ranking uses the logits, so a second token far below the first stays second even when its probability rounds to zero. The first of them is the generated token. A stop token ends the item with `stop` set to `stop_token`. Any other token is appended to `output_ids`; at `max_new_tokens` the item ends with `stop` set to `limit`, and otherwise the token is read with `step`. Neither the stop token nor the last token at the limit is read.
+
+The run folder holds three files:
+
+| File | Contents |
+|---|---|
+| `outputs.jsonl` | One output record per item, one JSON object per line, appended and synced to disk as each item ends |
+| `progress.json` | `lines`, the number of confirmed lines of `outputs.jsonl`, and `sha256`, the SHA-256 of their bytes with their newlines; `next_sha256`, the SHA-256 after the line about to be written, present only while a line is being written; and `run`, the SHA-256 of the run's `id` and the conditions that a resume compares, written as JSON with sorted keys. Before each line is appended and synced, the command replaces it atomically to announce the line, and the next announcement or the end of the run confirms the line. With the lines of `outputs.jsonl` that it covers, it is the record of the finished items. |
+| `run.json` | The run record, written when the run starts and when it ends |
+
+| Output record field | Value |
+|---|---|
+| `id`, `input_sha256` | From the input record |
+| `input_tokens` | The number of input tokens |
+| `output_ids` | The generated IDs before the first stop token |
+| `stop`, `stop_token` | `stop_token` with the stop token's ID in `stop_token`, or `limit` without `stop_token` |
+| `top2` | One `[first id, first probability, second id, second probability]` per generated token, counting a stop token, so an item that ended on `limit` has as many entries as `output_ids` |
+| `error` | Absent when the item ended without an error. Otherwise the reason it ended: non-finite logits, or an error thrown by `prefill` or `step`, such as a context overflow. Such an item keeps the `output_ids` and `top2` generated so far and has `stop` set to `limit`, and the run continues with the next item. |
+| `non_finite` | The number of non-finite logits at the step that ended the item, otherwise 0 |
+
+| Run record field | Value |
+|---|---|
+| `id` | A UUID made when the run first starts, kept by every resume; `progress.json` is bound to it |
+| `contract` | `version` and `sha256` of `contract.json` |
+| `set`, `role` | The options |
+| `asset` | The bundle's `name`, `main_hash`, and `source_model_id` (`source.hf_model_id` in `metadata.json`) when present |
+| `implementation` | `command` (`coreai-verify evaluate`), `commit`, `os_version` and `os_build` |
+| `call_shape` | The engine's `prefill_chunk`, `prefill_function`, `expect_frequent_reshapes`, `requested_compute` and `context_limit`, the effective context limit that `language.max_context_length` in `metadata.json` sets |
+| `inputs` | `sha256` and `count` of the input file |
+| `items` | The number of finished items when `run.json` was written: when a session starts, and when it ends normally, including an end by `--max-minutes` or `--limit`. While a run is in progress and after it stopped abnormally, it can be smaller; the record of the finished items is `progress.json` with the lines of `outputs.jsonl` that it covers. |
+| `started`, `finished` | When the run first started, and when it last ended; `finished` is absent while the run is in progress or after it stopped on an error |
+| `load` | `cached`, `specialize_s` and `load_s` of the engine load in the first session |
+
+When `--output` holds a `run.json`, it must be that of the same run: `contract`, `set`, `role`, `asset.main_hash`, `asset.source_model_id`, `inputs`, `call_shape` and `implementation` must equal this run's, or the command stops before it generates. The engine chooses how it reads the input by `asset.source_model_id`, so it is compared as well, including when it is absent. A `run.json` without `id`, written by an earlier version of this command, cannot be resumed. `progress.json` must exist, and its `run` must equal the digest of the `id` and the conditions in `run.json`. `items` in `run.json` must be from 0 to the number of input records, and `lines` in `progress.json` from 0 to the number of complete lines of `outputs.jsonl`. Bytes after the last newline of `outputs.jsonl`, a line cut by an interrupted write, are left aside. The complete lines are the finished items when there are at least `items` of them and either `lines` of them with the SHA-256 `sha256`, or one more with `next_sha256`, the announced line that was written before the run stopped; the cut bytes are then removed, and their item runs again. Otherwise the command stops before it generates and removes nothing. A complete line is never removed. The finished items do not run again, including items that ended with an error, and an id among them that is not in the input records or appears twice stops the command. These checks detect a cut last line; `outputs.jsonl` and `progress.json` that disagree, when only one of them is older, newer or changed; files of a run with other conditions; files of another run, even with the same conditions; and fewer complete lines than `items` in `run.json`. They do not detect two things: `outputs.jsonl` and `progress.json` rolled back together to an earlier point of the same session, which cannot be told from an interruption at that point, so the run continues from there; and `outputs.jsonl` and `progress.json` rewritten on purpose to match each other, which pass even when `run.json` is left unchanged, because a resume does not check the meaning of the lines again (the tests of the generation cover it). A resumed run keeps `started` and `load`, and updates `items` and `finished`.
+
+Standard output gets one JSON line per item, with `record` set to `evaluate`, `id`, `input_tokens`, `output_tokens`, `stop` (`stop_token`, `limit`, or `error` when the item has an error) and `seconds`. It prints no text. Cancellation and failures to read the input records, the contract, the bundle or the run folder stop the command instead of becoming an item error.
+
+The model-free checks are `swift test --package-path Tools/Verify -c release --filter "EvaluationRecordTests|EvaluationRunTests"`.
+
 ## Measurement fields and boundaries
 
 The per-request measurement is opt-in. `chat --runtime own --measure summary` adds a `measurement` object to each `turn` record, and `--measure trace` also adds one row per sample. `--measure off`, the default, leaves the record without this field, and generation, stops, errors, metadata and usage are the same as without the option. `tools` rejects `--measure`, and `bench` has no such option. `CoreAIBackend` collects the values and `coreai-verify` prints them. The Verification SPI `lastRequestMeasurement()` returns the measurement of the last request admitted to execution, like `lastGeneratedTokens()`, and nothing when that request ended before generation, for example on a context overflow or a load failure. A turn record omits `measurement` when its own request has none; a request rejected before execution leaves the previous request's measurement in the SPI, so the CLI compares `request_id` with the previous turn's. Times are seconds from one monotonic clock and counts are integers.
