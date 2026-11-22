@@ -118,7 +118,7 @@ class LayerwiseTests(unittest.TestCase):
         weight = model.get_parameter(name)
         self.assertTrue(torch.equal(scaled(name), weight.to(torch.float16).float()))
 
-    def test_the_float16_loading_gives_the_state_of_the_float16_checkpoint_loading(self):
+    def test_the_float16_loading_keeps_the_bf16_embedding_scale_and_the_state_of_the_float16_loading(self):
         with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()), \
                 contextlib.redirect_stderr(io.StringIO()):
             tiny_model(folder)
@@ -131,9 +131,11 @@ class LayerwiseTests(unittest.TestCase):
         for name, tensor in wanted.items():
             with self.subTest(name=name):
                 self.assertEqual(state[name].dtype, tensor.dtype)
-                self.assertTrue(torch.equal(state[name], tensor))
-        self.assertEqual((float(state[anchor.SCALE]), str(state["model.language_model.layers.0.layer_scalar"].dtype)),
-                         (6.9296875, "torch.float16"))
+                self.assertEqual(name == anchor.SCALE, not torch.equal(state[name], tensor))
+        bf16 = self.model.model.language_model.embed_tokens.embed_scale
+        self.assertEqual((str(bf16.dtype), float(state[anchor.SCALE]), float(wanted[anchor.SCALE])),
+                         ("torch.bfloat16", float(bf16.to(torch.float16)), 6.9296875))
+        self.assertEqual(str(state["model.language_model.layers.0.layer_scalar"].dtype), "torch.float16")
         self.assertIs(model.lm_head.weight, model.model.language_model.embed_tokens.weight)
 
     def test_ranges_are_recorded_for_every_layer_and_the_hooks_are_removed(self):

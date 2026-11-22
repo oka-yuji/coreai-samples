@@ -238,10 +238,6 @@ def load(snapshot, dtype, device, config=None):
                 if device == "mps":
                     torch.mps.synchronize()
                     torch.mps.empty_cache()
-        for module in model.modules():
-            if hasattr(module, "scalar_embed_scale"):
-                module.embed_scale = torch.tensor(module.scalar_embed_scale, dtype=torch.float16,
-                                                  device=module.embed_scale.device)
     return model, info
 
 

@@ -165,10 +165,11 @@ has ended without a stop.
   finite results. Its `passed` requires clean loading, no NaN or infinite value in any saved row, a clean monitor and
   recorded resources. The recipe runs it four times: `anchor` (BF16 weights, scale 73.5), `anchor_w16` (float16
   weights, scale 73.5), `anchor_scale_fp32` and `anchor_scale_fp16` (BF16 weights, the other two scales).
-- `half` loads the BF16 weights on MPS like `reference`, replaces every BF16 parameter and buffer by its float16 cast
-  one tensor at a time and sets the embedding scale to √5376 in float16 (73.3125), which gives the state that
-  `from_pretrained(dtype=torch.float16)` builds (a unit test compares every tensor on a small model). It then runs the
-  same one-pass forward as `reference` (`use_cache=False`) in float16. It saves the logits in the same layout and counts the values that are not finite per case. Its `passed`
+- `half` loads the BF16 weights on MPS like `reference` and replaces every BF16 parameter and buffer by its float16
+  cast one tensor at a time. The embedding scale therefore keeps the BF16 value 73.5 (exact in float16), the constant of
+  `anchor_w16`, while every other tensor has the dtype and value that `from_pretrained(dtype=torch.float16)` gives (a
+  unit test compares every tensor on a small model; `from_pretrained` itself would compute the scale as 73.3125). It then
+  runs the same one-pass forward as `reference` (`use_cache=False`) in float16. It saves the logits in the same layout and counts the values that are not finite per case. Its `passed`
   requires clean loading, a clean monitor and recorded resources, not finite logits.
 - `layers` (role `verify`) loads layers 0 to 5 (five sliding-window layers and one full-attention layer) with the
   embedding, the final norm and the head in BF16 on MPS and requires the loading lists to be empty except the unexpected

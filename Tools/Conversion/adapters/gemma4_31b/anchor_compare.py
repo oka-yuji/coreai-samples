@@ -50,7 +50,7 @@ def definition(stage, expected, weights=None, scale=None):
     if stage == "anchor":
         return {"stage": stage, "weights": weights, "compute": "float32", "embed_scale": scales[scale], "attention_rows": anchor.ROWS}
     if stage == "half":
-        return {"stage": stage, "weights": "float16", "compute": "float16", "embed_scale": scales["float16"], "attention_rows": None}
+        return {"stage": stage, "weights": "float16", "compute": "float16", "embed_scale": scales["bfloat16"], "attention_rows": None}
     if stage == "reference":
         return {"stage": stage, "weights": "bfloat16", "compute": "bfloat16", "embed_scale": scales["bfloat16"],
                 "attention_rows": None}
