@@ -98,11 +98,11 @@ swift build -c release
 | 指定 | 意味 |
 |---|---|
 | `--tokens` | トークン ID の JSON の配列(例: `[151644, 872, 198]`)。空の配列は断ります。各 ID は `language.vocab_size` 未満、トークンの数は `language.max_context_length` 以下にします。 |
-| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの `callLengths(from:count:)` が返す呼び出しで読みます。1 回はエンジンの prefill の塊の長さ(記録の `prefix_chunk`)以下で、[呼び出しの形の規則](#呼び出しの形)が求めるところでは短くなります(最後の、または唯一の呼び出しも短いことがある)。その行はファイルに書きません。`prefill` 関数があればそれで読み、logits の配列を作りません。無ければ `main` で読むので、`--chunk` によらず、最大で前置きの塊 × 語彙 × 2 バイトの logits の配列が要ります(4,096 × 262,144 で 2 GiB)。 |
+| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの `callLengths(from:count:)` が返す呼び出しで読みます。1 回はエンジンの prefill の塊の長さ(記録の `prefix_chunk`)以下で、[呼び出しの形の規則](#呼び出しの形)が求めるところでは短くなります(最後の、または唯一の呼び出しも短いことがある)。その行はファイルに書きません。`prefill` 関数があればそれで読み、logits の配列を作りません。ただし、呼び出しの形の規則が前置きを prefill の塊と違う分け方にするときは `main` で読み、その logits は捨てます。`prefill` 関数が無ければ `main` で読むので、`--chunk` によらず、最大で前置きの塊 × 語彙 × 2 バイトの logits の配列が要ります(4,096 × 262,144 で 2 GiB)。 |
 | `--chunk` | `--start` から後を 1 回の `main` に通すトークンの数で、正の数。1 回ごとにちょうど 1 回の `main` の呼び出しで、最後の 1 回は短くなることがあります。 |
-| `--output` | 出力のファイル。まだ無いファイルを指定します。あるファイルは上書きしません。 |
+| `--output` | 出力のファイル。まだ無いファイルを指定します。あるファイルは上書きしません。行は同じパスの末尾に `.partial` を足したファイルに書き、最後の行を書いてから出力の名前に替えます。前の実行が残した `.partial` のファイルは上書きします。 |
 
-位置 p の行は、トークン列の 0 番目から p 番目までを読んだ後の、次のトークンの分布です(`main` が位置 p について返した logits)。ファイルはヘッダの無い little-endian の float16 で、形は `[位置数, 語彙]`、位置数はトークンの数 − 開始位置です。各行はその `main` の呼び出しが返ったらすぐに書きます。メモリに要るのは 1 回の `main` の行(塊の長さ × 語彙 × 2 バイト)です。例えば語彙 262,144 で、塊 256 なら 128 MiB、16,384 位置を 1 つの塊にすると 8 GiB です。`prefill` 関数が無い資産では、`--start` より前を読む間も最大で前置きの塊 × 語彙 × 2 バイトが要り、`--chunk` を小さくしても減りません。ファイルは位置数 × 語彙 × 2 バイトです。失敗したときは自分で作ったファイルを消します。記録の行が出たファイルだけを完全なものとして扱います。NumPy では `np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。
+位置 p の行は、トークン列の 0 番目から p 番目までを読んだ後の、次のトークンの分布です(`main` が位置 p について返した logits)。ファイルはヘッダの無い little-endian の float16 で、形は `[位置数, 語彙]`、位置数はトークンの数 − 開始位置です。各行はその `main` の呼び出しが返ったらすぐに書きます。メモリに要るのは 1 回の `main` の行(塊の長さ × 語彙 × 2 バイト)です。例えば語彙 262,144 で、塊 256 なら 128 MiB、16,384 位置を 1 つの塊にすると 8 GiB です。`prefill` 関数が無い資産では、`--start` より前を読む間も最大で前置きの塊 × 語彙 × 2 バイトが要り、`--chunk` を小さくしても減りません。ファイルは位置数 × 語彙 × 2 バイトです。誤りで失敗したときは `.partial` のファイルを消します。誤りを返さずにプロセスが止まったときは `.partial` のファイルが残り、同じ出力の次の実行が上書きします。出力の名前のファイルは完全なものだけで、記録の行は名前を替えた後に出ます。NumPy では `np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。
 
 記録は `record` が `logits` の JSON の 1 行です。
 
@@ -111,7 +111,7 @@ swift build -c release
 | `token_count`、`tokens_sha256` | トークンの数と、10 進の ID をコンマでつないだ文字列の SHA-256 |
 | `start`、`chunk` | 指定の値 |
 | `shape`、`dtype`、`byte_order` | `[位置数, 語彙]`、`float16`、`little` |
-| `prefix_function`、`prefix_chunk`、`prefix_calls` | `start` より前のトークンを読んだ関数(`prefill`、`prefill` 関数が無ければ `main`。`start` が 0 のときは無い)、1 回の呼び出しのトークンの数の上限で、エンジンの prefill の塊の長さ(最後の、または唯一の呼び出しと、呼び出しの形の規則で短くした呼び出しは、それより短いことがある)、実際に呼んだ回数 |
+| `prefix_function`、`prefix_chunk`、`prefix_calls` | `start` より前のトークンを読んだ関数(`prefill`。`prefill` 関数が無いときと、呼び出しの形の規則が前置きを prefill の塊と違う分け方にするときは `main`。`start` が 0 のときは無い)、1 回の呼び出しのトークンの数の上限で、エンジンの prefill の塊の長さ(最後の、または唯一の呼び出しと、呼び出しの形の規則で短くした呼び出しは、それより短いことがある)、実際に呼んだ回数 |
 | `main_calls` | `start` から後の `main` の呼び出しの回数 |
 | `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いときは無い |
 | `requested_compute`、`expect_frequent_reshapes`、`cached`、`cache_query_error`、`specialize_s` | 自前のエンジンの特殊化の要求とキャッシュの状態。`own-load` の記録と同じ |
@@ -130,7 +130,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit -
 
 Gemma 4 31B の変換物には、Core AI が誤った logits を返す呼び出しの形が 1 つあります。8 トークン以上の呼び出しで、呼び出しの後の位置の総数が 97〜112 になるものです。#665 では、先頭 6 層の FP16 で logits が FP32 の参照から最大 6.19 ずれました(非有限値は出ていません)。`Engine` は、`metadata.json` の `source.hf_model_id` が `google/gemma-4-31B-it` の資産でだけ、この形を避けます。ほかの資産の呼び出しの長さは変えません。prefill の 2 つの経路(`prefill` 関数と `main`)はどちらも、prefill の塊の長さ以下で、そこで終わらない最も長い呼び出しを選びます。位置 0 から、100 トークンは 96 + 4、112 トークンは 96 + 7 + 7 + 2 で読みます。`prefill` 関数の経路は、今までどおり最後の 1 トークンを `main` に残します。規則は `Engine` が出どころのモデル ID で引く表で持ち、バンドルの項目にはしていません。`readInOneCall(_:usePrefillFunction:)` は渡された塊を今までどおり 1 回で読むので、誤りを再現できます。`coreai-verify logits` は、`--start` より前を `callLengths(from:count:)` で読み、`--start` から後は `--chunk` の長さのまま読みます。
 
-Gemma 4 31B の `prefill` 関数を持つ資産では、`--start` が 97〜112 のとき、規則が `coreai-verify logits` の前置きを 2 回以上の呼び出しに分けます。そのような前置きの直後の、`--chunk` 個のトークンの最初の `main` の呼び出しで、MPSGraph の assertion(`Failed to resolve dynamic dimensions for memref.alloc`)でプロセスが止まることがあります。`--start 100 --chunk 4`(前置きは 96 + 4)で止まり、`--start 103 --chunk 7` と同じ呼び出し(96 + 7 の後に 7)も、エンジンを直接使った確認で止まりました。どちらも、塊の長さが前置きの最後の呼び出しと同じでした。`--start 112 --chunk 4`(96 + 7 + 7 + 2)では止まらず、`--start 100 --chunk 8`、`--start 101 --chunk 4`、`--start 112 --chunk 2` と同じ呼び出しも止まりませんでした。分けた前置きの後の 1 トークンの `main` の呼び出し(`--chunk 1` と同じ)は止まっていません。`prefill` は前置きを同じ呼び出しで読んでから 1 トークンを `main` で読み、下のモデルの確認は、これを長さ 1〜300 のすべての入力で行います。`prefill` 関数を持たない資産では、同じ長さを `main` で読んでも(96 + 4 の後に 4、96 + 7 + 7 + 2 の後に 2)止まりませんでした。止まる条件の全体は分かっていません。
+Gemma 4 31B の `prefill` 関数を持つ資産では、`readInOneCall` で `prefill` 関数を 2 回以上続けて呼んだ直後の、複数トークンの `main` の呼び出しで、MPSGraph の assertion(`Failed to resolve dynamic dimensions for memref.alloc`)でプロセスが止まることがあります。エンジンを直接使った確認では、`prefill` 96 + 4 の後の `main` 4、96 + 7 の後の 7、50 + 3 の後の 3 で止まり、`prefill` 100 の後の `main` 4、96 + 4 の後の 8、96 + 5 の後の 4、96 + 7 + 7 + 2 の後の 2 では止まりませんでした。`prefill` 関数を持たない資産で同じ長さを読んだときも止まりませんでした。止まる条件の全体は分かっていません。`prefill` は最後に 1 トークンの `main` を呼び、下のモデルの確認では長さ 1〜300 のどの入力でも止まっていません。`coreai-verify logits` は、規則が前置きを prefill の塊と違う分け方にするとき(この資産では `--start` が 97〜112)、前置き全体を `main` で読み、その logits は捨てます。それ以外は今までどおり `prefill` 関数で読みます。`prefill` 関数を持つ先頭 6 層の FP16 の資産で、128 トークンの入力に対し、`--start` 96〜113 のすべてと `--chunk` 1・2・4・7・8 の組(90 回)が止まらずに終わり、非有限値もありませんでした。書き出した logits と `--start 0 --chunk 1` の logits の差は、`--chunk` の呼び出しがこの形を含まない回ではどれも 0.754 以下でした。`--chunk 8` で `--start` が 96〜104 の回では、`--chunk` をそのまま読むので、8 トークンの書き出しの呼び出しが 97〜112 で終わります。その呼び出しの差は 1.34〜15.85、それらの回のほかの行は 0.512 以下でした。
 
 モデルの要らない確認は `swift test --package-path CoreAISamplesKit --filter CallShapeTests` です。モデルを使う確認には、Gemma 4 31B のバンドルのフォルダを `:` 区切りで `COREAI_GEMMA4_SHAPE_BUNDLES` に、新しい JSON のファイルを `COREAI_GEMMA4_SHAPE_REPORT` に渡します。あるファイルと、出どころのモデル ID が違うバンドルは断ります。先に重いジョブのロックを取ります。`check.sh` は `COREAI_*` の変数を消すので、直接流します。
 
