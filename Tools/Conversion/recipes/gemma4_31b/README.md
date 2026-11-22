@@ -201,7 +201,9 @@ scales computed from `hidden_size`. The comparison passes only when both records
 these checks and passed, differ in SHA-256 and are not the same file (a hard or symbolic link included), every token
 and logits file has the size and SHA-256 that its own record lists and is not the same file as its counterpart, the
 token counts, saved positions, first scoring row and scoring positions equal that record, every array is float32 with
-the shape `[saved positions, 262144]`, the forced tokens of both sides are the same and no logit is NaN or infinite.
+the shape `[saved positions, 262144]`, the forced tokens of both sides are the same, an `anchor` or `half` record
+names in `source` exactly the SHA-256 of the BF16 reference when that is the other side (two such records name the
+same SHA-256) and no logit is NaN or infinite.
 Otherwise `problems` lists the findings: a case with a finding has no metrics, a finding about the records stops before
 the cases, and no group is reported. The output also names the definition of each side (`identities`). The result is
 written to standard output as JSON and nothing else is written there; the exit code is 0 only when it passed. For every

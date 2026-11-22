@@ -9,6 +9,7 @@ import sys
 
 from . import anchor, reference
 from .anchor import parse, read
+from .summary import HEX
 
 SCHEMA = "gemma4-31b-numerics/1"
 RECIPE = Path(__file__).resolve().parents[2] / "recipes/gemma4_31b"
@@ -81,6 +82,16 @@ def identity(record, expected):
                       and record.get("compute") == {key: value for key, value in item.items() if key != "stage"}), None)
     known = found is not None and record.get("device") == expected["device"]
     return found, ([] if known else [UNKNOWN]) + provenance(record, expected)
+
+
+def named_reference(record, other, other_sha256):
+    if record.get("schema") == reference.SCHEMA:
+        return []
+    found = record.get("source")
+    wanted = {"reference_sha256": other_sha256} if other.get("schema") == reference.SCHEMA else other.get("source")
+    valid = isinstance(found, dict) and list(found) == ["reference_sha256"] and isinstance(found["reference_sha256"], str) \
+        and HEX[64].fullmatch(found["reference_sha256"]) is not None
+    return [] if valid and found == wanted else ["the forced inputs do not come from the same BF16 reference record"]
 
 
 def load_case(folder, case, vocabulary):
@@ -229,6 +240,9 @@ def compare(baseline, candidate, expected=None):
         problems += [f"{label}: {issue}" for issue in issues]
         if record.get("passed") is not True:
             problems.append(f"{label}: the record did not pass")
+    for label, record, other, other_sha256 in (("baseline", first, second, second_sha256),
+                                               ("candidate", second, first, first_sha256)):
+        problems += [f"{label}: {issue}" for issue in named_reference(record, other, other_sha256)]
     if first_sha256 == second_sha256:
         problems.append("both artifacts are the same run")
     if paths[0].samefile(paths[1]):

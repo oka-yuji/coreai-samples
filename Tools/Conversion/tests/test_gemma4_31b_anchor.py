@@ -42,6 +42,8 @@ OBSERVED = {"samples": 3, "interval_s": 5, "aborts": 0, "failure": None, "unread
             "lowest": {"free_percent": 40, "free_bytes": {"volume/folder": 1}}}
 EXPECTED = anchor_compare.expectations()
 LIMIT = 64
+ANCHOR_RECORD = {"schema": anchor.SCHEMA, "stage": "anchor",
+                 "compute": {"weights": "bfloat16", "compute": "float32", "embed_scale": 73.5, "attention_rows": 512}}
 
 
 def expected(cases, vocabulary=4, window=4, **changes):
@@ -321,8 +323,7 @@ class CompareTests(unittest.TestCase):
 
     def test_records_that_agree_with_each_other_but_not_with_the_contract_never_pass(self):
         clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
-        anchor_record = {"schema": anchor.SCHEMA, "stage": "anchor",
-                         "compute": {"weights": "bfloat16", "compute": "float32", "embed_scale": 73.5, "attention_rows": 512}}
+        anchor_record = ANCHOR_RECORD
         changes = {"no model": (lambda data: data.pop("model"), ["case"], "the model differs from the contract"),
                    "another revision": (lambda data: data["model"].update(revision="0" * 40), ["case"],
                                         "the model differs from the contract"),
@@ -355,11 +356,32 @@ class CompareTests(unittest.TestCase):
                                  [f"baseline: {message}", f"candidate: {message}"])
         with tempfile.TemporaryDirectory() as folder:
             a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))
-            edit(a, lambda data: data.update(anchor_record))
+            edit(a, lambda data: data.update(anchor_record, source={"reference_sha256": sha256(b / "reference.json")}))
             result = anchor_compare.compare(a, b, expected([("case", "chat")]))
         self.assertTrue(result["passed"])
         self.assertEqual(result["identities"], {"baseline": {"stage": "anchor", **anchor_record["compute"]},
                                                 "candidate": anchor_compare.definition("reference", EXPECTED)})
+
+    def test_a_diagnostic_record_must_come_from_the_compared_or_the_same_bf16_record(self):
+        clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
+        message = "the forced inputs do not come from the same BF16 reference record"
+        with tempfile.TemporaryDirectory() as folder:
+            a, b, c, d = (write_reference(Path(folder) / side, clean) for side in "abcd")
+            named = {"another BF16 record": c / "reference.json", "the compared BF16 record": b / "reference.json"}
+            for label, source in named.items():
+                edit(a, lambda data: data.update(ANCHOR_RECORD, source={"reference_sha256": sha256(source)}))
+                with self.subTest(label=label):
+                    result = anchor_compare.compare(a, b, expected([("case", "chat")]))
+                    self.assertEqual([problem for problem in result["problems"] if problem.endswith(message)],
+                                     [] if source.parent == b else [f"baseline: {message}"])
+            for label, sources in {"other BF16 records": ("c" * 64, "d" * 64), "no BF16 record": (None, None)}.items():
+                for side, value in zip((c, d), sources):
+                    edit(side, lambda data: data.update(ANCHOR_RECORD, source=None if value is None else {"reference_sha256": value}))
+                with self.subTest(label=label):
+                    result = anchor_compare.compare(c, d, expected([("case", "chat")]))
+                    self.assertFalse(result["passed"])
+                    self.assertEqual([problem for problem in result["problems"] if problem.endswith(message)],
+                                     [f"baseline: {message}", f"candidate: {message}"])
 
     def test_inputs_that_are_the_same_file_never_pass(self):
         clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
