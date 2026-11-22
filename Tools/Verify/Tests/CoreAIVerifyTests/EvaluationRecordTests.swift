@@ -17,7 +17,9 @@ func jsonObject(_ data: Data) throws -> [String: Any] {
         "Each step's first top-2 id is the generated token, a tie goes to the lowest id, and the probabilities are the softmax over the whole vocabulary"
     )
     func greedyTopTwo() async throws {
-        let source = FakeEvaluationLogitsSource([.init(rows: [[1, 3, 3, 0], [0, 0, 1, 0], [2, 2, 2, 2], [0, 0, 0, 4]])])
+        let source = FakeEvaluationLogitsSource([
+            .init(rows: [[1, 3, 3, 0], [0, 0, 1, 0], [2, 2, 2, 2], [0, 0, 0, 4]])
+        ])
         let record = try await evaluationInput("a", [5, 6, 7]).generate(with: source, stopTokens: [3])
         #expect(record.top2.map(\.first) == [1, 2, 0, 3])
         #expect(record.top2.map(\.second) == [2, 0, 1, 0])

@@ -115,7 +115,8 @@ enum Evaluation {
         }
         let checkpoint = try JSONDecoder.snake.decode(EvaluationCheckpoint.self, from: Data(contentsOf: progress))
         guard checkpoint.run == identity else {
-            throw ValidationError("progress.json belongs to another run; the run folder was changed outside this command.")
+            throw ValidationError(
+                "progress.json belongs to another run; the run folder was changed outside this command.")
         }
         let newline = UInt8(ascii: "\n")
         let data = try Data(contentsOf: outputs)
