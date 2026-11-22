@@ -1,6 +1,6 @@
 # Gemma 4 31B quality evaluation
 
-The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, and scores output records with every rule except code (issue #668). Running models, code scoring, paired comparison and reports belong to later child issues.
+The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, scores output records with every rule except code (issue #668), and compares the scored baseline and candidate of a pair to give the verdict of §7 and its report (issue #671). Running models and code scoring belong to other child issues.
 
 | File | Contents |
 |---|---|
@@ -9,7 +9,8 @@ The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-cont
 | `prompts.json` | All prompt wording, the synthetic templates and the `free-ja` instructions |
 | `synthetic/` | Synthetic task generators, the independent solvers that read only the rendered text, and the self-authored vocabulary |
 | `scoring.py` | The scoring rules of §6.7 except code, the record checks and `score` |
-| `tests/` | Unit tests, the scoring specification examples (`examples.json`) and the expected scoring results derived by hand from §6.7 (`scoring_cases.json`) |
+| `comparison.py` | The paired comparison and the verdicts of §7, the report and `compare` |
+| `tests/` | Unit tests, the scoring specification examples (`examples.json`), the expected scoring results derived by hand from §6.7 (`scoring_cases.json`) and the expected comparison results derived by hand from §7 (`comparison_cases.json`) |
 
 ## Commands
 
@@ -103,6 +104,80 @@ Its `summary.json`, also standard ASCII JSON, holds:
 - `categories`: per category, `kind`, `items`, `correct`, `unscored` (items whose `correct` is `null`) and `states` (the count of each state). `entity_sets` adds the sums `tp`, `fp` and `fn` and `micro_f1` = 2·tp ÷ (2·tp + fp + fn); `reading_exact` adds `mean_f1`, the mean character F1. Either is `null` when its denominator is 0.
 
 `score` prints, for each run, the counts per category and the number of ids in each check.
+
+## Comparison
+
+`compare` compares the scored baseline and candidate of one pair and writes the verdict of contract §7 with the required report items of §7.4. It uses only the standard library, needs no tokenizer, and does not score again: it reads what `score` wrote, the run records and the output records.
+
+```sh
+python3 -m Tools.LLMEvaluation compare \
+  --baseline path/to/baseline-run --candidate path/to/candidate-run \
+  --scores .local/conversion/gemma4_31b/evaluation/new-scores \
+  --items .local/conversion/gemma4_31b/evaluation/new-build/primary.jsonl \
+  --output .local/conversion/gemma4_31b/evaluation/new-verdict
+```
+
+| Option | Value |
+|---|---|
+| `--baseline`, `--candidate` | The run folders, with `run.json` and `outputs.jsonl` |
+| `--scores` | The output folder of the one `score` call that scored both runs; `compare` reads its folders named after the two run folders |
+| `--items` | The `build` file that was scored |
+| `--output` | A new folder |
+| `--rerun-scores` | Optional: the folder that `score` wrote for a rerun of the candidate's assets with another call shape, holding its `scores.jsonl` |
+| `--layer1` | Optional: the layer 1 result file; the record keeps its file name and SHA-256 |
+| `--substitute-reason` | The reason why `fp16` could not be run, required to use `reference` as the baseline of `w8` or `w4` |
+
+`compare` first runs the checks of `validate`. It stops before it writes anything when:
+
+- the output folder exists;
+- the two run folders have the same name after NFC normalization and case folding, which one `score` call cannot hold;
+- the ids of `--items` are not exactly those of one frozen set, an id repeats, or an item's category or `token_count` differs from the set file;
+- the `scores.jsonl` of a run does not have exactly one row per item of `--items` with its category and scorer kind;
+- the roles in the two `run.json` files are not a pair of `contract.json` (`reference` → `fp16`, `fp16` → `w8`, `fp16` → `w4`). `reference` → `w8` and `reference` → `w4` are accepted only with `--substitute-reason`, and `--substitute-reason` is refused for the other pairs.
+
+Each run uses its first well-formed record of each id, read with the record checks of `score`; malformed records reach the verdict only through the `malformed` check of the scoring. When the output cannot be completed, `compare` removes the output folder that it made. It prints the verdict, the number of ids of each reason, the numbers of critical failures, regressions and improvements, and the categories that could not be evaluated.
+
+The output folder gets `verdict.json`, standard ASCII JSON, and `summary.md`, an English summary with the verdict, the reasons, a table per category, the regression and improvement ids, the changed items, the critical failures, the categories that could not be evaluated, the upper bounds, the baseline quality, the code scoring counts, the rerun counts, the layer 1 reference and the claim. Neither file holds output text or public data text.
+
+The verdict is the first label of the precedence in `contract.json` whose condition holds: `incomplete` when any reason below holds, `critical_failure` when any critical failure was found, `regression_found` when any item regressed, and `no_regression_found` otherwise. Improvements never offset a regression, and a regression at a near tie counts as any other.
+
+The reasons of `incomplete`, in this order:
+
+| Reason | Ids |
+|---|---|
+| `hash_mismatch` | A run record or a scoring summary has another contract version or `contract.json` SHA-256 than this contract, a run record names another set than `--items`, the two summaries differ in `items`, `tokenizer` or `scorer`, or a summary reports `item_hash_differs`. The ids are those of `item_hash_differs`, possibly none |
+| `missing_output`, `not_in_set`, `duplicate_id`, `top2_differs` | The ids of the scoring checks `missing`, `not_in_set`, `duplicate` and `top2_differs` of either run |
+| `malformed_record` | The scoring check `malformed` of the baseline, then the entries of the candidate that the list does not hold yet, in order and without repeats; an entry is an id or a line number |
+| `input_differs` | Items whose baseline and candidate records differ in `input_sha256` |
+| `token_count_differs` | Items with a `token_count` whose `input_tokens` differs in a record of either run |
+| `baseline_error` | Items whose baseline record has an `error` |
+| `unscored_item` | Items of a scored category whose `correct` is `null` in either run with a state other than `missing` and `malformed`, for example `pending_code` |
+| `score_inconsistent` | Items whose correctness differs although both runs generated the same tokens |
+
+Except for `malformed_record`, the ids are sorted. The generated tokens of a record are `output_ids`, followed by `stop_token` when the run stopped on one.
+
+A critical failure is judged for each item with a candidate record: `non_finite_logits` when `non_finite` is above 0, and otherwise `runtime_error` when the record has an `error`. When the baseline also has a record, `empty_output`, `control_token` and `repetition` count only when the candidate output has the property and the baseline output does not. A repetition is a run of `min_consecutive` (4) copies, in a row, of a sequence of `min_length` (8) or more tokens of `output_ids`. The control tokens are `control_token_ids` of `contract.json`.
+
+`verdict.json` holds:
+
+| Field | Value |
+|---|---|
+| `verdict` | The label |
+| `incomplete` | The reasons that hold, in the order above, each as `reason` and `ids` |
+| `critical_failures` | `id` and `kind` for each failure, items in set order, and for one item `runtime_error`, `non_finite_logits`, `empty_output`, `control_token`, `repetition` in that order |
+| `regressions`, `improvements` | Sorted ids of the items of a scored category where the baseline is correct and the candidate incorrect, or the reverse; an item with `null` on either side is not counted |
+| `changed` | For each regression and improvement, sorted by id: `id`, `position`, the first output position where the generated tokens differ (the length of the shorter list when one starts the other, `null` when they are equal), and `baseline_gap`, the first minus the second probability of the baseline `top2` there (`null` without an entry) |
+| `categories` | Per category of the set: `kind`, `items`, `baseline_correct`, `candidate_correct`, `regressions` and `improvements` |
+| `not_evaluable` | Sorted scored categories whose baseline has fewer than `min_baseline_correct` (10) correct items |
+| `upper_bounds` | For each `upper_bound` category of `contract.json` in the set with no regression, 1 − 0.05^(1/N) with N its item count |
+| `baseline_quality` | `empty_output`, `control_token` and `repetition`: the ids of the baseline outputs that are empty, hold a control token or hold a repetition, in set order |
+| `code` | `baseline` and `candidate`, the `code` of each summary, and `scorer`, that of the baseline summary; each is `null` when the summary has none |
+| `rerun` | `correct_to_incorrect` and `incorrect_to_correct` from the candidate scores to the rerun scores, or `null`; never used for the verdict |
+| `layer1` | `file` and `sha256` of `--layer1`, or `null` |
+| `claim` | For `no_regression_found` only, `layer2.claim` of `contract.json`, followed by `; not evaluated: ` and the `not_evaluable` categories joined by `, ` when there are any; otherwise `null` |
+| `contract` | The contract version and the SHA-256 of `contract.json` |
+| `runs` | `baseline` and `candidate`: the two `run.json` records |
+| `substitute_reason` | The text of `--substitute-reason`, or `null`; a blank text counts as none |
 
 ## Data
 
