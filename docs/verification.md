@@ -178,7 +178,7 @@ The run folder holds two files:
 | `implementation` | `command` (`coreai-verify evaluate`), `commit`, `os_version` and `os_build` |
 | `call_shape` | The engine's `prefill_chunk`, `prefill_function`, `expect_frequent_reshapes`, `requested_compute` and `context_limit`, the effective context limit that `language.max_context_length` in `metadata.json` sets |
 | `inputs` | `sha256` and `count` of the input file |
-| `items` | The number of records in `outputs.jsonl` |
+| `items` | The number of records in `outputs.jsonl` when `run.json` was written: when a session starts, and when it ends normally, including an end by `--max-minutes`. While a run is in progress and after it stopped abnormally, it can be smaller than the number of lines in `outputs.jsonl`, which is the record of the finished items. |
 | `started`, `finished` | When the run first started, and when it last ended; `finished` is absent while the run is in progress or after it stopped on an error |
 | `load` | `cached`, `specialize_s` and `load_s` of the engine load in the first session |
 

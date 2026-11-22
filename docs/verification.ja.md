@@ -177,7 +177,7 @@ item ごとに、エンジンを空にし、入力を `prefill` で読み(バン
 | `implementation` | `command`(`coreai-verify evaluate`)、`commit`、`os_version`、`os_build` |
 | `call_shape` | エンジンの `prefill_chunk`、`prefill_function`、`expect_frequent_reshapes`、`requested_compute` と、`metadata.json` の `language.max_context_length` で決まる実効の文脈の上限 `context_limit` |
 | `inputs` | 入力のファイルの `sha256` と `count` |
-| `items` | `outputs.jsonl` の記録の数 |
+| `items` | `run.json` を書いたとき(各回の始めと、`--max-minutes` での終わりを含む正常な終わり)の、`outputs.jsonl` の記録の数。実行の途中と、異常に止まった後は、`outputs.jsonl` の行数より小さいことがあります。済んだ件数の正本は `outputs.jsonl` です。 |
 | `started`、`finished` | 実行を最初に始めた時刻と、最後に終えた時刻。実行の途中と、誤りで止まった後は `finished` が無い |
 | `load` | 最初の回のエンジンの読み込みの `cached`、`specialize_s`、`load_s` |
 
