@@ -260,6 +260,14 @@ class CompareRunTests(unittest.TestCase):
             self.compared(baseline, candidate, scores)
         self.assertFalse((self.folder / "verdict").exists())
 
+    def test_an_items_file_other_than_the_scored_one_is_rejected(self):
+        baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
+        scores = self.scored(baseline, candidate)
+        write_lines(self.items_path, [self.items[0], {**self.items[1], "answer": self.items[1]["answer"] + 1}])
+        with self.assertRaises(ValueError):
+            self.compared(baseline, candidate, scores)
+        self.assertFalse((self.folder / "verdict").exists())
+
     def test_items_that_differ_from_the_frozen_set_are_rejected(self):
         baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
         scores = self.scored(baseline, candidate)

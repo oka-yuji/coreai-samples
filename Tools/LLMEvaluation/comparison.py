@@ -157,7 +157,8 @@ def checked_pair(contract, baseline, candidate, reason):
 
 
 def item_rows(bundle, path):
-    built = lines(Path(path).read_bytes())
+    data = Path(path).read_bytes()
+    built = lines(data)
     if len({item["id"] for item in built}) != len(built):
         raise ValueError("Duplicate item ids in the items file")
     name = frozen_set(bundle, {item["id"] for item in built})
@@ -167,11 +168,12 @@ def item_rows(bundle, path):
     if differs:
         raise ValueError(f"{len(differs)} items differ from the {name} set in category or token count, first: "
                          f"{differs[:5]}")
-    return name, [{"id": item["id"], "category": item["category"], "kind": item["scorer"]["kind"],
-                   **({"token_count": item["token_count"]} if "token_count" in item else {})} for item in built]
+    return name, hashlib.sha256(data).hexdigest(), [
+        {"id": item["id"], "category": item["category"], "kind": item["scorer"]["kind"],
+         **({"token_count": item["token_count"]} if "token_count" in item else {})} for item in built]
 
 
-def run_files(folder, scores, rows):
+def run_files(folder, scores, rows, items_sha256):
     folder = Path(folder).resolve()
     scored = Path(scores) / folder.name
     summary = read_json(scored / "summary.json")
@@ -181,11 +183,13 @@ def run_files(folder, scores, rows):
     data, run = (folder / "outputs.jsonl").read_bytes(), read_json(folder / "run.json")
     recorded = summary.get("outputs", {}).get("sha256")
     differs = [text for text, failed in (
+        ("the items file is not the one scored", summary.get("items", {}).get("sha256") != items_sha256),
         ("the scoring records no SHA-256 of outputs.jsonl", recorded is None),
-        ("outputs.jsonl differs", recorded is not None and recorded != hashlib.sha256(data).hexdigest()),
-        ("run.json differs", summary.get("run") != standard(run))) if failed]
+        ("outputs.jsonl differs from the scored one", recorded is not None
+         and recorded != hashlib.sha256(data).hexdigest()),
+        ("run.json differs from the scored one", summary.get("run") != standard(run))) if failed]
     if differs:
-        raise ValueError(f"{folder.name} is not the run scored in {scored.name}: {'; '.join(differs)}. "
+        raise ValueError(f"The scoring of {folder.name} does not belong to the given files: {'; '.join(differs)}. "
                          "Score the pair again")
     return {"run": run, "summary": summary, "scores": found,
             "outputs": partition(read_records(data), summary["tokenizer"]["vocabulary"])[0]}
@@ -243,11 +247,12 @@ def compare_runs(bundle, items_path, baseline, candidate, scores, output, rerun=
     if folded(Path(baseline).resolve().name) == folded(Path(candidate).resolve().name):
         raise ValueError("The baseline and candidate run folders need different names, as in one score call")
     reason = substitute_reason if substitute_reason and substitute_reason.strip() else None
-    name, rows = item_rows(bundle, items_path)
+    name, items_sha256, rows = item_rows(bundle, items_path)
     keys = sorted((row["id"], row["category"], row["kind"]) for row in rows)
     document = {"set": name, "items": rows,
                 "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
-                "baseline": run_files(baseline, scores, keys), "candidate": run_files(candidate, scores, keys),
+                "baseline": run_files(baseline, scores, keys, items_sha256),
+                "candidate": run_files(candidate, scores, keys, items_sha256),
                 "rerun": {"scores": lines((Path(rerun) / "scores.jsonl").read_bytes())} if rerun else None,
                 "layer1": {"file": Path(layer1).name, "sha256": sha256(layer1)} if layer1 else None}
     checked_pair(bundle["contract"], document["baseline"]["run"].get("role"),

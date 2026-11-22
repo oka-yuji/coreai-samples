@@ -121,7 +121,7 @@ python3 -m Tools.LLMEvaluation compare \
 |---|---|
 | `--baseline`, `--candidate` | The run folders, with `run.json` and `outputs.jsonl` |
 | `--scores` | The output folder of the one `score` call that scored both runs; `compare` reads its folders named after the two run folders |
-| `--items` | The `build` file that was scored |
+| `--items` | The `build` file that was scored; its SHA-256 must be `items.sha256` of both summaries |
 | `--output` | A new folder |
 | `--rerun-scores` | Optional: the folder that `score` wrote for a rerun of the candidate's assets with another call shape, holding its `scores.jsonl` |
 | `--layer1` | Optional: the layer 1 result file; the record keeps its file name and SHA-256 |
@@ -133,7 +133,7 @@ python3 -m Tools.LLMEvaluation compare \
 - the two run folders have the same name after NFC normalization and case folding, which one `score` call cannot hold;
 - the ids of `--items` are not exactly those of one frozen set, an id repeats, or an item's category or `token_count` differs from the set file;
 - the `scores.jsonl` of a run does not have exactly one row per item of `--items` with its category and scorer kind;
-- a run folder is not the one that was scored, and the pair has to be scored again: its `outputs.jsonl` has another SHA-256 than `outputs.sha256` of its summary, its `run.json` differs from the `run` copied into the summary, or the summary has no `outputs` because an earlier `score` wrote it;
+- the files are not those that were scored, and the pair has to be scored again: `--items` has another SHA-256 than `items.sha256` of either summary, the `outputs.jsonl` of a run folder has another SHA-256 than `outputs.sha256` of its summary, its `run.json` differs from the `run` copied into the summary, or the summary has no `outputs` because an earlier `score` wrote it;
 - the roles in the two `run.json` files are not a pair of `contract.json` (`reference` → `fp16`, `fp16` → `w8`, `fp16` → `w4`). `reference` → `w8` and `reference` → `w4` are accepted only with `--substitute-reason`, and `--substitute-reason` is refused for the other pairs.
 
 Each run uses its first well-formed record of each id, read with the record checks of `score`; malformed records reach the verdict only through the `malformed` check of the scoring. When the output cannot be completed, `compare` removes the output folder that it made. It prints the verdict, the number of ids of each reason, the numbers of critical failures, regressions and improvements, and the categories that could not be evaluated.
