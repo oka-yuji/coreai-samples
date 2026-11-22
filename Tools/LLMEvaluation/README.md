@@ -119,14 +119,14 @@ python3 -m Tools.LLMEvaluation compare \
 
 | Option | Value |
 |---|---|
-| `--baseline`, `--candidate` | Required. The run folders, each with `run.json` and `outputs.jsonl`; refused when their roles are not a pair of the contract or a folder is not the one that was scored |
-| `--scores` | Required. The output folder of the `score` call that scored both runs; refused when a scoring in it does not have one row per item of `--items` or records no SHA-256 of `outputs.jsonl` |
-| `--items` | Required. The `build` file that was scored; refused when it differs from the scored file or does not match the frozen set |
-| `--output` | Required. A new folder; an existing folder is refused |
+| `--baseline`, `--candidate` | Required. The run folders, each with `run.json` and `outputs.jsonl` |
+| `--scores` | Required. The output folder of the `score` call that scored both runs |
+| `--items` | Required. The `build` file that was scored |
+| `--output` | Required. A new folder |
 | `--layer1` | Optional. The layer 1 result file, referenced in the record by its name and SHA-256 |
 | `--substitute-reason` | Optional. Why `fp16` could not be run; required to use `reference` as the baseline of `w8` or `w4` and refused for the other pairs; a blank text counts as none |
 
-The roles in the two `run.json` files must be a pair of `contract.json`. When the checks of `validate` fail, an input file is missing or cannot be read, the inputs do not match the frozen set or the files that were scored, the output folder exists, or the roles are not a pair, `compare` stops with an error, without writing anything and without a verdict.
+The roles in the two `run.json` files must be a pair of `contract.json`. `compare` stops with an error, without writing anything and without a verdict, when the checks of `validate` fail; an input file is missing or cannot be read; the items file does not list exactly the items of one frozen set, with their categories and long-context token counts; a scoring is not one row per item with the item's category and scorer kind; the SHA-256 that a scoring recorded for the items file or for `outputs.jsonl` is absent or differs from the file given, or its copy of `run.json` differs from the one given; the output folder exists; or the roles are not a pair. What the scoring recorded about the records and the items, such as an item hash that differs from the set, does not stop `compare`; it gives a reason of `incomplete`.
 
 The output folder gets `verdict.json`, the verdict record, and `summary.md`, an English summary of it. Neither holds output text or public data text.
 
