@@ -68,7 +68,14 @@ python3 -m Tools.LLMEvaluation score \
 | `outputs.jsonl` | The output records of contract §5.1, one JSON object per line |
 | `run.json` | The run record of contract §5.1, one JSON object; `score` copies it unchanged into the summary |
 
-`score` first runs the checks of `validate`. It stops when `tokenizer.json` differs in size or SHA-256 from its pin in `contract.json`, when the output folder exists, or when two run folders have the same name or a run folder has none, as the root does. A malformed record does not stop it; the record is reported and not scored. It needs `tokenizers` but not `jinja2`; the rules use only the standard library, and the unit tests replace the tokenizer. The scored text is `output_ids` decoded with the pinned tokenizer, skipping special tokens; text in a record is never used. `python_tests` items stay `pending_code` for the code scorer, and no output code is run.
+`score` first runs the checks of `validate`. It stops before it writes anything when:
+
+- `tokenizer.json` differs in size or SHA-256 from its pin in `contract.json`;
+- the ids of `--items` are not exactly those of one frozen set, `sets/primary.json` or `sets/reserve.json`; the message gives the numbers of missing and extra ids;
+- the output folder exists;
+- two run folder names are equal after NFC normalization and case folding, or a run folder has no name, as the root does.
+
+A malformed record does not stop it; the record is reported and not scored. It makes every run folder before it writes any result, and when the output cannot be completed it removes the output folder that it made. It needs `tokenizers` but not `jinja2`; the rules use only the standard library, and the unit tests replace the tokenizer. The scored text is `output_ids` decoded with the pinned tokenizer, skipping special tokens; text in a record is never used. `python_tests` items stay `pending_code` for the code scorer, and no output code is run.
 
 The output folder gets one folder per run, named after the run folder once its path is made absolute, so `--run .` takes the name of the current folder. Its `scores.jsonl` has one line per item of `--items`, in that order, as standard ASCII JSON:
 
@@ -88,9 +95,9 @@ The first JSON object starts at the first `{` from which a standard JSON object 
 
 Its `summary.json` holds:
 
-- `contract` (the version and the SHA-256 of `contract.json`), `items` (the file name and SHA-256 of `--items`), `tokenizer` (its SHA-256 and `vocabulary`, its size with the added tokens) and `run` (the copy of `run.json`).
+- `contract` (the version and the SHA-256 of `contract.json`), `items` (the file name and SHA-256 of `--items`, and `set`, the name of the frozen set it holds), `tokenizer` (its SHA-256 and `vocabulary`, its size with the added tokens) and `run` (the copy of `run.json`).
 - `checks`: facts about the records. The checks give no verdict, and every item with a well-formed record is scored.
-  - `malformed`: every record that does not have the form of contract §5.1, in file order: a line that is not a JSON object, or a missing field or a value of another type. `id` and `input_sha256` are strings, `input_tokens` and `non_finite` integers, `output_ids` a list of token ids, `stop` either `stop_token` or `limit`, `stop_token` a token id when `stop` is `stop_token`, `top2` a list of `[id, probability, id, probability]`, and `error`, when present, a string. A token id is an integer from 0 to below `vocabulary`. A record is listed by its id when the id is a string, and otherwise by its line number.
+  - `malformed`: every record that does not have the form of contract §5.1, in file order: a line that is not a standard JSON object (a line with `NaN`, `Infinity` or `-Infinity` is not), or a missing field or a value of another type. `id` and `input_sha256` are strings, `input_tokens` and `non_finite` integers, `output_ids` a list of token ids, `stop` either `stop_token` or `limit`, `stop_token` a token id when `stop` is `stop_token`, `top2` a list of `[token id, probability, token id, probability]` whose probabilities are finite numbers (a number such as `1e400`, which reads as infinite, is not), and `error`, when present, a string. A token id is an integer from 0 to below `vocabulary`. A record is listed by its id when the id is a string, and otherwise by its line number.
   - The other checks are sorted lists of ids. `missing`, `not_in_set` and `duplicate` count every record with a string id, well-formed or malformed; a record without one counts for none. `missing`: an item that no record names. `not_in_set`: a record whose id is not an item. `duplicate`: an id with more than one record; only the first well-formed record of an id is scored. `item_hash_differs`: an item whose `item_sha256` differs from `sets/*.json`.
   - `top2_differs` uses only the well-formed records: a record whose `top2` first ids differ from the generated tokens in a value or in number; the generated tokens are `output_ids` followed by `stop_token` when the run stopped on one.
 - `categories`: per category, `kind`, `items`, `correct`, `unscored` (items whose `correct` is `null`) and `states` (the count of each state). `entity_sets` adds the sums `tp`, `fp` and `fn` and `micro_f1` = 2·tp ÷ (2·tp + fp + fn); `reading_exact` adds `mean_f1`, the mean character F1. Either is `null` when its denominator is 0.
