@@ -134,4 +134,23 @@ import Testing
             ])
         withExtendedLifetime(held) {}
     }
+
+    @Test(
+        "A manual clear of one options value succeeds while a load of another options value of the same asset holds its use, and a clear of the loaded one is refused"
+    )
+    func clearIsPerOptions() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let recovery = fixture.recovery()
+        let other = fixture.recovery(key: Fixture.otherKey)
+        let recorder = PreparedCopyRecorder()
+        let held = try await recorder.load(recovery)
+        try other.clear(delete: { recorder.note("other.clear") })
+        #expect(throws: PreparedCopyError.inUse) {
+            try recovery.clear(delete: { recorder.note("clear") })
+        }
+        #expect(Fixture.exists(recovery.file))
+        #expect(recorder.events == ["load", "warmUp", "other.clear"])
+        withExtendedLifetime(held) {}
+    }
 }

@@ -11,7 +11,7 @@ struct PreparedCopyStore: Sendable {
     }
 
     private var base: String {
-        let text = key.namespace + "\n" + key.osBuild + "\n" + key.assetHash
+        let text = key.namespace + "\n" + key.osBuild + "\n" + key.assetHash + "\n" + key.options
         return SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 

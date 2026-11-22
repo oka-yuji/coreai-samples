@@ -7,6 +7,8 @@ struct PreparedCopyFixture {
     static let key = PreparedCopyKey(
         namespace: "com.example.samples", osBuild: "27A100", assetHash: String(repeating: "5a", count: 32),
         options: "default")
+    static let otherKey = PreparedCopyKey(
+        namespace: key.namespace, osBuild: key.osBuild, assetHash: key.assetHash, options: "cpuOnly")
     static let first = PreparedCopyProcess(pid: 101, start: 1_000)
     static let second = PreparedCopyProcess(pid: 102, start: 2_000)
     static let alive = PreparedCopyMark(attempt: "alive", pid: 102, start: 2_000, kind: .normal, stage: .load, at: 20)
@@ -61,8 +63,10 @@ struct PreparedCopyFixture {
     }
 
     static func base(_ key: PreparedCopyKey) -> String {
-        SHA256.hash(data: Data((key.namespace + "\n" + key.osBuild + "\n" + key.assetHash).utf8))
-            .map { String(format: "%02x", $0) }.joined()
+        SHA256.hash(
+            data: Data((key.namespace + "\n" + key.osBuild + "\n" + key.assetHash + "\n" + key.options).utf8)
+        )
+        .map { String(format: "%02x", $0) }.joined()
     }
 
     static func exists(_ url: URL) -> Bool {
@@ -86,23 +90,25 @@ struct PreparedCopyFixture {
         return flock(descriptor, LOCK_EX | LOCK_NB) == 0
     }
 
-    func write(_ record: PreparedCopyRecord) throws {
-        try write(ledger: Self.ledger(record))
+    func write(_ record: PreparedCopyRecord, key: PreparedCopyKey = PreparedCopyFixture.key) throws {
+        let ledger = PreparedCopyLedger(
+            namespace: key.namespace, osBuild: key.osBuild, assetHash: key.assetHash, records: [key.options: record])
+        try write(ledger: ledger, key: key)
     }
 
-    func write(ledger: PreparedCopyLedger) throws {
+    func write(ledger: PreparedCopyLedger, key: PreparedCopyKey = PreparedCopyFixture.key) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try write(raw: encoder.encode(ledger))
+        try write(raw: encoder.encode(ledger), key: key)
     }
 
-    func write(raw data: Data) throws {
+    func write(raw data: Data, key: PreparedCopyKey = PreparedCopyFixture.key) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try data.write(to: recovery().file)
+        try data.write(to: recovery(key: key).file)
     }
 
-    func bytes() throws -> Data {
-        try Data(contentsOf: recovery().file)
+    func bytes(key: PreparedCopyKey = PreparedCopyFixture.key) throws -> Data {
+        try Data(contentsOf: recovery(key: key).file)
     }
 
     func remove() {

@@ -78,25 +78,26 @@ import Testing
     }
 
     @Test(
-        "Two keys of one asset with different options share one ledger file and one's dead mark does not affect the other"
+        "Two keys of one asset with different options use separate ledger files and one's dead mark does not affect the other"
     )
-    func optionsKeepSeparateRecords() async throws {
+    func optionsKeepSeparateLedgers() async throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
         try fixture.write(Fixture.record([Fixture.dead]))
-        let key = Fixture.key
-        let other = fixture.recovery(
-            key: PreparedCopyKey(
-                namespace: key.namespace, osBuild: key.osBuild, assetHash: key.assetHash, options: "cpuOnly"))
+        let other = fixture.recovery(key: Fixture.otherKey)
         let recorder = PreparedCopyRecorder()
-        let result = try await recorder.load(other)
+        let result = try await recorder.load(other, label: "other.")
         #expect(!result.recovered)
-        #expect(recorder.events == ["load", "warmUp"])
         #expect(other.record() == Fixture.empty)
         #expect(fixture.recovery().record() == Fixture.record([Fixture.dead]))
-        #expect(other.file == fixture.recovery().file)
+        #expect(other.file != fixture.recovery().file)
+        let recovered = try await recorder.load(fixture.recovery())
+        #expect(recovered.recovered)
+        #expect(other.record() == Fixture.empty)
+        #expect(
+            recorder.events == ["other.load", "other.warmUp", "onRecovery", "delete", "load", "warmUp"])
         let names = try FileManager.default.contentsOfDirectory(atPath: fixture.directory.path(percentEncoded: false))
-        #expect(names.filter { $0.hasSuffix(".json") }.count == 1)
+        #expect(names.filter { $0.hasSuffix(".json") }.count == 2)
     }
 
     @Test("When the warm-up is called, the own mark in the record is at the warm-up stage")

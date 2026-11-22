@@ -184,4 +184,29 @@ import Testing
         #expect(!result.recovered)
         #expect(recorder.events == ["clear", "load", "warmUp"])
     }
+
+    @Test(
+        "A recovery mark of one options value that could not record its end fails as recovery failed even while a recovery of another options value of the same asset is in progress"
+    )
+    func stalledRecoveryMarkFailsBesideOtherRecovery() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(
+            Fixture.record([Fixture.own("stalled", .recovery, .load)], recoveries: 1, suspects: [Fixture.dead]))
+        try fixture.write(Fixture.record([Fixture.dead]), key: Fixture.otherKey)
+        let before = try fixture.bytes()
+        let recorder = PreparedCopyRecorder()
+        let result = try await fixture.recovery(Fixture.second, key: Fixture.otherKey).load(
+            delete: { recorder.note("other.delete") },
+            load: {
+                await #expect(throws: PreparedCopyError.recoveryFailed) {
+                    _ = try await recorder.load(fixture.recovery(Fixture.first))
+                }
+                return 1
+            }, warmUp: { _ in })
+        #expect(result.recovered)
+        let after = try fixture.bytes()
+        #expect(after == before)
+        #expect(recorder.events == ["other.delete"])
+    }
 }
