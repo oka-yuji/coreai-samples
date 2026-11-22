@@ -52,6 +52,14 @@ struct PositionLogits: AsyncParsableCommand {
         }
     }
 
+    static func pieces(from lower: Int, lengths: [Int]) -> [Range<Int>] {
+        var end = lower
+        return lengths.map { length in
+            end += length
+            return (end - length)..<end
+        }
+    }
+
     func run() async throws {
         let ids = try tokenIDs()
         try Self.validateTokens(ids, start: start)
@@ -77,7 +85,7 @@ struct PositionLogits: AsyncParsableCommand {
         let loadStart = clock.now
         let engine = try await CoreAIBackend.Engine(bundle: bundle)
         let prefixStart = clock.now
-        let prefix = Self.pieces(0..<start, size: engine.prefillChunkSize)
+        let prefix = Self.pieces(from: 0, lengths: engine.callLengths(from: 0, count: start))
         for piece in prefix { try await engine.readInOneCall(Array(ids[piece]), usePrefillFunction: true) }
         let scoringStart = clock.now
         let scored = Self.pieces(start..<ids.count, size: chunk)

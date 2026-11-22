@@ -85,6 +85,21 @@ import Testing
         #expect(PositionLogits.pieces(0..<0, size: 4096).isEmpty)
     }
 
+    @Test(
+        "The prefix call lengths from the engine become consecutive ranges from position 0, and the previous chunk lengths give the previous pieces"
+    )
+    func prefixLengthsBecomeConsecutiveRanges() {
+        #expect(PositionLogits.pieces(from: 0, lengths: [96, 4]) == [0..<96, 96..<100])
+        #expect(PositionLogits.pieces(from: 0, lengths: [96, 7, 7, 2]) == [0..<96, 96..<103, 103..<110, 110..<112])
+        #expect(PositionLogits.pieces(from: 0, lengths: []).isEmpty)
+        for start in 0...300 {
+            for size in [1, 8, 256, 4096] {
+                let previous = PositionLogits.pieces(0..<start, size: size)
+                #expect(PositionLogits.pieces(from: 0, lengths: previous.map(\.count)) == previous)
+            }
+        }
+    }
+
     @Test("A chunk length near the largest integer is cut to the remaining positions without overflow")
     func cutsALargeChunkToTheRemainingPositions() {
         #expect(PositionLogits.pieces(1..<10, size: .max) == [1..<10])
