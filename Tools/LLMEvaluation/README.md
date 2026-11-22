@@ -119,24 +119,25 @@ python3 -m Tools.LLMEvaluation compare \
 
 | Option | Value |
 |---|---|
-| `--baseline`, `--candidate` | The run folders, with `run.json` and `outputs.jsonl` |
-| `--scores` | The output folder of the one `score` call that scored both runs; `compare` reads its folders named after the two run folders |
-| `--items` | The `build` file that was scored; its SHA-256 must be `items.sha256` of both summaries |
-| `--output` | A new folder |
+| `--baseline`, `--candidate` | Required: the run folders, with `run.json` and `outputs.jsonl` |
+| `--scores` | Required: the output folder of the one `score` call that scored both runs; `compare` reads its folders named after the two run folders |
+| `--items` | Required: the `build` file that was scored; its SHA-256 must be `items.sha256` of both summaries |
+| `--output` | Required: a new folder |
 | `--layer1` | Optional: the layer 1 result file; the record keeps its file name and SHA-256 |
-| `--substitute-reason` | The reason why `fp16` could not be run, required to use `reference` as the baseline of `w8` or `w4` |
+| `--substitute-reason` | Optional: the reason why `fp16` could not be run, required to use `reference` as the baseline of `w8` or `w4` and refused for the other pairs |
 
-`compare` first runs the checks of `validate`. It stops before it writes anything when:
+`compare` first runs the checks of `validate`. It stops with an error and a non-zero exit status, before it writes anything and without a verdict, when:
 
 - the output folder exists;
+- a file that it reads is missing, or `--items`, a `summary.json`, a `scores.jsonl` or a `run.json` is not JSON; a line of `outputs.jsonl` that is not JSON is a malformed record instead, and the `--layer1` file is only hashed;
 - the ids of `--items` are not exactly those of one frozen set, an id repeats, or an item's category or `token_count` differs from the set file;
 - the `scores.jsonl` of a run does not have exactly one row per item of `--items` with its category and scorer kind;
 - the files are not those that were scored, and the pair has to be scored again: `--items` has another SHA-256 than `items.sha256` of either summary, the `outputs.jsonl` of a run folder has another SHA-256 than `outputs.sha256` of its summary, its `run.json` differs from the `run` copied into the summary, or the summary has no `outputs` because an earlier `score` wrote it. Two run folders with the same name are refused in this way, since the one scoring folder of that name cannot belong to both; when the names differ only in case, a volume that ignores case refuses them in the same way, and a case-sensitive volume stops at the missing scoring folder;
 - the roles in the two `run.json` files are not a pair of `contract.json` (`reference` → `fp16`, `fp16` → `w8`, `fp16` → `w4`). `reference` → `w8` and `reference` → `w4` are accepted only with `--substitute-reason`, and `--substitute-reason` is refused for the other pairs.
 
-`compare` reads `--items`, each `outputs.jsonl` and `run.json` and the `--layer1` file once, so every hash it checks or records and the content it judges come from the same bytes. Each run uses its first well-formed record of each id, read with the record checks of `score`; malformed records reach the verdict only through the `malformed` check of the scoring. When the output cannot be completed, `compare` removes the output folder that it made. It prints the verdict, the number of ids of each reason, the numbers of critical failures, regressions and improvements, and the categories that could not be evaluated.
+`compare` reads `--items`, each `outputs.jsonl` and `run.json` and the `--layer1` file once, so every hash it checks or records and the content it judges come from the same bytes. Each run uses its first well-formed record of each id, read with the record checks of `score`. A malformed record gives `malformed_record` through the `malformed` check of the scoring, and when its id can be read, the scoring also counts it in `missing`, `not_in_set` and `duplicate`, as described under Scoring: its item is not missing, and it can also give `not_in_set` or `duplicate_id`, so one record can give more than one reason. When the output cannot be completed, `compare` removes the output folder that it made. It prints the verdict, the number of ids of each reason, the numbers of critical failures, regressions and improvements, and the categories that could not be evaluated.
 
-The output folder gets `verdict.json`, standard ASCII JSON, and `summary.md`, an English summary with the verdict, the reasons, a table per category, the regression and improvement ids, the changed items, the critical failures, the categories that could not be evaluated, the upper bounds, the baseline quality, the code scoring counts, the layer 1 reference and the claim. Neither file holds output text or public data text. `summary.md` is UTF-8, and a character that UTF-8 cannot encode, such as a lone surrogate that a JSON escape in an id can carry, is written as a backslash escape.
+The output folder gets `verdict.json`, standard ASCII JSON, and `summary.md`, an English summary with the verdict, the two roles, the contract version and SHA-256, the substitute baseline reason, the layer 1 reference, the claim, the reasons, the critical failures, a table with one row per category and its upper bound, the regression and improvement ids, the categories that could not be evaluated, the changed items, the baseline quality and the code scoring counts. Neither file holds output text or public data text. `summary.md` is UTF-8, and a character that UTF-8 cannot encode, such as a lone surrogate that a JSON escape in an id can carry, is written as a backslash escape.
 
 The verdict is the first label of the precedence in `contract.json` whose condition holds: `incomplete` when any reason below holds, `critical_failure` when any critical failure was found, `regression_found` when any item regressed, and `no_regression_found` otherwise. Improvements never offset a regression, and a regression at a near tie counts as any other.
 
@@ -146,11 +147,14 @@ The reasons of `incomplete`, in this order:
 |---|---|
 | `hash_mismatch` | A run record or a scoring summary has another contract version or `contract.json` SHA-256 than this contract, a run record names another set than `--items`, the two summaries differ in `items`, `tokenizer` or `scorer`, or a summary reports `item_hash_differs`. The ids are those of `item_hash_differs`, possibly none |
 | `run_unfinished` | The run record of either run has an integer `items` and an `inputs.count`, and they differ or `finished` is absent or `null`, as in the record of a run that has not finished: the generating command writes the number of finished items to `items`, the number of input records to `inputs.count` and, last, the finish time to `finished`, so a run stopped after its last output and before `finished` has equal counts. A run record without `items` or `inputs.count` is not judged, whatever its `finished`. No ids |
-| `missing_output`, `not_in_set`, `duplicate_id`, `top2_differs` | The ids of the scoring checks `missing`, `not_in_set`, `duplicate` and `top2_differs` of either run |
+| `missing_output` | The ids of the scoring check `missing` of either run |
 | `malformed_record` | The scoring check `malformed` of the baseline, then the entries of the candidate that the list does not hold yet, in order and without repeats; an entry is an id or a line number |
+| `not_in_set` | The ids of the scoring check `not_in_set` of either run |
+| `duplicate_id` | The ids of the scoring check `duplicate` of either run |
 | `input_differs` | Items whose baseline and candidate records differ in `input_sha256` |
 | `token_count_differs` | Items with a `token_count` whose `input_tokens` differs in a record of either run |
 | `baseline_error` | Items whose baseline record has an `error` |
+| `top2_differs` | The ids of the scoring check `top2_differs` of either run |
 | `unscored_item` | Items of a scored category whose `correct` is `null` in either run with a state other than `missing` and `malformed`, for example `pending_code` |
 | `score_inconsistent` | Items whose correctness differs although the baseline and candidate `output_ids` are equal; the scored text is decoded from `output_ids` alone, so a different stop does not explain it |
 
