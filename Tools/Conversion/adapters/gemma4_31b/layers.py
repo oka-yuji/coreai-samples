@@ -225,30 +225,52 @@ def quantized_export(folder, contract_path, kinds):
     return {"export_sha256": hashed, "file": entry}, tensors
 
 
-def restored_weights(model, path, digests):
+def checkpoint_shapes(snapshot, names):
+    from safetensors import safe_open
+
+    weight_map, files = read_json(Path(snapshot) / "model.safetensors.index.json")["weight_map"], {}
+    for name in names:
+        key = PREFIX + name.removeprefix("model.")
+        if not isinstance(weight_map.get(key), str) or Path(weight_map[key]).name != weight_map[key]:
+            raise ValueError(f"The checkpoint has no weight {name}")
+        files.setdefault(weight_map[key], []).append((name, key))
+    shapes = {}
+    for file, items in sorted(files.items()):
+        with safe_open(str(Path(snapshot) / file), framework="pt") as handle:
+            for name, key in items:
+                shapes[name] = list(handle.get_slice(key).get_shape())
+    return shapes
+
+
+def quantized_weights(path, digests, shapes):
     import torch
     from safetensors import safe_open
 
-    parameters = dict(model.named_parameters())
+    weights = {}
     with safe_open(str(path), framework="pt") as handle:
-        names = set(handle.keys())
-        weights = {name.rsplit(".", 1)[0] for name in names}
-        if names != set(digests) or names != {f"{weight}.{part}" for weight in weights for part in PARTS}:
+        if set(handle.keys()) != set(digests):
             raise ValueError("The quantized tensors are not the data, scales and minimums that the export recorded")
-        for weight in sorted(weights):
-            data, scale, minval = tensors = [handle.get_tensor(f"{weight}.{part}") for part in PARTS]
+        for weight, shape in sorted(shapes.items()):
+            data, scale, minval = tensors = [handle.get_tensor(f"{weight}.{part}").clone() for part in PARTS]
             for part, tensor in zip(PARTS, tensors):
                 if tensor_sha256(tensor) != digests[f"{weight}.{part}"]:
                     raise ValueError(f"The SHA-256 of {weight}.{part} differs from the export record")
-            target = parameters.get(weight)
-            if target is None or (data.dtype, scale.dtype, minval.dtype) != (torch.uint8, torch.float16, torch.float16) \
-                    or data.shape != target.shape or scale.dim() != 2 or minval.shape != scale.shape \
+            if (data.dtype, scale.dtype, minval.dtype) != (torch.uint8, torch.float16, torch.float16) \
+                    or list(data.shape) != shape or scale.dim() != 2 or minval.shape != scale.shape \
                     or scale.shape[0] != data.shape[0] or not 0 < scale.shape[1] <= data.shape[1] \
                     or data.shape[1] % scale.shape[1]:
-                raise ValueError(f"{weight} is not a uint8 Linear weight of the model with float16 blocks")
-            with torch.no_grad():
-                target.copy_(restore(data, scale, minval).to(torch.float32))
-    return len(names)
+                raise ValueError(f"{weight} is not a uint8 Linear weight of the checkpoint with float16 blocks")
+            weights[weight] = data, scale, minval
+    return weights
+
+
+def apply(model, weights):
+    import torch
+
+    parameters = dict(model.named_parameters())
+    with torch.no_grad():
+        for name, (data, scale, minval) in weights.items():
+            parameters[name].copy_(restore(data, scale, minval).to(torch.float32))
 
 
 def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):
@@ -276,16 +298,30 @@ def context(contract_path, snapshot, layers, output, weights, export=None):
     contract = load_contract(contract_path)
     config = contract["config"]
     kinds = check_layers(config, layers)
-    quantized, digests = quantized_export(export, contract_path, kinds) if export is not None else ({}, None)
+    quantized, restored = {}, {}
+    if export is not None:
+        quantized, digests = quantized_export(export, contract_path, kinds)
+        names = sorted({key.rsplit(".", 1)[0] for key in digests})
+        restored = quantized_weights(export / QUANTIZED, digests, checkpoint_shapes(snapshot, names))
+        quantized["tensors"] = len(digests)
+    output.mkdir(parents=True)
+    try:
+        return written(contract, contract_path, snapshot, layers, output, weights, quantized, restored)
+    except Exception as error:
+        write_json(output / "failure.json", {"schema": CONTEXT_SCHEMA, "passed": False, "weights": weights,
+                                             "error": type(error).__name__})
+        raise
+
+
+def written(contract, contract_path, snapshot, layers, output, weights, quantized, restored):
     import numpy as np
 
-    output.mkdir(parents=True)
+    config = contract["config"]
     started = time.perf_counter()
     verified = verify_inputs(snapshot, contract)
     hashed = time.perf_counter()
     model, scale, layer_types = original_model(snapshot, layers)
-    if quantized:
-        quantized["tensors"] = restored_weights(model, export / QUANTIZED, digests)
+    apply(model, restored)
     loaded = time.perf_counter()
     inputs = {}
     for name in ("short", "context"):

@@ -599,9 +599,11 @@ class RestoredReferenceTests(unittest.TestCase):
                 if change:
                     change(target)
                 output = folder / f"restored-{index}"
-                with self.subTest(case=label), self.assertRaises(ValueError):
+                with self.subTest(case=label), self.assertRaises(ValueError), \
+                        mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
                     layers.context(contract, snapshot, 6, output, "8bit", target)
-                self.assertFalse((output / "record.json").exists())
+                load.assert_not_called()
+                self.assertFalse(os.path.lexists(output))
             source = write_export(folder / "export", contract, tensors)
             for label, (weights, given) in {"8bit without an export": ("8bit", None),
                                             "float16 with an export": ("float16", source),
@@ -611,6 +613,22 @@ class RestoredReferenceTests(unittest.TestCase):
                     layers.context(contract, snapshot, 6, folder / label.replace(" ", "-"), weights, given)
                 load.assert_not_called()
                 self.assertFalse((folder / label.replace(" ", "-")).exists())
+
+    def test_a_failure_after_the_reference_folder_is_made_leaves_a_record_of_its_type_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            cases = {"8bit": ("original_model", source), "float16": ("verify_inputs", None)}
+            for weights, (target, export_folder) in cases.items():
+                output = folder / f"failed-{weights}"
+                with self.subTest(weights=weights), mock.patch.object(
+                        layers, target, side_effect=RuntimeError("private-example-sentinel")), \
+                        self.assertRaises(RuntimeError):
+                    layers.context(contract, snapshot, 6, output, weights, export_folder)
+                self.assertEqual(read_json(output / "failure.json"), {"schema": layers.CONTEXT_SCHEMA, "passed": False,
+                                                                       "weights": weights, "error": "RuntimeError"})
+                self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
 
 
 if __name__ == "__main__":

@@ -484,11 +484,13 @@ converter environment.
 `layers.py context --weights 8bit --export <the export folder of the step>` writes the reference of the comparison with
 the weights that the export quantized. It reads only an export that passed and recorded exactly the Linear weights of
 the layers as its quantized weights. Before it creates its folder, it checks `quantized.safetensors` against the size
-and SHA-256 in `export.json`; it then checks each tensor against its SHA-256 there, restores each weight as
-uint8 × scale + minimum with the blocks widened to the weight and each operation rounded to float16 (the dequantization
-of the converter), and puts it into the original implementation in float32. The other tensors are rounded to float16 as
-with `--weights float16`. `record.json` records the kind of the weights, the SHA-256 of `export.json`, the size and
-SHA-256 of `quantized.safetensors` and the number of tensors that it checked:
+and SHA-256 in `export.json`, and each tensor against its SHA-256 there and its weight against the shape in the
+checkpoint. It then restores each weight as uint8 × scale + minimum with the blocks widened to the weight and each
+operation rounded to float16 (the dequantization of the converter), and puts it into the original implementation in
+float32. The other tensors are rounded to float16 as with `--weights float16`. `record.json` records the kind of the
+weights, the SHA-256 of `export.json`, the size and SHA-256 of `quantized.safetensors` and the number of tensors that
+it checked. An error after the folder exists, with either kind of weights, leaves `failure.json` with the type of the
+error:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers context --layers 6 \
