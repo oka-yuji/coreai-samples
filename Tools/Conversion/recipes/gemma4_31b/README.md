@@ -99,12 +99,12 @@ A thread samples the resident memory, swap, the memory free percentage and the f
   free percentage, or the monitor thread ends with an error.
 
 A process still running 120 seconds after a stop is killed, also when the monitor thread itself ended with an
-error (a separate timer takes over the kill). A stop that comes after the model work, while the stage waits for
-the monitor and writes `reference.json`, also ends with `failure.json`. A run that finishes after a stop, with an
-unreadable sample or a monitor error is not `passed`, and neither is a run without its peak resident memory,
-kernel lifetime footprint peak, MPS allocation or swap increase. These are recorded after loading, after every
-case and at the end. The stage needs 20 GiB of free disk; the saved logits of the twelve cases take about 3.4 GB
-per run.
+error (a separate timer takes over the kill). A stop at any point from the start of the monitor to the writing of
+`reference.json`, including one while the monitor starts or after the model work, ends with `failure.json`. A run
+that finishes after a stop, with an unreadable sample or a monitor error is not `passed`, and neither is a run
+without its peak resident memory, kernel lifetime footprint peak, MPS allocation or swap increase. These are
+recorded after loading, after every case and at the end. The stage needs 20 GiB of free disk; the saved logits of
+the twelve cases take about 3.4 GB per run.
 
 ## Second run and shared numbers
 

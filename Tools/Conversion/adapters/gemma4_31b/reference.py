@@ -435,8 +435,8 @@ def main():
                                                   "monitor": monitor.finish()})
         return 1
 
-    monitor.start()
     try:
+        monitor.start()
         if not monitor.ready.wait(FIRST_SAMPLE_TIMEOUT_S):
             return fail(reasons[0] if reasons else f"no readable monitor sample within {FIRST_SAMPLE_TIMEOUT_S} s")
         record = reference(args, contract, ready)

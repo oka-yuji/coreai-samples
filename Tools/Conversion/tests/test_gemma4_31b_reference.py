@@ -1,3 +1,4 @@
+import _thread
 import contextlib
 import copy
 import io
@@ -478,6 +479,31 @@ class MonitorTests(unittest.TestCase):
             failure = json.loads((output / "failure.json").read_text())
             self.assertEqual((code, failure["passed"], failure["abort"][:9]), (1, False, "swap rose"))
             self.assertFalse((output / "reference.json").exists())
+
+    def test_a_stop_while_the_monitor_starts_still_writes_the_failure(self):
+        reason = "monitor stopped: OSError: monitor.tsv"
+
+        class Starting(ReadyMonitor):
+            def start(self):
+                def stop():
+                    self.on_abort(reason)
+                    _thread.interrupt_main()
+
+                thread = threading.Thread(target=stop)
+                thread.start()
+                thread.join()
+                time.sleep(5)
+
+        started = mock.Mock()
+        with tempfile.TemporaryDirectory() as folder:
+            try:
+                code, output = run_main(folder, lambda path, volumes, patterns, on_abort: Starting(on_abort, None), started)
+            except KeyboardInterrupt:
+                self.fail("a stop while the monitor started escaped main")
+            failure = json.loads((output / "failure.json").read_text())
+            self.assertFalse((output / "reference.json").exists())
+        started.assert_not_called()
+        self.assertEqual((code, failure["passed"], failure["abort"]), (1, False, reason))
 
     def test_a_stop_while_the_stage_finishes_still_writes_the_failure(self):
         class Finishing(ReadyMonitor):
