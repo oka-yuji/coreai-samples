@@ -174,7 +174,10 @@ class GenerationTests(unittest.TestCase):
                  "the model, then the memory record": ([first, RuntimeError("out of memory")], "memory",
                                                         RuntimeError("memory failed"), "RuntimeError: out of memory"),
                  "only the memory record after a stop token": ([first, stop], "memory", RuntimeError("memory failed"),
-                                                               "RuntimeError: memory failed")}
+                                                               "RuntimeError: memory failed"),
+                 "non-finite logits, then the memory record": ([first, [math.nan, 0, 0, 0, 1, 0, 0, 0]], "memory",
+                                                               RuntimeError("memory failed"),
+                                                               "non-finite logits at output position 1")}
         for label, (rows, target, effect, message) in cases.items():
             with self.subTest(label=label), tempfile.TemporaryDirectory() as base, \
                     mock.patch.object(baseline, target, side_effect=effect):
@@ -598,6 +601,15 @@ class RunFolderTests(unittest.TestCase):
         session(folder, entries, calls, run=run)
         self.assertEqual((calls, (folder / "outputs.jsonl").read_bytes()), (["ja-choice-0002", "ja-choice-0003"], expected))
         self.assertEqual(sorted(contents(folder)), ["outputs.jsonl", "progress.json", "run.json"])
+        refused = self.base / "refused"
+        session(refused, entries, run=run, deadline=0)
+        (refused / own[0]).write_text("{")
+        self.rejected(refused, entries, "differ from its run.json: role", run={**run, "role": "anchor"})
+        fresh = self.base / "fresh"
+        fresh.mkdir()
+        for name in ("outputs.jsonl", own[1], "notes.txt"):
+            (fresh / name).write_text("")
+        self.rejected(fresh, entries, "not a run folder", run=run)
 
     def test_unknown_files_or_temporary_files_of_other_names_stop_a_new_run_or_a_resume_without_removing_anything(self):
         entries = inputs_of(3)
