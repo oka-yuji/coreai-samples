@@ -107,13 +107,15 @@ error (a separate timer takes over the kill). A stop at any point from the start
 `reference.json`, including one while the monitor starts or after the model work, ends with `failure.json`. A run
 that finishes after a stop, with an unreadable sample or a monitor error is not `passed`, and neither is a run
 without its peak resident memory, kernel lifetime footprint peak, MPS allocation or swap increase. These are
-recorded after loading, after every case and at the end. The stage needs 20 GiB of free disk; the saved logits of
-the twelve cases take about 3.4 GB per run.
+recorded after loading, after every case and at the end. The stage needs 20 GiB of free disk; its saved logits of
+the twelve cases take about 3.4 GB. Six diagnostic steps follow `reference`
+([FP32 anchor and FP16 diagnostics](#fp32-anchor-and-fp16-diagnostics)).
 
 ## Second run and shared numbers
 
-`--refresh` runs both steps again in new processes. Compare the two reference artifacts (the `artifacts`
-folders that the two reports list for `reference`) with the reference environment:
+`--refresh` runs every step of the recipe again in new processes: `prepare`, `reference` and the six diagnostic
+steps described below. Compare the two reference artifacts (the `artifacts` folders that the two reports list for
+`reference`) with the reference environment:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.compare \
@@ -145,7 +147,9 @@ step reads `reference.json` and the token files of the `reference` step once, re
 vocabulary, and takes the forced sequence of every case from them (the input followed by the greedy output). It then
 hashes the files it loads like `reference` (`verify_inputs`) and stops before loading when any of them differs. The
 monitor, its stop conditions and `failure.json` are those of `reference`; the record is written only after the monitor
-has ended without a stop.
+has ended without a stop. Each step also needs 20 GiB of free disk when it starts. `anchor`, `anchor_w16`,
+`anchor_scale_fp32`, `anchor_scale_fp16` and `half` each save another 3.4 GB of logits, so a run of the recipe keeps
+about 20.4 GB of logits with those of `reference`.
 
 - `anchor` loads the BF16 weights on MPS and computes the forced sequence in FP32: right before each unit (the embedding,
   every decoder layer, the final norm and the output head) runs, every floating-point parameter and buffer of that unit
