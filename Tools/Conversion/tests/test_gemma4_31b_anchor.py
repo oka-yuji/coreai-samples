@@ -28,6 +28,7 @@ GEMMA4 = transformers is not None and hasattr(transformers, "Gemma4ForConditiona
 
 from Tools.Conversion.adapters.gemma4_31b import anchor, anchor_compare, anchor_summary, reference
 from Tools.Conversion.adapters.pinned import sha256
+from Tools.Conversion import runner
 from Tools.Conversion.storage import PipelineError
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
@@ -589,21 +590,25 @@ def stage_record(name, digest, **changes):
 def write_summary_run(folder, run="run", reused=(), changes=None):
     folder = Path(folder)
     stages = []
-    artifacts = folder / "reference"
-    artifacts.mkdir(parents=True)
-    (artifacts / "reference.json").write_text(json.dumps({
-        "schema": reference.SCHEMA, "passed": True, "dtype": anchor_compare.REFERENCE_DTYPE, "device": "mps",
-        "model": EXPECTED["model"], "cases": copy.deepcopy(EXPECTED["cases"]), "fixtures_sha256": EXPECTED["fixtures_sha256"]}))
-    digest = sha256(artifacts / "reference.json")
-    stages.append({"id": "reference", "role": "reference", "status": "reused", "origin": "earlier",
-                   "artifacts": str(artifacts), "execute_s": 0})
-    for name, file in anchor_summary.STAGES.items():
-        artifacts = folder / name
-        artifacts.mkdir()
-        (artifacts / file).write_text(json.dumps(stage_record(name, digest, **(changes or {}).get(name, {}))))
+
+    def place(name, file, record, origin):
+        artifacts = folder / name / "artifacts"
+        artifacts.mkdir(parents=True)
+        (artifacts / file).write_text(json.dumps(record))
+        (folder / name / "manifest.json").write_text(json.dumps({
+            "version": 1, "key": "k" * 64, "status": "completed", "run_id": origin, "stage": name,
+            "outputs": runner.outputs({"outputs": [file]}, artifacts)}))
         stages.append({"id": name, "role": "verify" if name == "layers" else "reference",
-                       "status": "reused" if name in reused else "executed", "origin": "earlier" if name in reused else run,
-                       "artifacts": str(artifacts), "execute_s": 1.0})
+                       "status": "executed" if origin == run else "reused", "origin": origin, "artifacts": str(artifacts),
+                       "execute_s": 1.0 if origin == run else 0})
+        return sha256(artifacts / file)
+
+    digest = place("reference", "reference.json", {
+        "schema": reference.SCHEMA, "passed": True, "dtype": anchor_compare.REFERENCE_DTYPE, "device": "mps",
+        "model": EXPECTED["model"], "cases": copy.deepcopy(EXPECTED["cases"]),
+        "fixtures_sha256": EXPECTED["fixtures_sha256"]}, "earlier")
+    for name, file in anchor_summary.STAGES.items():
+        place(name, file, stage_record(name, digest, **(changes or {}).get(name, {})), "earlier" if name in reused else run)
     report = folder / "report.json"
     report.write_text(json.dumps({"version": 1, "run_id": run, "status": "completed", "verification": "passed",
                                   "stages": stages}))
@@ -672,6 +677,43 @@ class SummaryTests(unittest.TestCase):
                     report = write_summary_run(Path(folder) / label.replace(" ", "-"), changes=changes)
                     code, output = self.summarize(report, [comparison_record(self.hashes(report, "anchor", "reference"))])
                     self.assertEqual((code, output), (1, ""))
+
+    def test_records_that_are_not_the_recorded_outputs_of_their_run_are_rejected(self):
+        def manifest(folder, name, **changes):
+            path = folder / name / "manifest.json"
+            path.write_text(json.dumps({**json.loads(path.read_text()), **changes}))
+
+        def substitute(folder):
+            other = write_summary_run(folder / "other", run="other", changes={"half": {"timing": {"total_s": 3.0}}})
+            shutil.copy(other.parent / "half/artifacts/reference.json", folder / "half/artifacts/reference.json")
+
+        def point(folder):
+            other = write_summary_run(folder / "other", run="other")
+            data = json.loads((folder / "report.json").read_text())
+            next(stage for stage in data["stages"] if stage["id"] == "anchor")["artifacts"] = str(other.parent / "anchor/artifacts")
+            (folder / "report.json").write_text(json.dumps(data))
+
+        variants = {"another run's record of the same step": substitute, "a step that names another run's output": point,
+                    "no manifest": lambda folder: (folder / "anchor/manifest.json").unlink(),
+                    "a manifest of another form": lambda folder: (folder / "anchor/manifest.json").write_text("[]"),
+                    "a manifest without outputs": lambda folder: manifest(folder, "anchor", outputs={}),
+                    "a manifest of another version": lambda folder: manifest(folder, "anchor", version=2),
+                    "a manifest of another run": lambda folder: manifest(folder, "anchor", run_id="other"),
+                    "a manifest of another step": lambda folder: manifest(folder, "anchor", stage="anchor_w16"),
+                    "a reused reference with a manifest of the given run": lambda folder: manifest(folder, "reference", run_id="run")}
+        for label, change in variants.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                report = write_summary_run(Path(folder) / "run")
+                change(report.parent)
+                code, output = self.summarize(report, [comparison_record(self.hashes(report, "anchor", "reference"))])
+                self.assertEqual((code, output), (1, ""))
+
+    def test_records_computed_from_another_reference_record_are_rejected(self):
+        for name in ("anchor", "half", "layers"):
+            with tempfile.TemporaryDirectory() as folder, self.subTest(name=name):
+                report = write_summary_run(folder, changes={name: {"source": {"reference_sha256": "e" * 64}}})
+                code, output = self.summarize(report, [comparison_record(self.hashes(report, "anchor", "reference"))])
+                self.assertEqual((code, output), (1, ""))
 
     def test_a_comparison_given_twice_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

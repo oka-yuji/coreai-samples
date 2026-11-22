@@ -45,7 +45,15 @@ def records(report):
         if not stage.get("artifacts") or stage.get("status") not in ("executed", "reused") or (
                 name != "reference" and (stage["status"] != "executed" or stage.get("origin") != report.get("run_id"))):
             raise PipelineError("Each diagnostic stage must have been executed by the given run")
-        record, digest, _ = read(Path(stage["artifacts"]) / file)
+        folder = Path(stage["artifacts"])
+        record, digest, size = read(folder / file)
+        manifest = read(folder.parent / "manifest.json")[0]
+        if not isinstance(manifest, dict) or (manifest.get("version"), manifest.get("status"), manifest.get("run_id"),
+                                              manifest.get("stage")) != (1, "completed", stage["origin"], name) \
+                or manifest["outputs"]["artifacts"]["tree"][file] != {"bytes": size, "sha256": digest}:
+            raise PipelineError(f"The {name} record is not the output that the run of its stage recorded")
+        if name != "reference" and record.get("source") != {"reference_sha256": loaded["reference"]["sha256"]}:
+            raise PipelineError(f"The {name} record was not computed from the reference record of the report")
         if name == "layers":
             matches = record.get("schema") == LAYERS_SCHEMA and record.get("stage") == "layers" \
                 and not provenance(record, expected)

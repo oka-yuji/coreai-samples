@@ -216,11 +216,15 @@ the scoring rows, and it lists every mismatch. The groups are the case kind (`ch
 case with more than 1,056 positions (the sliding window of 1,024 drops the BOS from position 1,024).
 
 `anchor_summary` prints only states, numbers, hashes and fixed words. It stops unless the six steps were executed by
-the given run (`status` executed and `origin` the run ID), every record of the report (the BF16 reference included)
-passes the checks of the comparison and matches the definition of its step in `recipe.json` (for `anchor` the
-`--weights` and `--embed-scale` of its command), the `layers` record has the contract model and the fixture case IDs in order, no
-two steps hold the same record, no comparison is given twice and every comparison lists the SHA-256 of two records of
-that report:
+the given run (`status` executed and `origin` the run ID); every record file of the report (the BF16 reference
+included) is the output that the runner recorded for its step, that is, the `manifest.json` beside the step's
+`artifacts` folder has version 1, status `completed`, the step's `origin` as its run ID, the step ID, and the size
+and SHA-256 of that file (read once for this check and for the values) in its output inventory; every record passes
+the checks of the comparison and matches the definition of its step in `recipe.json` (for `anchor` the `--weights`
+and `--embed-scale` of its command); the `layers` record has the contract model and the fixture case IDs in order;
+every record of the six steps names, as `source`, exactly the SHA-256 of the report's `reference.json`; no two steps
+hold the same record, no comparison is given twice and every comparison lists the SHA-256 of two records of that
+report:
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.anchor_summary --report <report.json> \
