@@ -4,7 +4,6 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import resource
 import sys
 import time
 
@@ -358,40 +357,6 @@ def layers_stage(args, contract, ready):
                        "cases_s": time.perf_counter() - ready_at}}
 
 
-def monitored(output, name, work, device):
-    path = Path(output) / name
-    if path.exists():
-        raise FileExistsError(f"{name} must be written to a new directory")
-    reasons = []
-    monitor = reference.ReferenceMonitor(Path(output) / "monitor.tsv", [output], [], reasons.append)
-    started = time.perf_counter()
-
-    def fail(reason):
-        write_json(Path(output) / "failure.json", {"schema": SCHEMA, "passed": False, "abort": reason,
-                                                   "elapsed_s": time.perf_counter() - started,
-                                                   "max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-                                                   "lifetime_peak_footprint_bytes": reference.footprint()[1],
-                                                   "monitor": monitor.finish()})
-        return 1
-
-    try:
-        monitor.start()
-        if not monitor.ready.wait(reference.FIRST_SAMPLE_TIMEOUT_S):
-            return fail(reasons[0] if reasons else f"no readable monitor sample within {reference.FIRST_SAMPLE_TIMEOUT_S} s")
-        record = work()
-        observed = monitor.finish()
-        if reasons:
-            return fail(reasons[0])
-        reference.finalize(record, observed, reference.memory(device))
-        record["timing"]["total_s"] = time.perf_counter() - started
-        write_json(path, record)
-    except KeyboardInterrupt:
-        if not reasons:
-            raise
-        return fail(reasons[0])
-    return 0 if record["passed"] else 1
-
-
 def main():
     parser = argparse.ArgumentParser(description="Record the FP32 anchor and FP16 diagnostics of Gemma 4 31B.")
     stages = parser.add_subparsers(dest="stage", required=True)
@@ -403,12 +368,16 @@ def main():
             stage.add_argument("--weights", choices=("bfloat16", "float16"), required=True)
             stage.add_argument("--embed-scale", choices=("bfloat16", "float32", "float16"), required=True)
     args = parser.parse_args()
+    work, name = (layers_stage, "layers.json") if args.stage == "layers" else (logits_stage, "reference.json")
+    output = args.output / name
+    if output.exists():
+        raise FileExistsError(f"{name} must be written to a new directory")
     contract = load_contract(args.model)
     ready = read_json(args.prepare / "ready.json")
     if ready.get("ready") is not True or ready.get("contract_sha256") != sha256(args.model):
         raise ValueError("Run prepare with this contract first")
-    work, name = (layers_stage, "layers.json") if args.stage == "layers" else (logits_stage, "reference.json")
-    return monitored(args.output, name, lambda: work(args, contract, ready), contract["reference"]["device"])
+    return reference.monitored(args.output, output, lambda: work(args, contract, ready), contract["reference"]["device"],
+                               SCHEMA)
 
 
 if __name__ == "__main__":

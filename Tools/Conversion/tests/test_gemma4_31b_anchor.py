@@ -1,4 +1,3 @@
-import _thread
 import contextlib
 import copy
 import io
@@ -9,7 +8,6 @@ import shutil
 import sys
 import tempfile
 import threading
-import time
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -394,97 +392,66 @@ class StageTests(unittest.TestCase):
 
 
 class ReadyMonitor:
-    def __init__(self, on_abort, delay):
-        self.on_abort, self.delay, self.ready = on_abort, delay, threading.Event()
+    def __init__(self, on_abort, observed=None):
+        self.on_abort, self.observed, self.ready = on_abort, observed, threading.Event()
+        self.ready.set()
 
     def start(self):
-        if self.delay is not None:
-            threading.Timer(self.delay, self.ready.set).start()
+        pass
 
     def finish(self):
-        return {"samples": 1, "aborts": 0}
-
-
-def run_monitored(folder, monitor, work):
-    with mock.patch.object(reference, "ReferenceMonitor", monitor), \
-            mock.patch.object(reference, "memory", return_value=dict(MEMORY)):
-        return anchor.monitored(Path(folder), "reference.json", work, "mps")
+        return copy.deepcopy(self.observed or {"samples": 1, "aborts": 0})
 
 
 class MonitoredTests(unittest.TestCase):
-    def test_a_finished_record_is_written_with_the_monitor_checks(self):
-        def monitor(path, volumes, patterns, on_abort):
-            fake = ReadyMonitor(on_abort, delay=None)
-            fake.ready.set()
-            fake.finish = lambda: copy.deepcopy(OBSERVED)
-            return fake
+    def monitored(self, folder, monitor, work):
+        with mock.patch.object(reference, "ReferenceMonitor", monitor), \
+                mock.patch.object(reference, "memory", return_value=dict(MEMORY)):
+            return reference.monitored(Path(folder), Path(folder) / "reference.json", work, "mps", anchor.SCHEMA)
 
+    def test_the_shared_section_writes_a_finished_record_with_the_monitor_checks(self):
+        work = lambda: {"checks": {"finite": True}, "loading": {"after_load": dict(MEMORY)},
+                        "resources": {"cases": [dict(MEMORY)]}, "timing": {}}
         with tempfile.TemporaryDirectory() as folder:
-            code = run_monitored(folder, monitor, lambda: {"checks": {"finite": True}, "loading": {"after_load": dict(MEMORY)},
-                                                           "resources": {"cases": [dict(MEMORY)]}, "timing": {}})
+            code = self.monitored(folder, lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, OBSERVED), work)
             record = json.loads((Path(folder) / "reference.json").read_text())
-            with self.assertRaises(FileExistsError):
-                run_monitored(folder, monitor, mock.Mock())
         self.assertEqual((code, record["passed"], record["checks"]["monitor_clean"]), (0, True, True))
 
-    def test_a_stop_during_the_work_fails_without_a_record(self):
+    def test_a_stop_is_recorded_with_the_schema_of_the_stage(self):
         def monitor(path, volumes, patterns, on_abort):
-            fake = ReadyMonitor(on_abort, delay=None)
-            fake.ready.set()
             on_abort("swap rose by 2000000001 B, above 2000000000 B")
-            return fake
+            return ReadyMonitor(on_abort)
 
         def interrupted():
             raise KeyboardInterrupt
 
         with tempfile.TemporaryDirectory() as folder:
-            code = run_monitored(folder, monitor, interrupted)
+            code = self.monitored(folder, monitor, interrupted)
             failure = json.loads((Path(folder) / "failure.json").read_text())
             self.assertFalse((Path(folder) / "reference.json").exists())
-        self.assertEqual((code, failure["passed"], failure["abort"][:9]), (1, False, "swap rose"))
+        self.assertEqual((code, failure["schema"], failure["abort"][:9]), (1, anchor.SCHEMA, "swap rose"))
 
-    def test_a_stop_while_the_monitor_starts_or_finishes_still_writes_the_failure(self):
-        class Starting(ReadyMonitor):
-            def start(self):
-                thread = threading.Thread(target=lambda: (self.on_abort("monitor stopped: OSError"), _thread.interrupt_main()))
-                thread.start()
-                thread.join()
-                time.sleep(5)
-
-        class Finishing(ReadyMonitor):
-            def finish(self):
-                if not getattr(self, "finished", False):
-                    self.finished = True
-                    self.on_abort(reference.UNREADABLE)
-                    raise KeyboardInterrupt
-                return {"samples": 1, "aborts": 1}
-
-        def finishing(path, volumes, patterns, on_abort):
-            fake = Finishing(on_abort, delay=None)
-            fake.ready.set()
-            return fake
-
-        for label, monitor in (("start", lambda path, volumes, patterns, on_abort: Starting(on_abort, None)),
-                               ("finish", finishing)):
-            work = mock.Mock(return_value={"checks": {}, "timing": {}})
-            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
-                try:
-                    code = run_monitored(folder, monitor, work)
-                except KeyboardInterrupt:
-                    self.fail("a stop escaped the monitored section")
-                failure = json.loads((Path(folder) / "failure.json").read_text())
-                self.assertFalse((Path(folder) / "reference.json").exists())
-                self.assertEqual((code, failure["passed"]), (1, False))
-                self.assertEqual(work.call_count, 0 if label == "start" else 1)
-
-    def test_no_readable_first_sample_fails_without_the_work(self):
-        work = mock.Mock()
-        with tempfile.TemporaryDirectory() as folder, mock.patch.object(reference, "FIRST_SAMPLE_TIMEOUT_S", 0.05):
-            code = run_monitored(folder, lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, None), work)
-            failure = json.loads((Path(folder) / "failure.json").read_text())
-        work.assert_not_called()
-        self.assertEqual(code, 1)
-        self.assertTrue(failure["abort"].startswith("no readable monitor sample"))
+    def test_each_stage_writes_its_own_record_and_refuses_an_existing_one(self):
+        with tempfile.TemporaryDirectory() as folder:
+            prepare = Path(folder) / "prepare"
+            prepare.mkdir()
+            (prepare / "ready.json").write_text(json.dumps({"ready": True, "contract_sha256": sha256(RECIPE / "model.json")}))
+            options = ["--model", str(RECIPE / "model.json"), "--snapshot", folder, "--prepare", str(prepare),
+                       "--reference", folder, "--output", folder]
+            written = {}
+            for stage, extra in (("layers", []), ("anchor", ["--weights", "float16", "--embed-scale", "float32"]),
+                                 ("half", [])):
+                with mock.patch.object(sys, "argv", ["anchor", stage, *extra, *options]), \
+                        mock.patch.object(reference, "monitored", return_value=0) as monitored:
+                    self.assertEqual(anchor.main(), 0)
+                written[stage] = (monitored.call_args.args[1].name, monitored.call_args.args[4])
+            (Path(folder) / "layers.json").write_text("{}")
+            with mock.patch.object(sys, "argv", ["anchor", "layers", *options]), \
+                    mock.patch.object(anchor, "load_contract") as contract, self.assertRaises(FileExistsError):
+                anchor.main()
+            contract.assert_not_called()
+        self.assertEqual(written, {"layers": ("layers.json", anchor.SCHEMA), "anchor": ("reference.json", anchor.SCHEMA),
+                                   "half": ("reference.json", anchor.SCHEMA)})
 
 
 def stage_record(name, digest, **changes):

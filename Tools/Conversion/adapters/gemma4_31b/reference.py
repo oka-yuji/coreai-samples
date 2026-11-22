@@ -411,6 +411,37 @@ def reference(args, contract, ready):
                        "greedy_s": greedy_seconds, "greedy_tokens_per_s": greedy_tokens / greedy_seconds}}
 
 
+def monitored(folder, output, work, device, schema=SCHEMA):
+    reasons = []
+    monitor = ReferenceMonitor(folder / "monitor.tsv", [folder], [], reasons.append)
+    started = time.perf_counter()
+
+    def fail(reason):
+        write_json(folder / "failure.json", {"schema": schema, "passed": False, "abort": reason,
+                                             "elapsed_s": time.perf_counter() - started,
+                                             "max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                                             "lifetime_peak_footprint_bytes": footprint()[1],
+                                             "monitor": monitor.finish()})
+        return 1
+
+    try:
+        monitor.start()
+        if not monitor.ready.wait(FIRST_SAMPLE_TIMEOUT_S):
+            return fail(reasons[0] if reasons else f"no readable monitor sample within {FIRST_SAMPLE_TIMEOUT_S} s")
+        record = work()
+        observed = monitor.finish()
+        if reasons:
+            return fail(reasons[0])
+        finalize(record, observed, memory(device))
+        record["timing"]["total_s"] = time.perf_counter() - started
+        write_json(output, record)
+    except KeyboardInterrupt:
+        if not reasons:
+            raise
+        return fail(reasons[0])
+    return 0 if record["passed"] else 1
+
+
 def main():
     parser = argparse.ArgumentParser(description="Record BF16 MPS reference outputs of Gemma 4 31B for the fixtures.")
     for name in ("model", "snapshot", "fixtures", "prepare", "output"):
@@ -423,34 +454,7 @@ def main():
     ready = read_json(args.prepare / "ready.json")
     if ready.get("ready") is not True or ready.get("contract_sha256") != sha256(args.model):
         raise ValueError("Run prepare with this contract first")
-    reasons = []
-    monitor = ReferenceMonitor(args.output / "monitor.tsv", [args.output], [], reasons.append)
-    started = time.perf_counter()
-
-    def fail(reason):
-        write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "abort": reason,
-                                                  "elapsed_s": time.perf_counter() - started,
-                                                  "max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-                                                  "lifetime_peak_footprint_bytes": footprint()[1],
-                                                  "monitor": monitor.finish()})
-        return 1
-
-    try:
-        monitor.start()
-        if not monitor.ready.wait(FIRST_SAMPLE_TIMEOUT_S):
-            return fail(reasons[0] if reasons else f"no readable monitor sample within {FIRST_SAMPLE_TIMEOUT_S} s")
-        record = reference(args, contract, ready)
-        observed = monitor.finish()
-        if reasons:
-            return fail(reasons[0])
-        finalize(record, observed, memory(contract["reference"]["device"]))
-        record["timing"]["total_s"] = time.perf_counter() - started
-        write_json(output, record)
-    except KeyboardInterrupt:
-        if not reasons:
-            raise
-        return fail(reasons[0])
-    return 0 if record["passed"] else 1
+    return monitored(args.output, output, lambda: reference(args, contract, ready), contract["reference"]["device"])
 
 
 if __name__ == "__main__":
