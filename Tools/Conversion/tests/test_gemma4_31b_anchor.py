@@ -295,6 +295,13 @@ class CompareTests(unittest.TestCase):
                                                                                                  dtype=np.float32)),
                    "same size tokens": lambda b: (b / "cases/case.tokens.json").write_text(
                        json.dumps({"input_tokens": [2, 3], "output_tokens": [4, 2]})),
+                   "an archive as the logits file": lambda b: (
+                       np.savez(b / "cases/case.logits.npy", logits=np.asarray(rows(4), dtype=np.float32)),
+                       (b / "cases/case.logits.npy.npz").replace(b / "cases/case.logits.npy"),
+                       edit(b, lambda data: data["cases"][0]["files"].update(logits=reference.file_record(b / "cases/case.logits.npy")))),
+                   "token lists as text": lambda b: (
+                       (b / "cases/case.tokens.json").write_text(json.dumps({"input_tokens": "23", "output_tokens": "41"})),
+                       edit(b, lambda data: data["cases"][0]["files"].update(tokens=reference.file_record(b / "cases/case.tokens.json")))),
                    "failed record": lambda b: edit(b, lambda data: data.update(passed=False)),
                    "first scoring row": lambda b: edit(b, lambda data: data["cases"][0].update(first_scoring_row=0)),
                    "other model": lambda b: edit(b, lambda data: data.update(model={"id": "owner/other"})),

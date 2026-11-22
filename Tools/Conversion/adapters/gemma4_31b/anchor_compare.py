@@ -145,7 +145,7 @@ def load_case(folder, case, vocabulary):
         logits = np.load(io.BytesIO(data["logits"]), allow_pickle=False)
     except (ValueError, EOFError):
         return None, None, [f"{name}: unreadable case files"]
-    if not conforms(tokens, TOKENS):
+    if not conforms(tokens, TOKENS) or not isinstance(logits, np.ndarray):
         return None, None, [f"{name}: unreadable case files"]
     inputs, outputs, saved = len(tokens["input_tokens"]), len(tokens["output_tokens"]), case["saved_positions"]
     if (case["input_tokens"], case["output_tokens"], saved, case["first_scoring_row"],
