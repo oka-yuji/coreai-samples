@@ -9,16 +9,17 @@ import resource
 import shutil
 import sys
 import time
-from types import SimpleNamespace
 
 from ...storage import PipelineError, file_hash, write_json
 from ..pinned import sha256
-from .layers import PREFIX, check_layers
+from .layers import OUTPUTS, PREFIX, check_layers, check_taps
 from .prepare import TOKENIZER_FILES, load_contract
 from .reference import SWAP_INCREASE_LIMIT_BYTES, footprint, supervise, verify_inputs
 
-SCHEMA = "gemma4-31b-export/1"
+SCHEMA = "gemma4-31b-export/2"
 FUNCTIONS = {"main": ("main",), "main,prefill": ("main", "prefill")}
+RETURNS = {"main": OUTPUTS, "prefill": OUTPUTS[2:]}
+TAP_CONVENTION = "layers-passed:before-final-norm:ascending"
 INPUTS = ("input_ids", "position_ids")
 STATES = ("keyCache", "valueCache", "slidingKeyCache", "slidingValueCache")
 CONSTANT_TYPES = ("Float32", "Int32", "UInt32", "UInt64")
@@ -34,21 +35,22 @@ def name_of(layers, functions):
     return f"gemma4_31b_l{layers}_fp16_{'_'.join(functions)}"
 
 
-def metadata(contract, name, context):
+def metadata(contract, name, context, taps):
     return {"metadata_version": "0.2", "kind": "llm", "name": name, "assets": {"main": f"{name}.aimodel"},
             "language": {"tokenizer": contract["model_id"], "vocab_size": contract["config"]["vocab_size"],
                          "max_context_length": context, "embedded_tokenizer": True, "function_map": {"main": ["main"]}},
             "source": {"model_definition": "torch", "hf_model_id": contract["model_id"], "revision": contract["revision"]},
-            "compression": None}
+            "compression": None, "tap_layers": list(taps), "tap_convention": TAP_CONVENTION}
 
 
-def expected_functions(config, kinds, functions):
+def expected_functions(config, kinds, functions, taps):
     full = [kinds.count("full_attention"), 1, config["num_global_key_value_heads"], None, config["global_head_dim"]]
     sliding = [kinds.count("sliding_attention"), 1, config["num_key_value_heads"], None, config["head_dim"]]
     shapes = dict(zip(STATES, (full, full, sliding, sliding)))
+    widths = {"logits": config["vocab_size"], "hidden_states": config["hidden_size"],
+              "tap_hidden_states": config["hidden_size"] * len(taps)}
     return {name: {"inputs": {item: {"dtype": "int32", "shape": [1, None]} for item in INPUTS},
-                   "outputs": {"logits": {"dtype": "float16", "shape": [1, None, config["vocab_size"]]}}
-                   if name == "main" else {},
+                   "outputs": {item: {"dtype": "float16", "shape": [1, None, widths[item]]} for item in RETURNS[name]},
                    "states": {item: {"dtype": "float16", "shape": list(shape)} for item, shape in shapes.items()}}
             for name in functions}
 
@@ -68,7 +70,7 @@ def shown(value):
     return json.dumps(value, sort_keys=True)
 
 
-def check_asset(record, contract, kinds, functions, context):
+def check_asset(record, contract, kinds, functions, context, taps):
     problems = []
     if record["compression_config"] is not None:
         problems.append("the export was given a compression config")
@@ -84,15 +86,18 @@ def check_asset(record, contract, kinds, functions, context):
     if storage.get("Float32", 0) != expected:
         problems.append(f"Float32 holds {storage.get('Float32', 0)} elements, not the {expected} of the two RoPE tables "
                         "and the two constants")
-    found, expected = record["asset"]["functions"], expected_functions(contract["config"], kinds, functions)
+    found, expected = record["asset"]["functions"], expected_functions(contract["config"], kinds, functions, taps)
     if set(found) != set(expected):
         problems.append(f"the asset has the functions {sorted(found)}, not {sorted(expected)}")
     for name in sorted(set(found) & set(expected)):
         problems += [f"{name} {kind}: {shown(found[name][kind])}, not {shown(expected[name][kind])}"
                      for kind in ("inputs", "outputs", "states") if found[name][kind] != expected[name][kind]]
+    order = {name: list(RETURNS[name]) for name in functions}
+    if record["asset"]["output_order"] != order:
+        problems.append(f"the functions return {shown(record['asset']['output_order'])}, not {shown(order)}")
     if record["tokenizer"] != contract["tokenizer"]["files"]:
         problems.append(f"the tokenizer files {shown(record['tokenizer'])} differ from the distributed files")
-    if record["metadata"] != metadata(contract, name_of(len(kinds), functions), context):
+    if record["metadata"] != metadata(contract, name_of(len(kinds), functions), context, taps):
         problems.append(f"metadata.json differs from the contract and the arguments: {shown(record['metadata'])}")
     return problems
 
@@ -130,7 +135,40 @@ def inspect_asset(path):
                ("states", summary.function_states))
     return {"functions": {name: {kind: {item: described(text) for item, text in getter(name)} for kind, getter in getters}
                           for name in summary.function_names},
+            "output_order": {name: [item for item, _ in summary.function_outputs(name)] for name in summary.function_names},
             "storage_types": {kind: int(count) for kind, count in summary.storage_types}}
+
+
+def staged(model, context, functions):
+    import coreai_torch
+    from coreai_models.export.externalize import EXTERNALIZE_SPECS
+    from coreai_models.export.macos import _build_reference_inputs
+    from coreai_models.export.mlir_ops import register_custom_torch_lowering, remove_functionalization
+    import torch
+
+    inputs, shapes = _build_reference_inputs(model, model.config, torch.float16, context)
+
+    def traced(prefill):
+        def export_fn(module, pass_inputs_as_kwargs=True):
+            module.set_prefill_mode(prefill)
+            with torch.no_grad():
+                program = torch.export.export(module, args=() if pass_inputs_as_kwargs else tuple(inputs.values()),
+                                              kwargs=inputs if pass_inputs_as_kwargs else None, dynamic_shapes=shapes)
+            program = program.run_decompositions(coreai_torch.get_decomp_table())
+            remove_functionalization(program)
+            return program
+        return export_fn
+
+    converter = coreai_torch.TorchConverter(mode=coreai_torch.TorchConverter.Mode.RELEASE)
+    for name in functions:
+        converter.add_pytorch_module(model, export_fn=traced(name == "prefill"), externalize_modules=EXTERNALIZE_SPECS,
+                                     input_names=model.export_input_names()["main"], output_names=RETURNS[name],
+                                     state_names=model.export_state_names()["main"], entrypoint_name=name)
+    register_custom_torch_lowering(converter)
+    try:
+        return converter.to_coreai()
+    finally:
+        model.set_prefill_mode(False)
 
 
 def bundle_files(folder):
@@ -146,9 +184,8 @@ def bundle_files(folder):
     return files, contents
 
 
-def run(args, contract, kinds, functions, disk):
+def run(args, contract, kinds, functions, taps, disk):
     import coreai_models
-    from coreai_models.export.macos import export_macos_model
     from coreai_models.export.metadata import build_aimodel_metadata
     import torch
 
@@ -166,12 +203,10 @@ def run(args, contract, kinds, functions, disk):
         model = Gemma4ForCausalLM.from_hf_memory_efficient(
             str(args.snapshot), max_context_length=args.context, target_dtype=torch.float16, mmap_path=str(work),
             num_layers=args.layers, hf_config_attr="text_config", hf_state_dict_prefix=PREFIX).eval()
-        model.exports_prefill_graph = "prefill" in functions
+        model.tap_layers = taps
         loaded = weights(model)
         marks.append(("load_s", time.perf_counter()))
-        settings = SimpleNamespace(max_context_length=args.context, compute_precision="float16", include_debug_info=False,
-                                   dynamic_max_batch_size=None)
-        program = export_macos_model(model, model.config, settings)
+        program = staged(model, args.context, functions)
         del model
         marks.append(("convert_s", time.perf_counter()))
         bundle.mkdir()
@@ -181,7 +216,7 @@ def run(args, contract, kinds, functions, disk):
         if work.exists():
             shutil.rmtree(work)
     marks.append(("save_s", time.perf_counter()))
-    write_json(bundle / "metadata.json", metadata(contract, name, args.context))
+    write_json(bundle / "metadata.json", metadata(contract, name, args.context, taps))
     (bundle / "tokenizer").mkdir()
     for item in TOKENIZER_FILES:
         shutil.copyfile(args.snapshot / item, bundle / "tokenizer" / item)
@@ -201,7 +236,7 @@ def run(args, contract, kinds, functions, disk):
               "bundle": {"folder": INCOMPLETE, "name": name, "main_hash": contents[f"{name}.aimodel/main.hash"].hex(),
                          "files": files, "bytes": sum(entry["bytes"] for entry in files.values())},
               "disk": disk, "timing": {label: end - start for (_, start), (label, end) in zip(marks, marks[1:])}}
-    record["problems"] = check_asset(record, contract, kinds, functions, args.context)
+    record["problems"] = check_asset(record, contract, kinds, functions, args.context, taps)
     return record
 
 
@@ -232,12 +267,15 @@ def main():
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--layers", type=int, required=True)
     parser.add_argument("--functions", choices=tuple(FUNCTIONS), required=True)
+    parser.add_argument("--taps", required=True, help="Ascending distinct counts of layers whose outputs "
+                                                      "tap_hidden_states joins, separated by commas.")
     parser.add_argument("--context", type=int, required=True)
     args = parser.parse_args()
     if os.path.lexists(args.output):
         raise FileExistsError(f"The export must be written to a new folder: {args.output}")
     contract = load_contract(args.model)
     kinds = check_layers(contract["config"], args.layers)
+    taps = check_taps(args.taps, args.layers)
     args.output.mkdir(parents=True)
     elements = weight_elements(args.snapshot, args.layers)
     free, required = shutil.disk_usage(args.output).free, required_bytes(elements)
@@ -247,7 +285,7 @@ def main():
     disk = {"weight_bytes": 2 * elements, "estimated_write_bytes": 4 * elements, "margin_bytes": MARGIN_BYTES,
             "required_free_bytes": required, "free_before_bytes": free}
     functions = FUNCTIONS[args.functions]
-    return supervise(args.output, SCHEMA, lambda: run(args, contract, kinds, functions, disk),
+    return supervise(args.output, SCHEMA, lambda: run(args, contract, kinds, functions, taps, disk),
                      lambda record, observed, started: conclude(args.output, record, observed, started))
 
 
