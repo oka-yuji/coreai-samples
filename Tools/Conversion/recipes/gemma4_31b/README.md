@@ -461,7 +461,8 @@ the comparison of the model class with the original implementation, which it mak
 from the folders of the two runs, and of each export with its report and its comparison to standard output:
 
 ~~~sh
-python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <record.json> \
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.fp16_summary \
+  --reference <record.json> \
   --original <folder of layers.py run --implementation original> --model-class <folder of the model-class run> \
   --report <report.json> --export <export.json> --comparison <comparison.json> [...]
 ~~~

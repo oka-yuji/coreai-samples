@@ -699,7 +699,8 @@ The caches took 21,660,884 KiB (`resources.bin` 22,163,497,512 B) and 16,962,064
 | Its `comparison.json` | `a18abf9350bd420ccc5a9ac2e7c06669531964530b7d52c07cab043d9f2e5999` |
 
 ~~~sh
-python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 reference record.json> \
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.fp16_summary \
+  --reference <FP32 reference record.json> \
   --original <folder of the run of the original implementation> --model-class <folder of the run of the model class> \
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   --report <report.json> --export <export.json> --comparison <comparison.json> \
