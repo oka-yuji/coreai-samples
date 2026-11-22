@@ -181,11 +181,13 @@ inputs, `short` and `long`, and compares two such runs:
   --original <new folder>/original --model-class <new folder>/class --output <new folder>/comparison.json
 ~~~
 
-`run` loads the weights: start it under the shared machine lock, which it does not take itself. It writes
-`short.npy`, `long.npy` and, last, `record.json` into a new folder. `compare` passes only for a run of the original
-implementation and a run of the model class on the same inputs whose differences stay below the criteria: for
-`short` a largest absolute logit difference below 1e-3, and for `long` a largest absolute logit difference below
-5e-3, a largest probability difference below 1e-6 and no position with another `argmax`.
+`run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
+layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and refuses any other before it creates
+the folder or reads a weight. It writes `short.npy`, `long.npy` and, last, `record.json` into a new folder.
+`compare` passes only for a run of the original implementation and a run of the model class on the same inputs
+whose differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for
+`long` a largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position
+with another `argmax`.
 
 ### Tests
 

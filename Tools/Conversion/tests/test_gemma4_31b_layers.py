@@ -129,6 +129,26 @@ class InputTests(unittest.TestCase):
         self.assertEqual(bounds[-1][1], 1400)
         self.assertEqual(layers.calls(26, 1024), [[0, 26]])
 
+    def test_a_run_refuses_first_layers_that_do_not_end_with_a_full_attention_layer_before_writing_or_loading(self):
+        with tempfile.TemporaryDirectory() as folder:
+            contract = write_contract(folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
+            config = load_contract(contract)["config"]
+            for count in (6, 12):
+                layers.check_layers(config, count)
+            with mock.patch.object(layers, "verify_inputs") as verify, \
+                    mock.patch.object(layers, "original_model") as original_model, \
+                    mock.patch.object(layers, "class_model") as class_model:
+                for implementation in layers.IMPLEMENTATIONS:
+                    for count in (0, 1, 5, 7, 13):
+                        output = Path(folder) / f"{implementation}-{count}"
+                        with self.subTest(implementation=implementation, layers=count):
+                            with self.assertRaisesRegex(ValueError, "must end with a full-attention layer"):
+                                layers.run(implementation, contract, Path(folder) / "snapshot", count, output)
+                            self.assertFalse(output.exists())
+            verify.assert_not_called()
+            original_model.assert_not_called()
+            class_model.assert_not_called()
+
 
 @unittest.skipIf(np is None, "NumPy is required for the comparison")
 class CompareTests(unittest.TestCase):

@@ -28,6 +28,12 @@ PACKAGES = ("numpy", "safetensors", "torch", "transformers")
 CONVERTER = ("coreai-core", "coreai-models", "coreai-opt", "coreai-torch")
 
 
+def check_layers(config, layers):
+    kinds = config["layer_pattern"] * (config["num_hidden_layers"] // len(config["layer_pattern"]))
+    if not 1 <= layers <= len(kinds) or kinds[layers - 1] != "full_attention":
+        raise ValueError(f"The first {layers} layers must end with a full-attention layer")
+
+
 def tokens(name, config):
     length, seed = INPUTS[name]
     rng, bos = random.Random(seed), config["bos_token_id"]
@@ -116,11 +122,12 @@ def logits(model, implementation, ids, bounds):
 
 
 def run(implementation, contract_path, snapshot, layers, output):
+    contract = load_contract(contract_path)
+    config = contract["config"]
+    check_layers(config, layers)
     import numpy as np
 
     output.mkdir(parents=True)
-    contract = load_contract(contract_path)
-    config = contract["config"]
     started = time.perf_counter()
     verified = verify_inputs(snapshot, contract)
     hashed = time.perf_counter()
