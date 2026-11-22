@@ -125,9 +125,10 @@ that its own `reference.json` records, the input and output token counts, the sa
 scoring row equal that record, every saved array is float32 with the shape `[saved positions, vocabulary]`,
 no compared logit is NaN or infinite, and the input and output tokens of every case match; any other finding
 is listed in `problems`. Non-finite logits are counted per run and leave the largest difference of the case
-and of the comparison unset. `summary` prints only states, numbers, hashes, versions
-and case IDs; it lives beside the steps because every `Tools/Conversion/*.py` file is part of each step's
-cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
+and of the comparison unset. `summary` prints only states, numbers, hashes, versions and case IDs, and stops
+unless the comparison lists the SHA-256 of the two `reference.json` files it is given, in the same order (the
+printed record keeps them); it lives beside the steps because every `Tools/Conversion/*.py` file is part of each
+step's cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
 
 ## Terms
 

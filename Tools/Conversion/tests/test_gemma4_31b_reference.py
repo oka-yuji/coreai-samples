@@ -644,6 +644,15 @@ def reference_record():
             "timing": {"load_s": 1.0, "total_s": 2.0}}
 
 
+def comparison_record(hashes, passed=True, problems=(), cases=None):
+    case = {"id": "raw_text", "problems": [], "input_tokens_match": True, "output_tokens_match": True,
+            "first_difference": None, "compared_positions": 5, "max_abs_logit_difference": 0.0, "argmax_changes": 0,
+            "non_finite": {"first": 0, "second": 0}}
+    return {"schema": "gemma4-31b-rerun/2", "passed": passed, "problems": list(problems), "vocabulary": 262144,
+            "references_sha256": hashes, "max_abs_logit_difference": 0.0 if cases is None else None,
+            "cases": [case] if cases is None else cases}
+
+
 class SummaryTests(unittest.TestCase):
     REPORT = {"version": 1, "status": "completed", "verification": "not_configured",
               "stages": [{"role": "reference", "status": "executed", "execute_s": 1.0}]}
@@ -664,12 +673,41 @@ class SummaryTests(unittest.TestCase):
         case = {"id": "case", "problems": ["case: logits dtype float64"], "input_tokens_match": True,
                 "output_tokens_match": True, "first_difference": None, "compared_positions": 0,
                 "max_abs_logit_difference": None, "argmax_changes": 0, "non_finite": {"first": 0, "second": 0}}
-        comparison = {"schema": "gemma4-31b-rerun/2", "passed": False, "problems": case["problems"], "vocabulary": 2,
-                      "max_abs_logit_difference": None, "cases": [case]}
-        result = summary.project([self.REPORT], [reference_record()], comparison)
+        comparison = comparison_record(["a" * 64, "b" * 64], passed=False, problems=case["problems"], cases=[case])
+        result = summary.project([self.REPORT], [reference_record()], comparison, ["a" * 64, "b" * 64])
         self.assertEqual((result["rerun"]["passed"], result["rerun"]["problems"], result["rerun"]["cases"][0]["problems"],
                           result["rerun"]["max_abs_logit_difference"]), (False, 1, 1, None))
         self.assertNotIn("float64", json.dumps(result))
+
+    def test_a_comparison_of_other_reference_records_or_in_another_order_is_rejected(self):
+        with self.assertRaises(PipelineError):
+            summary.project([self.REPORT], [reference_record()], comparison_record(["a" * 64, "b" * 64]))
+        with tempfile.TemporaryDirectory() as folder:
+            paths = {}
+            for name, total in (("first", 2.0), ("second", 3.0), ("other", 4.0)):
+                record = reference_record()
+                record["timing"]["total_s"] = total
+                paths[name] = Path(folder) / f"{name}.json"
+                paths[name].write_text(json.dumps(record))
+            report = Path(folder) / "report.json"
+            report.write_text(json.dumps(self.REPORT))
+            hashes = {name: sha256(path) for name, path in paths.items()}
+            variants = {"same": (["first", "second"], 0), "other run": (["first", "other"], 1),
+                        "swapped": (["second", "first"], 1)}
+            for label, (names, code) in variants.items():
+                comparison = Path(folder) / f"{label}.comparison.json"
+                comparison.write_text(json.dumps(comparison_record([hashes[name] for name in names])))
+                argv = ["summary", "--report", str(report), "--reference", str(paths["first"]), "--report", str(report),
+                        "--reference", str(paths["second"]), "--comparison", str(comparison)]
+                output = io.StringIO()
+                with self.subTest(label=label), mock.patch.object(sys, "argv", argv), \
+                        contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(summary.main(), code)
+                    if code == 0:
+                        self.assertEqual(json.loads(output.getvalue())["rerun"]["references_sha256"],
+                                         [hashes["first"], hashes["second"]])
+                    else:
+                        self.assertEqual(output.getvalue(), "")
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         for change in (lambda r: r["environment"].update(os_build="folder/name"),

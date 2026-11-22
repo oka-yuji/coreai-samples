@@ -6,6 +6,7 @@ import sys
 
 from ... import summary
 from ...storage import PipelineError, read_json
+from ..pinned import sha256
 from .compare import SCHEMA as RERUN_SCHEMA
 from .reference import SCHEMA as REFERENCE_SCHEMA
 
@@ -103,10 +104,13 @@ def reference(record):
             "timing": {word(key): summary.number(value) for key, value in record["timing"].items()}}
 
 
-def rerun(comparison):
+def rerun(comparison, hashes):
     if comparison.get("schema") != RERUN_SCHEMA:
         raise PipelineError(f"Expected a {RERUN_SCHEMA} comparison")
+    if not hashes or comparison.get("references_sha256") != list(hashes):
+        raise PipelineError("The comparison was made from other reference records or in another order")
     return {"passed": flag(comparison["passed"]), "problems": len(comparison["problems"]),
+            "references_sha256": [matched(value, HEX[64]) for value in hashes],
             "vocabulary": count(comparison["vocabulary"]),
             "max_abs_logit_difference": optional(comparison["max_abs_logit_difference"]),
             "cases": [{"id": word(item["id"]), "problems": len(item["problems"]),
@@ -120,13 +124,13 @@ def rerun(comparison):
                       for item in comparison["cases"]]}
 
 
-def project(reports, references, comparison=None):
+def project(reports, references, comparison=None, hashes=None):
     result = {"schema": SCHEMA,
               "scope": "BF16 MPS reference outputs of the diagnostic fixtures; not a quality evaluation.",
               "runs": [{"pipeline": summary.project(report), "reference": reference(record)}
                        for report, record in zip(reports, references, strict=True)]}
     if comparison is not None:
-        result["rerun"] = rerun(comparison)
+        result["rerun"] = rerun(comparison, hashes)
     return result
 
 
@@ -139,7 +143,7 @@ def main():
     try:
         comparison = read_json(args.comparison) if args.comparison else None
         result = project([read_json(path) for path in args.report], [read_json(path) for path in args.reference],
-                         comparison)
+                         comparison, [sha256(path) for path in args.reference])
         print(json.dumps(result, indent=2, allow_nan=False))
         return 0
     except (OSError, ValueError, TypeError, KeyError) as error:
