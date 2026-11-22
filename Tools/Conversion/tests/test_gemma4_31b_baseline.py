@@ -387,6 +387,23 @@ class SessionTests(unittest.TestCase):
                     self.refused(folder, log, output)
             self.assertEqual((contents(Path(folder) / "fresh"), (Path(folder) / "new").exists()), ({}, False))
 
+    def test_a_new_log_folder_that_is_another_spelling_of_a_new_run_folder_is_removed_and_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "dir").mkdir()
+            if not (Path(folder) / "DIR").exists():
+                self.skipTest("the volume distinguishes letter case")
+            for log, output, outside in (("NEW", "new", "log1"), ("DIR/new", "dir/new", "log2")):
+                with self.subTest(log=log, output=output):
+                    self.refused(folder, log, output)
+                    self.assertEqual(self.run_main(folder, log=outside, output=output), 0)
+                    run = read_json(Path(folder) / output / "run.json")
+                    self.assertEqual((run["items"], "finished" in run), (2, True))
+
+    def test_a_new_log_folder_that_turns_out_to_be_the_new_run_folder_is_removed_and_refused(self):
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(baseline, "within", return_value=False):
+            self.refused(folder, "fresh", "fresh")
+            self.assertFalse((Path(folder) / "fresh").exists())
+
     def test_a_session_writes_its_record_and_then_the_finish_of_the_run(self):
         with tempfile.TemporaryDirectory() as folder:
             code = self.run_main(folder)

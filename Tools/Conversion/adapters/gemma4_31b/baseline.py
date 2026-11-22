@@ -302,6 +302,9 @@ def main():
     run = conditions(contract, hashlib.sha256(data).hexdigest(), hashlib.sha256(inputs_data).hexdigest(), len(inputs),
                      model, args.commit, environment(args.model.parent))
     args.log.mkdir()
+    if args.output.exists() and os.path.samefile(args.log, args.output):
+        args.log.rmdir()
+        parser.error("--log must be outside --output")
     run, done, hasher = start(args.output, run, inputs)
     before = run["items"]
     deadline = None if args.max_minutes is None else begun + args.max_minutes * 60
