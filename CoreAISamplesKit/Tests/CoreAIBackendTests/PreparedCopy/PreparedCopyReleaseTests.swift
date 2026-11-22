@@ -132,4 +132,56 @@ import Testing
         }
         #expect(recorder.events == ["delete"])
     }
+
+    @Test(
+        "A living recovery mark that could not record its end still fails as recovery failed while another load holds the use, and the ledger stays unchanged"
+    )
+    func stalledRecoveryMarkFailsWhileShared() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let recorder = PreparedCopyRecorder()
+        do {
+            let held = try await recorder.load(fixture.recovery(Fixture.second), label: "second.")
+            try fixture.write(
+                Fixture.record(
+                    [Fixture.own("stalled", .recovery, .load)], recoveries: 1, suspects: [Fixture.dead]))
+            let before = try fixture.bytes()
+            await #expect(throws: PreparedCopyError.recoveryFailed) {
+                _ = try await recorder.load(fixture.recovery(Fixture.first), label: "first.")
+            }
+            let after = try fixture.bytes()
+            #expect(after == before)
+            withExtendedLifetime(held) {}
+        }
+        #expect(recorder.events == ["second.load", "second.warmUp"])
+    }
+
+    @Test(
+        "When a cancelled recovery cannot remove its mark, the next request fails as recovery failed and a manual clear makes the asset loadable again"
+    )
+    func unrecordedCancellationNeedsClear() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.dead]))
+        let path = fixture.directory.path(percentEncoded: false)
+        defer { chmod(path, 0o700) }
+        let recovery = fixture.recovery()
+        await #expect(throws: CancellationError.self) {
+            _ = try await recovery.load(
+                delete: {},
+                load: {
+                    #expect(chmod(path, 0o500) == 0)
+                    throw CancellationError()
+                }, warmUp: { (_: Int) in })
+        }
+        #expect(chmod(path, 0o700) == 0)
+        let recorder = PreparedCopyRecorder()
+        await #expect(throws: PreparedCopyError.recoveryFailed) {
+            _ = try await recorder.load(recovery)
+        }
+        try recovery.clear(delete: { recorder.note("clear") })
+        let result = try await recorder.load(recovery)
+        #expect(!result.recovered)
+        #expect(recorder.events == ["clear", "load", "warmUp"])
+    }
 }

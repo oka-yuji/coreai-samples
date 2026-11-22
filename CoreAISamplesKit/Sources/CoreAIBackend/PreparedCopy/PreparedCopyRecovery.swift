@@ -90,7 +90,7 @@ struct PreparedCopyRecovery: Sendable {
         let living = record.marks.filter { !dead.contains($0) }
         if record.failed { throw PreparedCopyError.recoveryFailed }
         if living.contains(where: { $0.kind == .recovery }) {
-            let stalled = try store.use(exclusive: true) != nil
+            let stalled = try store.use(exclusive: false) != nil
             throw stalled ? PreparedCopyError.recoveryFailed : PreparedCopyError.preparing
         }
         if dead.isEmpty { return [] }

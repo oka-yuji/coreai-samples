@@ -3,11 +3,11 @@ import Testing
 
 @testable import CoreAIBackend
 
-@Suite(.timeLimit(.minutes(1))) struct PreparedCopyConcurrencyTests {
+@Suite(.serialized, .timeLimit(.minutes(1))) struct PreparedCopyConcurrencyTests {
     private typealias Fixture = PreparedCopyFixture
 
     @Test(
-        "Sixteen concurrent normal loads of one key leave all sixteen marks in the ledger and an empty record after they finish"
+        "Eight concurrent normal loads of one key leave all eight marks in the ledger and an empty record after they finish"
     )
     func concurrentLoadsKeepEveryMark() async throws {
         let fixture = try Fixture()
@@ -23,17 +23,18 @@ import Testing
                             delete: {},
                             load: {
                                 entered = true
-                                await gate.arrive()
+                                try await gate.arrive()
                                 return 1
                             }, warmUp: { _ in })
                         return loaded.recovered
                     } catch {
-                        if !entered { await gate.arrive(waiting: false) }
+                        if !entered { try await gate.arrive(waiting: false) }
                         throw error
                     }
                 }
             }
-            await gate.allArrived()
+            try await gate.allArrived()
+            #expect(fixture.lockIsFree())
             let record = fixture.recovery().record()
             #expect(record.marks.count == Fixture.crowd.count)
             #expect(Set(record.marks.map(\.pid)) == Set(Fixture.crowd.map(\.pid)))
@@ -41,6 +42,51 @@ import Testing
             return try await group.reduce(into: [Bool]()) { $0.append($1) }
         }
         #expect(results == Array(repeating: false, count: Fixture.crowd.count))
+        #expect(fixture.recovery().record() == Fixture.empty)
+    }
+
+    @Test(
+        "Eight concurrent loads that see one leftover mark start exactly one recovery, the others return preparing and the entry is deleted once"
+    )
+    func concurrentLoadsStartOneRecovery() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.dead]))
+        let gate = PreparedCopyGate(expected: Fixture.crowd.count)
+        let recoveries = Fixture.crowd.map { fixture.recovery($0) }
+        let outcomes = try await withThrowingTaskGroup(of: (String, Int).self) { group in
+            for recovery in recoveries {
+                group.addTask {
+                    var entered = false
+                    var deletes = 0
+                    do {
+                        let loaded = try await recovery.load(
+                            delete: { deletes += 1 },
+                            load: {
+                                entered = true
+                                try await gate.arrive()
+                                return 1
+                            }, warmUp: { _ in })
+                        return (loaded.recovered ? "recovered" : "normal", deletes)
+                    } catch PreparedCopyError.preparing where !entered {
+                        try await gate.arrive(waiting: false)
+                        return ("preparing", deletes)
+                    } catch {
+                        if !entered { try await gate.arrive(waiting: false) }
+                        throw error
+                    }
+                }
+            }
+            try await gate.allArrived()
+            #expect(fixture.lockIsFree())
+            let entered = await gate.entered
+            #expect(entered == 1)
+            await gate.open()
+            return try await group.reduce(into: [(String, Int)]()) { $0.append($1) }
+        }
+        #expect(outcomes.filter { $0.0 == "recovered" }.count == 1)
+        #expect(outcomes.filter { $0.0 == "preparing" }.count == Fixture.crowd.count - 1)
+        #expect(outcomes.map(\.1).reduce(0, +) == 1)
         #expect(fixture.recovery().record() == Fixture.empty)
     }
 
