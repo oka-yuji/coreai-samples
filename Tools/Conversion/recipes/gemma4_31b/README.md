@@ -205,16 +205,19 @@ entries) or an `anchor` or `half` record whose `stage` is the stage of one of it
 exactly the weights, compute, embedding scale and attention rows of that definition and nothing else, with the three
 scales computed from `hidden_size`. The comparison passes only when both records pass
 these checks and passed, differ in SHA-256 and are not the same file (a hard or symbolic link included), every token
-and logits file has the size and SHA-256 that its own record lists and is not the same file as its counterpart, the
-token counts, saved positions, first scoring row and scoring positions equal that record, every array is float32 with
+and logits file has the size and SHA-256 that its own record lists and is not the same file as its counterpart, every
+token file holds lists of token IDs, the token counts, saved positions, first scoring row and scoring positions equal
+that record, every array is float32 with
 the shape `[saved positions, 262144]`, the forced tokens of both sides are the same, an `anchor` or `half` record
 names in `source` exactly the SHA-256 of the BF16 reference when that is the other side (two such records name the
 same SHA-256) and no logit is NaN or infinite.
 Otherwise `problems` lists the findings: a case with a finding has no metrics, a finding about the records stops before
-the cases, and no group is reported. Each case is read, checked and measured in one step, and a failure anywhere in
-that step becomes the one finding of that case, naming only the type of the error; the comparison then fails and the
-next case is still compared. A `reference.json` that is missing or is not JSON ends the comparison with an error and
-no result. The output also names the definition of each side (`identities`). The result is
+the cases, and no group is reported. Each case is read, checked and measured in one step. A check that does not hold
+adds a finding of its own, so a case can have several; an error raised anywhere in that step leaves that case with a
+single finding that names only the type of the error. Either way the comparison fails and the next case is still
+compared. A `reference.json` that is missing or is not JSON ends the comparison with an error and no result. The output
+also names, for each side, the definition that its `stage` and `compute` (for the BF16 reference, its `dtype`) match
+(`identities`), or null when none matches or the record has another shape. The result is
 written to standard output as JSON and nothing else is written there; the exit code is 0 only when it passed. For every
 row, with p and q the softmax (float64) of the baseline and the candidate,
 it computes the largest |p − q| over the vocabulary, KL(p ‖ q), the largest absolute logit difference and whether the
