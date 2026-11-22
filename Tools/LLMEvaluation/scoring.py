@@ -7,7 +7,7 @@ import re
 import shutil
 import unicodedata
 
-from Tools.LLMEvaluation.items import FILES, ROOT, SETS, canonical, digest, lines, read_json, sha256
+from Tools.LLMEvaluation.items import FILES, ROOT, SETS, canonical, digest, lines, read_json
 
 CONTRACT = read_json(ROOT / FILES["contract"])
 RULES = CONTRACT["scorers"]
@@ -153,9 +153,9 @@ def well_formed(record, vocabulary):
             and isinstance(record.get("error", ""), str))
 
 
-def read_records(path):
+def read_records(data):
     found = []
-    for number, line in enumerate(Path(path).read_bytes().split(b"\n"), 1):
+    for number, line in enumerate(data.split(b"\n"), 1):
         if line.strip():
             try:
                 found.append((number, json.loads(line.decode("utf-8"), parse_constant=nonstandard)))
@@ -244,14 +244,16 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
         raise ValueError("Each run folder needs a name")
     if len({folded(run.name) for run in runs}) != len(runs):
         raise ValueError("Run folder names must differ after NFC normalization and case folding")
-    items = lines(Path(items_path).read_bytes())
+    listed = Path(items_path).read_bytes()
+    items, items_sha256 = lines(listed), hashlib.sha256(listed).hexdigest()
     if len({item["id"] for item in items}) != len(items):
         raise ValueError("Duplicate item ids in the items file")
     frozen = frozen_set(bundle, {item["id"] for item in items})
     hashes, results = committed(bundle), {}
     vocabulary = tokenizer.get_vocab_size(with_added_tokens=True)
     for run in runs:
-        good, broken = partition(read_records(run / "outputs.jsonl"), vocabulary)
+        data = (run / "outputs.jsonl").read_bytes()
+        good, broken = partition(read_records(data), vocabulary)
         first, damaged = {}, set(broken)
         for record in good:
             first.setdefault(record["id"], record)
@@ -263,8 +265,9 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
                 for item in items]
         results[run.name] = rows, {
             "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
-            "items": {"file": Path(items_path).name, "sha256": sha256(items_path), "set": frozen},
+            "items": {"file": Path(items_path).name, "sha256": items_sha256, "set": frozen},
             "tokenizer": {"sha256": tokenizer_sha256, "vocabulary": vocabulary}, "run": read_json(run / "run.json"),
+            "outputs": {"sha256": hashlib.sha256(data).hexdigest()},
             "checks": record_checks(items, good, broken, hashes), "categories": summarize(rows)}
     output.mkdir(parents=True)
     try:

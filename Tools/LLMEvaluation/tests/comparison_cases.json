@@ -1,0 +1,952 @@
+{
+ "contract": "G31-QC-v1",
+ "about": "Expected results of the paired comparison, derived by hand from contract §7. Each case applies its input operations to a copy of base.input and its expected operations to a copy of base.expected.",
+ "operations": {
+  "set": "[\"set\", path, value]: replace or create the dict key, or replace the list element, at the path",
+  "delete": "[\"delete\", path]: remove the dict key or the list element at the path",
+  "append": "[\"append\", path, value]: append the value to the list at the path",
+  "path": "a list of steps; a step is a dict key, a list index, or {\"id\": x}: the one element of the list whose id is x",
+  "numbers": "floats are compared with an absolute tolerance of 1e-12; everything else is compared exactly"
+ },
+ "reasons": [
+  "hash_mismatch",
+  "run_unfinished",
+  "missing_output",
+  "malformed_record",
+  "not_in_set",
+  "duplicate_id",
+  "input_differs",
+  "token_count_differs",
+  "baseline_error",
+  "top2_differs",
+  "unscored_item",
+  "score_inconsistent"
+ ],
+ "failure_kinds": [
+  "runtime_error",
+  "non_finite_logits",
+  "empty_output",
+  "control_token",
+  "repetition"
+ ],
+ "base": {
+  "input": {
+   "set": "primary",
+   "contract": {"version": "G31-QC-v1", "sha256": "c0"},
+   "items": [
+    {"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0002", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0003", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0004", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0005", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0006", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0007", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0008", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0009", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0010", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-choice-0011", "category": "ja-choice", "kind": "choice_digit"},
+    {"id": "ja-reading-0001", "category": "ja-reading", "kind": "reading_exact"},
+    {"id": "ja-reading-0002", "category": "ja-reading", "kind": "reading_exact"},
+    {"id": "extract-ja-0001", "category": "extract-ja", "kind": "entity_sets"},
+    {"id": "extract-ja-0002", "category": "extract-ja", "kind": "entity_sets"},
+    {"id": "code-gen-mbpp-0001", "category": "code-gen-mbpp", "kind": "python_tests"},
+    {"id": "code-gen-mbpp-0002", "category": "code-gen-mbpp", "kind": "python_tests"},
+    {"id": "synth-format-0001", "category": "synth-format", "kind": "format_rules"},
+    {"id": "synth-format-0002", "category": "synth-format", "kind": "format_rules"},
+    {"id": "free-ja-0001", "category": "free-ja", "kind": "unscored"},
+    {"id": "free-ja-0002", "category": "free-ja", "kind": "unscored"},
+    {"id": "long-ja-4k-0001", "category": "long-ja-4k", "kind": "reading_exact", "token_count": 3900},
+    {"id": "long-ja-4k-0002", "category": "long-ja-4k", "kind": "reading_exact", "token_count": 4000}
+   ],
+   "baseline": {
+    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "reference", "items": 23, "inputs": {"count": 23}, "started": "2026-11-22T00:00:00Z", "finished": "2026-11-22T01:00:00Z"},
+    "summary": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "items": {"file": "primary.jsonl", "sha256": "i0"}, "tokenizer": {"sha256": "t0", "vocabulary": 262144}, "scorer": {"commit": "s0", "python": "3.11.9"}, "code": {"timeouts": 0, "rerun_passed": 0}, "checks": {"missing": [], "not_in_set": [], "duplicate": [], "top2_differs": [], "item_hash_differs": [], "malformed": []}},
+    "scores": [
+     {"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0002", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0003", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0004", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0005", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0006", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0007", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0008", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0009", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0010", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0011", "category": "ja-choice", "kind": "choice_digit", "correct": false, "state": "scored"},
+     {"id": "ja-reading-0001", "category": "ja-reading", "kind": "reading_exact", "correct": true, "state": "scored"},
+     {"id": "ja-reading-0002", "category": "ja-reading", "kind": "reading_exact", "correct": true, "state": "scored"},
+     {"id": "extract-ja-0001", "category": "extract-ja", "kind": "entity_sets", "correct": true, "state": "scored"},
+     {"id": "extract-ja-0002", "category": "extract-ja", "kind": "entity_sets", "correct": true, "state": "scored"},
+     {"id": "code-gen-mbpp-0001", "category": "code-gen-mbpp", "kind": "python_tests", "correct": true, "state": "scored"},
+     {"id": "code-gen-mbpp-0002", "category": "code-gen-mbpp", "kind": "python_tests", "correct": true, "state": "scored"},
+     {"id": "synth-format-0001", "category": "synth-format", "kind": "format_rules", "correct": true, "state": "scored"},
+     {"id": "synth-format-0002", "category": "synth-format", "kind": "format_rules", "correct": true, "state": "scored"},
+     {"id": "free-ja-0001", "category": "free-ja", "kind": "unscored", "correct": null, "state": "unscored"},
+     {"id": "free-ja-0002", "category": "free-ja", "kind": "unscored", "correct": null, "state": "unscored"},
+     {"id": "long-ja-4k-0001", "category": "long-ja-4k", "kind": "reading_exact", "correct": true, "state": "scored"},
+     {"id": "long-ja-4k-0002", "category": "long-ja-4k", "kind": "reading_exact", "correct": true, "state": "scored"}
+    ],
+    "outputs": [
+     {"id": "ja-choice-0001", "input_sha256": "in-ja-choice-0001", "input_tokens": 20, "output_ids": [1000, 2000, 3000], "stop": "stop_token", "stop_token": 106, "top2": [[1000, 0.75, 7, 0.125], [2000, 0.5, 8, 0.25], [3000, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0002", "input_sha256": "in-ja-choice-0002", "input_tokens": 21, "output_ids": [1001, 2001, 3001], "stop": "stop_token", "stop_token": 106, "top2": [[1001, 0.75, 7, 0.125], [2001, 0.5, 8, 0.25], [3001, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0003", "input_sha256": "in-ja-choice-0003", "input_tokens": 22, "output_ids": [1002, 2002, 3002], "stop": "stop_token", "stop_token": 106, "top2": [[1002, 0.75, 7, 0.125], [2002, 0.5, 8, 0.25], [3002, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0004", "input_sha256": "in-ja-choice-0004", "input_tokens": 23, "output_ids": [1003, 2003, 3003], "stop": "stop_token", "stop_token": 106, "top2": [[1003, 0.75, 7, 0.125], [2003, 0.5, 8, 0.25], [3003, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0005", "input_sha256": "in-ja-choice-0005", "input_tokens": 24, "output_ids": [1004, 2004, 3004], "stop": "stop_token", "stop_token": 106, "top2": [[1004, 0.75, 7, 0.125], [2004, 0.5, 8, 0.25], [3004, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0006", "input_sha256": "in-ja-choice-0006", "input_tokens": 25, "output_ids": [1005, 2005, 3005], "stop": "stop_token", "stop_token": 106, "top2": [[1005, 0.75, 7, 0.125], [2005, 0.5, 8, 0.25], [3005, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0007", "input_sha256": "in-ja-choice-0007", "input_tokens": 26, "output_ids": [1006, 2006, 3006], "stop": "stop_token", "stop_token": 106, "top2": [[1006, 0.75, 7, 0.125], [2006, 0.5, 8, 0.25], [3006, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0008", "input_sha256": "in-ja-choice-0008", "input_tokens": 27, "output_ids": [1007, 2007, 3007], "stop": "stop_token", "stop_token": 106, "top2": [[1007, 0.75, 7, 0.125], [2007, 0.5, 8, 0.25], [3007, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0009", "input_sha256": "in-ja-choice-0009", "input_tokens": 28, "output_ids": [1008, 2008, 3008], "stop": "stop_token", "stop_token": 106, "top2": [[1008, 0.75, 7, 0.125], [2008, 0.5, 8, 0.25], [3008, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0010", "input_sha256": "in-ja-choice-0010", "input_tokens": 29, "output_ids": [1009, 2009, 3009], "stop": "stop_token", "stop_token": 106, "top2": [[1009, 0.75, 7, 0.125], [2009, 0.5, 8, 0.25], [3009, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0011", "input_sha256": "in-ja-choice-0011", "input_tokens": 30, "output_ids": [1010, 2010, 3010], "stop": "stop_token", "stop_token": 106, "top2": [[1010, 0.75, 7, 0.125], [2010, 0.5, 8, 0.25], [3010, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-reading-0001", "input_sha256": "in-ja-reading-0001", "input_tokens": 31, "output_ids": [1011, 2011, 3011], "stop": "stop_token", "stop_token": 106, "top2": [[1011, 0.75, 7, 0.125], [2011, 0.5, 8, 0.25], [3011, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-reading-0002", "input_sha256": "in-ja-reading-0002", "input_tokens": 32, "output_ids": [1012, 2012, 3012], "stop": "stop_token", "stop_token": 106, "top2": [[1012, 0.75, 7, 0.125], [2012, 0.5, 8, 0.25], [3012, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "extract-ja-0001", "input_sha256": "in-extract-ja-0001", "input_tokens": 33, "output_ids": [1013, 2013, 3013], "stop": "stop_token", "stop_token": 106, "top2": [[1013, 0.75, 7, 0.125], [2013, 0.5, 8, 0.25], [3013, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "extract-ja-0002", "input_sha256": "in-extract-ja-0002", "input_tokens": 34, "output_ids": [1014, 2014, 3014], "stop": "stop_token", "stop_token": 106, "top2": [[1014, 0.75, 7, 0.125], [2014, 0.5, 8, 0.25], [3014, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "code-gen-mbpp-0001", "input_sha256": "in-code-gen-mbpp-0001", "input_tokens": 35, "output_ids": [1015, 2015, 3015], "stop": "stop_token", "stop_token": 106, "top2": [[1015, 0.75, 7, 0.125], [2015, 0.5, 8, 0.25], [3015, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "code-gen-mbpp-0002", "input_sha256": "in-code-gen-mbpp-0002", "input_tokens": 36, "output_ids": [1016, 2016, 3016], "stop": "stop_token", "stop_token": 106, "top2": [[1016, 0.75, 7, 0.125], [2016, 0.5, 8, 0.25], [3016, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "synth-format-0001", "input_sha256": "in-synth-format-0001", "input_tokens": 37, "output_ids": [1017, 2017, 3017], "stop": "stop_token", "stop_token": 106, "top2": [[1017, 0.75, 7, 0.125], [2017, 0.5, 8, 0.25], [3017, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "synth-format-0002", "input_sha256": "in-synth-format-0002", "input_tokens": 38, "output_ids": [1018, 2018, 3018], "stop": "stop_token", "stop_token": 106, "top2": [[1018, 0.75, 7, 0.125], [2018, 0.5, 8, 0.25], [3018, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [1019, 2019, 3019], "stop": "stop_token", "stop_token": 106, "top2": [[1019, 0.75, 7, 0.125], [2019, 0.5, 8, 0.25], [3019, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "free-ja-0002", "input_sha256": "in-free-ja-0002", "input_tokens": 40, "output_ids": [1020, 2020, 3020], "stop": "stop_token", "stop_token": 106, "top2": [[1020, 0.75, 7, 0.125], [2020, 0.5, 8, 0.25], [3020, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "long-ja-4k-0001", "input_sha256": "in-long-ja-4k-0001", "input_tokens": 3900, "output_ids": [1021, 2021, 3021], "stop": "stop_token", "stop_token": 106, "top2": [[1021, 0.75, 7, 0.125], [2021, 0.5, 8, 0.25], [3021, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "long-ja-4k-0002", "input_sha256": "in-long-ja-4k-0002", "input_tokens": 4000, "output_ids": [1022, 2022, 3022], "stop": "stop_token", "stop_token": 106, "top2": [[1022, 0.75, 7, 0.125], [2022, 0.5, 8, 0.25], [3022, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}
+    ]
+   },
+   "candidate": {
+    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "fp16", "items": 23, "inputs": {"count": 23}, "started": "2026-11-22T00:00:00Z", "finished": "2026-11-22T01:00:00Z"},
+    "summary": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "items": {"file": "primary.jsonl", "sha256": "i0"}, "tokenizer": {"sha256": "t0", "vocabulary": 262144}, "scorer": {"commit": "s0", "python": "3.11.9"}, "code": {"timeouts": 0, "rerun_passed": 0}, "checks": {"missing": [], "not_in_set": [], "duplicate": [], "top2_differs": [], "item_hash_differs": [], "malformed": []}},
+    "scores": [
+     {"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0002", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0003", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0004", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0005", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0006", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0007", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0008", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0009", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0010", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
+     {"id": "ja-choice-0011", "category": "ja-choice", "kind": "choice_digit", "correct": false, "state": "scored"},
+     {"id": "ja-reading-0001", "category": "ja-reading", "kind": "reading_exact", "correct": true, "state": "scored"},
+     {"id": "ja-reading-0002", "category": "ja-reading", "kind": "reading_exact", "correct": true, "state": "scored"},
+     {"id": "extract-ja-0001", "category": "extract-ja", "kind": "entity_sets", "correct": true, "state": "scored"},
+     {"id": "extract-ja-0002", "category": "extract-ja", "kind": "entity_sets", "correct": true, "state": "scored"},
+     {"id": "code-gen-mbpp-0001", "category": "code-gen-mbpp", "kind": "python_tests", "correct": true, "state": "scored"},
+     {"id": "code-gen-mbpp-0002", "category": "code-gen-mbpp", "kind": "python_tests", "correct": true, "state": "scored"},
+     {"id": "synth-format-0001", "category": "synth-format", "kind": "format_rules", "correct": true, "state": "scored"},
+     {"id": "synth-format-0002", "category": "synth-format", "kind": "format_rules", "correct": true, "state": "scored"},
+     {"id": "free-ja-0001", "category": "free-ja", "kind": "unscored", "correct": null, "state": "unscored"},
+     {"id": "free-ja-0002", "category": "free-ja", "kind": "unscored", "correct": null, "state": "unscored"},
+     {"id": "long-ja-4k-0001", "category": "long-ja-4k", "kind": "reading_exact", "correct": true, "state": "scored"},
+     {"id": "long-ja-4k-0002", "category": "long-ja-4k", "kind": "reading_exact", "correct": true, "state": "scored"}
+    ],
+    "outputs": [
+     {"id": "ja-choice-0001", "input_sha256": "in-ja-choice-0001", "input_tokens": 20, "output_ids": [1000, 2000, 3000], "stop": "stop_token", "stop_token": 106, "top2": [[1000, 0.75, 7, 0.125], [2000, 0.5, 8, 0.25], [3000, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0002", "input_sha256": "in-ja-choice-0002", "input_tokens": 21, "output_ids": [1001, 2001, 3001], "stop": "stop_token", "stop_token": 106, "top2": [[1001, 0.75, 7, 0.125], [2001, 0.5, 8, 0.25], [3001, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0003", "input_sha256": "in-ja-choice-0003", "input_tokens": 22, "output_ids": [1002, 2002, 3002], "stop": "stop_token", "stop_token": 106, "top2": [[1002, 0.75, 7, 0.125], [2002, 0.5, 8, 0.25], [3002, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0004", "input_sha256": "in-ja-choice-0004", "input_tokens": 23, "output_ids": [1003, 2003, 3003], "stop": "stop_token", "stop_token": 106, "top2": [[1003, 0.75, 7, 0.125], [2003, 0.5, 8, 0.25], [3003, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0005", "input_sha256": "in-ja-choice-0005", "input_tokens": 24, "output_ids": [1004, 2004, 3004], "stop": "stop_token", "stop_token": 106, "top2": [[1004, 0.75, 7, 0.125], [2004, 0.5, 8, 0.25], [3004, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0006", "input_sha256": "in-ja-choice-0006", "input_tokens": 25, "output_ids": [1005, 2005, 3005], "stop": "stop_token", "stop_token": 106, "top2": [[1005, 0.75, 7, 0.125], [2005, 0.5, 8, 0.25], [3005, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0007", "input_sha256": "in-ja-choice-0007", "input_tokens": 26, "output_ids": [1006, 2006, 3006], "stop": "stop_token", "stop_token": 106, "top2": [[1006, 0.75, 7, 0.125], [2006, 0.5, 8, 0.25], [3006, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0008", "input_sha256": "in-ja-choice-0008", "input_tokens": 27, "output_ids": [1007, 2007, 3007], "stop": "stop_token", "stop_token": 106, "top2": [[1007, 0.75, 7, 0.125], [2007, 0.5, 8, 0.25], [3007, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0009", "input_sha256": "in-ja-choice-0009", "input_tokens": 28, "output_ids": [1008, 2008, 3008], "stop": "stop_token", "stop_token": 106, "top2": [[1008, 0.75, 7, 0.125], [2008, 0.5, 8, 0.25], [3008, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0010", "input_sha256": "in-ja-choice-0010", "input_tokens": 29, "output_ids": [1009, 2009, 3009], "stop": "stop_token", "stop_token": 106, "top2": [[1009, 0.75, 7, 0.125], [2009, 0.5, 8, 0.25], [3009, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-choice-0011", "input_sha256": "in-ja-choice-0011", "input_tokens": 30, "output_ids": [1010, 2010, 3010], "stop": "stop_token", "stop_token": 106, "top2": [[1010, 0.75, 7, 0.125], [2010, 0.5, 8, 0.25], [3010, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-reading-0001", "input_sha256": "in-ja-reading-0001", "input_tokens": 31, "output_ids": [1011, 2011, 3011], "stop": "stop_token", "stop_token": 106, "top2": [[1011, 0.75, 7, 0.125], [2011, 0.5, 8, 0.25], [3011, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "ja-reading-0002", "input_sha256": "in-ja-reading-0002", "input_tokens": 32, "output_ids": [1012, 2012, 3012], "stop": "stop_token", "stop_token": 106, "top2": [[1012, 0.75, 7, 0.125], [2012, 0.5, 8, 0.25], [3012, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "extract-ja-0001", "input_sha256": "in-extract-ja-0001", "input_tokens": 33, "output_ids": [1013, 2013, 3013], "stop": "stop_token", "stop_token": 106, "top2": [[1013, 0.75, 7, 0.125], [2013, 0.5, 8, 0.25], [3013, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "extract-ja-0002", "input_sha256": "in-extract-ja-0002", "input_tokens": 34, "output_ids": [1014, 2014, 3014], "stop": "stop_token", "stop_token": 106, "top2": [[1014, 0.75, 7, 0.125], [2014, 0.5, 8, 0.25], [3014, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "code-gen-mbpp-0001", "input_sha256": "in-code-gen-mbpp-0001", "input_tokens": 35, "output_ids": [1015, 2015, 3015], "stop": "stop_token", "stop_token": 106, "top2": [[1015, 0.75, 7, 0.125], [2015, 0.5, 8, 0.25], [3015, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "code-gen-mbpp-0002", "input_sha256": "in-code-gen-mbpp-0002", "input_tokens": 36, "output_ids": [1016, 2016, 3016], "stop": "stop_token", "stop_token": 106, "top2": [[1016, 0.75, 7, 0.125], [2016, 0.5, 8, 0.25], [3016, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "synth-format-0001", "input_sha256": "in-synth-format-0001", "input_tokens": 37, "output_ids": [1017, 2017, 3017], "stop": "stop_token", "stop_token": 106, "top2": [[1017, 0.75, 7, 0.125], [2017, 0.5, 8, 0.25], [3017, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "synth-format-0002", "input_sha256": "in-synth-format-0002", "input_tokens": 38, "output_ids": [1018, 2018, 3018], "stop": "stop_token", "stop_token": 106, "top2": [[1018, 0.75, 7, 0.125], [2018, 0.5, 8, 0.25], [3018, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [1019, 2019, 3019], "stop": "stop_token", "stop_token": 106, "top2": [[1019, 0.75, 7, 0.125], [2019, 0.5, 8, 0.25], [3019, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "free-ja-0002", "input_sha256": "in-free-ja-0002", "input_tokens": 40, "output_ids": [1020, 2020, 3020], "stop": "stop_token", "stop_token": 106, "top2": [[1020, 0.75, 7, 0.125], [2020, 0.5, 8, 0.25], [3020, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "long-ja-4k-0001", "input_sha256": "in-long-ja-4k-0001", "input_tokens": 3900, "output_ids": [1021, 2021, 3021], "stop": "stop_token", "stop_token": 106, "top2": [[1021, 0.75, 7, 0.125], [2021, 0.5, 8, 0.25], [3021, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0},
+     {"id": "long-ja-4k-0002", "input_sha256": "in-long-ja-4k-0002", "input_tokens": 4000, "output_ids": [1022, 2022, 3022], "stop": "stop_token", "stop_token": 106, "top2": [[1022, 0.75, 7, 0.125], [2022, 0.5, 8, 0.25], [3022, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}
+    ]
+   },
+   "layer1": null
+  },
+  "expected": {
+   "verdict": "no_regression_found",
+   "incomplete": [],
+   "critical_failures": [],
+   "regressions": [],
+   "improvements": [],
+   "changed": [],
+   "categories": {
+    "ja-choice": {"kind": "choice_digit", "items": 11, "baseline_correct": 10, "candidate_correct": 10, "regressions": 0, "improvements": 0},
+    "ja-reading": {"kind": "reading_exact", "items": 2, "baseline_correct": 2, "candidate_correct": 2, "regressions": 0, "improvements": 0},
+    "extract-ja": {"kind": "entity_sets", "items": 2, "baseline_correct": 2, "candidate_correct": 2, "regressions": 0, "improvements": 0},
+    "code-gen-mbpp": {"kind": "python_tests", "items": 2, "baseline_correct": 2, "candidate_correct": 2, "regressions": 0, "improvements": 0},
+    "synth-format": {"kind": "format_rules", "items": 2, "baseline_correct": 2, "candidate_correct": 2, "regressions": 0, "improvements": 0},
+    "free-ja": {"kind": "unscored", "items": 2, "baseline_correct": 0, "candidate_correct": 0, "regressions": 0, "improvements": 0},
+    "long-ja-4k": {"kind": "reading_exact", "items": 2, "baseline_correct": 2, "candidate_correct": 2, "regressions": 0, "improvements": 0}
+   },
+   "not_evaluable": ["code-gen-mbpp", "extract-ja", "ja-reading", "long-ja-4k", "synth-format"],
+   "upper_bounds": {"ja-choice": 0.2384041903808527, "ja-reading": 0.7763932022500211, "code-gen-mbpp": 0.7763932022500211, "extract-ja": 0.7763932022500211},
+   "baseline_quality": {"empty_output": [], "control_token": [], "repetition": []},
+   "code": {"baseline": {"timeouts": 0, "rerun_passed": 0}, "candidate": {"timeouts": 0, "rerun_passed": 0}, "scorer": {"commit": "s0", "python": "3.11.9"}},
+   "layer1": null,
+   "claim": "no regression was detected on this evaluation set; not evaluated: code-gen-mbpp, extract-ja, ja-reading, long-ja-4k, synth-format"
+  }
+ },
+ "cases": [
+  {
+   "name": "clean_pair",
+   "about": "Identical outputs and scores give no_regression_found.",
+   "input": [],
+   "expected": []
+  },
+  {
+   "name": "regression_only",
+   "about": "One item that the baseline got right and the candidate got wrong.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-reading-0001"}], {"id": "ja-reading-0001", "input_sha256": "in-ja-reading-0001", "input_tokens": 31, "output_ids": [1011, 4011, 3011], "stop": "stop_token", "stop_token": 106, "top2": [[1011, 0.75, 7, 0.125], [4011, 0.5, 8, 0.25], [3011, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "ja-reading-0001"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "regression_found"],
+    ["set", ["regressions"], ["ja-reading-0001"]],
+    ["set", ["changed"], [{"id": "ja-reading-0001", "position": 1, "baseline_gap": 0.25}]],
+    ["set", ["categories", "ja-reading", "candidate_correct"], 1],
+    ["set", ["categories", "ja-reading", "regressions"], 1],
+    ["delete", ["upper_bounds", "ja-reading"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "improvement_only",
+   "about": "An improvement alone is not a regression.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-choice-0011"}], {"id": "ja-choice-0011", "input_sha256": "in-ja-choice-0011", "input_tokens": 30, "output_ids": [5010, 2010, 3010], "stop": "stop_token", "stop_token": 106, "top2": [[5010, 0.75, 7, 0.125], [2010, 0.5, 8, 0.25], [3010, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "ja-choice-0011"}, "correct"], true]
+   ],
+   "expected": [
+    ["set", ["improvements"], ["ja-choice-0011"]],
+    ["set", ["changed"], [{"id": "ja-choice-0011", "position": 0, "baseline_gap": 0.625}]],
+    ["set", ["categories", "ja-choice", "candidate_correct"], 11],
+    ["set", ["categories", "ja-choice", "improvements"], 1]
+   ]
+  },
+  {
+   "name": "improvements_do_not_offset_a_regression",
+   "about": "Three improvements and one regression stay regression_found.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-reading-0001"}], {"id": "ja-reading-0001", "input_sha256": "in-ja-reading-0001", "input_tokens": 31, "output_ids": [1011, 4011, 3011], "stop": "stop_token", "stop_token": 106, "top2": [[1011, 0.75, 7, 0.125], [4011, 0.5, 8, 0.25], [3011, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "ja-reading-0001"}, "correct"], false],
+    ["set", ["candidate", "outputs", {"id": "ja-choice-0011"}], {"id": "ja-choice-0011", "input_sha256": "in-ja-choice-0011", "input_tokens": 30, "output_ids": [5010, 2010, 3010], "stop": "stop_token", "stop_token": 106, "top2": [[5010, 0.75, 7, 0.125], [2010, 0.5, 8, 0.25], [3010, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "ja-choice-0011"}, "correct"], true],
+    ["set", ["baseline", "scores", {"id": "synth-format-0001"}, "correct"], false],
+    ["set", ["baseline", "scores", {"id": "synth-format-0002"}, "correct"], false],
+    ["set", ["candidate", "outputs", {"id": "synth-format-0001"}], {"id": "synth-format-0001", "input_sha256": "in-synth-format-0001", "input_tokens": 37, "output_ids": [1017, 2017, 8017], "stop": "stop_token", "stop_token": 106, "top2": [[1017, 0.75, 7, 0.125], [2017, 0.5, 8, 0.25], [8017, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "outputs", {"id": "synth-format-0002"}], {"id": "synth-format-0002", "input_sha256": "in-synth-format-0002", "input_tokens": 38, "output_ids": [1018, 2018, 8018], "stop": "stop_token", "stop_token": 106, "top2": [[1018, 0.75, 7, 0.125], [2018, 0.5, 8, 0.25], [8018, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "regression_found"],
+    ["set", ["regressions"], ["ja-reading-0001"]],
+    ["set", ["improvements"], ["ja-choice-0011", "synth-format-0001", "synth-format-0002"]],
+    ["set", ["changed"], [{"id": "ja-choice-0011", "position": 0, "baseline_gap": 0.625}, {"id": "ja-reading-0001", "position": 1, "baseline_gap": 0.25}, {"id": "synth-format-0001", "position": 2, "baseline_gap": 0.5}, {"id": "synth-format-0002", "position": 2, "baseline_gap": 0.5}]],
+    ["set", ["categories", "ja-choice", "candidate_correct"], 11],
+    ["set", ["categories", "ja-choice", "improvements"], 1],
+    ["set", ["categories", "ja-reading", "candidate_correct"], 1],
+    ["set", ["categories", "ja-reading", "regressions"], 1],
+    ["set", ["categories", "synth-format", "baseline_correct"], 0],
+    ["set", ["categories", "synth-format", "improvements"], 2],
+    ["delete", ["upper_bounds", "ja-reading"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "a_regression_at_an_exact_tie_still_counts",
+   "about": "The baseline top-2 gap at the diverging position is 0.",
+   "input": [
+    ["set", ["baseline", "outputs", {"id": "ja-reading-0002"}, "top2", 1], [2012, 0.4375, 4012, 0.4375]],
+    ["set", ["candidate", "outputs", {"id": "ja-reading-0002"}], {"id": "ja-reading-0002", "input_sha256": "in-ja-reading-0002", "input_tokens": 32, "output_ids": [1012, 4012, 3012], "stop": "stop_token", "stop_token": 106, "top2": [[1012, 0.75, 7, 0.125], [4012, 0.5, 8, 0.25], [3012, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "ja-reading-0002"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "regression_found"],
+    ["set", ["regressions"], ["ja-reading-0002"]],
+    ["set", ["changed"], [{"id": "ja-reading-0002", "position": 1, "baseline_gap": 0.0}]],
+    ["set", ["categories", "ja-reading", "candidate_correct"], 1],
+    ["set", ["categories", "ja-reading", "regressions"], 1],
+    ["delete", ["upper_bounds", "ja-reading"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "critical_failure_outranks_a_regression",
+   "about": "An empty candidate output and a regression give critical_failure.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-reading-0001"}], {"id": "ja-reading-0001", "input_sha256": "in-ja-reading-0001", "input_tokens": 31, "output_ids": [1011, 4011, 3011], "stop": "stop_token", "stop_token": 106, "top2": [[1011, 0.75, 7, 0.125], [4011, 0.5, 8, 0.25], [3011, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "ja-reading-0001"}, "correct"], false],
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [], "stop": "stop_token", "stop_token": 106, "top2": [[106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "empty_output"}]],
+    ["set", ["regressions"], ["ja-reading-0001"]],
+    ["set", ["changed"], [{"id": "ja-reading-0001", "position": 1, "baseline_gap": 0.25}]],
+    ["set", ["categories", "ja-reading", "candidate_correct"], 1],
+    ["set", ["categories", "ja-reading", "regressions"], 1],
+    ["delete", ["upper_bounds", "ja-reading"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "incomplete_outranks_everything",
+   "about": "A missing candidate output, a critical failure and a regression.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-reading-0001"}], {"id": "ja-reading-0001", "input_sha256": "in-ja-reading-0001", "input_tokens": 31, "output_ids": [1011, 4011, 3011], "stop": "stop_token", "stop_token": 106, "top2": [[1011, 0.75, 7, 0.125], [4011, 0.5, 8, 0.25], [3011, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "ja-reading-0001"}, "correct"], false],
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [], "stop": "stop_token", "stop_token": 106, "top2": [[106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["delete", ["candidate", "outputs", {"id": "extract-ja-0002"}]],
+    ["set", ["candidate", "summary", "checks", "missing"], ["extract-ja-0002"]],
+    ["set", ["candidate", "scores", {"id": "extract-ja-0002"}, "correct"], null],
+    ["set", ["candidate", "scores", {"id": "extract-ja-0002"}, "state"], "missing"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "missing_output", "ids": ["extract-ja-0002"]}]],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "empty_output"}]],
+    ["set", ["regressions"], ["ja-reading-0001"]],
+    ["set", ["changed"], [{"id": "ja-reading-0001", "position": 1, "baseline_gap": 0.25}]],
+    ["set", ["categories", "ja-reading", "candidate_correct"], 1],
+    ["set", ["categories", "ja-reading", "regressions"], 1],
+    ["delete", ["upper_bounds", "ja-reading"]],
+    ["set", ["claim"], null],
+    ["set", ["categories", "extract-ja", "candidate_correct"], 1]
+   ]
+  },
+  {
+   "name": "missing_baseline_output",
+   "about": "The baseline has no record of one item.",
+   "input": [
+    ["delete", ["baseline", "outputs", {"id": "ja-choice-0003"}]],
+    ["set", ["baseline", "summary", "checks", "missing"], ["ja-choice-0003"]],
+    ["set", ["baseline", "scores", {"id": "ja-choice-0003"}, "correct"], null],
+    ["set", ["baseline", "scores", {"id": "ja-choice-0003"}, "state"], "missing"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "missing_output", "ids": ["ja-choice-0003"]}]],
+    ["set", ["categories", "ja-choice", "baseline_correct"], 9],
+    ["set", ["not_evaluable"], ["code-gen-mbpp", "extract-ja", "ja-choice", "ja-reading", "long-ja-4k", "synth-format"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "record_not_in_the_set",
+   "about": "The candidate has a record whose id is not in the set.",
+   "input": [
+    ["append", ["candidate", "outputs"], {"id": "ja-choice-9999", "input_sha256": "in-ja-choice-9999", "input_tokens": 20, "output_ids": [1, 2, 3], "stop": "stop_token", "stop_token": 106, "top2": [[1, 0.75, 7, 0.125], [2, 0.5, 8, 0.25], [3, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "summary", "checks", "not_in_set"], ["ja-choice-9999"]]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "not_in_set", "ids": ["ja-choice-9999"]}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "duplicate_id",
+   "about": "The candidate has two records of one item.",
+   "input": [
+    ["append", ["candidate", "outputs"], {"id": "ja-reading-0001", "input_sha256": "in-ja-reading-0001", "input_tokens": 31, "output_ids": [1011, 2011, 3011], "stop": "stop_token", "stop_token": 106, "top2": [[1011, 0.75, 7, 0.125], [2011, 0.5, 8, 0.25], [3011, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "summary", "checks", "duplicate"], ["ja-reading-0001"]]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "duplicate_id", "ids": ["ja-reading-0001"]}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "contract_hash_differs_in_a_run_record",
+   "about": "The candidate run was made with another contract.json.",
+   "input": [
+    ["set", ["candidate", "run", "contract", "sha256"], "c1"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "contract_version_differs_in_a_score_summary",
+   "about": "The baseline was scored under another contract version.",
+   "input": [
+    ["set", ["baseline", "summary", "contract", "version"], "G31-QC-v0"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "items_file_differs_between_the_scorings",
+   "about": "The two runs were scored against different item files.",
+   "input": [
+    ["set", ["candidate", "summary", "items", "sha256"], "i1"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "tokenizer_differs_between_the_scorings",
+   "about": "The two runs were decoded with different tokenizers.",
+   "input": [
+    ["set", ["candidate", "summary", "tokenizer", "sha256"], "t1"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "scorer_differs_between_the_scorings",
+   "about": "The two runs were scored with different Python versions.",
+   "input": [
+    ["set", ["candidate", "summary", "scorer", "python"], "3.12.1"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "item_hash_differs",
+   "about": "The scoring reported an item whose hash differs from the committed set.",
+   "input": [
+    ["set", ["baseline", "summary", "checks", "item_hash_differs"], ["extract-ja-0001"]],
+    ["set", ["candidate", "summary", "checks", "item_hash_differs"], ["extract-ja-0001"]]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": ["extract-ja-0001"]}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "set_name_differs",
+   "about": "The candidate run names another set.",
+   "input": [
+    ["set", ["candidate", "run", "set"], "reserve"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "long_context_token_count_differs",
+   "about": "A long-context input has another length than the committed count.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "long-ja-4k-0002"}, "input_tokens"], 3999]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "token_count_differs", "ids": ["long-ja-4k-0002"]}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "input_tokens_differ_between_the_runs",
+   "about": "Baseline and candidate read different token ids for one item.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-choice-0005"}, "input_sha256"], "in-other"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "input_differs", "ids": ["ja-choice-0005"]}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "baseline_runtime_error",
+   "about": "A baseline record carries an error; its truncated output was scored incorrect.",
+   "input": [
+    ["set", ["baseline", "outputs", {"id": "synth-format-0002"}], {"id": "synth-format-0002", "input_sha256": "in-synth-format-0002", "input_tokens": 38, "output_ids": [1018], "stop": "limit", "top2": [[1018, 0.75, 7, 0.125]], "non_finite": 0, "error": "out of memory"}],
+    ["set", ["baseline", "scores", {"id": "synth-format-0002"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "baseline_error", "ids": ["synth-format-0002"]}]],
+    ["set", ["improvements"], ["synth-format-0002"]],
+    ["set", ["changed"], [{"id": "synth-format-0002", "position": 1, "baseline_gap": null}]],
+    ["set", ["categories", "synth-format", "baseline_correct"], 1],
+    ["set", ["categories", "synth-format", "improvements"], 1],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "top2_differs",
+   "about": "The scoring reported a record whose top2 does not match its generated tokens.",
+   "input": [
+    ["set", ["candidate", "summary", "checks", "top2_differs"], ["free-ja-0002"]]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "top2_differs", "ids": ["free-ja-0002"]}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "code_items_not_scored_yet",
+   "about": "The code items are still pending in both scorings.",
+   "input": [
+    ["set", ["baseline", "scores", {"id": "code-gen-mbpp-0001"}, "correct"], null],
+    ["set", ["baseline", "scores", {"id": "code-gen-mbpp-0001"}, "state"], "pending_code"],
+    ["set", ["baseline", "scores", {"id": "code-gen-mbpp-0002"}, "correct"], null],
+    ["set", ["baseline", "scores", {"id": "code-gen-mbpp-0002"}, "state"], "pending_code"],
+    ["set", ["candidate", "scores", {"id": "code-gen-mbpp-0001"}, "correct"], null],
+    ["set", ["candidate", "scores", {"id": "code-gen-mbpp-0001"}, "state"], "pending_code"],
+    ["set", ["candidate", "scores", {"id": "code-gen-mbpp-0002"}, "correct"], null],
+    ["set", ["candidate", "scores", {"id": "code-gen-mbpp-0002"}, "state"], "pending_code"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "unscored_item", "ids": ["code-gen-mbpp-0001", "code-gen-mbpp-0002"]}]],
+    ["set", ["categories", "code-gen-mbpp", "baseline_correct"], 0],
+    ["set", ["categories", "code-gen-mbpp", "candidate_correct"], 0],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "malformed_candidate_records",
+   "about": "The scoring reported malformed records: one with an id, one by line number.",
+   "input": [
+    ["delete", ["candidate", "outputs", {"id": "ja-reading-0002"}]],
+    ["set", ["candidate", "summary", "checks", "malformed"], ["ja-reading-0002", 7]],
+    ["set", ["candidate", "scores", {"id": "ja-reading-0002"}, "correct"], null],
+    ["set", ["candidate", "scores", {"id": "ja-reading-0002"}, "state"], "malformed"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "malformed_record", "ids": ["ja-reading-0002", 7]}]],
+    ["set", ["categories", "ja-reading", "candidate_correct"], 1],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "same_output_scored_differently",
+   "about": "Identical generated tokens with different correctness cannot be trusted.",
+   "input": [
+    ["set", ["candidate", "scores", {"id": "extract-ja-0001"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "score_inconsistent", "ids": ["extract-ja-0001"]}]],
+    ["set", ["regressions"], ["extract-ja-0001"]],
+    ["set", ["changed"], [{"id": "extract-ja-0001", "position": null, "baseline_gap": null}]],
+    ["set", ["categories", "extract-ja", "candidate_correct"], 1],
+    ["set", ["categories", "extract-ja", "regressions"], 1],
+    ["delete", ["upper_bounds", "extract-ja"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "same_outputs_scored_differently_in_two_items",
+   "about": "The ids of score_inconsistent are sorted, not in item order.",
+   "input": [
+    ["set", ["candidate", "scores", {"id": "ja-choice-0001"}, "correct"], false],
+    ["set", ["candidate", "scores", {"id": "extract-ja-0001"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "score_inconsistent", "ids": ["extract-ja-0001", "ja-choice-0001"]}]],
+    ["set", ["regressions"], ["extract-ja-0001", "ja-choice-0001"]],
+    ["set", ["changed"], [{"id": "extract-ja-0001", "position": null, "baseline_gap": null}, {"id": "ja-choice-0001", "position": null, "baseline_gap": null}]],
+    ["set", ["categories", "extract-ja", "candidate_correct"], 1],
+    ["set", ["categories", "extract-ja", "regressions"], 1],
+    ["set", ["categories", "ja-choice", "candidate_correct"], 9],
+    ["set", ["categories", "ja-choice", "regressions"], 1],
+    ["delete", ["upper_bounds", "extract-ja"]],
+    ["delete", ["upper_bounds", "ja-choice"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "same_output_ids_stopped_differently",
+   "about": "Equal output_ids with different correctness cannot be trusted, even when one run stopped on a stop token and the other at its limit.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "extract-ja-0002"}], {"id": "extract-ja-0002", "input_sha256": "in-extract-ja-0002", "input_tokens": 34, "output_ids": [1014, 2014, 3014], "stop": "limit", "top2": [[1014, 0.75, 7, 0.125], [2014, 0.5, 8, 0.25], [3014, 0.625, 9, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "extract-ja-0002"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "score_inconsistent", "ids": ["extract-ja-0002"]}]],
+    ["set", ["regressions"], ["extract-ja-0002"]],
+    ["set", ["changed"], [{"id": "extract-ja-0002", "position": 3, "baseline_gap": 0.625}]],
+    ["set", ["categories", "extract-ja", "candidate_correct"], 1],
+    ["set", ["categories", "extract-ja", "regressions"], 1],
+    ["delete", ["upper_bounds", "extract-ja"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_says_unfinished",
+   "about": "A run record whose item count is below its input count is an interruption.",
+   "input": [
+    ["set", ["candidate", "run", "items"], 22]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "run_unfinished", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_without_counts",
+   "about": "A run record without the counts is not judged as unfinished.",
+   "input": [
+    ["delete", ["baseline", "run", "items"]],
+    ["delete", ["baseline", "run", "inputs"]]
+   ],
+   "expected": []
+  },
+  {
+   "name": "run_record_without_finish",
+   "about": "A run record with all items written and no finish time is an interruption.",
+   "input": [
+    ["delete", ["candidate", "run", "finished"]]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "run_unfinished", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_with_null_finish",
+   "about": "A null finish time is the same as no finish time.",
+   "input": [
+    ["set", ["baseline", "run", "finished"], null]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "run_unfinished", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_without_counts_or_finish",
+   "about": "A run record with neither counts nor a finish time is not judged.",
+   "input": [
+    ["delete", ["baseline", "run", "items"]],
+    ["delete", ["baseline", "run", "inputs"]],
+    ["delete", ["baseline", "run", "finished"]]
+   ],
+   "expected": []
+  },
+  {
+   "name": "reasons_are_listed_in_a_fixed_order",
+   "about": "Three reasons at once keep the fixed order of the reasons.",
+   "input": [
+    ["set", ["candidate", "summary", "checks", "top2_differs"], ["free-ja-0002"]],
+    ["delete", ["baseline", "outputs", {"id": "ja-choice-0003"}]],
+    ["set", ["baseline", "summary", "checks", "missing"], ["ja-choice-0003"]],
+    ["set", ["baseline", "scores", {"id": "ja-choice-0003"}, "correct"], null],
+    ["set", ["baseline", "scores", {"id": "ja-choice-0003"}, "state"], "missing"],
+    ["set", ["candidate", "run", "contract", "sha256"], "c1"]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "hash_mismatch", "ids": []}, {"reason": "missing_output", "ids": ["ja-choice-0003"]}, {"reason": "top2_differs", "ids": ["free-ja-0002"]}]],
+    ["set", ["categories", "ja-choice", "baseline_correct"], 9],
+    ["set", ["not_evaluable"], ["code-gen-mbpp", "extract-ja", "ja-choice", "ja-reading", "long-ja-4k", "synth-format"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "candidate_runtime_error",
+   "about": "A candidate record carries an error; its truncated output is also a regression.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-choice-0002"}], {"id": "ja-choice-0002", "input_sha256": "in-ja-choice-0002", "input_tokens": 21, "output_ids": [1001], "stop": "limit", "top2": [[1001, 0.75, 7, 0.125]], "non_finite": 0, "error": "context limit"}],
+    ["set", ["candidate", "scores", {"id": "ja-choice-0002"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "ja-choice-0002", "kind": "runtime_error"}]],
+    ["set", ["regressions"], ["ja-choice-0002"]],
+    ["set", ["changed"], [{"id": "ja-choice-0002", "position": 1, "baseline_gap": 0.25}]],
+    ["set", ["categories", "ja-choice", "candidate_correct"], 9],
+    ["set", ["categories", "ja-choice", "regressions"], 1],
+    ["delete", ["upper_bounds", "ja-choice"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "candidate_non_finite_logits",
+   "about": "A candidate record saw non-finite logits and ended with an error.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "ja-choice-0004"}], {"id": "ja-choice-0004", "input_sha256": "in-ja-choice-0004", "input_tokens": 23, "output_ids": [1003, 2003], "stop": "limit", "top2": [[1003, 0.75, 7, 0.125], [2003, 0.5, 8, 0.25]], "non_finite": 3, "error": "non-finite logits"}],
+    ["set", ["candidate", "scores", {"id": "ja-choice-0004"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "ja-choice-0004", "kind": "non_finite_logits"}]],
+    ["set", ["regressions"], ["ja-choice-0004"]],
+    ["set", ["changed"], [{"id": "ja-choice-0004", "position": 2, "baseline_gap": 0.5}]],
+    ["set", ["categories", "ja-choice", "candidate_correct"], 9],
+    ["set", ["categories", "ja-choice", "regressions"], 1],
+    ["delete", ["upper_bounds", "ja-choice"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "empty_candidate_output",
+   "about": "The candidate output has no tokens and the baseline output has some.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [], "stop": "stop_token", "stop_token": 106, "top2": [[106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "empty_output"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "empty_output_in_both",
+   "about": "An empty output that the baseline also has is not a critical failure.",
+   "input": [
+    ["set", ["baseline", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [], "stop": "stop_token", "stop_token": 106, "top2": [[106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [], "stop": "stop_token", "stop_token": 106, "top2": [[106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["baseline_quality", "empty_output"], ["free-ja-0001"]]
+   ]
+  },
+  {
+   "name": "control_token_in_the_candidate",
+   "about": "The candidate output holds a control token and the baseline output none.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0002"}], {"id": "free-ja-0002", "input_sha256": "in-free-ja-0002", "input_tokens": 40, "output_ids": [1020, 105, 3020], "stop": "stop_token", "stop_token": 106, "top2": [[1020, 0.75, 7, 0.125], [105, 0.5, 8, 0.25], [3020, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0002", "kind": "control_token"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "control_token_in_both",
+   "about": "A control token that the baseline output also holds is not a critical failure.",
+   "input": [
+    ["set", ["baseline", "outputs", {"id": "free-ja-0002"}], {"id": "free-ja-0002", "input_sha256": "in-free-ja-0002", "input_tokens": 40, "output_ids": [1020, 105, 3020], "stop": "stop_token", "stop_token": 106, "top2": [[1020, 0.75, 7, 0.125], [105, 0.5, 8, 0.25], [3020, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "outputs", {"id": "free-ja-0002"}], {"id": "free-ja-0002", "input_sha256": "in-free-ja-0002", "input_tokens": 40, "output_ids": [1020, 46, 3020], "stop": "stop_token", "stop_token": 106, "top2": [[1020, 0.75, 7, 0.125], [46, 0.5, 8, 0.25], [3020, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["baseline_quality", "control_token"], ["free-ja-0002"]]
+   ]
+  },
+  {
+   "name": "ids_next_to_control_tokens",
+   "about": "Ids 45, 53, 99, 102, 104, 255998, 258879 and 258885 are not control tokens.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0002"}], {"id": "free-ja-0002", "input_sha256": "in-free-ja-0002", "input_tokens": 40, "output_ids": [45, 53, 99, 102, 104, 255998, 258879, 258885], "stop": "stop_token", "stop_token": 106, "top2": [[45, 0.75, 7, 0.125], [53, 0.5, 8, 0.25], [99, 0.625, 9, 0.125], [102, 0.75, 7, 0.125], [104, 0.5, 8, 0.25], [255998, 0.625, 9, 0.125], [258879, 0.75, 7, 0.125], [258885, 0.5, 8, 0.25], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  },
+  {
+   "name": "eight_tokens_four_times",
+   "about": "A sequence of 8 tokens repeated 4 times in a row is a repetition.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6007, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6007, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6007, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6007, 0.5, 8, 0.25], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "repetition"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "seven_tokens_four_times",
+   "about": "A sequence of 7 tokens repeated 4 times is not a repetition.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  },
+  {
+   "name": "seven_tokens_seven_times",
+   "about": "7 tokens 7 times (49 tokens) holds no 8-or-longer sequence 4 times in a row.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  },
+  {
+   "name": "seven_tokens_eight_times",
+   "about": "7 tokens 8 times is a 14-token sequence 4 times in a row.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6000, 6001, 6002, 6003, 6004, 6005, 6006], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "repetition"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "eight_tokens_three_times_and_seven_more",
+   "about": "31 tokens with period 8 are one token short of 4 repeats.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6007, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6007, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6007, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  },
+  {
+   "name": "one_token_thirty_one_times",
+   "about": "One token 31 times is not a repetition.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  },
+  {
+   "name": "one_token_thirty_two_times",
+   "about": "One token 32 times is an 8-token sequence 4 times in a row.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000, 6000], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "repetition"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "three_tokens_eleven_times",
+   "about": "3 tokens 11 times (33 tokens) needs a 9-token sequence 4 times: 36 tokens.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  },
+  {
+   "name": "three_tokens_twelve_times",
+   "about": "3 tokens 12 times is a 9-token sequence 4 times in a row.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002, 6000, 6001, 6002], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "repetition"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "repetition_in_both",
+   "about": "A repetition that the baseline output also has is not a critical failure.",
+   "input": [
+    ["set", ["baseline", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6007, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6007, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6007, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6007, 0.5, 8, 0.25], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [7000, 7001, 7002, 7003, 7004, 7005, 7006, 7007, 7000, 7001, 7002, 7003, 7004, 7005, 7006, 7007, 7000, 7001, 7002, 7003, 7004, 7005, 7006, 7007, 7000, 7001, 7002, 7003, 7004, 7005, 7006, 7007], "stop": "stop_token", "stop_token": 106, "top2": [[7000, 0.75, 7, 0.125], [7001, 0.5, 8, 0.25], [7002, 0.625, 9, 0.125], [7003, 0.75, 7, 0.125], [7004, 0.5, 8, 0.25], [7005, 0.625, 9, 0.125], [7006, 0.75, 7, 0.125], [7007, 0.5, 8, 0.25], [7000, 0.625, 9, 0.125], [7001, 0.75, 7, 0.125], [7002, 0.5, 8, 0.25], [7003, 0.625, 9, 0.125], [7004, 0.75, 7, 0.125], [7005, 0.5, 8, 0.25], [7006, 0.625, 9, 0.125], [7007, 0.75, 7, 0.125], [7000, 0.5, 8, 0.25], [7001, 0.625, 9, 0.125], [7002, 0.75, 7, 0.125], [7003, 0.5, 8, 0.25], [7004, 0.625, 9, 0.125], [7005, 0.75, 7, 0.125], [7006, 0.5, 8, 0.25], [7007, 0.625, 9, 0.125], [7000, 0.75, 7, 0.125], [7001, 0.5, 8, 0.25], [7002, 0.625, 9, 0.125], [7003, 0.75, 7, 0.125], [7004, 0.5, 8, 0.25], [7005, 0.625, 9, 0.125], [7006, 0.75, 7, 0.125], [7007, 0.5, 8, 0.25], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["baseline_quality", "repetition"], ["free-ja-0001"]]
+   ]
+  },
+  {
+   "name": "repetition_inside_a_longer_output",
+   "about": "The repeated part can start anywhere in the output.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [5000, 5001, 5002, 5003, 5004, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 5100, 5101, 5102], "stop": "stop_token", "stop_token": 106, "top2": [[5000, 0.75, 7, 0.125], [5001, 0.5, 8, 0.25], [5002, 0.625, 9, 0.125], [5003, 0.75, 7, 0.125], [5004, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6007, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6007, 0.625, 9, 0.125], [6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6007, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6007, 0.75, 7, 0.125], [5100, 0.5, 8, 0.25], [5101, 0.625, 9, 0.125], [5102, 0.75, 7, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0001", "kind": "repetition"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "repetition_broken_in_the_middle",
+   "about": "Two repeats, another token, and two repeats are not 4 in a row.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 5999, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007, 6000, 6001, 6002, 6003, 6004, 6005, 6006, 6007], "stop": "stop_token", "stop_token": 106, "top2": [[6000, 0.75, 7, 0.125], [6001, 0.5, 8, 0.25], [6002, 0.625, 9, 0.125], [6003, 0.75, 7, 0.125], [6004, 0.5, 8, 0.25], [6005, 0.625, 9, 0.125], [6006, 0.75, 7, 0.125], [6007, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6007, 0.75, 7, 0.125], [5999, 0.5, 8, 0.25], [6000, 0.625, 9, 0.125], [6001, 0.75, 7, 0.125], [6002, 0.5, 8, 0.25], [6003, 0.625, 9, 0.125], [6004, 0.75, 7, 0.125], [6005, 0.5, 8, 0.25], [6006, 0.625, 9, 0.125], [6007, 0.75, 7, 0.125], [6000, 0.5, 8, 0.25], [6001, 0.625, 9, 0.125], [6002, 0.75, 7, 0.125], [6003, 0.5, 8, 0.25], [6004, 0.625, 9, 0.125], [6005, 0.75, 7, 0.125], [6006, 0.5, 8, 0.25], [6007, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  },
+  {
+   "name": "error_and_empty_output_on_one_item",
+   "about": "A candidate error with no output is both a runtime error and empty.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0002"}], {"id": "free-ja-0002", "input_sha256": "in-free-ja-0002", "input_tokens": 40, "output_ids": [], "stop": "limit", "top2": [], "non_finite": 0, "error": "context limit"}]
+   ],
+   "expected": [
+    ["set", ["verdict"], "critical_failure"],
+    ["set", ["critical_failures"], [{"id": "free-ja-0002", "kind": "runtime_error"}, {"id": "free-ja-0002", "kind": "empty_output"}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "nine_correct_baseline_items_cannot_be_evaluated",
+   "about": "A scored category with 9 correct baseline items is named.",
+   "input": [
+    ["set", ["baseline", "scores", {"id": "ja-choice-0001"}, "correct"], false],
+    ["set", ["candidate", "scores", {"id": "ja-choice-0001"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["categories", "ja-choice", "baseline_correct"], 9],
+    ["set", ["categories", "ja-choice", "candidate_correct"], 9],
+    ["set", ["not_evaluable"], ["code-gen-mbpp", "extract-ja", "ja-choice", "ja-reading", "long-ja-4k", "synth-format"]],
+    ["set", ["claim"], "no regression was detected on this evaluation set; not evaluated: code-gen-mbpp, extract-ja, ja-choice, ja-reading, long-ja-4k, synth-format"]
+   ]
+  },
+  {
+   "name": "layer1_reference",
+   "about": "A reference to the layer 1 result is carried into the report.",
+   "input": [
+    ["set", ["layer1"], {"file": "layer1.json", "sha256": "l1"}]
+   ],
+   "expected": [
+    ["set", ["layer1"], {"file": "layer1.json", "sha256": "l1"}]
+   ]
+  },
+  {
+   "name": "code_scoring_counts",
+   "about": "The timeout counts of the code scoring are carried into the report.",
+   "input": [
+    ["set", ["candidate", "summary", "code"], {"timeouts": 3, "rerun_passed": 1}]
+   ],
+   "expected": [
+    ["set", ["code", "candidate"], {"timeouts": 3, "rerun_passed": 1}]
+   ]
+  },
+  {
+   "name": "candidate_continues_past_the_baseline_stop",
+   "about": "The first diverging position is the baseline stop token.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "extract-ja-0001"}], {"id": "extract-ja-0001", "input_sha256": "in-extract-ja-0001", "input_tokens": 33, "output_ids": [1013, 2013, 3013, 7777], "stop": "stop_token", "stop_token": 106, "top2": [[1013, 0.75, 7, 0.125], [2013, 0.5, 8, 0.25], [3013, 0.625, 9, 0.125], [7777, 0.75, 7, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "extract-ja-0001"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "regression_found"],
+    ["set", ["regressions"], ["extract-ja-0001"]],
+    ["set", ["changed"], [{"id": "extract-ja-0001", "position": 3, "baseline_gap": 0.625}]],
+    ["set", ["categories", "extract-ja", "candidate_correct"], 1],
+    ["set", ["categories", "extract-ja", "regressions"], 1],
+    ["delete", ["upper_bounds", "extract-ja"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "unscored_category_never_regresses",
+   "about": "Different outputs in the unscored category change nothing.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "free-ja-0001"}], {"id": "free-ja-0001", "input_sha256": "in-free-ja-0001", "input_tokens": 39, "output_ids": [1019, 2019, 9019], "stop": "stop_token", "stop_token": 106, "top2": [[1019, 0.75, 7, 0.125], [2019, 0.5, 8, 0.25], [9019, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}]
+   ],
+   "expected": []
+  }
+ ]
+}
