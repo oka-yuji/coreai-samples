@@ -141,10 +141,11 @@ cache key. The published record is [docs/validation/gemma4-31b](../../../../docs
 
 ## Quality evaluation baseline
 
-Two modules write the outputs of the `reference` role of the quality contract `G31-QC-v1` (#669). They are not steps
-of `recipe.json`: a step runs to its end in one execution and each execution writes a new object, while the primary
-set takes hours and runs in slices that resume one run folder, releasing the shared machine lock between slices. Run
-them from the repository root with the reference environment.
+Two modules write the outputs of the `reference` role of the quality contract `G31-QC-v1` (#669): `inputs` renders the
+items of a set into input records without loading the model, and `baseline` generates from those records with the BF16
+weights on MPS. They are not steps of `recipe.json`, because the primary set takes hours and runs in sessions that
+continue one run folder, releasing the shared machine lock between them. Run them from the repository root with the
+reference environment; `baseline` loads the model, so take the heavy-job lock of `AGENTS.md` first.
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.inputs \
@@ -157,69 +158,27 @@ them from the repository root with the reference environment.
   --commit <commit> --output <run folder> --log <new folder> --max-minutes 60
 ~~~
 
-`inputs` reads no weights. `--items` is the `primary.jsonl` of `python3 -m Tools.LLMEvaluation build`. It stops before
-it writes unless `tokenizer.json`, `tokenizer_config.json` and `chat_template.jinja` have the size and SHA-256 of
-`model.json`, the tokenizer that `AutoTokenizer` builds equals the distributed `tokenizer.json`, the items are those of
-`--set` in its order, each with its `item_sha256`, and every item, rendered by `apply_chat_template` with
-`add_generation_prompt=True` and `enable_thinking=False`, equals the frame of `contract.json` around its content. Its
-IDs must tokenize from that text with `add_special_tokens=False`, hold one BOS, start with the first IDs of the frame
-and hold exactly the special tokens of the frame (the added tokens of `tokenizer.json` marked special), and an item
-with a `token_count` in the set must have that many IDs. The new output folder gets `inputs.jsonl`, one record per item
-in item order with `id`, `input_ids`, `input_sha256` (the SHA-256 of the IDs written in decimal and joined by commas,
-as UTF-8) and `max_new_tokens`, as JSON with sorted keys and no spaces, so the same items give the same bytes; and
-`inputs.json` with the `version` and SHA-256 of `contract.json` and the `count` and `sha256` of `inputs.jsonl`.
+- `inputs`: `--items` is the `primary.jsonl` of `python3 -m Tools.LLMEvaluation build`, `--set` the frozen set file and
+  `--output` a new folder. It writes `inputs.jsonl`, one record per item in item order with `id`, `input_ids`,
+  `input_sha256` and `max_new_tokens`, and `inputs.json`, with the version and SHA-256 of `contract.json` and the count
+  and SHA-256 of `inputs.jsonl`. It writes nothing when an item does not match. `RecordTests` in
+  `Tools/Conversion/tests/test_gemma4_31b_inputs.py` fixes its checks.
+- `baseline`: `--prepare` is the output folder of the `prepare` step, `--commit` the commit to record (the command does
+  not run git), `--output` the run folder and `--log` a new folder for the session's `monitor.tsv` and `session.json`,
+  or `failure.json` when the monitor stops the session. The run folder holds `outputs.jsonl`, the output records of
+  contract §5.1; `progress.json`, the progress of those lines; and `run.json`, the run record, which has `finished` after
+  a session that ended with exit code 0 (the next session removes it when it starts). `InputRecordTests` in
+  `Tools/Conversion/tests/test_gemma4_31b_baseline.py` fixes the checks of the input records, `GenerationTests` and
+  `SmallModelTests` the generation, `RunFolderTests` the run folder and its resume, and `SessionTests` the end of a
+  session.
 
-`baseline` loads the model, so take the heavy-job lock of `AGENTS.md` first. Before it loads the model it requires
-`ready.json` of `prepare` for this `model.json`, the package versions of `pyproject.toml` and MPS (the check of
-`prepare`), and input records each with a new string `id`, `input_ids` of integers from 0 to below the vocabulary size,
-an `input_sha256` equal to that of the IDs and a positive integer `max_new_tokens`. It parses and hashes the same bytes
-of `contract.json` and `inputs.jsonl`. It then opens the run folder as described below and, within the supervised
-section of `reference` (the monitor, its first sample and its stops, with `monitor.tsv` and `failure.json` in the
-`--log` folder), hashes the files it loads with the check of `reference`, loads the model as `reference` does, stops
-unless the loading is clean, and generates.
-
-For each item, an input of more than 1,024 tokens is read into a `DynamicCache` in chunks of 1,024, the last chunk
-holding the remaining 1 to 1,024 tokens; a shorter input is read in one call. Each call keeps the logits of the last
-position only. After each chunk and after the item, MPS is synchronized, its driver allocation recorded and its cache
-emptied. Each step moves the logits (after the soft cap, over the whole vocabulary) to float32 on the CPU. A step with
-a non-finite logit ends the item with `error`, the count in `non_finite` and `stop` set to `limit`. Otherwise `top2`
-gets the two IDs with the largest logits, a tie going to the lower ID, with their probabilities from the temperature-1
-softmax over the whole vocabulary in double precision; the first is the generated token. A stop token of
-`contract.json` ends the item with `stop_token`; any other token is appended to `output_ids`, the item ends with
-`limit` at `max_new_tokens`, and otherwise the token is read for the next step. An error raised while generating ends
-the item with `error`. After an item with `error` is written, the command stops with an error, because a baseline
-record with an error makes the comparison `incomplete`. Items run in the order of the input records, except that those
-of `long-ja-4k`, `long-ja-16k`, `synth-long-4k` and `synth-long-16k` run last.
-
-The run folder holds three files:
-
-| File | Contents |
-|---|---|
-| `outputs.jsonl` | The output records of contract §5.1, one per item, as JSON with sorted keys, appended, flushed and synced as each item ends |
-| `progress.json` | `lines`, the number of confirmed lines; `sha256`, the SHA-256 of their bytes with their newlines; `next_sha256`, the SHA-256 after the line about to be written, only while it is written; `run`, the SHA-256 of the run's `id` and conditions as JSON with sorted keys. Before each line it is replaced through a temporary file in the folder to announce the line; the next announcement or a session end that writes `finished` confirms it |
-| `run.json` | `id` (a UUID made at the first start), `contract` (`version`, `sha256`), `set` (`primary`), `role` (`reference`), `asset` (`model`, `revision` and the `weights` SHA-256 of `model.json`, which the check before loading requires), `inputs` (`sha256`, `count`), `implementation` (`tool`, `commit`, and `environment`: Python, the package versions and the OS build), `call_shape` (`prefill_chunk` 1024), `order` (`last`, the categories that run last), `items`, `started` and `finished` |
-
-`run.json` is written when a session starts, with `items` set to the finished items and without `finished`, and when
-it ends normally, with `items` and `finished`. With `--max-minutes`, once that many minutes have passed since the
-command started, the session ends normally after the item in progress, so at least one item runs when items remain.
-The last line of standard output (`record` `session`) gives `items`, `count` and `complete`; the line of each item
-(`record` `item`) has its token counts, stop, times and memory. The `--log` folder, which must be new, then gets
-`session.json`: the loading, the times and memory of each item, and the resources and `passed` of `reference`'s record
-(a clean monitor and recorded resources). Without `passed`, the session exits with 1 and does not write `finished`.
-
-A folder without `run.json` starts a new run only when it is empty, or holds nothing but an empty `outputs.jsonl` and
-possibly a `progress.json` of no lines; it then writes `outputs.jsonl`, `progress.json` and `run.json` in that order.
-With a `run.json`, the command stops before it loads the model and removes nothing unless `run.json` has a run `id`,
-every field except `id`, `items`, `started` and `finished` equals this run's, `progress.json` exists and its `run`
-equals the digest of `run.json`, `items` is an integer from 0 to the number of input records, `lines` is an integer from
-0 to the number of complete lines of `outputs.jsonl`, there are at least `items` complete lines, the complete lines are
-either `lines` lines with the SHA-256 `sha256` or one more with `next_sha256`, and each complete line has an `id` of the
-input records, once. Only then are the bytes after the last newline, a line cut while written, removed; a complete line
-is never removed, and the finished items do not run again. The meaning of the lines is not checked again. These checks
-detect a cut last line; `outputs.jsonl` and `progress.json` that disagree, when only one of them is older, newer or
-changed; files of a run with other conditions; files of another run with the same conditions; and fewer complete lines
-than `items`. They do not detect `outputs.jsonl` and `progress.json` put back together to an earlier point of the same
-session, which cannot be told from an interruption at that point, nor deliberate changes to all three files.
+With `--max-minutes`, a session ends after the item in progress once that many minutes have passed since the command
+started. Its last line of standard output (`record` `session`) has `complete`; run the same command with a new `--log`
+folder until `complete` is true. A session that stops for another reason exits with a nonzero code, and the same
+command with a new `--log` folder continues the run once the cause is removed. When an item ends with an error, its
+record is written and the command stops; a baseline record with an error makes the comparison `incomplete`, so report
+it instead of continuing. When the command refuses a run folder, it changes nothing in it; do not edit the files of a
+run folder, and start a new run folder instead.
 
 The published record of the primary-set run is
 [docs/validation/gemma4-31b/baseline-20261122.md](../../../../docs/validation/gemma4-31b/baseline-20261122.md).
