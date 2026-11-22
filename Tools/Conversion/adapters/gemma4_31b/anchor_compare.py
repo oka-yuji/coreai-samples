@@ -26,13 +26,13 @@ FILE = {"bytes": int, "sha256": str}
 CASE = {"id": str, "kind": str, "input_tokens": int, "output_tokens": int, "saved_positions": int, "first_scoring_row": int,
         "scoring_positions": int, "files": {"tokens": FILE, "logits": FILE}}
 SOURCE = {"reference_sha256": str}
+TOKENS = {"input_tokens": [int], "output_tokens": [int]}
 RECORDS = {reference.SCHEMA: {"dtype": dict, "device": str, "model": dict, "fixtures_sha256": str, "passed": bool,
                               "cases": [{**CASE, "max_new_tokens": int}]},
            anchor.SCHEMA: {"stage": str, "compute": dict, "device": str, "model": dict, "source": SOURCE, "passed": bool,
                            "cases": [CASE]},
            anchor.LAYERS_SCHEMA: {"stage": str, "device": str, "model": dict, "source": SOURCE, "passed": bool,
                                   "cases": [{"id": str}]}}
-TOKENS = {"input_tokens": [int], "output_tokens": [int]}
 
 
 def rounded(value, dtype):
@@ -123,30 +123,25 @@ def named_reference(record, other, other_sha256):
     return [] if valid and found == wanted else ["the forced inputs do not come from the same BF16 reference record"]
 
 
+def unscored(name, problems):
+    return {"id": name, "problems": problems, "non_finite": {"baseline": 0, "candidate": 0}, "all": None, "scoring": None,
+            "mismatches": []}
+
+
 def load_case(folder, case, vocabulary):
     import numpy as np
 
     name = case["id"]
     if not reference.CASE_ID.fullmatch(name):
         return None, None, ["unexpected case ID"]
-    data, problems = {}, []
-    for kind, suffix in FILES.items():
-        entry = case["files"][kind]
-        try:
-            data[kind] = (Path(folder) / "cases" / f"{name}.{kind}.{suffix}").read_bytes()
-        except OSError:
-            data[kind] = None
-        if data[kind] is None or len(data[kind]) != entry["bytes"] or hashlib.sha256(data[kind]).hexdigest() != entry["sha256"]:
-            problems.append(f"{name}: the {kind} file differs from the size and SHA-256 in its record")
+    data = {kind: (Path(folder) / "cases" / f"{name}.{kind}.{suffix}").read_bytes() for kind, suffix in FILES.items()}
+    problems = [f"{name}: the {kind} file differs from the size and SHA-256 in its record" for kind in FILES
+                if (len(data[kind]), hashlib.sha256(data[kind]).hexdigest()) != (case["files"][kind]["bytes"], case["files"][kind]["sha256"])]
     if problems:
         return None, None, problems
-    try:
-        tokens = parse(data["tokens"])
-        logits = np.load(io.BytesIO(data["logits"]), allow_pickle=False)
-    except (ValueError, EOFError):
-        return None, None, [f"{name}: unreadable case files"]
-    if not conforms(tokens, TOKENS) or not isinstance(logits, np.ndarray):
-        return None, None, [f"{name}: unreadable case files"]
+    tokens, logits = parse(data["tokens"]), np.load(io.BytesIO(data["logits"]), allow_pickle=False)
+    if not conforms(tokens, TOKENS):
+        return None, None, [f"{name}: the token file does not hold lists of token IDs"]
     inputs, outputs, saved = len(tokens["input_tokens"]), len(tokens["output_tokens"]), case["saved_positions"]
     if (case["input_tokens"], case["output_tokens"], saved, case["first_scoring_row"],
             case["scoring_positions"]) != (inputs, outputs, inputs + outputs, inputs - 1, outputs):
@@ -208,26 +203,30 @@ def scoring(case):
 
 
 def band(tokens):
-    return next(f"{low}-{high}" for low, high in BANDS if low <= tokens <= high)
+    return next((f"{low}-{high}" for low, high in BANDS if low <= tokens <= high), "other")
 
 
 def groups(compared, window):
     import numpy as np
 
     result, keys = [], {}
+
+    def add(entry, rows):
+        if len(rows["error"]):
+            result.append({**entry, **aggregate(rows)})
+
     for case, rows in compared:
         keys.setdefault((case["kind"], band(case["input_tokens"])), []).append((case, rows))
     for (kind, label), members in keys.items():
         for scope in ("all", "scoring"):
             parts = [rows if scope == "all" else select(rows, scoring(case)) for case, rows in members]
-            joined = {key: np.concatenate([part[key] for part in parts]) for key in parts[0]}
-            result.append({"kind": kind, "band": label, "scope": scope, "cases": [case["id"] for case, _ in members],
-                           **aggregate(joined)})
+            add({"kind": kind, "band": label, "scope": scope, "cases": [case["id"] for case, _ in members]},
+                {key: np.concatenate([part[key] for part in parts]) for key in parts[0]})
     for case, rows in compared:
         if case["saved_positions"] > window + MARGIN:
-            result.append({"kind": case["kind"], "band": band(case["input_tokens"]), "scope": "window",
-                           "cases": [case["id"]], "first_row": window - MARGIN, "last_row": window + MARGIN,
-                           **aggregate(select(rows, slice(window - MARGIN, window + MARGIN + 1)))})
+            add({"kind": case["kind"], "band": band(case["input_tokens"]), "scope": "window", "cases": [case["id"]],
+                 "first_row": window - MARGIN, "last_row": window + MARGIN},
+                select(rows, slice(window - MARGIN, window + MARGIN + 1)))
     return result
 
 
@@ -237,9 +236,8 @@ def compare_case(first, second, vocabulary):
     name = first[1]["id"]
     (left, a, left_problems), (right, b, right_problems) = (load_case(folder, case, vocabulary)
                                                             for folder, case in (first, second))
-    result = {"id": name, "problems": left_problems + right_problems, "non_finite": {"baseline": 0, "candidate": 0},
-              "all": None, "scoring": None, "mismatches": []}
-    if left is None or right is None:
+    result = unscored(name, left_problems + right_problems)
+    if result["problems"]:
         return result, None
     result["problems"] += [f"{name}: both {kind} files are the same file" for kind, suffix in FILES.items()
                            if os.path.samefile(*(Path(folder) / "cases" / f"{name}.{kind}.{suffix}" for folder, _ in (first, second)))]
@@ -280,8 +278,12 @@ def compare(baseline, candidate, expected=None):
         problems.append("both artifacts are the same run")
     if paths[0].samefile(paths[1]):
         problems.append("both records are the same file")
-    pairs = [] if problems else [compare_case((baseline, x), (candidate, y), expected["vocabulary"])
-                                 for x, y in zip(first["cases"], second["cases"])]
+    pairs = []
+    for x, y in [] if problems else zip(first["cases"], second["cases"]):
+        try:
+            pairs.append(compare_case((baseline, x), (candidate, y), expected["vocabulary"]))
+        except Exception as error:
+            pairs.append((unscored(x["id"], [f"{x['id']}: the case could not be compared ({type(error).__name__})"]), None))
     problems += [problem for case, _ in pairs for problem in case["problems"]]
     compared = [(case, rows) for case, (_, rows) in zip(first["cases"], pairs) if rows is not None] if pairs else []
     passed = not problems and len(compared) == len(expected["cases"])

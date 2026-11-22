@@ -317,8 +317,10 @@ class CompareTests(unittest.TestCase):
                 result = anchor_compare.compare(a, b, expected([(name, "chat") for name in names]))
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
-                if label in ("an archive as the logits file", "token lists as text"):
-                    self.assertEqual(result["problems"], ["case: unreadable case files"])
+                findings = {"an archive as the logits file": "case: the case could not be compared (AttributeError)",
+                            "token lists as text": "case: the token file does not hold lists of token IDs"}
+                if label in findings:
+                    self.assertEqual(result["problems"], [findings[label]])
 
     def test_an_artifact_compared_with_itself_or_with_a_copy_never_passes(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -428,6 +430,55 @@ class CompareTests(unittest.TestCase):
                 code = anchor_compare.main()
         self.assertEqual(code, 1)
         self.assertIn(f"candidate: {anchor_compare.SHAPE}", json.loads(output.getvalue())["problems"])
+
+    def test_a_case_that_cannot_be_compared_becomes_a_finding_of_that_case(self):
+        clean, empty = ("case", "chat", [2, 3], [4, 1], rows(4)), ("empty", "chat", [2, 3], [], rows(2))
+
+        def replace(folder, name, data):
+            (folder / f"cases/{name}.logits.npy").write_bytes(data)
+            edit(folder, lambda record: next(case for case in record["cases"] if case["id"] == name)["files"].update(
+                logits=reference.file_record(folder / f"cases/{name}.logits.npy")))
+
+        def text_logits(folder):
+            buffer = io.BytesIO()
+            np.save(buffer, np.asarray([["a"] * 4] * 4))
+            replace(folder, "case", buffer.getvalue())
+
+        variants = {"logits of text": ([clean], text_logits, "case: logits dtype <U1"),
+                    "a broken archive": ([clean], lambda folder: replace(folder, "case", b"PK\x03\x04" + bytes(40)),
+                                         "case: the case could not be compared (BadZipFile)"),
+                    "no output tokens on both sides": ([clean, empty], None, "empty: the case could not be compared (ValueError)")}
+        for label, (cases, change, message) in variants.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                a, b = (write_reference(Path(folder) / side, cases) for side in ("a", "b"))
+                if change:
+                    change(b)
+                result = anchor_compare.compare(a, b, expected([case[:2] for case in cases]))
+                self.assertFalse(result["passed"])
+                self.assertIn(message, result["problems"])
+                self.assertEqual(result["groups"], [])
+                json.dumps(result, allow_nan=False)
+                if len(cases) == 2:
+                    self.assertEqual([case["all"] is None for case in result["cases"]], [False, True])
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(anchor_compare, "row_metrics", side_effect=LookupError("hidden")):
+            a, b = (write_reference(Path(folder) / side, [clean, ("second", "chat", [2, 5], [6, 1], rows(4))]) for side in "ab")
+            output = io.StringIO()
+            with mock.patch.object(anchor_compare, "expectations", return_value=expected([("case", "chat"), ("second", "chat")])), \
+                    mock.patch.object(sys, "argv", ["compare", "--baseline", str(a), "--candidate", str(b)]), \
+                    contextlib.redirect_stdout(output):
+                code = anchor_compare.main()
+        result = json.loads(output.getvalue())
+        self.assertEqual((code, result["passed"], result["groups"]), (1, False, []))
+        self.assertEqual(result["problems"], ["case: the case could not be compared (LookupError)",
+                                              "second: the case could not be compared (LookupError)"])
+
+    def test_groups_without_rows_are_not_reported(self):
+        rows = {key: np.zeros(3, dtype=bool if key in ("match", "near") else np.float64)
+                for key in ("error", "kl", "logit", "match", "near", "gap")}
+        case = {"id": "case", "kind": "chat", "input_tokens": 3, "saved_positions": 3, "first_scoring_row": 2,
+                "scoring_positions": 0}
+        self.assertEqual(anchor_compare.groups([], 4), [])
+        self.assertEqual([(group["scope"], group["rows"]) for group in anchor_compare.groups([(case, rows)], 4)], [("all", 3)])
 
     def test_inputs_that_are_the_same_file_never_pass(self):
         clean = [("case", "chat", [2, 3], [4, 1], rows(4))]

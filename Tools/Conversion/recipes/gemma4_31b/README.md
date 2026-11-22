@@ -211,7 +211,10 @@ the shape `[saved positions, 262144]`, the forced tokens of both sides are the s
 names in `source` exactly the SHA-256 of the BF16 reference when that is the other side (two such records name the
 same SHA-256) and no logit is NaN or infinite.
 Otherwise `problems` lists the findings: a case with a finding has no metrics, a finding about the records stops before
-the cases, and no group is reported. The output also names the definition of each side (`identities`). The result is
+the cases, and no group is reported. Each case is read, checked and measured in one step, and a failure anywhere in
+that step becomes the one finding of that case, naming only the type of the error; the comparison then fails and the
+next case is still compared. A `reference.json` that is missing or is not JSON ends the comparison with an error and
+no result. The output also names the definition of each side (`identities`). The result is
 written to standard output as JSON and nothing else is written there; the exit code is 0 only when it passed. For every
 row, with p and q the softmax (float64) of the baseline and the candidate,
 it computes the largest |p − q| over the vocabulary, KL(p ‖ q), the largest absolute logit difference and whether the
@@ -220,8 +223,9 @@ the baseline probability of the baseline winner exceeds that of the candidate wi
 group it reports the maximum and the mean of the largest |p − q|, the mean, 99th percentile and maximum of KL, the
 largest logit difference, the top-1 matches, the near-tie mismatches and the other mismatches, over every row and over
 the scoring rows, and it lists every mismatch. The groups are the case kind (`chat` or `raw`) by input-length band
-(1–512, 513–2,048, 2,049–4,096, 4,097–16,896 tokens; only the bands with cases), and the rows 992 to 1,056 of every
-case with more than 1,056 positions (the sliding window of 1,024 drops the BOS from position 1,024).
+(1–512, 513–2,048, 2,049–4,096, 4,097–16,896 tokens, `other` for any other length; only the bands with cases), and the
+rows 992 to 1,056 of every case with more than 1,056 positions (the sliding window of 1,024 drops the BOS from position
+1,024). A group without rows is not reported.
 
 `anchor_summary` prints only states, numbers, hashes and fixed words. It stops unless the six steps were executed by
 the given run (`status` executed and `origin` the run ID); every record file of the report (the BF16 reference
