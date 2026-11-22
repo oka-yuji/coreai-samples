@@ -179,11 +179,21 @@ enum Evaluation {
         }
         let runURL = folder.appending(path: "run.json")
         guard isFolder.boolValue, FileManager.default.fileExists(atPath: runURL.path) else {
-            throw ValidationError("--output exists but is not a run folder with run.json: \(folder.path)")
+            guard isFolder.boolValue, try isUnstarted(folder) else {
+                throw ValidationError("--output exists but is not a run folder with run.json: \(folder.path)")
+            }
+            return nil
         }
         let decoder = JSONDecoder.snake
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(EvaluationRun.self, from: Data(contentsOf: runURL))
+    }
+
+    static func isUnstarted(_ folder: URL) throws -> Bool {
+        let names = try FileManager.default.contentsOfDirectory(atPath: folder.path)
+        guard names == ["outputs.jsonl"] else { return names.isEmpty }
+        let file = try FileManager.default.attributesOfItem(atPath: folder.appending(path: "outputs.jsonl").path)
+        return file[.type] as? FileAttributeType == .typeRegular && (file[.size] as? NSNumber)?.intValue == 0
     }
 
     static func run(
@@ -205,8 +215,8 @@ enum Evaluation {
             current.items = done.count
             current.finished = nil
         } else {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
-            try Data().write(to: outputs, options: .withoutOverwriting)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data().write(to: outputs)
         }
         try write(current, in: folder)
         let file = try FileHandle(forWritingTo: outputs)

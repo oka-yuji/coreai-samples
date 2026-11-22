@@ -145,7 +145,7 @@ swift build -c release
 | `--contract` | The contract's `contract.json`. Its `version` and SHA-256 go into the run record, its `generation.eos_token_id` are the stop tokens, and `--role` must be one of the keys of its `roles`. |
 | `--set`, `--role` | The set name, such as `primary`, and the role, such as `fp16`, written to the run record. |
 | `--commit` | The repository commit written to the run record. The command does not run git. |
-| `--output` | A new run folder inside an existing folder, or the folder of the same run to resume. |
+| `--output` | A new run folder inside an existing folder, or the folder of the same run to resume. An existing folder without `run.json` starts a new run only when it is empty or holds nothing but an empty `outputs.jsonl`, as a start that stopped before writing `run.json` leaves it; any other folder without `run.json` is rejected. |
 | `--max-minutes` | Optional. Once this many minutes have passed since the command started, the run ends normally after the item in progress is written, so at least one item runs when items remain. |
 | `--limit` | Optional. Runs only the first N input records, for a check. |
 

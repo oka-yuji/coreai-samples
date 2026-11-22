@@ -107,6 +107,35 @@ func runRecord(
         #expect(try Data(contentsOf: folder.appending(path: "outputs.jsonl")) == before)
     }
 
+    @Test(
+        "A folder left by a start that stopped before writing run.json starts a new run when it is empty or holds only an empty outputs.jsonl, and is rejected otherwise",
+        arguments: [
+            ([String: String](), true), (["outputs.jsonl": ""], true), (["outputs.jsonl": "{}\n"], false),
+            (["notes.txt": ""], false), (["outputs.jsonl": "", "notes.txt": ""], false),
+        ])
+    func startsInAnUnstartedFolder(files: [String: String], starts: Bool) async throws {
+        let base = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let folder = base.appending(path: "run")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        for (name, text) in files { try Data(text.utf8).write(to: folder.appending(path: name)) }
+        let inputs = items(2)
+        let source = ScriptedLogits([stopAtOnce, stopAtOnce])
+        if starts {
+            let run = try await Evaluation.run(
+                inputs, in: folder, record: runRecord(count: 2), source: source, stopTokens: [3])
+            #expect(run.items == 2 && run.finished != nil)
+            #expect(try outputLines(folder).map { $0["id"] as? String } == inputs.map(\.id))
+        } else {
+            await #expect(throws: ValidationError.self) {
+                try await Evaluation.run(
+                    inputs, in: folder, record: runRecord(count: 2), source: source, stopTokens: [3])
+            }
+            #expect(source.calls.isEmpty)
+            #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted() == files.keys.sorted())
+        }
+    }
+
     @Test("A last line cut before its newline is dropped and its item is generated again")
     func dropsCutLastLine() async throws {
         let base = try temporaryFolder()
