@@ -17,7 +17,7 @@ struct PositionLogits: AsyncParsableCommand {
 
     @Option(
         help:
-            "First position whose logits are written. The tokens before it are read but not written: with the prefill function when the bundle has one, otherwise through main, which needs logits for a whole prefill chunk."
+            "First position whose logits are written. The tokens before it are read but not written: with the prefill function when the bundle has one and the call shape rule keeps the prefill chunks, otherwise through main, which needs logits for a whole call."
     )
     var start: Int
 
@@ -52,6 +52,20 @@ struct PositionLogits: AsyncParsableCommand {
         }
     }
 
+    static func pieces(from lower: Int, lengths: [Int]) -> [Range<Int>] {
+        var end = lower
+        return lengths.map { length in
+            end += length
+            return (end - length)..<end
+        }
+    }
+
+    static func prefixFunction(start: Int, lengths: [Int], chunkSize: Int, hasPrefillFunction: Bool) -> String? {
+        guard start > 0 else { return nil }
+        let unsplit = lengths == pieces(0..<start, size: chunkSize).map(\.count)
+        return hasPrefillFunction && unsplit ? "prefill" : "main"
+    }
+
     func run() async throws {
         let ids = try tokenIDs()
         try Self.validateTokens(ids, start: start)
@@ -77,8 +91,14 @@ struct PositionLogits: AsyncParsableCommand {
         let loadStart = clock.now
         let engine = try await CoreAIBackend.Engine(bundle: bundle)
         let prefixStart = clock.now
-        let prefix = Self.pieces(0..<start, size: engine.prefillChunkSize)
-        for piece in prefix { try await engine.readInOneCall(Array(ids[piece]), usePrefillFunction: true) }
+        let lengths = engine.callLengths(from: 0, count: start)
+        let prefixFunction = Self.prefixFunction(
+            start: start, lengths: lengths, chunkSize: engine.prefillChunkSize,
+            hasPrefillFunction: engine.hasPrefillFunction)
+        let prefix = Self.pieces(from: 0, lengths: lengths)
+        for piece in prefix {
+            try await engine.readInOneCall(Array(ids[piece]), usePrefillFunction: prefixFunction == "prefill")
+        }
         let scoringStart = clock.now
         let scored = Self.pieces(start..<ids.count, size: chunk)
         var nonFinite = 0
@@ -97,7 +117,7 @@ struct PositionLogits: AsyncParsableCommand {
             PositionLogitsRecord(
                 tokenCount: ids.count, tokensSha256: tokensDigest(ids.map(Int.init)), start: start, chunk: chunk,
                 shape: [ids.count - start, engine.vocabSize],
-                prefixFunction: start == 0 ? nil : engine.hasPrefillFunction ? "prefill" : "main",
+                prefixFunction: prefixFunction,
                 prefixChunk: engine.prefillChunkSize, prefixCalls: prefix.count, mainCalls: scored.count,
                 mainHash: bundle.mainHash, requestedCompute: stats.requestedComputeUnit,
                 expectFrequentReshapes: stats.expectsFrequentReshapes, cached: stats.cached,
