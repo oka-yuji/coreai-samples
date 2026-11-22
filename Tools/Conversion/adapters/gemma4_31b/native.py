@@ -187,12 +187,22 @@ def load_export(folder, contract, contract_path):
         problems.append("the export recorded other functions than main or main and prefill")
     if record.get("precision") == "8bit" and record.get("functions") != list(FUNCTIONS["main,prefill"]):
         problems.append("an 8-bit export recorded other functions than main and prefill")
-    tensors = folder / QUANTIZED
-    if record.get("precision") == "8bit" and (tensors.is_symlink() or not tensors.is_file()
-                                              or file_hash(tensors) != (record.get("quantized") or {}).get("file")):
-        problems.append("the quantized tensors of the export differ from its record")
+    if record.get("precision") == "8bit":
+        quantized, tensors = quantized_entry(record), folder / QUANTIZED
+        if quantized is None or tensors.is_symlink() or not tensors.is_file() or file_hash(tensors) != quantized["file"]:
+            problems.append("the quantized tensors of the export differ from its record")
     facts = {"bundle": bundle, "main_hash": recorded.get("main_hash"), "prefill": "prefill" in (record.get("functions") or [])}
     return record, hashed, facts, problems
+
+
+def quantized_entry(record):
+    quantized = record.get("quantized")
+    entry, tensors = (quantized.get("file"), quantized.get("tensors")) if isinstance(quantized, dict) else (None, None)
+    if not isinstance(entry, dict) or set(entry) != {"bytes", "sha256"} or not valid("count", entry["bytes"]) \
+            or not valid("text", entry["sha256"]) or not isinstance(tensors, dict) \
+            or not all(isinstance(key, str) and isinstance(value, str) for key, value in tensors.items()):
+        return None
+    return {"file": dict(entry), "tensors": len(tensors)}
 
 
 def correspondence(exported, export_hash, reference):
@@ -201,12 +211,10 @@ def correspondence(exported, export_hash, reference):
         return [f"the reference does not use the weights of the export of precision {precision!r}"]
     if precision != "8bit":
         return []
-    recorded = exported.get("quantized") or {}
-    tensors = recorded.get("tensors")
-    expected = {"export_sha256": export_hash, "file": recorded.get("file"),
-                "tensors": len(tensors) if isinstance(tensors, dict) else None}
-    return [] if reference.get("quantized") == expected else [
-        "the reference was not restored from the quantized tensors of this export"]
+    quantized = quantized_entry(exported)
+    if quantized is None or reference.get("quantized") != {"export_sha256": export_hash, **quantized}:
+        return ["the reference was not restored from the quantized tensors of this export"]
+    return []
 
 
 def run_verifier(command, timeout, log):
@@ -316,7 +324,8 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
     if None not in (reference_hash, export_hash):
         if exported.get("layers") != reference.get("layers"):
             problems.append("the export and the reference are of other layer counts")
-        problems += correspondence(exported, export_hash, reference)
+        if not problems:
+            problems += correspondence(exported, export_hash, reference)
     verifier_record = None
     if not problems:
         try:

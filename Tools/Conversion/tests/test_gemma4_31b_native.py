@@ -537,7 +537,13 @@ class CompareTests(unittest.TestCase):
                      self.export / "export.json", lambda record: record.update(functions=["main"]))),
                  "quantized tensors changed after the export": (True, lambda: tensors.write_bytes(b"quantized tensorz")),
                  "no quantized tensors": (True, tensors.unlink),
-                 "quantized tensors behind a link": (True, link)}
+                 "quantized tensors behind a link": (True, link),
+                 "no quantized tensors and a list as their record": (True, lambda: (tensors.unlink(), edit(
+                     self.export / "export.json", lambda record: record.update(quantized=["file"])))),
+                 "a record of the tensors without the file": (True, lambda: edit(
+                     self.export / "export.json", lambda record: record["quantized"].pop("file"))),
+                 "a size of the tensors as text": (True, lambda: edit(
+                     self.export / "export.json", lambda record: record["quantized"]["file"].update(bytes="17")))}
         for label, (eight_bit, change) in cases.items():
             with self.subTest(case=label):
                 backups = {path: path.read_bytes() for path in (self.reference / "record.json", self.export / "export.json")}
@@ -549,6 +555,7 @@ class CompareTests(unittest.TestCase):
                 for path, data in backups.items():
                     path.write_bytes(data)
                 tensors.unlink(missing_ok=True)
+                self.assertEqual(read_json(self.folder / label.replace(" ", "-") / "comparison.json"), result)
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
                 self.assertEqual(result["conditions"], [])
