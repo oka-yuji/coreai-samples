@@ -148,6 +148,50 @@ func runRecord(
         #expect(source.calls.isEmpty)
     }
 
+    @Test(
+        "A written line that is not a whole output record, or whose input_sha256 or input_tokens differs from its input record, stops the resumed run without generating",
+        arguments: ["only the id", "another input_sha256", "a top2 entry of three values", "another input_tokens"])
+    func rejectsBrokenWrittenLines(_ broken: String) async throws {
+        let base = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let folder = base.appending(path: "run")
+        let inputs = items(3)
+        _ = try await Evaluation.run(
+            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: ScriptedLogits([stopAtOnce]),
+            stopTokens: [3])
+        let good = OutputRecord(
+            id: "item-2", inputSha256: tokensDigest([2, 2]), inputTokens: 2, stop: "stop_token", stopToken: 3,
+            top2: [TopTwo(first: 3, firstProbability: 1, second: 0, secondProbability: 0)])
+        var fields = try jsonObject(JSONEncoder.records.encode(good))
+        switch broken {
+        case "only the id": fields = ["id": "item-2"]
+        case "another input_sha256": fields["input_sha256"] = "00"
+        case "a top2 entry of three values": fields["top2"] = [[3, 1, 0]]
+        default: fields["input_tokens"] = 5
+        }
+        let outputs = folder.appending(path: "outputs.jsonl")
+        let written = try Data(contentsOf: outputs) + JSONSerialization.data(withJSONObject: fields) + Data("\n".utf8)
+        try written.write(to: outputs)
+        let source = ScriptedLogits([stopAtOnce, stopAtOnce])
+        let error = await #expect(throws: ValidationError.self) {
+            try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
+        }
+        #expect(error?.message.hasPrefix("outputs.jsonl line 2 (id item-2)") == true)
+        #expect(source.calls.isEmpty)
+        #expect(try Data(contentsOf: outputs) == written)
+    }
+
+    @Test("A whole output record written by an earlier run is read back unchanged")
+    func readsWrittenRecords() throws {
+        let record = OutputRecord(
+            id: "a", inputSha256: "digest", inputTokens: 2, outputIds: [4, 5], stop: "limit",
+            top2: [
+                TopTwo(first: 4, firstProbability: 0.75, second: 1, secondProbability: 0.125),
+                TopTwo(first: 5, firstProbability: 0.5, second: 0, secondProbability: 0.25),
+            ], error: "EngineError: unloaded", nonFinite: 0)
+        #expect(try JSONDecoder.snake.decode(OutputRecord.self, from: JSONEncoder.records.encode(record)) == record)
+    }
+
     @Test("Once the time limit has passed, the run ends after the item in progress and records its finish")
     func endsAfterTheItemInProgress() async throws {
         let base = try temporaryFolder()

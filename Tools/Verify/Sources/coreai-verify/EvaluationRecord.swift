@@ -23,6 +23,20 @@ struct TopTwo: Encodable, Equatable {
     }
 }
 
+extension TopTwo: Decodable {
+    init(from decoder: any Decoder) throws {
+        var entry = try decoder.unkeyedContainer()
+        first = try entry.decode(Int32.self)
+        firstProbability = try entry.decode(Double.self)
+        second = try entry.decode(Int32.self)
+        secondProbability = try entry.decode(Double.self)
+        guard entry.isAtEnd else {
+            throw DecodingError.dataCorruptedError(
+                in: entry, debugDescription: "A top2 entry has more than four values.")
+        }
+    }
+}
+
 enum LogitsRow: Equatable {
     case nonFinite(Int)
     case finite(TopTwo)
@@ -53,7 +67,7 @@ enum LogitsRow: Equatable {
     }
 }
 
-struct OutputRecord: Encodable, Equatable {
+struct OutputRecord: Codable, Equatable {
     let id: String
     let inputSha256: String
     let inputTokens: Int

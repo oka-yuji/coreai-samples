@@ -198,7 +198,7 @@ enum Evaluation {
                 throw ValidationError(
                     "--output holds another run; these differ from its run.json: \(differing.joined(separator: ", ")).")
             }
-            done = try writtenIDs(in: outputs, known: Set(items.map(\.id)))
+            done = try writtenIDs(in: outputs, inputs: items)
             current = stored
             current.items = done.count
             current.finished = nil
@@ -227,7 +227,7 @@ enum Evaluation {
         return current
     }
 
-    static func writtenIDs(in outputs: URL, known: Set<String>) throws -> Set<String> {
+    static func writtenIDs(in outputs: URL, inputs: [EvaluationInput]) throws -> Set<String> {
         let newline = UInt8(ascii: "\n")
         var data = try Data(contentsOf: outputs)
         if let last = data.last, last != newline {
@@ -237,13 +237,28 @@ enum Evaluation {
             try file.close()
             data = data.prefix(kept)
         }
-        let ids = try data.split(separator: newline).map { try JSONDecoder().decode(WrittenID.self, from: $0).id }
-        let unknown = Set(ids).subtracting(known)
-        guard unknown.isEmpty else {
-            throw ValidationError("outputs.jsonl has ids that are not in the input records: \(unknown.sorted()).")
+        let known = Dictionary(inputs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var ids: Set<String> = []
+        for (index, line) in data.split(separator: newline, omittingEmptySubsequences: false).dropLast().enumerated() {
+            let place =
+                "outputs.jsonl line \(index + 1)"
+                + ((try? JSONDecoder().decode(WrittenID.self, from: line)).map { " (id \($0.id))" } ?? "")
+            let record: OutputRecord
+            do {
+                record = try JSONDecoder.snake.decode(OutputRecord.self, from: line)
+            } catch {
+                throw ValidationError("\(place) is not an output record: \(error)")
+            }
+            guard let input = known[record.id] else {
+                throw ValidationError("\(place) has an id that is not in the input records.")
+            }
+            guard record.inputSha256 == input.inputSha256, record.inputTokens == input.inputIds.count else {
+                throw ValidationError(
+                    "\(place) has an input_sha256 or input_tokens that differs from its input record.")
+            }
+            guard ids.insert(record.id).inserted else { throw ValidationError("\(place) repeats an id.") }
         }
-        guard Set(ids).count == ids.count else { throw ValidationError("outputs.jsonl has an id more than once.") }
-        return Set(ids)
+        return ids
     }
 
     static func write(_ record: EvaluationRun, in folder: URL) throws {
