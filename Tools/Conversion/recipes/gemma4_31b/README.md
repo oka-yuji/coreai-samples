@@ -197,8 +197,14 @@ reference environment:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_compare \
-  --forced <forced folder> --baseline <logits folder> --candidate <logits folder> --output <new folder>
+  --forced <forced folder> --inputs <inputs folder> --run <reference run folder> \
+  --baseline <logits folder> --candidate <logits folder> --output <new folder>
 ~~~
+
+`--inputs` and `--run` are the input records and the finished reference run that the forced input was made from, as
+given to `forced`. The command makes the forced input again from them with `make` of `Tools/LLMEvaluation/layer1.py`,
+the function of `forced` with all of its checks, and requires `forced.jsonl` and `forced.json` of `--forced` to be equal
+to it byte for byte; the items are compared on the records made again.
 
 Each side is one folder with `logits.json` and one array file per item:
 
@@ -223,7 +229,7 @@ The output folder gets `layer1.json`:
 | `passed` | `true` only with no problem and every check passed |
 | `problems` | The findings about the records, followed by those of each item prefixed by its id |
 | `contract`, `limits` | The version and SHA-256 of `contract.json`, and the limits read from its `layer1` |
-| `forced` | The SHA-256 of `forced.jsonl` and of `forced.json` |
+| `forced` | The SHA-256 of `forced.jsonl` and of `forced.json` of `--forced`, `null` for a file that was not read |
 | `baseline`, `candidate` | The `role`, `weights` and SHA-256 of `logits.json` of each side |
 | `vocabulary` | The vocabulary of `model.json` |
 | `checks` | Per limit (`non_finite_values`, `max_probability_error`, `band_mean_max_probability_error`, `significant_top1_mismatches`) its value and `passed` |
@@ -235,14 +241,15 @@ The probability error and the near ties are those of `compare` in `Tools/Convers
 `state` is `not_evaluated` without items, which does not count for `passed`; `passed` when every item of the band was
 compared and its mean is within the limit; and `failed` otherwise. The report-only values, which decide nothing, are
 `kl_mean`, `kl_p99` and `kl_max` (the KL divergence from the baseline to the candidate at each position),
-`max_abs_logit_difference`, `top1_agreement` and `near_tie_count`. A finding about the logits of one item fails that
-item and the comparison, and the other items are still compared; so does a forced record whose fields disagree by
-`inconsistencies` of `Tools/LLMEvaluation/layer1.py`. An array file is read only when it is a regular file whose size
-is that of its `shape` and `dtype`, and no array file of an item is read once a finding about the item is known. The command refuses an existing output, also a link,
-before it reads the records; once it has made the folder, it writes `layer1.json` on every path, and a minimal failed
-record when the full record cannot be written. The exit code is 0 only when the comparison passed. `VerdictTests`,
-`CorrespondenceTests` and `BoundaryTests` in `Tools/Conversion/tests/test_gemma4_31b_layer1_compare.py` fix these
-rules. `python3 -m Tools.LLMEvaluation compare --layer1 <layer1.json>` names the record in a paired comparison.
+`max_abs_logit_difference`, `top1_agreement` and `near_tie_count`. A forced input that cannot be made again, or that
+differs from the one made again, fails the comparison. A finding about the logits of one item fails that item and the
+comparison, and the other items are still compared. An array file, and a file of `--forced`, is read only when it is a
+regular file of the expected size, and no array file of an item is read once a finding about the item is known. The
+command refuses an existing output, also a link, before it reads the records; once it has made the folder, it writes
+`layer1.json` on every path, and a minimal failed record when the full record cannot be written. The exit code is 0
+only when the comparison passed. `VerdictTests`, `CorrespondenceTests` and `BoundaryTests` in
+`Tools/Conversion/tests/test_gemma4_31b_layer1_compare.py` fix these rules.
+`python3 -m Tools.LLMEvaluation compare --layer1 <layer1.json>` names the record in a paired comparison.
 
 ## FP32 anchor and FP16 diagnostics
 

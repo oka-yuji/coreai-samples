@@ -171,10 +171,8 @@ def forced_record(entry, source, output, contract):
             "targets": targets[:count]}, []
 
 
-def write(bundle, inputs, run, output):
-    inputs, run, output = Path(inputs), Path(run), Path(output)
-    if os.path.lexists(output):
-        raise FileExistsError(f"Output must be a new folder: {output}")
+def make(bundle, inputs, run):
+    inputs, run = Path(inputs), Path(run)
     data, outputs = (inputs / "inputs.jsonl").read_bytes(), (run / "outputs.jsonl").read_bytes()
     summary, stored = strict((inputs / "inputs.json").read_bytes()), strict((run / "run.json").read_bytes())
     known = by_id(data, "inputs.jsonl")
@@ -205,10 +203,18 @@ def write(bundle, inputs, run, output):
     result = {"contract": identity, "set": SET, "inputs": files,
               "run": {"id": stored["id"], "outputs_sha256": hashlib.sha256(outputs).hexdigest()},
               **tallies(bundle, rows, content)}
+    return rows, result, content, (json.dumps(result, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def write(bundle, inputs, run, output):
+    output = Path(output)
+    if os.path.lexists(output):
+        raise FileExistsError(f"Output must be a new folder: {output}")
+    _, result, content, summary = make(bundle, inputs, run)
     output.mkdir(parents=True)
     try:
         (output / "forced.jsonl").write_bytes(content)
-        (output / "forced.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        (output / "forced.json").write_bytes(summary)
     except BaseException:
         shutil.rmtree(output, ignore_errors=True)
         raise

@@ -8,10 +8,10 @@ import sys
 
 from Tools.LLMEvaluation import checks, items
 from Tools.LLMEvaluation.items import FILES
-from Tools.LLMEvaluation.layer1 import SET, band, chosen, inconsistencies, label, same, tallies
+from Tools.LLMEvaluation.layer1 import band, chosen, label, make
 from ...storage import write_json
 from ..verify_llm import compare as judged, probabilities
-from .anchor import parse, read
+from .anchor import read
 from .compare import CONTRACT
 from .native import valid
 from .prepare import load_contract
@@ -38,31 +38,27 @@ def validated(record, table):
     return {key: record[key] for key in table if key not in malformed}, malformed
 
 
-def forced_input(folder, bundle, expected, identity, problems):
-    rule, data = bundle["contract"]["layer1"], (folder / "forced.jsonl").read_bytes()
-    summary, summary_sha256, _ = read(folder / "forced.json")
-    summary = summary if isinstance(summary, dict) else {}
-    records, lines = {}, data.split(b"\n")
-    for number, line in enumerate(lines[:-1] if lines[-1] == b"" else lines, 1):
+def forced_input(folder, sources, bundle, problems):
+    try:
+        rows, _, content, summary = make(bundle, sources["inputs"], sources["run"])
+    except Exception as error:
+        reason = str(error) if type(error) is ValueError else type(error).__name__
+        problems.append(f"the forced input cannot be made again from the input records and the run ({reason})")
+        return {"sha256": None, "summary_sha256": None}, {}, None
+    hashes = {}
+    for key, name, expected in (("sha256", "forced.jsonl", content), ("summary_sha256", "forced.json", summary)):
         try:
-            record = parse(line)
+            status = os.stat(folder / name)
+            sized = stat.S_ISREG(status.st_mode) and status.st_size == len(expected)
+            data = contents(folder / name, len(expected)) if sized else None
         except Exception as error:
-            problems.append(f"forced.jsonl line {number} is not JSON ({type(error).__name__})")
+            problems.append(f"{name} of the forced input is unreadable ({type(error).__name__})")
+            hashes[key] = None
             continue
-        name = record.get("id") if isinstance(record, dict) else None
-        if not isinstance(name, str):
-            problems.append(f"forced.jsonl line {number} has no item id")
-        elif name in records:
-            problems.append(f"forced.jsonl repeats {name}")
-        elif name not in expected:
-            problems.append(f"forced.jsonl holds {name}, which is not a layer 1 item")
-        else:
-            records[name] = record, inconsistencies(record, rule)
-    if summary.get("contract") != identity or summary.get("set") != SET or not all(
-            same(summary.get(key), value) for key, value in tallies(bundle, [record for record, _ in records.values()],
-                                                                    data).items()):
-        problems.append("forced.json is not the summary of forced.jsonl for the layer 1 items of this contract")
-    return {"sha256": hashlib.sha256(data).hexdigest(), "summary_sha256": summary_sha256}, records
+        hashes[key] = None if data is None else hashlib.sha256(data).hexdigest()
+        if data != expected:
+            problems.append(f"{name} differs from the forced input made again from the input records and the run")
+    return hashes, {row["id"]: row for row in rows}, hashlib.sha256(content).hexdigest()
 
 
 def side(name, folder, digest, roles, expected, problems):
@@ -79,7 +75,7 @@ def side(name, folder, digest, roles, expected, problems):
         (f"the {name} record is not a {LOGITS} record", "schema" in kept and kept["schema"] != LOGITS),
         (f"the {name} role is not a role of the contract", "role" in kept and kept["role"] not in roles),
         (f"the {name} logits were made from another forced input",
-         "forced_sha256" in kept and kept["forced_sha256"] != digest)) if wrong]
+         "forced_sha256" in kept and digest is not None and kept["forced_sha256"] != digest)) if wrong]
     values = record.get("items") if isinstance(record, dict) else None
     if not isinstance(values, list):
         problems.append(f"the {name} record has no item list")
@@ -163,12 +159,9 @@ def blank(name):
 def item(name, records, sides, vocabulary, rule):
     import numpy as np
 
-    entry, (record, wrong) = blank(name), records.get(name, (None, []))
+    entry, record = blank(name), records.get(name)
     if record is None:
-        entry["problems"].append("the item is not in the forced input")
-        return entry, None
-    if wrong:
-        entry["problems"] += [f"the forced record is inconsistent: {text}" for text in wrong]
+        entry["problems"].append("the item has no forced record made again from the input records and the run")
         return entry, None
     entry.update(band=band(rule["bands"], record["input_tokens"]), input_tokens=record["input_tokens"],
                  rows=record["rows"])
@@ -206,12 +199,12 @@ def summarized(members):
             "near_tie_count": sum(entry["near_tie_mismatches"] for entry, _ in members)}
 
 
-def measured(bundle, vocabulary, forced, folders):
+def measured(bundle, vocabulary, forced, sources, folders):
     contract, problems = bundle["contract"], []
     rule, expected = contract["layer1"], [entry["id"] for entry in chosen(bundle)]
     identity = {"version": contract["version"], "sha256": bundle["hashes"][FILES["contract"]]}
-    hashes, records = forced_input(forced, bundle, expected, identity, problems)
-    sides = {name: side(name, folders[name], hashes["sha256"], contract["roles"], expected, problems) for name in SIDES}
+    hashes, records, digest = forced_input(forced, sources, bundle, problems)
+    sides = {name: side(name, folders[name], digest, contract["roles"], expected, problems) for name in SIDES}
     if all(sides[name]["sha256"] for name in SIDES) and (
             os.path.samefile(folders["baseline"], folders["candidate"])
             or sides["baseline"]["sha256"] == sides["candidate"]["sha256"]):
@@ -260,7 +253,7 @@ def recorded(path, result):
     return result
 
 
-def compare(forced, baseline, candidate, output, contract_path=CONTRACT):
+def compare(forced, inputs, run, baseline, candidate, output, contract_path=CONTRACT):
     output = Path(output)
     if os.path.lexists(output):
         raise FileExistsError(f"The layer 1 result must be written to a new folder: {output}")
@@ -272,7 +265,8 @@ def compare(forced, baseline, candidate, output, contract_path=CONTRACT):
     output.mkdir(parents=True)
     result = failed("the comparison did not finish")
     try:
-        result = measured(bundle, vocabulary, Path(forced), {"baseline": Path(baseline), "candidate": Path(candidate)})
+        result = measured(bundle, vocabulary, Path(forced), {"inputs": Path(inputs), "run": Path(run)},
+                          {"baseline": Path(baseline), "candidate": Path(candidate)})
     except Exception as error:
         result = failed(f"the comparison could not be made ({type(error).__name__})")
     finally:
@@ -282,11 +276,11 @@ def compare(forced, baseline, candidate, output, contract_path=CONTRACT):
 
 def main():
     parser = argparse.ArgumentParser(description="Compare the logits of two sides of the layer 1 check of the quality "
-                                                 "contract on the same forced input.")
-    for name in ("forced", "baseline", "candidate", "output"):
+                                                 "contract on the same forced input, made again from its sources.")
+    for name in ("forced", "inputs", "run", "baseline", "candidate", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
-    result = compare(args.forced, args.baseline, args.candidate, args.output)
+    result = compare(args.forced, args.inputs, args.run, args.baseline, args.candidate, args.output)
     print(json.dumps({"passed": result["passed"], "problems": result["problems"],
                       "checks": {name: check["passed"] for name, check in result.get("checks", {}).items()}}, indent=2),
           flush=True)

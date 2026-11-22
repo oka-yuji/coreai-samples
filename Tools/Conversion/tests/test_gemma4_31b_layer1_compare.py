@@ -18,7 +18,7 @@ except ImportError:
 from Tools.Conversion.adapters.gemma4_31b import baseline, layer1_compare
 from Tools.Conversion.storage import read_json, write_json
 from Tools.LLMEvaluation import layer1
-from Tools.LLMEvaluation.tests.test_layer1 import BUNDLE, fixture, save
+from Tools.LLMEvaluation.tests.test_layer1 import BUNDLE, digest, fixture, generate, save
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b/model.json"
 ROOT = Path(__file__).resolve().parents[3]
@@ -67,9 +67,9 @@ class Comparison(unittest.TestCase):
         contract["config"]["vocab_size"] = VOCABULARY
         cls.contract = root / "model.json"
         write_json(cls.contract, contract)
-        inputs, run = save(fixture(), root / "sources")
+        cls.inputs, cls.reference = save(fixture(), root / "sources")
         cls.forced = root / "forced"
-        layer1.write(BUNDLE, inputs, run, cls.forced)
+        layer1.write(BUNDLE, cls.inputs, cls.reference, cls.forced)
         cls.records = [json.loads(line) for line in (cls.forced / "forced.jsonl").read_text().splitlines()]
         cls.forced_sha256 = hashlib.sha256((cls.forced / "forced.jsonl").read_bytes()).hexdigest()
 
@@ -80,21 +80,21 @@ class Comparison(unittest.TestCase):
     def setUp(self):
         self.fresh()
 
-    def fresh(self):
+    def fresh(self, records=None):
         self.folder = Path(tempfile.mkdtemp(dir=self.temporary.name))
         generator = np.random.default_rng(697)
         self.baseline, self.candidate = {}, {}
-        for record in self.records:
+        for record in records or self.records:
             values = generator.normal(size=(record["rows"], VOCABULARY))
             values[np.arange(record["rows"]), generator.integers(VOCABULARY, size=record["rows"])] += 4
             self.baseline[record["id"]] = values.astype(np.float32)
             self.candidate[record["id"]] = (values + generator.normal(scale=1e-3, size=values.shape)).astype(np.float32)
 
-    def side(self, name, arrays, dtype="float32", role="anchor", edit=None):
+    def side(self, name, arrays, dtype="float32", role="anchor", edit=None, records=None):
         folder = self.folder / name
         folder.mkdir()
         listed = []
-        for record in self.records:
+        for record in records or self.records:
             if record["id"] not in arrays:
                 continue
             array = arrays[record["id"]]
@@ -110,13 +110,13 @@ class Comparison(unittest.TestCase):
         (folder / "logits.json").write_text(json.dumps(record))
         return folder
 
-    def compared(self, candidate_dtype="float32", edit=None, forced=None, after=None):
-        output = self.folder / "result"
-        baseline = self.side("baseline", self.baseline)
-        candidate = self.side("candidate", self.candidate, candidate_dtype, "fp16", edit)
+    def compared(self, candidate_dtype="float32", edit=None, forced=None, after=None, sources=None, records=None):
+        output, (inputs, run) = self.folder / "result", sources or (self.inputs, self.reference)
+        baseline = self.side("baseline", self.baseline, records=records)
+        candidate = self.side("candidate", self.candidate, candidate_dtype, "fp16", edit, records)
         if after is not None:
             after(candidate)
-        result = layer1_compare.compare(forced or self.forced, baseline, candidate, output, self.contract)
+        result = layer1_compare.compare(forced or self.forced, inputs, run, baseline, candidate, output, self.contract)
         self.assertEqual(read_json(output / "layer1.json"), result)
         return result
 
@@ -311,21 +311,22 @@ class CorrespondenceTests(Comparison):
 
         self.failed(self.compared(edit=broken), "the candidate logits.json is unreadable")
 
-    def test_a_forced_input_of_another_contract_or_with_other_items_fails(self):
+    def test_a_forced_input_of_another_contract_or_with_fewer_items_fails(self):
         copied = self.folder / "forced"
         shutil.copytree(self.forced, copied)
         summary = read_json(copied / "forced.json")
         summary["contract"]["version"] = "G31-QC-v0"
-        write_json(copied / "forced.json", summary)
-        self.failed(self.compared(forced=copied), "forced.json is not the summary of forced.jsonl")
+        (copied / "forced.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+        self.failed(self.compared(forced=copied), "forced.json differs from the forced input made again")
         self.fresh()
         copied = self.folder / "forced"
         shutil.copytree(self.forced, copied)
         lines = (copied / "forced.jsonl").read_text().splitlines(keepends=True)
         (copied / "forced.jsonl").write_text("".join(lines[1:]))
         result = self.compared(forced=copied)
-        self.failed(result, "ja-choice-0001: the item is not in the forced input")
-        self.failed(result, "the baseline logits were made from another forced input")
+        self.failed(result, "forced.jsonl differs from the forced input made again")
+        self.assertFalse(any("made from another forced input" in problem for problem in result["problems"]))
+        self.assertIsNotNone(entry(result, self.records[0]["id"])["max_probability_error"])
 
     def forged(self, change):
         copied = self.folder / "forced"
@@ -340,9 +341,9 @@ class CorrespondenceTests(Comparison):
                             for low, high in LAYER1["bands"]}
         write_json(copied / "forced.json", summary)
         self.forced_sha256 = summary["forced"]["sha256"]
-        return copied
+        return copied, records
 
-    def test_a_forced_summary_whose_counts_differ_from_its_records_fails(self):
+    def test_a_forced_summary_that_differs_from_the_one_made_again_fails(self):
         def bands(summary):
             summary["bands"]["1-512"] -= 1
             summary["bands"]["513-2048"] += 1
@@ -350,7 +351,8 @@ class CorrespondenceTests(Comparison):
         cases = (("bands", bands), ("categories", lambda summary: summary["categories"].update({"free-ja": 7})),
                  ("count", lambda summary: summary["forced"].update(count=summary["forced"]["count"] - 1)),
                  ("a float count", lambda summary: summary["forced"].update(count=float(summary["forced"]["count"]))),
-                 ("set", lambda summary: summary.update(set="reserve")))
+                 ("set", lambda summary: summary.update(set="reserve")),
+                 ("another run", lambda summary: summary["run"].update(id="run-2")))
         for name, change in cases:
             with self.subTest(name):
                 self.fresh()
@@ -358,36 +360,83 @@ class CorrespondenceTests(Comparison):
                 shutil.copytree(self.forced, copied)
                 summary = read_json(copied / "forced.json")
                 change(summary)
-                write_json(copied / "forced.json", summary)
+                (copied / "forced.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
                 result = self.compared(forced=copied)
-                self.failed(result, "forced.json is not the summary of forced.jsonl for the layer 1 items of this contract")
+                self.failed(result, "forced.json differs from the forced input made again from the input records and the run")
                 self.assertEqual(len(result["problems"]), 1)
 
-    def test_a_forced_record_moved_to_another_band_with_its_hashes_rebuilt_fails_its_item(self):
+    def test_a_consistent_forced_input_with_another_input_length_for_a_long_item_fails(self):
+        def shortened(records):
+            record = next(record for record in records if record["id"] == "long-ja-4k-0001")
+            ids, tail = record["tokens"][:512], record["targets"][:record["rows"] - 1]
+            record.update(tokens=ids + tail, input_tokens=512, start=511, input_sha256=digest(ids),
+                          tokens_sha256=digest(ids + tail))
+
+        forced, records = self.forged(shortened)
+        record = next(record for record in records if record["id"] == "long-ja-4k-0001")
+        self.assertEqual(layer1.inconsistencies(record, LAYER1), [])
+        self.assertEqual(layer1.band(LAYER1["bands"], record["input_tokens"]), "1-512")
+        result = self.compared(forced=forced, records=records)
+        for text in ("forced.jsonl differs from the forced input made again from the input records and the run",
+                     "forced.json differs from the forced input made again from the input records and the run",
+                     "the candidate logits were made from another forced input",
+                     "long-ja-4k-0001: the baseline read other tokens"):
+            self.failed(result, text)
+        self.assertEqual(entry(result, "long-ja-4k-0001")["band"], "2049-4096")
+
+    def test_a_broken_forced_record_fails_as_a_difference_from_the_forced_input_made_again(self):
         def moved(records):
             records[0]["input_tokens"] = 3000
 
-        result = self.compared(forced=self.forged(moved))
-        self.failed(result, f"{self.records[0]['id']}: the forced record is inconsistent: its start is not input_tokens - 1")
-        self.assertIsNone(entry(result, self.records[0]["id"])["max_probability_error"])
-        self.assertEqual([band["items"] for band in result["bands"]], [71, 0, 12, 4])
-        self.assertFalse(any("made from another forced input" in problem or "forced.json" in problem
-                             for problem in result["problems"]))
-
-    def test_a_forced_record_of_another_row_count_or_outside_the_bands_fails(self):
         def changed(records):
             records[0]["rows"], records[1]["input_tokens"] = LAYER1["positions"]["max_per_item"] + 1, 20000
 
-        result = self.compared(forced=self.forged(changed))
-        self.failed(result, f"{self.records[0]['id']}: the forced record is inconsistent: its rows are outside 1 to max_per_item")
-        self.failed(result, f"{self.records[1]['id']}: the forced record is inconsistent: its input length is outside the bands")
+        for name, change in (("moved", moved), ("changed", changed)):
+            with self.subTest(name):
+                self.fresh()
+                forced, _ = self.forged(change)
+                result = self.compared(forced=forced)
+                self.failed(result, "forced.jsonl differs from the forced input made again from the input records and the run")
+                self.failed(result, "the baseline logits were made from another forced input")
+                self.assertIsNotNone(entry(result, self.records[0]["id"])["max_probability_error"])
+                self.assertEqual([band["items"] for band in result["bands"]], [72, 0, 12, 4])
+
+    def test_a_forced_input_made_from_another_reference_run_fails_and_its_own_sources_pass(self):
+        state = fixture()
+        generate(state, "ja-reading-0002", [31, 32, 33, 34])
+        inputs, run = save(state, Path(self.temporary.name) / "other-sources")
+        other = Path(self.temporary.name) / "other-forced"
+        layer1.write(BUNDLE, inputs, run, other)
+        records = [json.loads(line) for line in (other / "forced.jsonl").read_text().splitlines()]
+        for sources, passes in (((self.inputs, self.reference), False), ((inputs, run), True)):
+            with self.subTest(passes=passes):
+                self.fresh(records)
+                self.forced_sha256 = hashlib.sha256((other / "forced.jsonl").read_bytes()).hexdigest()
+                result = self.compared(forced=other, sources=sources, records=records)
+                self.assertEqual(result["passed"], passes, result["problems"])
+                if not passes:
+                    self.failed(result, "forced.jsonl differs from the forced input made again from the input records and the run")
+        shutil.rmtree(Path(self.temporary.name) / "other-sources")
+        shutil.rmtree(other)
+
+    def test_sources_that_fail_their_checks_leave_a_failed_record(self):
+        run = self.folder / "run"
+        shutil.copytree(self.reference, run)
+        progress = read_json(run / "progress.json")
+        progress["next_sha256"] = None
+        write_json(run / "progress.json", progress)
+        result = self.compared(sources=(self.inputs, run))
+        self.failed(result, "the forced input cannot be made again from the input records and the run (progress.json does "
+                            "not confirm these output records of this finished run: next_sha256)")
+        self.assertTrue(all(item["max_probability_error"] is None for item in result["items"]))
         self.assertFalse(any("made from another forced input" in problem for problem in result["problems"]))
 
     def reads(self):
         calls, original = [], layer1_compare.contents
 
         def recorded(path, size):
-            calls.append((Path(path).parent.name, Path(path).name))
+            if Path(path).parent.name in ("baseline", "candidate"):
+                calls.append((Path(path).parent.name, Path(path).name))
             return original(path, size)
 
         return calls, mock.patch.object(layer1_compare, "contents", side_effect=recorded)
@@ -437,14 +486,15 @@ class CorrespondenceTests(Comparison):
             result = self.compared(after=grown)
         self.failed(result, f"{name}: the candidate file changed while it was read")
 
-    def test_no_array_of_an_item_with_a_problem_in_its_records_is_read(self):
-        def changed(records):
-            records[0]["rows"] = LAYER1["positions"]["max_per_item"] + 1
+    def test_no_array_of_an_item_with_a_problem_in_its_entries_is_read(self):
+        def changed(record):
+            record["items"][0]["dtype"] = "bfloat16"
+            record["items"][1]["tokens_sha256"] = "0" * 64
 
-        forced = self.forged(changed)
         calls, patched = self.reads()
         with patched:
-            result = self.compared(forced=forced, edit=lambda record: record["items"][1].update(tokens_sha256="0" * 64))
+            result = self.compared(edit=changed)
+        self.failed(result, f"{self.records[0]['id']}: the candidate dtype 'bfloat16' is not float16 or float32")
         self.failed(result, f"{self.records[1]['id']}: the candidate read other tokens")
         for record in self.records[:2]:
             self.assertFalse(any(file.startswith(record["id"] + ".") for _, file in calls))
@@ -452,7 +502,8 @@ class CorrespondenceTests(Comparison):
 
     def test_the_same_folder_on_both_sides_fails(self):
         folder = self.side("both", self.baseline)
-        result = layer1_compare.compare(self.forced, folder, folder, self.folder / "result", self.contract)
+        result = layer1_compare.compare(self.forced, self.inputs, self.reference, folder, folder, self.folder / "result",
+                                        self.contract)
         self.failed(result, "the baseline and the candidate are the same folder")
 
 
@@ -466,14 +517,14 @@ class BoundaryTests(Comparison):
                 make(output)
                 with mock.patch.object(layer1_compare.items, "load", side_effect=AssertionError("read")):
                     with self.assertRaises(FileExistsError):
-                        layer1_compare.compare(missing, missing, missing, output, self.contract)
+                        layer1_compare.compare(missing, missing, missing, missing, missing, output, self.contract)
                 self.assertFalse(os.path.exists(output / "layer1.json"))
 
     def test_frozen_files_that_do_not_validate_stop_before_the_output_is_made(self):
         output = self.folder / "result"
         with mock.patch.object(layer1_compare.checks, "problems", return_value=["a changed contract"]):
             with self.assertRaises(ValueError):
-                layer1_compare.compare(self.forced, self.folder, self.folder, output, self.contract)
+                layer1_compare.compare(self.forced, self.inputs, self.reference, self.folder, self.folder, output, self.contract)
         self.assertFalse(os.path.lexists(output))
 
     def test_an_error_outside_the_items_still_leaves_a_failed_record(self):
@@ -501,7 +552,7 @@ class BoundaryTests(Comparison):
         output = self.folder / "result"
         with mock.patch.object(layer1_compare, "measured", side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):
-                layer1_compare.compare(self.forced, self.side("baseline", self.baseline),
+                layer1_compare.compare(self.forced, self.inputs, self.reference, self.side("baseline", self.baseline),
                                        self.side("candidate", self.candidate), output, self.contract)
         self.assertEqual(read_json(output / "layer1.json"),
                          {"schema": layer1_compare.SCHEMA, "passed": False, "problems": ["the comparison did not finish"]})
@@ -524,7 +575,8 @@ class BoundaryTests(Comparison):
     def test_the_command_exits_with_1_and_leaves_the_record_when_the_comparison_fails(self):
         output = self.folder / "result"
         process = subprocess.run([sys.executable, "-m", "Tools.Conversion.adapters.gemma4_31b.layer1_compare",
-                                  "--forced", str(self.forced), "--baseline", str(self.side("baseline", self.baseline)),
+                                  "--forced", str(self.forced), "--inputs", str(self.inputs), "--run", str(self.reference),
+                                  "--baseline", str(self.side("baseline", self.baseline)),
                                   "--candidate", str(self.side("candidate", self.candidate)), "--output", str(output)],
                                  cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(process.returncode, 1, process.stderr)
