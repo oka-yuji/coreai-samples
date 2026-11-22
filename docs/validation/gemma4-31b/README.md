@@ -15,7 +15,7 @@ runs and of their comparison, with the SHA-256 of the two `reference.json` files
 ## Conditions
 
 - Mac16,6 (Apple M4 Max, 16 cores) with 128 GiB of memory, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power
-  at the start and end of both runs (`pmset -g batt`; the power log has no change of power source between 12:34 and
+  at the start and end of both runs (`pmset -g batt`; the power log has no change of power source between 14:19 and
   the end of the runs). Each run held the shared machine lock from its input fingerprints to its last check, and no
   model process ran when either run started (`pgrep -x`).
 - Model: revision `842da3794eaa0b77d5f08bae87a17459d91ff475`, all 12 files (62,578,686,256 B). Weight shards
@@ -26,18 +26,19 @@ runs and of their comparison, with the SHA-256 of the two `reference.json` files
   `a86c373c60bc9f86df95b2d94c9f068b34d536577109993194599c282d67e75e`.
 - Environment: Python 3.11.9, torch 2.15.0, transformers 5.16.1, accelerate 1.15.0, tokenizers 0.23.3, numpy 2.4.6,
   safetensors 0.8.0, huggingface-hub 1.33.0, jinja2 3.1.6.
-- Runs (2026-11-22 JST, run IDs in UTC): `20261122T044544-12544e0c` from 13:45:40 and `20261122T050447-2052ef9f`
-  (`--refresh`, a new process for each step) from 14:04:45. Both ran commit a1dea70 with no local changes.
-- The ten runs before the code changes stay in the local work directory: `20261121T181402-3993e870` and
+- Runs (2026-11-22 JST, run IDs in UTC): `20261122T055330-7fdbbddb` from 14:53:26 and `20261122T060138-0c84f8e9`
+  (`--refresh`, a new process for each step) from 15:01:36. Both ran commit db735c5 with no local changes.
+- The twelve runs before the code changes stay in the local work directory: `20261121T181402-3993e870` and
   `20261121T182226-ec24068e` saved only the scoring rows; `20261121T203620-82b17299` and `20261121T204316-1480d82e`
   ran before the checks of the loaded files, the first monitor sample and the second greedy run were added;
   `20261121T214327-72fc48b5` and `20261121T215114-6e010de9` ran before the check of the snapshot folder right before
   loading; `20261121T224129-9bb9ad31` and `20261121T224932-a8ee45b6` ran before a monitor sample without the resident
-  memory counted as unreadable; and `20261122T031132-0fabe9ce` and `20261122T032110-11b33672` ran before a monitor
-  stop after the model work also wrote `failure.json`. Their tokens and their logits (the scoring rows of the first
-  two, every saved row of the other eight) are identical to these runs; the comparison of the results below also
-  passes between `20261122T031132-0fabe9ce` and the first of these runs and between `20261122T032110-11b33672` and the
-  second, with a largest difference of 0.0.
+  memory counted as unreadable; `20261122T031132-0fabe9ce` and `20261122T032110-11b33672` ran before a monitor stop
+  after the model work also wrote `failure.json`; and `20261122T044544-12544e0c` and `20261122T050447-2052ef9f` ran
+  before a monitor stop while the monitor starts also wrote it. Their tokens and their logits (the scoring rows of
+  the first two, every saved row of the other ten) are identical to these runs; the comparison of the results below
+  also passes between `20261122T044544-12544e0c` and the first of these runs and between `20261122T050447-2052ef9f`
+  and the second, with a largest difference of 0.0.
 
 ## What the runs checked
 
@@ -108,30 +109,29 @@ only the top two candidates of each step are kept in the token files.
 
 ## Resources and time
 
-| Run | `20261122T044544-12544e0c` | `20261122T050447-2052ef9f` |
+| Run | `20261122T055330-7fdbbddb` | `20261122T060138-0c84f8e9` |
 |---|---:|---:|
-| Pipeline | 533.8 s | 526.1 s |
-| `prepare` step (hashing all files) | 76.4 s | 76.1 s |
-| `reference` step | 454.0 s | 448.7 s |
-| Hashing the loaded files before loading | 22.69 s | 23.81 s |
-| Model load | 6.19 s | 6.62 s |
-| Greedy, 673 tokens of 12 cases (with prefill) | 170.3 s, 3.95 tokens/s | 162.0 s, 4.15 tokens/s |
-| Decode after the first token, short inputs | 3.66 to 6.46 tokens/s | 4.17 to 6.43 tokens/s |
-| `ja_long`: first token, decode | 23.00 s, 2.82 tokens/s | 21.99 s, 3.92 tokens/s |
-| Peak resident memory | 55,356,276,736 B | 54,460,039,168 B |
-| Kernel lifetime footprint peak | 79,968,273,488 B | 79,950,988,344 B |
-| MPS driver allocation, after load / peak | 62,556,012,544 B / 74,648,731,648 B | 62,556,012,544 B / 74,648,731,648 B |
+| Pipeline | 484.2 s | 447.8 s |
+| `prepare` step (hashing all files) | 83.9 s | 68.9 s |
+| `reference` step | 396.6 s | 377.6 s |
+| Hashing the loaded files before loading | 23.46 s | 21.41 s |
+| Model load | 6.49 s | 5.78 s |
+| Greedy, 673 tokens of 12 cases (with prefill) | 141.7 s, 4.75 tokens/s | 129.4 s, 5.20 tokens/s |
+| Decode after the first token, short inputs | 5.59 to 6.40 tokens/s | 6.02 to 6.54 tokens/s |
+| `ja_long`: first token, decode | 15.96 s, 4.29 tokens/s | 12.83 s, 4.67 tokens/s |
+| Peak resident memory | 54,880,616,448 B | 56,097,046,528 B |
+| Kernel lifetime footprint peak | 79,953,904,672 B | 79,961,146,424 B |
+| MPS driver allocation, after load / peak | 62,556,012,544 B / 74,648,731,648 B | 62,556,012,544 B / 75,100,061,696 B |
 | Swap increase (limit 2,000,000,000 B) | 0 B | 0 B |
-| Lowest memory free percentage | 40 | 40 |
+| Lowest memory free percentage | 39 | 39 |
 | Saved logits (12 files) | 3,398,436,352 B | 3,398,436,352 B |
 
 - The model loaded with the weights in the file cache: `prepare` had just read every file. These are not cold loads.
 - Swift builds and tests outside these runs ran on the same Mac during both runs. Each run started only when none of
   `xcodebuild`, `swift-build`, `swift-frontend` and `swift-test` was running, after waiting for them to end. These
-  processes were sampled every 5 seconds during the runs: at least one of them was running in 71 of 103 samples of
-  the first run and in 91 of 102 samples of the second. Right after the first run ended, `swift-build`,
-  `swift-frontend` and `swift-test` were running; right after the second, none of them was. The times and rates of
-  both runs are values under that condition.
+  processes were sampled every 5 seconds during the runs: at least one of them was running in 67 of 95 samples of
+  the first run and in 15 of 88 samples of the second. Right after the first run ended none of them was running;
+  right after the second, `swift-test` was. The times and rates of both runs are values under that condition.
 - The decode rates exclude the first token and the cases with four or fewer output tokens. Each step synchronizes MPS
   once to take its time. The first case of each process also includes the first use of the MPS kernels.
 - `torch.mps.current_allocated_memory()` reported 3,840 B after loading, so it does not count the loaded weights;
@@ -156,11 +156,11 @@ only the top two candidates of each step are kept in the token files.
 
 | File | SHA-256 |
 |---|---|
-| Report of the first run | `96539fcd405971321c7016ed4c0fd6fe597419158f0065016d47e3ae1002b285` |
-| Report of the second run | `31566ee7654148c74ec90e47780738aa89ed5fa4e377a1a290b1e177ad6969c1` |
-| `reference.json` of the first run | `3adc3722862d169f3dfb2fae5fdfc86efaf9cf73fcbced38773d7e4fdbf97729` |
-| `reference.json` of the second run | `93c97bd76310a4ae45b5d71a5c8418808d2b8fb92ee1e9690b4cdf5d108fa5d5` |
-| Comparison of the two runs | `dbfd6c56626a5daa1d78f8771fe40b4c843c0c2ad3bdf41d7c97e28193befabb` |
+| Report of the first run | `e3935fcc0f0791bf93bcd6011283198246f45ec8a3bf51f387bae10d7ed0d540` |
+| Report of the second run | `d254c3a65a7c1c6b63cc4dabfccbf368fdb3b0630ce11be3333062a8094d3ead` |
+| `reference.json` of the first run | `e391dc30a64a360674b25f0b2c5c9046f41130255485e0113476bd27bfea167b` |
+| `reference.json` of the second run | `6c015255df4ee88788b7d4f50246841de139a0d1f93b4719e8435e0ca4264873` |
+| Comparison of the two runs | `b63fbd4f9cda719c2b5e3d984820a6d6b061e814ae2b251ec561eba808ba2c33` |
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.summary \
