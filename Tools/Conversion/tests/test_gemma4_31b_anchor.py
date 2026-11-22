@@ -317,6 +317,8 @@ class CompareTests(unittest.TestCase):
                 result = anchor_compare.compare(a, b, expected([(name, "chat") for name in names]))
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
+                if label in ("an archive as the logits file", "token lists as text"):
+                    self.assertEqual(result["problems"], ["case: unreadable case files"])
 
     def test_an_artifact_compared_with_itself_or_with_a_copy_never_passes(self):
         with tempfile.TemporaryDirectory() as folder:
