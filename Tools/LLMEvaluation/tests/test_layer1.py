@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from Tools.LLMEvaluation import items, layer1
 
@@ -230,6 +231,21 @@ class ForcedRecordTests(Folder):
         rule = CONTRACT["layer1"]
         self.assertEqual({name: layer1.inconsistencies(record, rule) for name, record in self.written().items()},
                          {name: [] for name in ORDER})
+
+    def test_a_constructed_record_that_is_inconsistent_stops_the_forced_input(self):
+        original = layer1.forced_record
+
+        def shifted(*arguments):
+            made, wrong = original(*arguments)
+            return {**made, "start": made["start"] + 1}, wrong
+
+        inputs, run = save(fixture(), self.root / "sources")
+        with mock.patch.object(layer1, "forced_record", side_effect=shifted):
+            with self.assertRaises(ValueError) as caught:
+                layer1.write(BUNDLE, inputs, run, self.root / "forced")
+        self.assertIn("ja-choice-0001: the written record is inconsistent: its start is not input_tokens - 1",
+                      str(caught.exception))
+        self.assertFalse(os.path.lexists(self.root / "forced"))
 
     def test_each_broken_relation_of_a_forced_record_is_reported(self):
         records, rule = self.written(), CONTRACT["layer1"]
