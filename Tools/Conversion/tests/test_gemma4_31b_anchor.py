@@ -366,18 +366,15 @@ class CompareTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertEqual(result["problems"], ["case: both logits files are the same file"])
 
-    def test_the_output_is_created_once_and_never_replaces_a_file_or_a_link(self):
-        with tempfile.TemporaryDirectory() as folder:
-            target, link, broken = (Path(folder) / name for name in ("out.json", "link.json", "broken.json"))
-            anchor_compare.write_new(target, {"value": 1})
-            link.symlink_to(Path(folder) / "missing.json")
-            for path in (target, link):
-                with self.subTest(path=path.name), self.assertRaises(FileExistsError):
-                    anchor_compare.write_new(path, {"value": 2})
-            with mock.patch.object(anchor_compare.os, "fsync", side_effect=OSError("disk")), self.assertRaises(OSError):
-                anchor_compare.write_new(broken, {"value": 3})
-            self.assertEqual((json.loads(target.read_text()), link.is_symlink(), (Path(folder) / "missing.json").exists(),
-                              broken.exists()), ({"value": 1}, True, False, False))
+    def test_the_result_is_the_only_output_and_reads_back_as_json(self):
+        for passed, code in ((True, 0), (False, 1)):
+            result = {"passed": passed, "problems": [] if passed else ["x"], "value": 0.5}
+            output = io.StringIO()
+            with self.subTest(passed=passed), mock.patch.object(sys, "argv", ["compare", "--baseline", "a", "--candidate", "b"]), \
+                    mock.patch.object(anchor_compare, "compare", return_value=result), contextlib.redirect_stdout(output):
+                self.assertEqual(anchor_compare.main(), code)
+            self.assertEqual(output.getvalue(), json.dumps(result, indent=2, sort_keys=True) + "\n")
+            self.assertEqual(json.loads(output.getvalue()), result)
 
 
 def write_forced(folder):

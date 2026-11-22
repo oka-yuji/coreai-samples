@@ -77,19 +77,6 @@ def identity(record, expected):
     return found, ([] if known else [UNKNOWN]) + provenance(record, expected)
 
 
-def write_new(path, value):
-    data = json.dumps(value, indent=2, sort_keys=True, allow_nan=False).encode() + b"\n"
-    handle = open(path, "xb")
-    try:
-        with handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-    except BaseException:
-        Path(path).unlink(missing_ok=True)
-        raise
-
-
 def load_case(folder, case, vocabulary):
     import numpy as np
 
@@ -253,12 +240,11 @@ def compare(baseline, candidate, expected=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Compare the saved logits of two Gemma 4 31B diagnostic records.")
-    for name in ("baseline", "candidate", "output"):
+    for name in ("baseline", "candidate"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
     result = compare(args.baseline, args.candidate)
-    write_new(args.output, result)
-    print(f"passed={result['passed']} problems={len(result['problems'])}")
+    sys.stdout.write(json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + "\n")
     return 0 if result["passed"] else 1
 
 

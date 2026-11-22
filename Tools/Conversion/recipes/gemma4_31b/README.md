@@ -183,7 +183,7 @@ Compare two of these records (or one of them and the `reference` record) with th
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.anchor_compare \
-  --baseline <artifacts of the baseline step> --candidate <artifacts of the candidate step> --output <new file.json>
+  --baseline <artifacts of the baseline step> --candidate <artifacts of the candidate step> > <comparison.json>
 ~~~
 
 It reads each `reference.json`, token file and logits file once and uses the same bytes for the SHA-256 and the
@@ -198,8 +198,8 @@ and logits file has the size and SHA-256 that its own record lists and is not th
 token counts, saved positions, first scoring row and scoring positions equal that record, every array is float32 with
 the shape `[saved positions, 262144]`, the forced tokens of both sides are the same and no logit is NaN or infinite.
 Otherwise `problems` lists the findings: a case with a finding has no metrics, a finding about the records stops before
-the cases, and no group is reported. The output also names the definition of each side (`identities`). The output file
-is created only if it does not exist (an existing file or link is never replaced, and a failed write removes it). For every
+the cases, and no group is reported. The output also names the definition of each side (`identities`). The result is
+written to standard output as JSON and nothing else is written there; the exit code is 0 only when it passed. For every
 row, with p and q the softmax (float64) of the baseline and the candidate,
 it computes the largest |p − q| over the vocabulary, KL(p ‖ q), the largest absolute logit difference and whether the
 two argmax IDs (the smaller ID on a tie) agree; a mismatch is a near tie when both sides have the same top-two IDs and
