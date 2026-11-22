@@ -16,12 +16,16 @@ final class ReloadTestControl: Sendable {
         var releaseStep: AsyncStream<Void>.Continuation?
         var blockNextLoad = false
         var blockNextRead = false
+        var readIgnoresCancellation = false
         var releaseRead: AsyncStream<Void>.Continuation?
         var releaseLoad: AsyncStream<Void>.Continuation?
         var liveEngines: Set<Int> = []
         var liveCheckpoints: Set<Int> = []
         var nextCheckpoint = 0
         var footprint: UInt64 = 0
+        var graphics: UInt64 = 0
+        var failGraphics = false
+        var graphicsSamples = 0
         var events: [String] = []
         var generationTokens: [Int] = [1, 3]
         var steps = 0
@@ -87,7 +91,18 @@ final class ReloadTestControl: Sendable {
     }
 
     func footprint() -> UInt64 { state.withLock { $0.footprint } }
+
+    func graphics() throws -> UInt64 {
+        let (value, fails) = state.withLock { state in
+            state.graphicsSamples += 1
+            return (state.graphics, state.failGraphics)
+        }
+        if fails { throw ReloadTestFailure.graphics }
+        return value
+    }
+
     var loads: Int { state.withLock { $0.loads } }
+    var graphicsSamples: Int { state.withLock { $0.graphicsSamples } }
     var events: [String] { state.withLock { $0.events } }
 }
 
@@ -95,6 +110,7 @@ enum ReloadTestFailure: Error {
     case load
     case read
     case step
+    case graphics
 }
 
 final class ReloadTestEngine: RuntimeEngine {
@@ -189,7 +205,7 @@ final class ReloadTestEngine: RuntimeEngine {
     func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws {
         let gate = AsyncStream<Void>.makeStream()
         let measures = measuresPreparation
-        let (fail, block, partial) = control.state.withLock { state in
+        let (fail, block, partial, ignoresCancellation) = control.state.withLock { state in
             let block = state.blockNextRead
             state.blockNextRead = false
             if block { state.releaseRead = gate.continuation }
@@ -197,15 +213,17 @@ final class ReloadTestEngine: RuntimeEngine {
             state.failNextRead = false
             let partial = state.failReadAfterTokens
             state.failReadAfterTokens = nil
+            let ignoresCancellation = state.readIgnoresCancellation
+            state.readIgnoresCancellation = false
             state.events.append("read:\(id)")
             state.events.append("measures:\(measures)")
-            return (fail, block, partial)
+            return (fail, block, partial, ignoresCancellation)
         }
         if block {
             control.reading.continuation.yield(id)
             var iterator = gate.stream.makeAsyncIterator()
             _ = await iterator.next()
-            try Task.checkCancellation()
+            if !ignoresCancellation { try Task.checkCancellation() }
         }
         if fail { throw ReloadTestFailure.read }
         if let partial {
@@ -267,7 +285,8 @@ struct ReloadTestModel {
         let control = ReloadTestControl()
         let runtime = try await Runtime(
             bundle: ModelBundle(url: folder), contextLimit: limit, overflow: .error,
-            settings: settings, reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint)
+            settings: settings, reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint,
+            graphics: control.graphics)
         return Self(
             model: LocalLanguageModel(runtime: runtime, bundle: folder), runtime: runtime, folder: folder,
             control: control)
