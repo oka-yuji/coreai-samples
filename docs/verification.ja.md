@@ -126,6 +126,67 @@ swift build -c release
 COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.positionLogits
 ```
 
+## 品質評価の出力の記録
+
+`coreai-verify evaluate` は、品質評価の入力の token 列から、自前のエンジンで生成し、品質契約の出力の記録と実行の記録を書きます(例えば [Gemma 4 31B の品質契約](specs/gemma4-31b-quality-contract.md)の §5.1)。モデルを読むので、先に `AGENTS.md` にある重いジョブのロックを取ります。
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify evaluate --model <bundle> --inputs inputs.jsonl --contract ../LLMEvaluation/contract.json \
+  --set primary --role fp16 --commit <commit> --output <run-folder>
+```
+
+| 指定 | 意味 |
+|---|---|
+| `--model` | バンドルのフォルダ。資産に `main.hash` が要ります。実行の記録で資産を示すのに使います。 |
+| `--inputs` | 入力の記録。形は下に書きます。 |
+| `--contract` | 契約の `contract.json`。その `version` と SHA-256 を実行の記録に書き、`generation.eos_token_id` を停止 token にします。`--role` は、その `roles` の鍵のどれかにします。 |
+| `--set`、`--role` | 実行の記録に書く集合の名前(例: `primary`)と役割(例: `fp16`)。 |
+| `--commit` | 実行の記録に書くリポジトリの commit。コマンドは git を呼びません。 |
+| `--output` | 既にあるフォルダの中の新しい実行のフォルダか、再開する同じ実行のフォルダ。 |
+| `--max-minutes` | 任意。コマンドを始めてからこの分数が過ぎたら、いまの item を書いたところで正常に終わります。そのため、残りの item があれば 1 件は必ず流れます。 |
+| `--limit` | 任意。入力の記録の先頭から N 件だけ流します(確認用)。 |
+
+`inputs.jsonl` は 1 行に 1 件の入力の記録で、JSON のオブジェクトに `id`(文字列)、`input_ids`(token ID の配列)、`input_sha256`(ID を 10 進で書いてコンマでつないだ UTF-8 の SHA-256。`logits` の `tokens_sha256` と同じ)、`max_new_tokens`(その item が生成してよい token の数の上限。停止 token も数える)を持ちます。ほかの項目は読みません。モデルを読む前に全件を確かめ、同じ `id` が 2 回ある、`input_ids` が空か `language.vocab_size` の外の ID を含む、`max_new_tokens` が正でない、`input_sha256` が ID と合わない、のどれかがあれば、何も書かずに止まります。
+
+item ごとに、エンジンを空にし、入力を `prefill` で読み(バンドルに `prefill` 関数があればそれで読む)、各 step で最後の位置の logits(float16、語彙の全体)を読みます。logits に非有限値がある step で、その item を終えます。そうでなければ、最大の logit を引いてから倍精度で温度 1 の softmax を取り、確率の大きい順に 2 つの token を `top2` に足します(同じ値なら小さい ID が先)。その 1 位が生成する token です。停止 token なら、`stop` を `stop_token` にして item を終えます。それ以外は `output_ids` に足し、`max_new_tokens` に達したら `stop` を `limit` にして終え、達していなければ `step` でその token を読みます。停止 token と、上限に達した最後の token は読みません。
+
+実行のフォルダには 2 つのファイルを置きます。
+
+| ファイル | 内容 |
+|---|---|
+| `outputs.jsonl` | item ごとの出力の記録。1 行に 1 件の JSON のオブジェクトで、item を終えるごとに追記してディスクへ同期します |
+| `run.json` | 実行の記録。実行の始めと終わりに書きます |
+
+| 出力の記録の項目 | 値 |
+|---|---|
+| `id`、`input_sha256` | 入力の記録の値 |
+| `input_tokens` | 入力の token の数 |
+| `output_ids` | 最初の停止 token より前に生成した ID |
+| `stop`、`stop_token` | `stop_token`(`stop_token` にその停止 token の ID)か、`limit`(`stop_token` は無い) |
+| `top2` | 生成した token ごとに(停止 token も数える)1 件の `[1 位の ID, 1 位の確率, 2 位の ID, 2 位の確率]`。`limit` で終わった item の件数は `output_ids` と同じ |
+| `error` | 誤りなく終わった item には無い。それ以外は終わった理由: logits の非有限値か、`prefill`・`step` が投げた誤り(文脈の上限など)。その item は、それまでの `output_ids` と `top2` を残して `stop` を `limit` にし、実行は次の item へ進みます。 |
+| `non_finite` | item を終えた step の logits の非有限値の数。それ以外は 0 |
+
+| 実行の記録の項目 | 値 |
+|---|---|
+| `contract` | `contract.json` の `version` と `sha256` |
+| `set`、`role` | 指定の値 |
+| `asset` | バンドルの `name`、`main_hash`、`metadata.json` に `source.hf_model_id` があれば `source_model_id` |
+| `implementation` | `command`(`coreai-verify evaluate`)、`commit`、`os_version`、`os_build` |
+| `call_shape` | エンジンの `prefill_chunk`、`prefill_function`、`expect_frequent_reshapes`、`requested_compute` |
+| `inputs` | 入力のファイルの `sha256` と `count` |
+| `items` | `outputs.jsonl` の記録の数 |
+| `started`、`finished` | 実行を最初に始めた時刻と、最後に終えた時刻。実行の途中と、誤りで止まった後は `finished` が無い |
+| `load` | 最初の回のエンジンの読み込みの `cached`、`specialize_s`、`load_s` |
+
+`--output` が既にあるときは、同じ実行の `run.json` が要ります。`contract`、`set`、`role`、`asset.main_hash`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。`outputs.jsonl` の最後の行が改行で終わっていなければ(書いている途中で止まった跡)、その行を消し、その item を流し直します。記録のある item は流し直しません(誤りで終わった item も)。`outputs.jsonl` に、入力の記録に無い `id` か、2 回出てくる `id` があるときも止まります。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
+
+標準出力には item ごとに 1 行の JSON を出します。`record` が `evaluate` で、`id`、`input_tokens`、`output_tokens`、`stop`(`stop_token`、`limit`、item に誤りがあれば `error`)、`seconds` を持ちます。文は出しません。取り消しと、入力の記録・契約・バンドル・実行のフォルダを読めないときは、item の誤りにせず、コマンドを止めます。
+
+モデルの要らない確認は `swift test --package-path Tools/Verify -c release --filter "EvaluationRecordTests|EvaluationRunTests"` です。
+
 ## 計測項目と境界
 
 依頼ごとの計測は、明示したときだけ行います。`chat --runtime own --measure summary` は各 `turn` の記録に `measurement` を足し、`--measure trace` はさらにサンプルごとの行を足します。既定の `--measure off` では、この項目は無く、生成、停止、エラー、メタデータ、使用量は、この指定が無いときと同じです。`tools` は `--measure` を断り、`bench` にはこの指定がありません。値は `CoreAIBackend` が採り、`coreai-verify` が出力します。Verification SPI の `lastRequestMeasurement()` は、`lastGeneratedTokens()` と同じく実行に入った最後の依頼の計測を返し、その依頼が生成の前に終わったとき(文脈あふれや読み込みの失敗など)は何も返しません。`turn` の記録は、そのターンの依頼に計測が無ければ `measurement` を持ちません。実行の前に断られた依頼では SPI に前の依頼の計測が残るので、CLI は `request_id` を前のターンのものと比べます。時間は 1 つの単調な時計で測った秒、回数は整数です。

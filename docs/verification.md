@@ -127,6 +127,67 @@ The model-free checks are `swift test --package-path CoreAISamplesKit --filter L
 COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.positionLogits
 ```
 
+## Evaluation output records
+
+`coreai-verify evaluate` generates from the input token sequences of a quality evaluation with the own engine, and writes the output records and the run record of a quality contract, such as §5.1 of the [Gemma 4 31B quality contract](specs/gemma4-31b-quality-contract.md). It loads the model, so take the heavy-job lock described in `AGENTS.md` first.
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify evaluate --model <bundle> --inputs inputs.jsonl --contract ../LLMEvaluation/contract.json \
+  --set primary --role fp16 --commit <commit> --output <run-folder>
+```
+
+| Option | Meaning |
+|---|---|
+| `--model` | The bundle folder. Its asset must have `main.hash`, which names the asset in the run record. |
+| `--inputs` | The input records, described below. |
+| `--contract` | The contract's `contract.json`. Its `version` and SHA-256 go into the run record, its `generation.eos_token_id` are the stop tokens, and `--role` must be one of the keys of its `roles`. |
+| `--set`, `--role` | The set name, such as `primary`, and the role, such as `fp16`, written to the run record. |
+| `--commit` | The repository commit written to the run record. The command does not run git. |
+| `--output` | A new run folder inside an existing folder, or the folder of the same run to resume. |
+| `--max-minutes` | Optional. Once this many minutes have passed since the command started, the run ends normally after the item in progress is written, so at least one item runs when items remain. |
+| `--limit` | Optional. Runs only the first N input records, for a check. |
+
+`inputs.jsonl` holds one input record per line, a JSON object with `id` (a string), `input_ids` (an array of token IDs), `input_sha256` (the SHA-256 of the IDs written in decimal and joined by commas, as UTF-8; the `tokens_sha256` of `logits`) and `max_new_tokens` (the most tokens the item may generate, counting a stop token). Other fields are ignored. Before it loads the model, the command checks every record and stops without writing anything when an id appears twice, `input_ids` is empty or holds an ID outside `language.vocab_size`, `max_new_tokens` is not positive, or `input_sha256` differs from the IDs.
+
+For each item the engine is reset, the input is read with `prefill` (through the `prefill` function when the bundle has one), and each step reads the logits of the last position, float16 over the whole vocabulary. A step with non-finite logits ends the item. Otherwise the step takes the temperature-1 softmax in double precision, after subtracting the largest logit, and appends the two most probable tokens to `top2`, a tie going to the lower ID. The first of them is the generated token. A stop token ends the item with `stop` set to `stop_token`. Any other token is appended to `output_ids`; at `max_new_tokens` the item ends with `stop` set to `limit`, and otherwise the token is read with `step`. Neither the stop token nor the last token at the limit is read.
+
+The run folder holds two files:
+
+| File | Contents |
+|---|---|
+| `outputs.jsonl` | One output record per item, one JSON object per line, appended and synced to disk as each item ends |
+| `run.json` | The run record, written when the run starts and when it ends |
+
+| Output record field | Value |
+|---|---|
+| `id`, `input_sha256` | From the input record |
+| `input_tokens` | The number of input tokens |
+| `output_ids` | The generated IDs before the first stop token |
+| `stop`, `stop_token` | `stop_token` with the stop token's ID in `stop_token`, or `limit` without `stop_token` |
+| `top2` | One `[first id, first probability, second id, second probability]` per generated token, counting a stop token, so an item that ended on `limit` has as many entries as `output_ids` |
+| `error` | Absent when the item ended without an error. Otherwise the reason it ended: non-finite logits, or an error thrown by `prefill` or `step`, such as a context overflow. Such an item keeps the `output_ids` and `top2` generated so far and has `stop` set to `limit`, and the run continues with the next item. |
+| `non_finite` | The number of non-finite logits at the step that ended the item, otherwise 0 |
+
+| Run record field | Value |
+|---|---|
+| `contract` | `version` and `sha256` of `contract.json` |
+| `set`, `role` | The options |
+| `asset` | The bundle's `name`, `main_hash`, and `source_model_id` (`source.hf_model_id` in `metadata.json`) when present |
+| `implementation` | `command` (`coreai-verify evaluate`), `commit`, `os_version` and `os_build` |
+| `call_shape` | The engine's `prefill_chunk`, `prefill_function`, `expect_frequent_reshapes` and `requested_compute` |
+| `inputs` | `sha256` and `count` of the input file |
+| `items` | The number of records in `outputs.jsonl` |
+| `started`, `finished` | When the run first started, and when it last ended; `finished` is absent while the run is in progress or after it stopped on an error |
+| `load` | `cached`, `specialize_s` and `load_s` of the engine load in the first session |
+
+When `--output` exists, it must hold the `run.json` of the same run: `contract`, `set`, `role`, `asset.main_hash`, `inputs`, `call_shape` and `implementation` must equal this run's, or the command stops before it generates. A last line of `outputs.jsonl` without its newline, left by an interrupted write, is removed and its item runs again. Items with a record do not run again, including items that ended with an error. The command also stops when `outputs.jsonl` has an id that is not in the input records or an id more than once. A resumed run keeps `started` and `load`, and updates `items` and `finished`.
+
+Standard output gets one JSON line per item, with `record` set to `evaluate`, `id`, `input_tokens`, `output_tokens`, `stop` (`stop_token`, `limit`, or `error` when the item has an error) and `seconds`. It prints no text. Cancellation and failures to read the input records, the contract, the bundle or the run folder stop the command instead of becoming an item error.
+
+The model-free checks are `swift test --package-path Tools/Verify -c release --filter "EvaluationRecordTests|EvaluationRunTests"`.
+
 ## Measurement fields and boundaries
 
 The per-request measurement is opt-in. `chat --runtime own --measure summary` adds a `measurement` object to each `turn` record, and `--measure trace` also adds one row per sample. `--measure off`, the default, leaves the record without this field, and generation, stops, errors, metadata and usage are the same as without the option. `tools` rejects `--measure`, and `bench` has no such option. `CoreAIBackend` collects the values and `coreai-verify` prints them. The Verification SPI `lastRequestMeasurement()` returns the measurement of the last request admitted to execution, like `lastGeneratedTokens()`, and nothing when that request ended before generation, for example on a context overflow or a load failure. A turn record omits `measurement` when its own request has none; a request rejected before execution leaves the previous request's measurement in the SPI, so the CLI compares `request_id` with the previous turn's. Times are seconds from one monotonic clock and counts are integers.
