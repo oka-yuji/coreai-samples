@@ -181,6 +181,43 @@ class SetupTests(unittest.TestCase):
             self.assertFalse(workspace.exists())
             self.assertFalse((Path(folder) / "lock").exists())
 
+    def run_setup(self, folder, steps, refuse=False):
+        def command(*args, **kwargs):
+            steps.append((*args, kwargs.get("env")))
+
+        def check(path, revision):
+            steps.append(("check", path, revision))
+            if refuse:
+                raise PipelineError("Existing exporter must be a clean checkout of the recipe's public revision")
+
+        with mock.patch("Tools.Conversion.adapters.gemma4_31b.setup.check_record"), \
+                mock.patch.object(local, "command", side_effect=command), \
+                mock.patch.object(local, "check_checkout", side_effect=check):
+            local.setup(Path(folder) / "workspace", local.recipe_path("gemma4_31b"), Path(folder) / "model",
+                        Path(folder) / "lock")
+
+    def test_setup_syncs_the_converter_lock_in_a_checkout_of_the_pinned_revision(self):
+        revision, steps = load_contract(RECIPE / "model.json")["upstream_revision"], []
+        with tempfile.TemporaryDirectory() as folder:
+            upstream = Path(folder) / "workspace/upstream-gemma4-31b/coreai-models"
+            self.run_setup(folder, steps)
+        self.assertEqual(steps[2:], [("git", "clone", "--no-checkout", "--", local.UPSTREAM, upstream, None),
+                                     ("git", "-C", upstream, "checkout", "--detach", revision, None),
+                                     ("check", upstream, revision),
+                                     ("uv", "sync", "--project", upstream, "--frozen", "--no-dev", "--package",
+                                      "coreai-models", "--python", "3.11", {"UV_PROJECT_ENVIRONMENT": str(upstream / ".venv")}),
+                                     ("check", upstream, revision)])
+
+    def test_setup_refuses_a_converter_checkout_of_another_revision_or_with_edits(self):
+        revision, steps = load_contract(RECIPE / "model.json")["upstream_revision"], []
+        with tempfile.TemporaryDirectory() as folder:
+            upstream = Path(folder) / "workspace/upstream-gemma4-31b/coreai-models"
+            upstream.mkdir(parents=True)
+            with self.assertRaises(PipelineError):
+                self.run_setup(folder, steps, refuse=True)
+            self.assertFalse((Path(folder) / "workspace/gemma4_31b/setup.json").exists())
+        self.assertEqual(steps[2:], [("check", upstream, revision)])
+
     def test_plan_and_run_use_the_gemma_bindings_and_work_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             workspace = Path(folder)
