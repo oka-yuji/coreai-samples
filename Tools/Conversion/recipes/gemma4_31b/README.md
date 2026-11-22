@@ -8,8 +8,9 @@ Core AI comparison and quality checks) read these outputs. It does not convert t
 are not a quality evaluation set. It also defines the converter environment and a model class for a macOS export
 with dynamic shapes, with a tool that compares the first layers of that class with the original implementation in
 FP32 ([Converter environment and model class](#converter-environment-and-model-class)). A second recipe,
-`recipe-fp16.json`, exports the first layers to a dynamic-shape FP16 Core AI bundle and compares the logits of the own
-engine with an FP32 reference of the same layers ([FP16 export of the first layers](#fp16-export-of-the-first-layers)).
+`recipe-fp16.json`, exports the first layers to a dynamic-shape FP16 Core AI bundle with the outputs that the drafters
+of speculative decoding read, and compares the logits of the own engine with an FP32 reference of the same layers
+([FP16 export of the first layers](#fp16-export-of-the-first-layers)).
 
 - `model.json`: the contract. It pins the size and SHA-256 of all twelve files of the revision, the main
   text configuration values (60 layers as five sliding-window layers followed by one full-attention layer,
@@ -281,8 +282,16 @@ without changing it. This converter environment is separate from the reference e
 imports the converter, so it runs only in the converter environment.
 
 - `main` takes `input_ids` [1, n] and `position_ids` [1, P + n] (the positions of the P cached tokens followed by
-  those of the n new ones) and returns `logits` [1, n, vocabulary]; `prefill` takes the same inputs and returns
-  nothing.
+  those of the n new ones) and returns, in this order, `logits` [1, n, vocabulary], `hidden_states` [1, n, 5376], the
+  output of the final norm that the head reads, and `tap_hidden_states` [1, n, 5376 × the number of tap layers];
+  `prefill` takes the same inputs and returns `tap_hidden_states` only.
+- `tap_hidden_states` joins, in ascending order, the output after the first i layers for each tap layer i: the output
+  of layer i − 1 counted from 0, after its `layer_scalar` and before the final norm, which is entry i of
+  `output_hidden_states` of the original implementation for every layer but the last (the original implementation
+  puts the output of the final norm there). The attribute `tap_layers` of the class holds the tap
+  layers. The tools take them as `--taps`, ascending distinct layer counts from 1 to the number of layers separated by
+  commas (`1,17,29,47,59` for 60 layers, `1,2,3,4,5` for the first six), without a default, and refuse other values
+  before they create a folder or read a weight (`check_taps` in `layers.py`).
 - The states are `keyCache` and `valueCache` [full-attention layers, 1, 4, ?, 512] and `slidingKeyCache` and
   `slidingValueCache` [sliding-window layers, 1, 16, ?, 256] (the `forward` arguments `k_cache`, `v_cache`,
   `sliding_k_cache` and `sliding_v_cache`); the sequence is their only dynamic dimension.
@@ -295,29 +304,39 @@ imports the converter, so it runs only in the converter environment.
 - A configuration that the class does not cover stops with `ValueError` before any weight is read (`text_config` in
   `model.py`).
 
-### FP32 logits of the first layers
+### FP32 outputs of the first layers
 
-`adapters/gemma4_31b/layers.py` writes the FP32 logits of the first N layers of either implementation for two fixed
-inputs, `short` and `long`, and compares two such runs:
+`adapters/gemma4_31b/layers.py` writes the FP32 `logits`, `hidden_states` and `tap_hidden_states` of the first N layers
+of either implementation for two fixed inputs, `short` (26 tokens) and `long` (1,400 tokens, longer than the window of
+1,024), and compares two such runs:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
-  --implementation original --layers 6 --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --implementation original --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
   --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/original
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers \
-  run --implementation class --layers 6 --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  run --implementation class --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
   --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/class
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers compare \
   --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
 ~~~
 
 `run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
-layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and refuses any other before it creates
-the folder or reads a weight. It writes `short.npy`, `long.npy` and, last, `record.json` into a new folder.
-`compare` passes only for a run of the original implementation and a run of the model class on the same inputs
-whose differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for
-`long` a largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position
-with another `argmax`.
+layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses
+any other before it creates the folder or reads a weight. It writes `<input>.<output>.npy` for both inputs and the
+three outputs and, last, `record.json` into a new folder. The original implementation reads each input in one call;
+its tap layer i is entry i of `output_hidden_states`, except for the last layer, whose entry the original
+implementation replaces with the output of the final norm: that tap is the output of the last layer, taken with a
+forward hook. The model class reads the window and then calls of 1, 2, 4 and 8 tokens with its caches.
+`compare` passes only for a run of the original implementation and a run of the model class on the same inputs and
+tap layers whose differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and
+for `long` a largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no
+position with another `argmax`; for both inputs, at every position of `hidden_states` and of each tap layer of
+`tap_hidden_states`, a largest absolute difference below 1e-3 (`ratio_limit`) times the largest absolute value of the
+original implementation at that position. `largest_ratio` is the largest quotient of the two over the positions.
+`CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` fixes the criteria, and `ModelClassTests` in
+`Tools/Conversion/tests/export_gemma4_31b_model.py` the outputs of the class against the original implementation on a
+synthetic model.
 
 ### Tests
 
@@ -339,8 +358,9 @@ The tests of the model class are in `Tools/Conversion/tests/export_gemma4_31b_mo
 `recipe-fp16.json` exports the first layers of the pinned snapshot to a Core AI bundle for macOS with dynamic shapes
 and FP16 weights, without compression, and inspects the asset. It runs the `prepare` step of `recipe.json` and a heavy
 `export` step in the converter environment. It needs `upstream`, the converter checkout, which `local setup --recipe
-gemma4_31b` writes into the bindings, and two values without defaults: `layers`, a count whose last layer is a
-full-attention layer (6, 12, …, 60), and `functions`, `main` or `main,prefill`. A run without them stops before any
+gemma4_31b` writes into the bindings, and three values without defaults: `layers`, a count whose last layer is a
+full-attention layer (6, 12, …, 60), `functions`, `main` or `main,prefill`, and `taps`, the tap layers of
+`tap_hidden_states` ([Model class](#model-class)). A run without them stops before any
 step. `context`, the context limit of the asset, defaults to 16,896 and has to be larger than 2,048, the cache length
 that the exporter traces with; otherwise the exporter pins the cache dimensions and the inspection fails. The `python`
 of the recipe is the converter environment, so the runner does not reuse an export after that environment changes.
@@ -348,7 +368,7 @@ of the recipe is the converter environment, so the runner does not reuse an expo
 
 ~~~sh
 python3 -m Tools.Conversion run Tools/Conversion/recipes/gemma4_31b/recipe-fp16.json \
-  --bindings .local/conversion/gemma4_31b.paths.json --set layers=6 --set functions=main,prefill \
+  --bindings .local/conversion/gemma4_31b.paths.json --set layers=6 --set functions=main,prefill --set taps=1,2,3,4,5 \
   --work-dir .local/conversion/work/gemma4_31b-fp16 --lock-dir ~/Library/Caches/coreai-samples/heavy-job
 ~~~
 
@@ -360,8 +380,13 @@ when the export had no compression setting and no quantized weight, every parame
 float16, the only storage types of the asset are Float16, Float32, Int32, UInt32 and UInt64 and Float32 holds exactly
 `global_head_dim // 2 + head_dim // 2 + 2` elements (two RoPE frequency tables and two constants; 386 for this model),
 the asset has exactly the functions asked for, with the inputs, outputs and states that the configuration of the
-contract gives and the sequence as their only dynamic dimension, the tokenizer files match the contract and
-`metadata.json` the contract and the arguments, and the volume kept 60 GiB free. The storage counts are totals over the
+contract and the tap layers give and the sequence as their only dynamic dimension, `main` returns `logits`,
+`hidden_states` and `tap_hidden_states` in this order (`output_order` in `export.json`), the tokenizer files match the
+contract and `metadata.json` the contract and the arguments, including `tap_layers`, the tap layers, and
+`tap_convention`, `layers-passed:before-final-norm:ascending`, and the volume kept 60 GiB free. The step stages `main`
+and `prefill` with the steps that `export_to_coreai` of the converter takes for an eager model, through its
+non-public `_build_reference_inputs`, because that function passes no output name for `prefill`, whose output would
+then take the name of a graph node. The storage counts are totals over the
 asset, in which the export folds identical and constant-valued tensors, so they cannot show which tensor is stored in
 which type; the type of each tensor is checked on the PyTorch model, and `export.json` records Float16 minus the
 elements of the weights without judging it. The step starts only with twice the FP16 weights of the chosen layers plus
@@ -431,18 +456,23 @@ the number of calls and the chunk of the reads before `--start`, which follow th
 criteria and the checks on the records, the bundle, the record of `coreai-verify` and its files. The specialization
 cache that `coreai-verify` makes stays in place; remove it yourself.
 
-`fp16_summary` prints the public summary (only states, numbers, hashes and fixed words) of the reference record and of
-each export with its report and its comparison to standard output:
+`fp16_summary` prints the public summary (only states, numbers, hashes and fixed words) of the reference record, of
+the comparison of the model class with the original implementation, which it makes itself with `layers.py compare`
+from the folders of the two runs, and of each export with its report and its comparison to standard output:
 
 ~~~sh
-python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <record.json> \
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.fp16_summary \
+  --reference <record.json> \
+  --original <folder of layers.py run --implementation original> --model-class <folder of the model-class run> \
   --report <report.json> --export <export.json> --comparison <comparison.json> [...]
 ~~~
 
 It stops and prints no summary when a check on the records fails, including that each `export.json` is the output
-that the manifest of its stage recorded; `SummaryTests` in `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py`
-fixes these checks. The published record is
-[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#fp16-export-of-the-first-six-layers).
+that the manifest of its stage recorded, that the two runs, the reference and every export are of the contract
+`model.json`, and that the two runs are of the layers and tap layers of every export. A comparison that fails a
+criterion is printed with `passed` false, as a failed condition of the own engine is; `SummaryTests` in
+`Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
+[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-in-the-first-six-layers-695).
 
 ## Terms
 

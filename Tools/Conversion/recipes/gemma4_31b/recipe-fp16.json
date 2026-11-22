@@ -60,6 +60,7 @@
         "--upstream", "$upstream",
         "--layers", "$layers",
         "--functions", "$functions",
+        "--taps", "$taps",
         "--context", "$context",
         "--output", "$out/export"
       ],

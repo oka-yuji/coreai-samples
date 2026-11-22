@@ -30,15 +30,29 @@ class ExportTests(unittest.TestCase):
             snapshot, contract = write_snapshot(folder)
             elements = checkpoint_elements(snapshot, 6)
             self.assertEqual(export.weight_elements(snapshot, 6), elements)
-            for functions in ("main", "main,prefill"):
+            for functions, taps in (("main", "2,6"), ("main,prefill", "1,2,3,4,5")):
                 output = folder / functions.replace(",", "-")
                 argv = ["export", "--model", str(contract), "--snapshot", str(snapshot), "--upstream", str(upstream),
-                        "--layers", "6", "--functions", functions, "--context", "4096", "--output", str(output)]
+                        "--layers", "6", "--functions", functions, "--taps", taps, "--context", "4096",
+                        "--output", str(output)]
+                width = TEXT["hidden_size"] * len(taps.split(","))
                 with self.subTest(functions=functions), mock.patch("sys.argv", argv):
                     self.assertEqual(export.main(), 0)
                     record = read_json(output / "export.json")
                     self.assertTrue(record["passed"], record["problems"])
                     self.assertEqual(list(record["asset"]["functions"]), functions.split(","))
+                    found = {name: entry["outputs"] for name, entry in record["asset"]["functions"].items()}
+                    tapped = {"tap_hidden_states": {"dtype": "float16", "shape": [1, None, width]}}
+                    self.assertEqual(found["main"], {"logits": {"dtype": "float16", "shape": [1, None, TEXT["vocab_size"]]},
+                                                     "hidden_states": {"dtype": "float16",
+                                                                       "shape": [1, None, TEXT["hidden_size"]]},
+                                                     **tapped})
+                    self.assertEqual(found.get("prefill", tapped), tapped)
+                    self.assertEqual(record["asset"]["output_order"],
+                                     {"main": ["logits", "hidden_states", "tap_hidden_states"],
+                                      "prefill": ["tap_hidden_states"]} if "prefill" in found
+                                     else {"main": ["logits", "hidden_states", "tap_hidden_states"]})
+                    self.assertEqual(record["metadata"]["tap_layers"], [int(tap) for tap in taps.split(",")])
                     self.assertEqual((record["layers"], record["functions"], record["context"]), (6, functions.split(","), 4096))
                     self.assertEqual(record["weights"], {"tensors": record["weights"]["tensors"], "elements": elements,
                                                          "elements_by_dtype": {"torch.float16": elements},
@@ -52,7 +66,8 @@ class ExportTests(unittest.TestCase):
                     self.assertEqual(record["bundle"]["files"], files)
                     name = record["bundle"]["name"]
                     self.assertEqual(record["bundle"]["main_hash"], (bundle / f"{name}.aimodel/main.hash").read_bytes().hex())
-                    self.assertEqual(read_json(bundle / "metadata.json"), export.metadata(read_json(contract), name, 4096))
+                    self.assertEqual(read_json(bundle / "metadata.json"),
+                                     export.metadata(read_json(contract), name, 4096, export.check_taps(taps, 6)))
                     for item in ("tokenizer.json", "tokenizer_config.json", "chat_template.jinja"):
                         self.assertEqual((bundle / "tokenizer" / item).read_bytes(), (snapshot / item).read_bytes())
                     self.assertFalse((output / export.INCOMPLETE).exists())
@@ -79,9 +94,9 @@ class ExportTests(unittest.TestCase):
                     raise error
 
                 argv = ["export", "--model", str(contract), "--snapshot", str(snapshot), "--upstream", str(upstream),
-                        "--layers", "6", "--functions", "main", "--context", "4096", "--output", str(output)]
+                        "--layers", "6", "--functions", "main", "--taps", "1", "--context", "4096", "--output", str(output)]
                 with self.subTest(case=label), mock.patch("sys.argv", argv), \
-                        mock.patch("coreai_models.export.macos.export_macos_model", exported), \
+                        mock.patch.object(export, "staged", exported), \
                         mock.patch.object(export, "supervise", side_effect=lambda folder, schema, work, conclude: work()), \
                         self.assertRaises(type(error)):
                     export.main()

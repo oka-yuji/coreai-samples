@@ -21,6 +21,8 @@ TOLERANCE = 1e-3
 LENGTH, PREFILL = 61, 20
 IDS = torch.randint(1, TEXT["vocab_size"], (LENGTH,), generator=torch.Generator().manual_seed(7)).tolist()
 SHARED = ("model.embed_tokens.weight", "model.norm.weight")
+TAPS, SHIFTABLE = (1, 6, 7, 12), (2, 6, 7, 11)
+WIDTH = TEXT["hidden_size"]
 
 
 def chunks(size):
@@ -32,32 +34,44 @@ READINGS = {"one call": ([LENGTH], 0), "one token at a time": (chunks(1), 0), "c
             "prefill, then one token at a time": ([PREFILL] + [1] * (LENGTH - PREFILL), PREFILL)}
 
 
-def model_class(reference, **changes):
+def model_class(reference, taps=TAPS, **changes):
     built = model.Gemma4ForCausalLM(model.text_config(Gemma4TextConfig(**{**TEXT, **changes}))).eval()
     built.load_state_dict({name.removeprefix("model.") if name in SHARED else name: tensor
                            for name, tensor in reference.state_dict().items() if name != "lm_head.weight"})
+    built.tap_layers = taps
     return built
 
 
 def read(built, sizes, prefill):
-    states, rows, done = built.states(LENGTH), [], 0
+    states, rows, done = built.states(LENGTH), {name: [] for name in layers.OUTPUTS}, 0
     with torch.no_grad():
         for index, size in enumerate(sizes):
             built.set_prefill_mode(index == 0 and prefill > 0)
             output = built(torch.tensor([IDS[done:done + size]], dtype=torch.int32),
                            torch.arange(done + size, dtype=torch.int32).unsqueeze(0), *states)
             done += size
-            if built.prefill_mode and output != ():
-                raise AssertionError("The prefill function returned outputs")
-            if not built.prefill_mode:
-                rows.append(output[0])
+            names = layers.OUTPUTS[2:] if built.prefill_mode else layers.OUTPUTS
+            if len(output) != len(names):
+                raise AssertionError(f"The function returned {len(output)} outputs, not {names}")
+            for name, tensor in zip(names, output):
+                rows[name].append(tensor[0])
     built.set_prefill_mode(False)
-    return torch.cat(rows)
+    return {name: torch.cat(parts) for name, parts in rows.items()}
 
 
 def largest_differences(built, expected):
-    return {name: float((read(built, sizes, prefill) - expected[prefill:]).abs().max())
+    return {name: float((read(built, sizes, prefill)["logits"] - expected[prefill:]).abs().max())
             for name, (sizes, prefill) in READINGS.items()}
+
+
+def tapped(columns, taps):
+    return torch.cat([columns[tap] for tap in taps], dim=-1)
+
+
+def matches(found, expected):
+    return found.shape == expected.shape and all(
+        layers.ratios(found[:, start:start + WIDTH], expected[:, start:start + WIDTH])["passed"]
+        for start in range(0, expected.shape[-1], WIDTH))
 
 
 def replica(future=True, shorter=0, shift=0):
@@ -90,13 +104,75 @@ class ModelClassTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.reference = original()
+        last = []
+        hook = cls.reference.model.layers[-1].register_forward_hook(lambda module, args, output: last.append(output))
         with torch.no_grad():
-            cls.expected = cls.reference(torch.tensor([IDS]), use_cache=False).logits[0]
+            output = cls.reference(torch.tensor([IDS]), use_cache=False, output_hidden_states=True)
+        hook.remove()
+        cls.expected, cls.normed = output.logits[0], output.hidden_states[-1][0]
+        cls.columns = [state[0] for state in output.hidden_states[:-1]] + [last[0][0]]
 
     def test_every_reading_matches_the_original_logits(self):
         for name, difference in largest_differences(model_class(self.reference), self.expected).items():
             with self.subTest(reading=name):
                 self.assertLess(difference, TOLERANCE)
+
+    def test_every_reading_gives_the_final_norm_output_and_the_outputs_of_the_tap_layers_of_the_original(self):
+        built, expected = model_class(self.reference), tapped(self.columns, TAPS)
+        self.assertEqual(len(self.columns), TEXT["num_hidden_layers"] + 1)
+        for name, (sizes, prefill) in READINGS.items():
+            found = read(built, sizes, prefill)
+            with self.subTest(reading=name):
+                self.assertEqual(found["tap_hidden_states"].shape, (LENGTH, WIDTH * len(TAPS)))
+                self.assertEqual(found["hidden_states"].shape, (LENGTH - prefill, WIDTH))
+                self.assertTrue(matches(found["hidden_states"], self.normed[prefill:]))
+                self.assertTrue(matches(found["tap_hidden_states"], expected))
+
+    def test_the_comparison_detects_shifted_tap_layers_and_the_final_norm_on_the_wrong_side(self):
+        expected = tapped(self.columns, SHIFTABLE)
+        self.assertTrue(matches(read(model_class(self.reference, taps=SHIFTABLE), [LENGTH], 0)["tap_hidden_states"],
+                                expected))
+        shifted = {"every tap layer one earlier": tuple(tap - 1 for tap in SHIFTABLE),
+                   "every tap layer one later": tuple(tap + 1 for tap in SHIFTABLE),
+                   "the last tap layer one later": SHIFTABLE[:-1] + (SHIFTABLE[-1] + 1,)}
+        for label, taps in shifted.items():
+            with self.subTest(mutation=label):
+                found = read(model_class(self.reference, taps=taps), [LENGTH], 0)["tap_hidden_states"]
+                self.assertFalse(matches(found, expected))
+        built = model_class(self.reference)
+        built.norm = torch.nn.Identity()
+        before = read(built, [LENGTH], 0)["hidden_states"]
+        with self.subTest(mutation="the hidden states before the final norm"):
+            self.assertTrue(matches(before, self.columns[-1]))
+            self.assertFalse(matches(before, self.normed))
+        found = read(model_class(self.reference), [LENGTH], 0)["tap_hidden_states"]
+        scalars = [layer.layer_scalar for layer in self.reference.model.layers]
+        candidates = {"the last tap layer after the final norm": tapped(self.columns[:-1] + [self.normed], TAPS),
+                      "the tap layers before layer_scalar": torch.cat([self.columns[tap] / scalars[tap - 1]
+                                                                       for tap in TAPS], dim=-1),
+                      "the tap layers in the reverse order": tapped(self.columns, TAPS[::-1])}
+        self.assertTrue(matches(found, tapped(self.columns, TAPS)))
+        for label, candidate in candidates.items():
+            with self.subTest(mutation=label):
+                self.assertFalse(matches(found, candidate))
+
+    def test_the_main_graph_returns_the_logits_the_final_norm_output_and_the_taps_and_prefill_only_the_taps(self):
+        self.assertEqual(model.Gemma4ForCausalLM.export_output_names(),
+                         {MAIN_GRAPH_NAME: ("logits", "hidden_states", "tap_hidden_states")})
+        built = model_class(self.reference)
+        spec = TraceSpec(max_context_length=64, cache_seq_len=32, query_len=4, offset=2)
+        inputs = built.build_reference_inputs(built.config, torch.float32, spec)[MAIN_GRAPH_NAME]
+        shapes = built.build_dynamic_shapes(built.config, spec)[MAIN_GRAPH_NAME]
+        widths = {}
+        for prefill in (False, True):
+            built.set_prefill_mode(prefill)
+            with torch.no_grad():
+                program = torch.export.export(built, args=(), kwargs=inputs, dynamic_shapes=shapes)
+            values = next(node for node in program.graph.nodes if node.op == "output").args[0]
+            widths[prefill] = [value.meta["val"].shape[-1] for value, output in zip(values, program.graph_signature.output_specs)
+                               if output.kind == OutputKind.USER_OUTPUT]
+        built.set_prefill_mode(False)
+        self.assertEqual(widths, {False: [TEXT["vocab_size"], WIDTH, WIDTH * len(TAPS)], True: [WIDTH * len(TAPS)]})
 
     def test_the_comparison_detects_each_mutation_of_the_window_and_the_positions(self):
         exact = largest_differences(model_class(self.reference), self.expected)
@@ -175,8 +251,9 @@ class RunTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder)
-            layers.run("original", contract, snapshot, TEXT["num_hidden_layers"], folder / "original")
-            record = layers.run("class", contract, snapshot, TEXT["num_hidden_layers"], folder / "class")
+            count, taps = TEXT["num_hidden_layers"], ",".join(map(str, TAPS))
+            layers.run("original", contract, snapshot, count, taps, folder / "original")
+            record = layers.run("class", contract, snapshot, count, taps, folder / "class")
             self.assertEqual(record["inputs"]["long"]["calls"][:3], [[0, 8], [8, 9], [9, 11]])
             self.assertEqual(record["upstream_revision"], json.loads(contract.read_text())["upstream_revision"])
             result = layers.compare(folder / "original", folder / "class", contract)
@@ -185,11 +262,23 @@ class RunTests(unittest.TestCase):
                 with self.subTest(input=name):
                     self.assertLess(result["inputs"][name]["max_abs_logit"], TOLERANCE)
                     self.assertEqual(result["inputs"][name]["top1_mismatches"], 0)
+                    checks = result["inputs"][name]["checks"]
+                    self.assertTrue(checks["hidden_states"] and checks["tap_hidden_states"])
+                    outputs = result["inputs"][name]["outputs"]
+                    self.assertLess(outputs["hidden_states"]["largest_ratio"], layers.RATIO)
+                    self.assertEqual(set(outputs["tap_hidden_states"]), {str(tap) for tap in TAPS})
+                    self.assertLess(max(entry["largest_ratio"] for entry in outputs["tap_hidden_states"].values()),
+                                    layers.RATIO)
             with mock.patch.object(model, "window", replica(shorter=1)):
-                layers.run("class", contract, snapshot, TEXT["num_hidden_layers"], folder / "shorter")
+                layers.run("class", contract, snapshot, count, taps, folder / "shorter")
             result = layers.compare(folder / "original", folder / "shorter", contract)
             self.assertEqual(result["problems"], [])
             self.assertGreaterEqual(result["inputs"]["long"]["max_abs_logit"], TOLERANCE)
+            self.assertFalse(result["inputs"]["long"]["checks"]["tap_hidden_states"])
+            layers.run("class", contract, snapshot, count, "1,6,7,11", folder / "shifted")
+            result = layers.compare(folder / "original", folder / "shifted", contract)
+            self.assertFalse(result["passed"])
+            self.assertIn("the runs differ in tap_layers", result["problems"])
 
     def test_the_model_class_run_refuses_a_converter_checkout_that_fails_the_check_before_loading(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -198,7 +287,7 @@ class RunTests(unittest.TestCase):
             with mock.patch.object(local, "check_checkout", side_effect=PipelineError("another revision")), \
                     mock.patch.object(model.Gemma4ForCausalLM, "from_hf_memory_efficient") as load, \
                     self.assertRaises(PipelineError):
-                layers.run("class", contract, snapshot, TEXT["num_hidden_layers"], folder / "refused")
+                layers.run("class", contract, snapshot, TEXT["num_hidden_layers"], "1", folder / "refused")
             load.assert_not_called()
             self.assertFalse((folder / "refused/record.json").exists())
 

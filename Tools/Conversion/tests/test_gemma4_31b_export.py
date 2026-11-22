@@ -30,28 +30,41 @@ BINDINGS = {"python": "/reference/bin/python", "hf_cache": "/cache", "setup_reco
             "upstream": "/upstream"}
 
 
+TAPS = (1, 2, 3, 4, 5)
+TAPPED = {"tap_hidden_states": {"dtype": "float16", "shape": [1, None, 5376 * 5]}}
+
+
 def function(outputs):
     return {"inputs": {name: {"dtype": "int32", "shape": [1, None]} for name in ("input_ids", "position_ids")},
             "outputs": outputs, "states": {name: {"dtype": "float16", "shape": list(shape)} for name, shape in STATES.items()}}
 
 
-LAYOUT = {"main": function({"logits": {"dtype": "float16", "shape": [1, None, 262144]}}), "prefill": function({})}
+LAYOUT = {"main": function({"logits": {"dtype": "float16", "shape": [1, None, 262144]},
+                            "hidden_states": {"dtype": "float16", "shape": [1, None, 5376]}, **TAPPED}),
+          "prefill": function(dict(TAPPED))}
 
 
 def inspected(functions=BOTH):
     return {"compression_config": None,
             "weights": {"elements": ELEMENTS, "elements_by_dtype": {"torch.float16": ELEMENTS}, "quantized_layouts": 0},
             "asset": {"functions": {name: copy.deepcopy(LAYOUT[name]) for name in functions},
+                      "output_order": {name: list(LAYOUT[name]["outputs"]) for name in functions},
                       "storage_types": dict(STORAGE)},
             "tokenizer": dict(CONTRACT["tokenizer"]["files"]),
-            "metadata": export.metadata(CONTRACT, export.name_of(6, functions), 16896)}
+            "metadata": export.metadata(CONTRACT, export.name_of(6, functions), 16896, TAPS)}
 
 
 def problems(change=None, functions=BOTH):
     record = inspected(functions)
     if change:
         change(record)
-    return export.check_asset(record, CONTRACT, KINDS, functions, 16896)
+    return export.check_asset(record, CONTRACT, KINDS, functions, 16896, TAPS)
+
+
+def outputs(function_name, change):
+    def edit(record):
+        change(record["asset"]["functions"][function_name]["outputs"])
+    return edit
 
 
 def state(name, shape, function_name="main"):
@@ -71,20 +84,68 @@ class AssetTests(unittest.TestCase):
         for functions in (("main",), BOTH):
             with self.subTest(functions=functions):
                 self.assertEqual(problems(functions=functions), [])
-        self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896), {
+        self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896, (1, 17, 29, 47, 59)), {
             "metadata_version": "0.2", "kind": "llm", "name": "bundle-name", "assets": {"main": "bundle-name.aimodel"},
             "language": {"tokenizer": "google/gemma-4-31B-it", "vocab_size": 262144, "max_context_length": 16896,
                          "embedded_tokenizer": True, "function_map": {"main": ["main"]}},
             "source": {"model_definition": "torch", "hf_model_id": "google/gemma-4-31B-it",
                        "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475"},
-            "compression": None})
+            "compression": None, "tap_layers": [1, 17, 29, 47, 59],
+            "tap_convention": "layers-passed:before-final-norm:ascending"})
+
+    def test_main_returns_logits_first_then_the_final_norm_output_and_the_taps_and_prefill_only_the_taps(self):
+        for layers, taps in ((6, (1, 2, 3, 4, 5)), (6, (6,)), (60, (1, 17, 29, 47, 59))):
+            functions = export.expected_functions(CONTRACT["config"], check_layers(CONTRACT["config"], layers), BOTH, taps)
+            tapped = {"tap_hidden_states": {"dtype": "float16", "shape": [1, None, 5376 * len(taps)]}}
+            with self.subTest(layers=layers, taps=taps):
+                self.assertEqual(list(functions["main"]["outputs"].items()),
+                                 [("logits", {"dtype": "float16", "shape": [1, None, 262144]}),
+                                  ("hidden_states", {"dtype": "float16", "shape": [1, None, 5376]}),
+                                  *tapped.items()])
+                self.assertEqual(functions["prefill"]["outputs"], tapped)
+
+    def test_an_asset_whose_extra_outputs_are_missing_or_of_another_name_type_width_or_order_fails(self):
+        def renamed(items):
+            items["cat_50"] = items.pop("tap_hidden_states")
+
+        def reordered(record):
+            record["asset"]["output_order"]["main"] = ["hidden_states", "tap_hidden_states", "logits"]
+
+        def change(name, key, value):
+            return lambda items: items[name].update({key: value})
+
+        cases = {"main without hidden_states": outputs("main", lambda items: items.pop("hidden_states")),
+                 "main without tap_hidden_states": outputs("main", lambda items: items.pop("tap_hidden_states")),
+                 "main with logits only": outputs("main", lambda items: [items.pop(key) for key in (
+                     "hidden_states", "tap_hidden_states")]),
+                 "prefill without outputs": outputs("prefill", lambda items: items.clear()),
+                 "prefill with an unnamed output": outputs("prefill", renamed),
+                 "main with an unnamed output": outputs("main", renamed),
+                 "prefill with hidden_states": outputs("prefill", lambda items: items.update(
+                     hidden_states={"dtype": "float16", "shape": [1, None, 5376]})),
+                 "hidden_states in float32": outputs("main", change("hidden_states", "dtype", "float32")),
+                 "tap_hidden_states in float32": outputs("prefill", change("tap_hidden_states", "dtype", "float32")),
+                 "hidden_states of another width": outputs("main", change("hidden_states", "shape", [1, None, 5375])),
+                 "tap_hidden_states of four layers": outputs("main", change("tap_hidden_states", "shape",
+                                                                            [1, None, 5376 * 4])),
+                 "prefill taps of six layers": outputs("prefill", change("tap_hidden_states", "shape",
+                                                                         [1, None, 5376 * 6])),
+                 "a fixed sequence length": outputs("main", change("hidden_states", "shape", [1, 16896, 5376])),
+                 "logits after the taps": reordered,
+                 "an order without the taps": lambda record: record["asset"]["output_order"]["prefill"].clear(),
+                 "metadata without tap_layers": lambda record: record["metadata"].pop("tap_layers"),
+                 "metadata with other tap layers": lambda record: record["metadata"].update(tap_layers=[1, 2, 3, 4, 6]),
+                 "metadata with another convention": lambda record: record["metadata"].update(tap_convention="after-norm")}
+        for label, edit in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(problems(edit))
+        self.assertEqual(problems(), [])
 
     def test_the_states_follow_the_layer_pattern_of_the_layer_count(self):
         for layers, full, sliding in ((6, 1, 5), (30, 5, 25), (60, 10, 50)):
-            functions = export.expected_functions(CONTRACT["config"], check_layers(CONTRACT["config"], layers), BOTH)
+            functions = export.expected_functions(CONTRACT["config"], check_layers(CONTRACT["config"], layers), BOTH, (1,))
             with self.subTest(layers=layers):
                 self.assertEqual(set(functions), set(BOTH))
-                self.assertEqual(functions["prefill"]["outputs"], {})
                 for name in BOTH:
                     shapes = {key: value["shape"] for key, value in functions[name]["states"].items()}
                     self.assertEqual(shapes, {"keyCache": [full, 1, 4, None, 512], "valueCache": [full, 1, 4, None, 512],
@@ -182,7 +243,7 @@ class AssetTests(unittest.TestCase):
             if change:
                 change(record)
             with self.subTest(case=label):
-                self.assertTrue(export.check_asset(record, CONTRACT, KINDS, asked, 16896))
+                self.assertTrue(export.check_asset(record, CONTRACT, KINDS, asked, 16896, TAPS))
 
     def test_asset_types_are_read_from_the_summary_text(self):
         self.assertEqual(export.described("NDArray (Float16, 5 × 1 × 16 × ? × 256)"),
@@ -191,9 +252,9 @@ class AssetTests(unittest.TestCase):
         self.assertEqual(export.described("Tensor <float16>"), {"raw": "Tensor <float16>"})
 
 
-def arguments(folder, output, layers="6", functions="main,prefill"):
+def arguments(folder, output, layers="6", functions="main,prefill", taps="1,2,3,4,5"):
     return ["export", "--model", str(RECIPE / "model.json"), "--snapshot", str(folder / "snapshot"),
-            "--upstream", str(folder / "upstream"), "--layers", layers, "--functions", functions,
+            "--upstream", str(folder / "upstream"), "--layers", layers, "--functions", functions, "--taps", taps,
             "--context", "16896", "--output", str(output)]
 
 
@@ -286,6 +347,24 @@ class StartTests(unittest.TestCase):
                     call.assert_not_called()
                 self.assertFalse(output.exists())
 
+    def test_tap_layers_out_of_range_out_of_order_or_repeated_are_refused_before_the_output_is_made(self):
+        for taps in ("0,1", "1,7", "61", "2,1", "5,4,3,2,1", "1,1", "1,2,2", "", "1,", "01", "1.5", "-1", " 1"):
+            output = self.folder / f"taps-{taps.replace(',', '-') or 'none'}"
+            with self.subTest(taps=taps):
+                with self.assertRaisesRegex(ValueError, "tap layers") as raised:
+                    self.main(arguments(self.folder, output, taps=taps))
+                for call in raised.exception.calls:
+                    call.assert_not_called()
+                self.assertFalse(output.exists())
+        argv = arguments(self.folder, self.folder / "no-taps")
+        del argv[argv.index("--taps"):argv.index("--taps") + 2]
+        with self.assertRaises(SystemExit), mock.patch("sys.stderr"):
+            self.main(argv)
+        self.assertFalse((self.folder / "no-taps").exists())
+        code, _, _, supervise = self.main(arguments(self.folder, self.folder / "six", taps="6"))
+        self.assertEqual(code, 0)
+        supervise.assert_called_once()
+
     def test_the_export_starts_only_with_room_for_twice_the_float16_weights_and_60_gib(self):
         required = 4 * ELEMENTS + 60 * 2**30
         self.assertEqual(export.required_bytes(ELEMENTS), 81_776_897_048)
@@ -376,22 +455,22 @@ class RecipeTests(unittest.TestCase):
     def load(self, **variables):
         return load_recipe(RECIPE / "recipe-fp16.json", {**BINDINGS, **variables}, REPOSITORY)
 
-    def test_the_recipe_stops_without_a_layer_count_or_a_function_layout(self):
-        for missing in ("layers", "functions"):
-            supplied = {"layers": "6", "functions": "main"}
+    def test_the_recipe_stops_without_a_layer_count_a_function_layout_or_tap_layers(self):
+        for missing in ("layers", "functions", "taps"):
+            supplied = {"layers": "6", "functions": "main", "taps": "1,2,3,4,5"}
             del supplied[missing]
             with self.subTest(missing=missing), self.assertRaisesRegex(PipelineError, "Unresolved"):
                 self.load(**supplied)
 
     def test_the_export_step_passes_the_choices_and_writes_into_a_new_folder_of_its_output(self):
-        recipe = self.load(layers="6", functions="main,prefill")
+        recipe = self.load(layers="6", functions="main,prefill", taps="1,2,3,4,5")
         prepare, step = recipe["steps"]
         command = expand(step["command"], {**recipe["variables"], "out": "/stage", "prepare": "/prepared"})
         self.assertEqual(command[:3], ["/upstream/.venv/bin/python", "-m", "Tools.Conversion.adapters.gemma4_31b.export"])
         options = dict(zip(command[3::2], command[4::2]))
         self.assertEqual(options, {"--model": str(RECIPE / "model.json"), "--snapshot": "/model", "--upstream": "/upstream",
-                                   "--layers": "6", "--functions": "main,prefill", "--context": "16896",
-                                   "--output": "/stage/export"})
+                                   "--layers": "6", "--functions": "main,prefill", "--taps": "1,2,3,4,5",
+                                   "--context": "16896", "--output": "/stage/export"})
         self.assertEqual((step["role"], step["heavy"], step["depends"], step["outputs"]),
                          ("export", True, ["prepare"], ["export"]))
         self.assertEqual(step["checks"], [{"file": "export/export.json", "key": ["passed"], "equals": True}])
@@ -400,7 +479,7 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual(sources["environment"], read_json(RECIPE / "recipe.json")["environment"])
 
     def test_the_runner_fingerprints_the_environment_that_runs_the_export_step(self):
-        recipe = self.load(layers="6", functions="main")
+        recipe = self.load(layers="6", functions="main", taps="1,2,3,4,5")
         command = expand(recipe["steps"][1]["command"], {**recipe["variables"], "out": "/stage", "prepare": "/prepared"})
         self.assertEqual(recipe["python"], command[0])
 
