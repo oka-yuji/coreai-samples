@@ -165,6 +165,7 @@ class QuantizedExportTests(unittest.TestCase):
             record = read_json(output / "export.json")
             self.assertFalse(record["passed"])
             self.assertEqual(record["quantized"]["skipped"], 5 * 5 + 4)
+            self.assertEqual(record["asset"]["dequantizations"], 12 + 10)
             self.assertTrue(any("Skipping quantization." in problem for problem in record["problems"]))
             self.assertFalse((output / export.BUNDLE).exists())
 

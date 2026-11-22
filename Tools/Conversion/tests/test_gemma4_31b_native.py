@@ -492,12 +492,13 @@ class CompareTests(unittest.TestCase):
                 self.assertEqual(result["conditions"], [])
                 self.assertFalse(self.calls.exists())
 
-    def quantized(self):
+    def quantized(self, **changes):
         tensors = self.export / layers.QUANTIZED
         tensors.write_bytes(b"quantized tensors")
         entry = {"bytes": tensors.stat().st_size, "sha256": sha256(tensors)}
         edit(self.export / "export.json", lambda record: record.update(
-            precision="8bit", quantized={"file": entry, "tensors": {"a.quantized_data": "1" * 64, "a.scale": "2" * 64}}))
+            precision="8bit", quantized={"file": entry, "tensors": {"a.quantized_data": "1" * 64, "a.scale": "2" * 64}},
+            **changes))
         edit(self.reference / "record.json", lambda record: record.update(
             weights=layers.RESTORED, quantized={"export_sha256": sha256(self.export / "export.json"), "file": entry,
                                                 "tensors": 2}))
@@ -533,8 +534,7 @@ class CompareTests(unittest.TestCase):
                      self.reference / "record.json", lambda record: record["quantized"]["file"].update(sha256="0" * 64))),
                  "a reference of another tensor count": (True, lambda: edit(
                      self.reference / "record.json", lambda record: record["quantized"].update(tensors=3))),
-                 "an 8-bit export with main only": (True, lambda: edit(
-                     self.export / "export.json", lambda record: record.update(functions=["main"]))),
+                 "an 8-bit export with main only": (False, lambda: self.quantized(functions=["main"])),
                  "quantized tensors changed after the export": (True, lambda: tensors.write_bytes(b"quantized tensorz")),
                  "no quantized tensors": (True, tensors.unlink),
                  "quantized tensors behind a link": (True, link),
@@ -560,6 +560,15 @@ class CompareTests(unittest.TestCase):
                 self.assertTrue(result["problems"])
                 self.assertEqual(result["conditions"], [])
                 self.assertFalse(self.calls.exists())
+
+    def test_an_8bit_export_whose_record_has_a_problem_is_not_compared_with_the_weights_of_the_reference(self):
+        self.quantized()
+        (self.export / layers.QUANTIZED).unlink()
+        edit(self.export / "export.json", lambda record: record.update(quantized=["file"]))
+        result = self.run_compare(label="problem-only")
+        self.assertEqual(read_json(self.folder / "problem-only/comparison.json"), result)
+        self.assertEqual((result["problems"], result["conditions"]),
+                         (["the quantized tensors of the export differ from its record"], []))
 
     def test_files_that_differ_from_their_records_or_are_one_file_stop_before_the_verifier_runs(self):
         context = self.reference / "context.npy"
