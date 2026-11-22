@@ -38,5 +38,5 @@ def setup(workspace, recipe, snapshot, lock=None):
         write_json(record, {"environment_inputs": inputs, "reference_environment_s": round(time.perf_counter() - started, 1)})
         bindings = workspace / "gemma4_31b.paths.json"
         write_json(bindings, {"python": str(python), "hf_cache": str(profile / "hf-cache"), "setup_record": str(record),
-                              "snapshot": str(snapshot)})
+                              "snapshot": str(snapshot), "upstream": str(upstream)})
         print(f"Local bindings: {bindings}")

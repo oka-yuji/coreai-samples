@@ -7,8 +7,9 @@ inputs. The [FP32 anchor and FP16 diagnostics](#fp32-anchor-and-fp16-diagnostics
 Core AI comparison and quality checks) read these outputs. It does not convert the model, and the diagnostic inputs
 are not a quality evaluation set. It also defines the converter environment and a model class for a macOS export
 with dynamic shapes, with a tool that compares the first layers of that class with the original implementation in
-FP32 ([Converter environment and model class](#converter-environment-and-model-class)). Nothing is exported to Core
-AI yet.
+FP32 ([Converter environment and model class](#converter-environment-and-model-class)). A second recipe,
+`recipe-fp16.json`, exports the first layers to a dynamic-shape FP16 Core AI bundle and compares the logits of the own
+engine with an FP32 reference of the same layers ([FP16 export of the first layers](#fp16-export-of-the-first-layers)).
 
 - `model.json`: the contract. It pins the size and SHA-256 of all twelve files of the revision, the main
   text configuration values (60 layers as five sliding-window layers followed by one full-attention layer,
@@ -288,6 +289,116 @@ The tests of the model class are in `Tools/Conversion/tests/export_gemma4_31b_mo
 .local/conversion/gemma4_31b/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
   -p 'test_gemma4_31b_*.py' -v
 ~~~
+
+## FP16 export of the first layers
+
+`recipe-fp16.json` exports the first layers of the pinned snapshot to a Core AI bundle for macOS with dynamic shapes
+and FP16 weights, without compression, and inspects the asset. It runs the `prepare` step of `recipe.json` and a heavy
+`export` step in the converter environment. It needs `upstream`, the converter checkout, which `local setup --recipe
+gemma4_31b` writes into the bindings, and two values without defaults: `layers`, a count whose last layer is a
+full-attention layer (6, 12, …, 60), and `functions`, `main` or `main,prefill`. A run without them stops before any
+step. `context`, the context limit of the asset, defaults to 16,896 and has to be larger than 2,048, the cache length
+that the exporter traces with; otherwise the exporter pins the cache dimensions and the inspection fails. The `python`
+of the recipe is the converter environment, so the runner does not reuse an export after that environment changes.
+`local plan|run` does not select this recipe:
+
+~~~sh
+python3 -m Tools.Conversion run Tools/Conversion/recipes/gemma4_31b/recipe-fp16.json \
+  --bindings .local/conversion/gemma4_31b.paths.json --set layers=6 --set functions=main,prefill \
+  --work-dir .local/conversion/work/gemma4_31b-fp16 --lock-dir ~/Library/Caches/coreai-samples/heavy-job
+~~~
+
+The step writes `export/` into its artifacts: `export.json`, the record, and the bundle with `metadata.json`,
+`gemma4_31b_l<layers>_fp16_main.aimodel` (`gemma4_31b_l<layers>_fp16_main_prefill.aimodel` with `main,prefill`) and
+`tokenizer/`, the three distributed tokenizer files. The bundle is saved as `bundle.incomplete/` and gets the name
+`bundle/` only after a passed run has written `export.json`; the exit code is 0 only for a passed run. A run passes
+when the export had no compression setting and no quantized weight, every parameter and buffer of the PyTorch model is
+float16, the only storage types of the asset are Float16, Float32, Int32, UInt32 and UInt64 and Float32 holds exactly
+`global_head_dim // 2 + head_dim // 2 + 2` elements (two RoPE frequency tables and two constants; 386 for this model),
+the asset has exactly the functions asked for, with the inputs, outputs and states that the configuration of the
+contract gives and the sequence as their only dynamic dimension, the tokenizer files match the contract and
+`metadata.json` the contract and the arguments, and the volume kept 60 GiB free. The storage counts are totals over the
+asset, in which the export folds identical and constant-valued tensors, so they cannot show which tensor is stored in
+which type; the type of each tensor is checked on the PyTorch model, and `export.json` records Float16 minus the
+elements of the weights without judging it. The step starts only with twice the FP16 weights of the chosen layers plus
+60 GiB free; the monitor, its stops and `failure.json` are those of `reference`. The loading work area `export/layers/`
+is removed when the step ends, raises an error or is stopped by its monitor, and stays when a signal ends the process,
+as when the runner stops the step at its timeout or on an interruption (SIGTERM, then SIGKILL). The inspection reads
+the asset with
+`coreai.runtime._AIModelAsset(...).summary(include_statistics=True)`, a non-public interface of the converter
+package. `AssetTests`, `StartTests`, `RecordTests` and `RecipeTests` in
+`Tools/Conversion/tests/test_gemma4_31b_export.py` fix the inspection, the checks before the start, the record and the
+recipe; `ExportTests` in `Tools/Conversion/tests/export_gemma4_31b_export.py` runs the step on a synthetic model in the
+converter environment (the `export_*.py` command of [Tests](#tests)).
+
+### FP32 reference of the comparison
+
+`layers.py context` writes the FP32 logits of the first layers of the original implementation, with the weights of
+`run` (every checkpoint tensor rounded to float16, computed in float32 on the CPU), for `short` and for `context`, a
+sequence of 16,896 tokens made like the other inputs (seed 2). It reads each input with the cache of the original
+implementation in calls of 1,024 tokens. Into a new folder it writes `short.npy` and `context.npy` (float32, only the
+26 and 1,428 rows that the conditions below compare) and, last, `record.json`. Start it under the shared machine lock,
+which it does not take itself, like `run`:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers context --layers 6 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output <new folder>
+~~~
+
+`ConditionTests` and `ContextReferenceTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` fix the rows, the
+refusals and the reading in calls, which gives the logits of one call within 1e-3 on a synthetic model.
+
+### Comparison with the own engine
+
+Build `coreai-verify` with `swift build -c release` in `Tools/Verify`, then run the comparison under the shared machine
+lock, which it does not take itself:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.native \
+  --export <artifacts of the export step>/export --reference <folder of layers.py context> \
+  --verifier Tools/Verify/.build/release/coreai-verify --output <new folder>
+~~~
+
+It refuses an existing output before it reads anything. Into the new folder it writes, for every condition,
+`<condition>.tokens.json`, the logits of `coreai-verify logits` (`<condition>.f16`) and its standard error
+(`<condition>.log`), and last `comparison.json` with `passed`, the findings in `problems` and the numbers of every
+condition, also when a record, the verifier or a condition cannot be read, or a failed record without conditions when
+the full record cannot be written. It prints a short summary of
+`comparison.json`, and the exit code is 0 only when the comparison passed. Each `coreai-verify` call is stopped after
+1,800 s.
+
+| Condition | Tokens | `--start` | `--chunk` | Compared rows |
+|---|---|---:|---|---|
+| `short-c1`, `short-c26` | `short` (26) | 0 | 1, 26 | 0 to 25 |
+| `window-c1`, `window-c2`, `window-c4`, `window-c8` | first 1,300 of `context` | 0 | 1, 2, 4, 8 | 0 to 1,299 |
+| `prefix-c1` | first 1,300 of `context` | 1,000 | 1 | 1,000 to 1,299 |
+| `capacity-2048`, `capacity-4096`, `capacity-8192`, `capacity-16384` | first 2,056, 4,104, 8,200, 16,392 of `context` | 2,040, 4,088, 8,184, 16,376 | 4, 8, 2, 4 | the last 16 |
+| `tail` | `context` (16,896) | 16,832 | 1 | 16,832 to 16,895 |
+
+A condition passes with no non-finite value in either logits, no constant row (a row whose largest and smallest values
+are equal), a largest absolute logit difference from the reference below 2.0 and no top-1 change outside a near tie,
+where the top two reference logits differ by 0.01 or less. The rows of a call from `--start` of 8 or more tokens after
+which the positions total 97 to 112 (the call shape that `Engine.callShapeRules` avoids for this model; rows 96 to 111
+of `window-c8`) are left out of the difference and the top-1 change and recorded apart; non-finite values and constant
+rows count on every row. The record that `coreai-verify` prints has to match the condition, including the function,
+the number of calls and the chunk of the reads before `--start`, which follow the rules of the engine.
+`MeasureTests`, `KnownCallTests` and `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_native.py` fix these
+criteria and the checks on the records, the bundle, the record of `coreai-verify` and its files. The specialization
+cache that `coreai-verify` makes stays in place; remove it yourself.
+
+`fp16_summary` prints the public summary (only states, numbers, hashes and fixed words) of the reference record and of
+each export with its report and its comparison to standard output:
+
+~~~sh
+python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <record.json> \
+  --report <report.json> --export <export.json> --comparison <comparison.json> [...]
+~~~
+
+It stops and prints no summary when a check on the records fails, including that each `export.json` is the output
+that the manifest of its stage recorded; `SummaryTests` in `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py`
+fixes these checks. The published record is
+[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#fp16-export-of-the-first-six-layers).
 
 ## Terms
 
