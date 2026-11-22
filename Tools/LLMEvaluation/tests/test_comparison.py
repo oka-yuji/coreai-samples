@@ -161,8 +161,8 @@ class CompareRunTests(unittest.TestCase):
         write_lines(folder / "outputs.jsonl", records)
         return folder
 
-    def scored(self, *runs):
-        scores = self.folder / "scores"
+    def scored(self, *runs, name="scores"):
+        scores = self.folder / name
         scoring.score_runs(self.bundle, self.items_path, runs, scores, self.tokenizer, "t" * 64)
         return scores
 
@@ -230,6 +230,26 @@ class CompareRunTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.compared(baseline, candidate, self.scored(baseline))
         self.assertFalse((self.folder / "verdict").exists())
+
+    def test_a_run_folder_that_changed_after_scoring_is_rejected(self):
+        for case in ("outputs", "run", "summary"):
+            with self.subTest(case):
+                baseline = self.run_folder(f"{case}/base", "reference")
+                candidate = self.run_folder(f"{case}/cand", "fp16")
+                scores = self.scored(baseline, candidate, name=f"{case}/scores")
+                if case == "outputs":
+                    path = candidate / "outputs.jsonl"
+                    path.write_bytes(path.read_bytes().replace(b'"0', b'"1', 1))
+                elif case == "run":
+                    path = candidate / "run.json"
+                    path.write_text(json.dumps({**items.read_json(path), "implementation": "again"}), encoding="utf-8")
+                else:
+                    path = scores / "cand" / "summary.json"
+                    path.write_text(json.dumps({key: value for key, value in items.read_json(path).items()
+                                                if key != "outputs"}), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    self.compared(baseline, candidate, scores, name=f"{case}/verdict")
+                self.assertFalse((self.folder / case / "verdict").exists())
 
     def test_scores_that_are_not_of_the_items_are_rejected(self):
         baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")

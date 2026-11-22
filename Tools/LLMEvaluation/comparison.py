@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -169,8 +170,17 @@ def run_files(folder, scores, rows):
     found = lines((scored / "scores.jsonl").read_bytes())
     if sorted((row["id"], row["category"], row["kind"]) for row in found) != rows:
         raise ValueError(f"The scores in {scored.name} are not one row per item of the items file")
-    return {"run": read_json(folder / "run.json"), "summary": summary, "scores": found,
-            "outputs": partition(read_records(folder / "outputs.jsonl"), summary["tokenizer"]["vocabulary"])[0]}
+    data, run = (folder / "outputs.jsonl").read_bytes(), read_json(folder / "run.json")
+    recorded = summary.get("outputs", {}).get("sha256")
+    differs = [text for text, failed in (
+        ("the scoring records no SHA-256 of outputs.jsonl", recorded is None),
+        ("outputs.jsonl differs", recorded is not None and recorded != hashlib.sha256(data).hexdigest()),
+        ("run.json differs", summary.get("run") != standard(run))) if failed]
+    if differs:
+        raise ValueError(f"{folder.name} is not the run scored in {scored.name}: {'; '.join(differs)}. "
+                         "Score the pair again")
+    return {"run": run, "summary": summary, "scores": found,
+            "outputs": partition(read_records(data), summary["tokenizer"]["vocabulary"])[0]}
 
 
 def listed(values):
