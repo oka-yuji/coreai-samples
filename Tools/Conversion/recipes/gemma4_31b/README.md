@@ -218,8 +218,8 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.anchor_summary --report <report.
   --comparison <comparison.json> [--comparison <comparison.json> ...]
 ~~~
 
-It stops without output when a check on the report, on the records of its steps or on the given comparisons fails;
-`SummaryTests` in the same test file fixes these checks.
+It stops and prints no summary when a check on the report, on the records of its steps or on the given comparisons
+fails; `SummaryTests` in the same test file fixes these checks.
 
 ## Converter environment and model class
 
