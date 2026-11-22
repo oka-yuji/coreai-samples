@@ -173,13 +173,17 @@ def item_rows(bundle, path):
          **({"token_count": item["token_count"]} if "token_count" in item else {})} for item in built]
 
 
+def scoring_of(scored, rows):
+    summary, found = read_json(scored / "summary.json"), lines((scored / "scores.jsonl").read_bytes())
+    if sorted((row["id"], row["category"], row["kind"]) for row in found) != rows:
+        raise ValueError(f"The scores in {scored.name} are not one row per item of the items file")
+    return summary, found
+
+
 def run_files(folder, scores, rows, items_sha256):
     folder = Path(folder).resolve()
     scored = Path(scores) / folder.name
-    summary = read_json(scored / "summary.json")
-    found = lines((scored / "scores.jsonl").read_bytes())
-    if sorted((row["id"], row["category"], row["kind"]) for row in found) != rows:
-        raise ValueError(f"The scores in {scored.name} are not one row per item of the items file")
+    summary, found = scoring_of(scored, rows)
     data, run = (folder / "outputs.jsonl").read_bytes(), read_json(folder / "run.json")
     recorded = summary.get("outputs", {}).get("sha256")
     differs = [text for text, failed in (
@@ -193,6 +197,16 @@ def run_files(folder, scores, rows, items_sha256):
                          "Score the pair again")
     return {"run": run, "summary": summary, "scores": found,
             "outputs": partition(read_records(data), summary["tokenizer"]["vocabulary"])[0]}
+
+
+def rerun_scoring(folder, rows, candidate):
+    summary, found = scoring_of(Path(folder), rows)
+    differs = [key for key in ("contract", "items", "tokenizer", "scorer") if summary.get(key) != candidate.get(key)]
+    differs += ["run.asset"] * (summary.get("run", {}).get("asset") != candidate.get("run", {}).get("asset"))
+    if differs:
+        raise ValueError(f"The rerun scoring in {Path(folder).name} differs from the candidate scoring in "
+                         f"{', '.join(differs)}")
+    return summary.get("run"), found
 
 
 def listed(values):
@@ -249,15 +263,18 @@ def compare_runs(bundle, items_path, baseline, candidate, scores, output, rerun=
     reason = substitute_reason if substitute_reason and substitute_reason.strip() else None
     name, items_sha256, rows = item_rows(bundle, items_path)
     keys = sorted((row["id"], row["category"], row["kind"]) for row in rows)
-    document = {"set": name, "items": rows,
+    runs = {"baseline": run_files(baseline, scores, keys, items_sha256),
+            "candidate": run_files(candidate, scores, keys, items_sha256)}
+    again = rerun_scoring(rerun, keys, runs["candidate"]["summary"]) if rerun else None
+    document = {"set": name, "items": rows, **runs,
                 "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
-                "baseline": run_files(baseline, scores, keys, items_sha256),
-                "candidate": run_files(candidate, scores, keys, items_sha256),
-                "rerun": {"scores": lines((Path(rerun) / "scores.jsonl").read_bytes())} if rerun else None,
+                "rerun": {"scores": again[1]} if again else None,
                 "layer1": {"file": Path(layer1).name, "sha256": sha256(layer1)} if layer1 else None}
-    checked_pair(bundle["contract"], document["baseline"]["run"].get("role"),
-                 document["candidate"]["run"].get("role"), reason)
-    record = standard({**compare(document, bundle["contract"]["layer2"]), "substitute_reason": reason})
+    checked_pair(bundle["contract"], runs["baseline"]["run"].get("role"), runs["candidate"]["run"].get("role"), reason)
+    record = compare(document, bundle["contract"]["layer2"])
+    if again:
+        record["runs"]["rerun"] = again[0]
+    record = standard({**record, "substitute_reason": reason})
     output.mkdir(parents=True)
     try:
         (output / "verdict.json").write_text(json.dumps(record, indent=2, allow_nan=False) + "\n", encoding="utf-8")

@@ -147,11 +147,11 @@ class CompareRunTests(unittest.TestCase):
         self.items_path = self.folder / "primary.jsonl"
         write_lines(self.items_path, self.items)
 
-    def run_folder(self, name, role, answer=8):
+    def run_folder(self, name, role, answer=8, **fields):
         folder = self.folder / name
         folder.mkdir(parents=True)
         contract = {"version": CONTRACT["version"], "sha256": self.bundle["hashes"]["contract.json"]}
-        (folder / "run.json").write_text(json.dumps({"contract": contract, "set": "primary", "role": role}),
+        (folder / "run.json").write_text(json.dumps({"contract": contract, "set": "primary", "role": role, **fields}),
                                          encoding="utf-8")
         records = [{"id": item["id"], "input_sha256": "0" * 64, "input_tokens": item.get("token_count", 1),
                     "output_ids": [7] if item["category"] == "free-ja" else [answer], "stop": "stop_token",
@@ -306,7 +306,29 @@ class CompareRunTests(unittest.TestCase):
         self.compared(baseline, candidate, scores, rerun=scores / "again")
         record = items.read_json(self.folder / "verdict" / "verdict.json")
         self.assertEqual(record["rerun"], {"correct_to_incorrect": 1, "incorrect_to_correct": 0})
+        self.assertEqual(record["runs"]["rerun"], items.read_json(rerun / "run.json"))
         self.assertEqual(record["verdict"], "no_regression_found")
+
+    def test_a_rerun_scoring_of_other_conditions_is_rejected(self):
+        for case in ("duplicate", "items", "asset"):
+            with self.subTest(case):
+                baseline = self.run_folder(f"{case}/base", "reference")
+                candidate = self.run_folder(f"{case}/cand", "fp16", asset={"main_hash": "a"})
+                rerun = self.run_folder(f"{case}/again", "fp16", answer=9,
+                                        asset={"main_hash": "b" if case == "asset" else "a"})
+                scores = self.scored(baseline, candidate, rerun, name=f"{case}/scores")
+                if case == "duplicate":
+                    path = scores / "again" / "scores.jsonl"
+                    text = path.read_text(encoding="utf-8")
+                    path.write_text(text + text.splitlines(keepends=True)[1], encoding="utf-8")
+                elif case == "items":
+                    path = scores / "again" / "summary.json"
+                    summary = items.read_json(path)
+                    path.write_text(json.dumps({**summary, "items": {**summary["items"], "sha256": "0" * 64}}),
+                                    encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    self.compared(baseline, candidate, scores, name=f"{case}/verdict", rerun=scores / "again")
+                self.assertFalse((self.folder / case / "verdict").exists())
 
 
 if __name__ == "__main__":
