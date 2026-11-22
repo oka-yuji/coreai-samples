@@ -17,9 +17,18 @@ struct PreparedCopyFixture {
         attempt: "dead-recovery", pid: 203, start: 5_000, kind: .recovery, stage: .warmUp, at: 40)
     static let unknown = PreparedCopyMark(
         attempt: "unknown", pid: 301, start: 6_000, kind: .normal, stage: .load, at: 15)
-    static let liveness: [Int32: PreparedCopyLiveness] = [
-        101: .alive, 102: .alive, 201: .dead, 202: .dead, 203: .dead, 301: .unknown,
-    ]
+    static let aliveRecovery = PreparedCopyMark(
+        attempt: "alive-recovery", pid: 102, start: 2_000, kind: .recovery, stage: .load, at: 25)
+    static let crowd = (0..<16).map { PreparedCopyProcess(pid: 401 + Int32($0), start: 7_000 + Int64($0)) }
+    static let liveness: [Int32: PreparedCopyLiveness] = {
+        var table: [Int32: PreparedCopyLiveness] = [
+            101: .alive, 102: .alive, 201: .dead, 202: .dead, 203: .dead, 301: .unknown,
+        ]
+        for process in crowd {
+            table[process.pid] = .alive
+        }
+        return table
+    }()
     static let now = 50.0
     static let empty = PreparedCopyRecord(marks: [], recoveries: 0, suspects: [], failed: false)
 

@@ -84,4 +84,52 @@ import Testing
         #expect(result.recovered)
         #expect(free == ["onRecovery": true, "delete": true, "load": true, "warmUp": true])
     }
+
+    @Test(
+        "A living recovery mark whose use is free is a recovery that could not record its end, so a load fails as recovery failed without changing the ledger"
+    )
+    func stalledRecoveryMarkFails() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.aliveRecovery], recoveries: 1, suspects: [Fixture.dead]))
+        let before = try fixture.bytes()
+        let recorder = PreparedCopyRecorder()
+        await #expect(throws: PreparedCopyError.recoveryFailed) {
+            _ = try await recorder.load(fixture.recovery())
+        }
+        let after = try fixture.bytes()
+        #expect(after == before)
+        #expect(recorder.events.isEmpty)
+    }
+
+    @Test(
+        "When a failed deletion cannot record the terminal state, a repeated request from the same process still returns recovery failed rather than preparing"
+    )
+    func unrecordedDeletionFailureIsTerminal() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.dead]))
+        let path = fixture.directory.path(percentEncoded: false)
+        defer { chmod(path, 0o700) }
+        let recovery = fixture.recovery()
+        let recorder = PreparedCopyRecorder()
+        await #expect(throws: POSIXError(.EIO)) {
+            _ = try await recovery.load(
+                delete: {
+                    recorder.note("delete")
+                    #expect(chmod(path, 0o500) == 0)
+                    throw POSIXError(.EIO)
+                }, load: { 1 }, warmUp: { _ in })
+        }
+        let record = recovery.record()
+        let mark = try #require(record.marks.first)
+        #expect(
+            record
+                == Fixture.record(
+                    [Fixture.own(mark.attempt, .recovery, .load)], recoveries: 1, suspects: [Fixture.dead]))
+        await #expect(throws: PreparedCopyError.recoveryFailed) {
+            _ = try await recorder.load(recovery)
+        }
+        #expect(recorder.events == ["delete"])
+    }
 }
