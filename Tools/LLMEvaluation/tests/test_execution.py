@@ -62,8 +62,6 @@ class IsolationTests(unittest.TestCase):
                 "write inside": "import os\n\nassert os.listdir() == []\nwith open('inside.txt', 'w') as handle:\n"
                                 "    handle.write('kept')\nwith open('inside.txt') as handle:\n"
                                 "    assert handle.read() == 'kept'\n",
-                "child process": "import subprocess\nimport sys\n\n"
-                                 "assert subprocess.run([sys.executable, '-c', 'pass']).returncode == 0\n",
                 "interpreter": "import sys\n\nassert sys.flags.isolated and sys.flags.no_site\n"
                                f"assert sys.flags.dont_write_bytecode and sys.executable == {sys.executable!r}\n",
                 "not in the scoring process": "import builtins\n\nbuiltins.ran_in_the_scorer = True\n",
@@ -87,6 +85,25 @@ class IsolationTests(unittest.TestCase):
             self.assertFalse(outside.exists())
             self.assertFalse(hasattr(builtins, "ran_in_the_scorer"))
 
+    def test_the_program_cannot_create_a_process(self):
+        token = secrets.token_hex(16)
+        self.addCleanup(subprocess.run, ["pkill", "-f", token])
+        attempts = {
+            "os.fork": "    if os.fork() == 0:\n        os.execv(sys.executable, SLEEPER)\n",
+            "subprocess through fork_exec": "    subprocess.Popen(SLEEPER)\n",
+            "subprocess through posix_spawn": "    subprocess.Popen(SLEEPER, close_fds=False)\n",
+            "os.posix_spawn": "    os.posix_spawn(sys.executable, SLEEPER, {})\n",
+            "os.system": "    status = os.system(shlex.join(SLEEPER) + ' &')\n    if status:\n        raise OSError(status)\n",
+            "multiprocessing": "    multiprocessing.get_context('spawn').Process(target=print).start()\n",
+        }
+        for name, attempt in attempts.items():
+            code = ("import multiprocessing\nimport os\nimport shlex\nimport subprocess\nimport sys\n\n"
+                    f"SLEEPER = [sys.executable, '-c', 'import time; time.sleep(30)', '{token}']\ntry:\n{attempt}"
+                    "except OSError:\n    pass\nelse:\n    raise AssertionError('created')\n")
+            with self.subTest(name):
+                self.assertEqual(ran(code), PASSED)
+                self.assertFalse(alive(token))
+
 
 class FailureTests(unittest.TestCase):
     def test_the_failure_tells_how_the_program_ended_and_a_large_output_does_not_stop_it(self):
@@ -102,19 +119,21 @@ class FailureTests(unittest.TestCase):
 
 
 class TimeLimitTests(unittest.TestCase):
-    def test_a_program_over_the_limit_runs_once_more_and_leaves_no_process_or_folder(self):
+    def test_a_program_over_the_limit_is_ended_and_runs_once_more_leaving_no_process_or_folder(self):
         token = secrets.token_hex(16)
         self.addCleanup(subprocess.run, ["pkill", "-f", token])
-        spawn = ("import subprocess\nimport sys\nimport time\n\n"
-                 f"subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)', '{token}'])\n")
-        cases = {"over the limit": (spawn + "time.sleep(6)\n",
-                                    {"correct": False, "failure": "timeout", "rerun": True}, 2),
-                 "within the limit": (spawn, PASSED, 1)}
+        timeout = {"correct": False, "failure": "timeout", "rerun": True}
+        cases = {"within the limit": ("value = 1\n", PASSED, 1),
+                 "over the limit": ("import time\n\ntime.sleep(6)\n", timeout, 2),
+                 "replaced by another program": ("import os\nimport sys\n\nos.execv(sys.executable, [sys.executable, '-c', "
+                                                 f"'import time; time.sleep(20)', '{token}'])\n", timeout, 2)}
         for name, (code, expected, attempts) in cases.items():
             with self.subTest(name), tempfile.TemporaryDirectory() as folder:
+                start = time.monotonic()
                 with mock.patch.object(tempfile, "tempdir", folder), mock.patch.object(execution, "LIMIT", 1.5), \
                         mock.patch.object(execution, "attempt", wraps=execution.attempt) as attempt:
                     self.assertEqual(ran(code), expected)
+                self.assertLess(time.monotonic() - start, 10)
                 self.assertEqual(attempt.call_count, attempts)
                 self.assertEqual(os.listdir(folder), [])
                 self.assertFalse(alive(token))

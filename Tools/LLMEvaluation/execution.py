@@ -1,9 +1,7 @@
-import contextlib
 import json
 import os
 from pathlib import Path
 import secrets
-import signal
 import subprocess
 import sys
 import tempfile
@@ -13,8 +11,7 @@ from Tools.LLMEvaluation.items import FILES, ROOT, read_json
 RULES = read_json(ROOT / FILES["contract"])["scorers"]["python_tests"]
 LIMIT = RULES["wall_clock_seconds"]
 SANDBOX = "/usr/bin/sandbox-exec"
-PROFILE = ('(version 1) (deny default) (allow process-exec process-fork file-read*) '
-           '(allow file-write* (subpath (param "WORK")))')
+PROFILE = '(version 1) (deny default) (allow process-exec file-read*) (allow file-write* (subpath (param "WORK")))'
 DRIVER = """
 import json
 import os
@@ -82,7 +79,7 @@ def attempt(units):
         try:
             try:
                 child = subprocess.Popen([*command(work), "-c", DRIVER, str(marker_read), str(result_write), str(path)],
-                                         cwd=work, pass_fds=(marker_read, result_write), start_new_session=True, **QUIET)
+                                         cwd=work, pass_fds=(marker_read, result_write), **QUIET)
             finally:
                 os.close(marker_read)
                 os.close(result_write)
@@ -91,14 +88,9 @@ def attempt(units):
             except subprocess.TimeoutExpired:
                 return "timeout"
             finally:
-                with contextlib.suppress(ProcessLookupError):
-                    os.killpg(child.pid, signal.SIGKILL)
+                child.kill()
                 child.wait()
-            os.set_blocking(result_read, False)
-            try:
-                received = os.read(result_read, len(marker) + 1)
-            except BlockingIOError:
-                received = b""
+            received = os.read(result_read, len(marker) + 1)
         finally:
             os.close(result_read)
     if received != marker:
