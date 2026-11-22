@@ -36,7 +36,8 @@ def bundle_with(primary, reserve=()):
 def record(item_id, ids, stop=True):
     generated = ids + ([STOP] if stop else [])
     value = {"id": item_id, "input_sha256": "0" * 64, "input_tokens": 1, "output_ids": ids,
-             "stop": "stop_token" if stop else "limit", "top2": [[token, 0.75, 0, 0.25] for token in generated],
+             "stop": "stop_token" if stop else "limit",
+             "top2": [[token, 0.75, 0 if token else 1, 0.25] for token in generated],
              "non_finite": 0}
     if stop:
         value["stop_token"] = STOP
@@ -175,9 +176,11 @@ class RecordCheckTests(unittest.TestCase):
         self.assertEqual(self.checked(records=limited), self.only("missing", []))
         failed = [{**row, "error": "stopped"} for row in self.records]
         self.assertEqual(self.checked(records=failed), self.only("missing", []))
-        huge = [{**row, "top2": [[entry[0], 10 ** 400, entry[2], entry[3]] for entry in row["top2"]]}
-                for row in self.records]
-        self.assertEqual(self.checked(records=huge), self.only("missing", []))
+        for name, (first, second) in {"integers": (1, 0), "floats": (1.0, 0.0), "a tie": (0.5, 0.5)}.items():
+            with self.subTest(name):
+                edges = [{**row, "top2": [[entry[0], first, entry[2], second] for entry in row["top2"]]}
+                         for row in self.records]
+                self.assertEqual(self.checked(records=edges), self.only("missing", []))
 
     def test_each_malformed_record_is_reported_only_as_malformed(self):
         first = self.items[0]["id"]
@@ -208,6 +211,15 @@ class RecordCheckTests(unittest.TestCase):
             "top2 first id past the vocabulary": {**good, "top2": [[VOCABULARY, 0.75, 0, 0.25]] + good["top2"][1:]},
             "top2 second id past the vocabulary": {**good, "top2": [[7, 0.75, VOCABULARY, 0.25]] + good["top2"][1:]},
             "top2 second id negative": {**good, "top2": [[7, 0.75, -1, 0.25]] + good["top2"][1:]},
+            "top2 ids equal": {**good, "top2": [[7, 0.75, 7, 0.25]] + good["top2"][1:]},
+            "top2 probability above one": {**good, "top2": [[7, 1.5, 0, 0.25]] + good["top2"][1:]},
+            "top2 probability negative": {**good, "top2": [[7, 0.75, 0, -0.25]] + good["top2"][1:]},
+            "top2 probability too large for a float": {**good, "top2": [[7, 10 ** 400, 0, 0.25]] + good["top2"][1:]},
+            "top2 probability a boolean": {**good, "top2": [[7, True, 0, 0.25]] + good["top2"][1:]},
+            "top2 first probability below the second": {**good, "top2": [[7, 0.25, 0, 0.75]] + good["top2"][1:]},
+            "input_tokens zero": {**good, "input_tokens": 0},
+            "input_tokens negative": {**good, "input_tokens": -1},
+            "non_finite negative": {**good, "non_finite": -1},
             "error of another type": {**good, "error": None},
         })
         for name, broken in cases.items():

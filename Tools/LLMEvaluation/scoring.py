@@ -2,7 +2,6 @@ from collections import Counter
 from fractions import Fraction
 import hashlib
 import json
-import math
 from pathlib import Path
 import re
 import shutil
@@ -136,12 +135,17 @@ def well_formed(record, vocabulary):
     def token(value):
         return integer(value) and 0 <= value < vocabulary
 
+    def probability(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 1
+
     def entry(value):
         return (isinstance(value, list) and len(value) == 4 and token(value[0]) and token(value[2])
-                and all(integer(part) or (isinstance(part, float) and math.isfinite(part)) for part in value[1::2]))
+                and value[0] != value[2] and probability(value[1]) and probability(value[3])
+                and value[1] >= value[3])
 
     return (isinstance(record.get("id"), str) and isinstance(record.get("input_sha256"), str)
-            and integer(record.get("input_tokens")) and integer(record.get("non_finite"))
+            and integer(record.get("input_tokens")) and record["input_tokens"] >= 1
+            and integer(record.get("non_finite")) and record["non_finite"] >= 0
             and isinstance(record.get("output_ids"), list) and all(map(token, record["output_ids"]))
             and record.get("stop") in ("stop_token", "limit")
             and (record["stop"] == "limit" or token(record.get("stop_token")))
