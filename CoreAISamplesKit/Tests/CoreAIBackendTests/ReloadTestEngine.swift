@@ -22,6 +22,9 @@ final class ReloadTestControl: Sendable {
         var liveCheckpoints: Set<Int> = []
         var nextCheckpoint = 0
         var footprint: UInt64 = 0
+        var graphics: UInt64 = 0
+        var failGraphics = false
+        var graphicsSamples = 0
         var events: [String] = []
         var generationTokens: [Int] = [1, 3]
         var steps = 0
@@ -87,7 +90,18 @@ final class ReloadTestControl: Sendable {
     }
 
     func footprint() -> UInt64 { state.withLock { $0.footprint } }
+
+    func graphics() throws -> UInt64 {
+        let (value, fails) = state.withLock { state in
+            state.graphicsSamples += 1
+            return (state.graphics, state.failGraphics)
+        }
+        if fails { throw ReloadTestFailure.graphics }
+        return value
+    }
+
     var loads: Int { state.withLock { $0.loads } }
+    var graphicsSamples: Int { state.withLock { $0.graphicsSamples } }
     var events: [String] { state.withLock { $0.events } }
 }
 
@@ -95,6 +109,7 @@ enum ReloadTestFailure: Error {
     case load
     case read
     case step
+    case graphics
 }
 
 final class ReloadTestEngine: RuntimeEngine {
@@ -267,7 +282,8 @@ struct ReloadTestModel {
         let control = ReloadTestControl()
         let runtime = try await Runtime(
             bundle: ModelBundle(url: folder), contextLimit: limit, overflow: .error,
-            settings: settings, reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint)
+            settings: settings, reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint,
+            graphics: control.graphics)
         return Self(
             model: LocalLanguageModel(runtime: runtime, bundle: folder), runtime: runtime, folder: folder,
             control: control)

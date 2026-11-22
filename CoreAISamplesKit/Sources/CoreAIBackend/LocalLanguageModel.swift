@@ -116,6 +116,8 @@ actor Runtime {
     private let reloadPolicy: LocalLanguageModel.ReloadPolicy
     private let makeEngine: @Sendable (ModelBundle, Int) async throws -> EngineBox
     private let footprint: @Sendable () throws -> UInt64
+    private let graphics: @Sendable () throws -> UInt64
+    private let graphicsLimit: UInt64
     private var reloadState = ReloadState()
     private var unloadedTokens: [Int32]?
     private var beganReading = false
@@ -140,7 +142,8 @@ actor Runtime {
         makeEngine: @escaping @Sendable (ModelBundle, Int) async throws -> EngineBox = {
             EngineBox(try await Engine(bundle: $0, contextLimit: $1))
         },
-        footprint: @escaping @Sendable () throws -> UInt64 = ProcessFootprint.bytes
+        footprint: @escaping @Sendable () throws -> UInt64 = ProcessFootprint.bytes,
+        graphics: @escaping @Sendable () throws -> UInt64 = ProcessFootprint.graphicsBytes
     ) async throws {
         guard reloadPolicy.readInterval >= 0 else { throw ReloadError.negativeInterval(reloadPolicy.readInterval) }
         self.bundle = bundle
@@ -148,6 +151,8 @@ actor Runtime {
         self.reloadPolicy = reloadPolicy
         self.makeEngine = makeEngine
         self.footprint = footprint
+        self.graphics = graphics
+        graphicsLimit = reloadPolicy.graphicsGrowthLimit(modelID: bundle.sourceModelID, assetHash: bundle.mainHash)
         sanitizer = try ControlTokenSanitizer(tokens: bundle.addedTokenStrings())
         tokenizer = try await bundle.loadTokenizer()
         let loaded = try await makeEngine(bundle, self.contextLimit)
@@ -212,10 +217,12 @@ actor Runtime {
     private func reloadIfNeeded(isNewConversation: Bool) async throws -> Double? {
         try Task.checkCancellation()
         let bytes = reloadPolicy.footprintLimitBytes > 0 ? try footprint() : 0
+        let growth = graphicsLimit > 0 ? reloadState.graphicsGrowth(sample: try? graphics()) : nil
         guard
             core == nil
                 || reloadState.shouldReload(
-                    policy: reloadPolicy, isNewConversation: isNewConversation, footprint: bytes)
+                    policy: reloadPolicy, isNewConversation: isNewConversation, footprint: bytes,
+                    graphicsGrowth: growth, graphicsLimit: graphicsLimit)
         else {
             return nil
         }
@@ -340,6 +347,7 @@ actor Runtime {
             let prefilled = core.engine.stats.prefillTokens - before
             let readEnd = clock.now
             probe?.read(until: readEnd, prefilledTokens: prefilled, prepareSeconds: core.engine.stats.prepareSeconds)
+            if prefilled > 0 { reloadState.finishedRead() }
 
             var output = Output(
                 channel: channel,

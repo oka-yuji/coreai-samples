@@ -10,20 +10,26 @@ extension LocalLanguageModel {
         ) {
             self.readInterval = readInterval
             self.footprintLimitBytes = footprintLimitBytes
-            self.graphicsGrowthLimitBytes = nil
+            self.graphicsGrowthLimitBytes = graphicsGrowthLimitBytes
         }
 
         static let verifiedGraphicsGrowthLimits: [(modelID: String, mainHash: String, bytes: UInt64)] = [
             ("Qwen/Qwen3.5-0.8B", "41b46bd34a69c7a25e017122323e72c338ff1fb1a78f17888e5e04bb0c77a2ba", 536_870_912)
         ]
 
-        func graphicsGrowthLimit(modelID: String?, assetHash: String?) -> UInt64 { 0 }
+        func graphicsGrowthLimit(modelID: String?, assetHash: String?) -> UInt64 {
+            if let graphicsGrowthLimitBytes { return graphicsGrowthLimitBytes }
+            let row = Self.verifiedGraphicsGrowthLimits.first { $0.modelID == modelID && $0.mainHash == assetHash }
+            return row?.bytes ?? 0
+        }
     }
 }
 
 struct ReloadState {
     private(set) var completedReads = 0
     private var seenPromptIDs: Set<String> = []
+    private var graphicsBaseline: UInt64?
+    private var hasFinishedRead = false
 
     mutating func observe(_ conversation: ReloadConversation) -> Bool {
         let prompts = conversation.promptIDs
@@ -40,12 +46,24 @@ struct ReloadState {
     ) -> Bool {
         (policy.readInterval > 0 && completedReads >= policy.readInterval && isNewConversation)
             || (policy.footprintLimitBytes > 0 && footprint >= policy.footprintLimitBytes)
+            || (graphicsLimit > 0 && (graphicsGrowth ?? 0) >= graphicsLimit)
     }
 
     mutating func completedRead() { completedReads += 1 }
-    mutating func finishedRead() {}
-    mutating func graphicsGrowth(sample: UInt64?) -> UInt64? { nil }
-    mutating func didLoad() { completedReads = 0 }
+    mutating func finishedRead() { hasFinishedRead = true }
+    mutating func graphicsGrowth(sample: UInt64?) -> UInt64? {
+        guard let sample, hasFinishedRead else { return nil }
+        guard let graphicsBaseline else {
+            graphicsBaseline = sample
+            return 0
+        }
+        return sample > graphicsBaseline ? sample - graphicsBaseline : 0
+    }
+    mutating func didLoad() {
+        completedReads = 0
+        graphicsBaseline = nil
+        hasFinishedRead = false
+    }
 }
 
 enum ReloadError: Error, Equatable {
