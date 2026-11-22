@@ -35,9 +35,12 @@ enum Evaluation {
         case []: return true
         case ["outputs.jsonl"]: return try isEmptyFile(outputs)
         case ["outputs.jsonl", "progress.json"]:
-            return try isEmptyFile(outputs)
-                && (try? JSONDecoder().decode(WrittenLines.self, from: Data(contentsOf: progress)))
-                    == WrittenLines.empty
+            guard try isEmptyFile(outputs),
+                let checkpoint = try? JSONDecoder.snake.decode(
+                    EvaluationCheckpoint.self, from: Data(contentsOf: progress))
+            else { return false }
+            return checkpoint.lines == 0 && checkpoint.sha256 == EvaluationCheckpoint.emptyDigest
+                && checkpoint.nextSha256 == nil
         default: return false
         }
     }
@@ -53,6 +56,7 @@ enum Evaluation {
         maxMinutes: Double? = nil
     ) async throws -> EvaluationRun {
         let outputs = folder.appending(path: "outputs.jsonl")
+        let identity = try record.identityDigest()
         var current = record
         var done: Set<String> = []
         var hasher = SHA256()
@@ -62,14 +66,14 @@ enum Evaluation {
                 throw ValidationError(
                     "--output holds another run; these differ from its run.json: \(differing.joined(separator: ", ")).")
             }
-            (done, hasher) = try recordedLines(in: folder, inputs: items)
+            (done, hasher) = try recordedLines(in: folder, inputs: items, run: identity)
             current = stored
             current.items = done.count
             current.finished = nil
         } else {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try Data().write(to: outputs)
-            try write(WrittenLines.empty, in: folder)
+            try write(EvaluationCheckpoint(lines: 0, sha256: digest(hasher), run: identity), in: folder)
         }
         try write(current, in: folder)
         let file = try FileHandle(forWritingTo: outputs)
@@ -79,55 +83,53 @@ enum Evaluation {
             let itemStarted = ContinuousClock.now
             let output = try await item.generate(with: source, stopTokens: stopTokens)
             let line = try JSONEncoder.records.encode(output) + Data("\n".utf8)
+            var next = hasher
+            next.update(data: line)
+            try write(
+                EvaluationCheckpoint(
+                    lines: current.items, sha256: digest(hasher), nextSha256: digest(next), run: identity),
+                in: folder)
             try file.write(contentsOf: line)
             try file.synchronize()
-            hasher.update(data: line)
+            hasher = next
             current.items += 1
-            try write(WrittenLines(lines: current.items, sha256: hex(Data(hasher.finalize()))), in: folder)
             try emit(
                 EvaluationProgress(
                     id: output.id, inputTokens: output.inputTokens, outputTokens: output.outputIds.count,
                     stop: output.error == nil ? output.stop : "error", seconds: seconds(.now - itemStarted)))
             if let maxMinutes, seconds(.now - started) >= maxMinutes * 60 { break }
         }
+        try write(EvaluationCheckpoint(lines: current.items, sha256: digest(hasher), run: identity), in: folder)
         current.finished = .now
         try write(current, in: folder)
         return current
     }
 
-    static func recordedLines(in folder: URL, inputs: [EvaluationInput]) throws -> (Set<String>, SHA256) {
+    static func recordedLines(in folder: URL, inputs: [EvaluationInput], run identity: String) throws -> (
+        Set<String>, SHA256
+    ) {
         let outputs = folder.appending(path: "outputs.jsonl")
-        let progressURL = folder.appending(path: "progress.json")
+        let progress = folder.appending(path: "progress.json")
+        guard FileManager.default.fileExists(atPath: progress.path) else {
+            throw ValidationError("progress.json is missing; the run folder was changed outside this command.")
+        }
+        let checkpoint = try JSONDecoder.snake.decode(EvaluationCheckpoint.self, from: Data(contentsOf: progress))
+        guard checkpoint.run == identity else {
+            throw ValidationError("progress.json belongs to another run; the run folder was changed outside this command.")
+        }
+        let newline = UInt8(ascii: "\n")
         let data = try Data(contentsOf: outputs)
-        guard FileManager.default.fileExists(atPath: progressURL.path) || data.isEmpty else {
-            throw ValidationError(
-                "outputs.jsonl has lines, but progress.json is missing; they were changed outside this command.")
-        }
-        let progress =
-            data.isEmpty && !FileManager.default.fileExists(atPath: progressURL.path)
-            ? WrittenLines.empty : try JSONDecoder().decode(WrittenLines.self, from: Data(contentsOf: progressURL))
-        var lines: [Data] = []
-        var kept = data.startIndex
-        while lines.count < progress.lines, let end = data[kept...].firstIndex(of: UInt8(ascii: "\n")) {
-            lines.append(data[kept..<end])
-            kept = end + 1
-        }
-        guard lines.count == progress.lines else {
-            throw ValidationError(
-                "outputs.jsonl has \(lines.count) complete lines, fewer than the \(progress.lines) that progress.json records; it was changed outside this command."
-            )
-        }
+        let complete = data.lastIndex(of: newline).map { $0 + 1 } ?? data.startIndex
+        let lines = data[..<complete].split(separator: newline, omittingEmptySubsequences: false).dropLast()
         var hasher = SHA256()
-        hasher.update(data: data[..<kept])
-        guard hex(Data(hasher.finalize())) == progress.sha256 else {
+        hasher.update(data: data[..<complete])
+        let written = digest(hasher)
+        let confirmed = lines.count == checkpoint.lines && written == checkpoint.sha256
+        let announced = lines.count == checkpoint.lines + 1 && written == checkpoint.nextSha256
+        guard confirmed || announced else {
             throw ValidationError(
-                "The first \(progress.lines) lines of outputs.jsonl differ from progress.json; they were changed outside this command."
+                "outputs.jsonl has \(lines.count) complete lines, which match neither the \(checkpoint.lines) lines that progress.json records nor the line that it announced; the run folder was changed outside this command."
             )
-        }
-        if kept < data.endIndex {
-            let file = try FileHandle(forWritingTo: outputs)
-            try file.truncate(atOffset: UInt64(kept))
-            try file.close()
         }
         let known = Set(inputs.map(\.id))
         var ids: Set<String> = []
@@ -139,11 +141,18 @@ enum Evaluation {
             }
             guard ids.insert(id).inserted else { throw ValidationError("\(place) repeats an id.") }
         }
+        if complete < data.endIndex {
+            let file = try FileHandle(forWritingTo: outputs)
+            try file.truncate(atOffset: UInt64(complete))
+            try file.close()
+        }
         return (ids, hasher)
     }
 
-    static func write(_ progress: WrittenLines, in folder: URL) throws {
-        try JSONEncoder.records.encode(progress).write(to: folder.appending(path: "progress.json"), options: .atomic)
+    static func digest(_ hasher: SHA256) -> String { hex(Data(hasher.finalize())) }
+
+    static func write(_ checkpoint: EvaluationCheckpoint, in folder: URL) throws {
+        try JSONEncoder.records.encode(checkpoint).write(to: folder.appending(path: "progress.json"), options: .atomic)
     }
 
     static func write(_ record: EvaluationRun, in folder: URL) throws {

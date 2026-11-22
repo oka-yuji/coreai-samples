@@ -31,7 +31,18 @@ func runRecord(
         load: .init(cached: true, specializeS: 0, loadS: 1.5))
 }
 
-let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}"#
+let emptyProgress = #"{"lines":0,"run":"x","sha256":"\#(EvaluationCheckpoint.emptyDigest)"}"#
+
+func digest(_ data: Data) -> String { hex(Data(SHA256.hash(data: data))) }
+
+func completeLines(_ data: Data) -> [Data] {
+    data.split(separator: UInt8(ascii: "\n")).map { Data($0) + Data("\n".utf8) }
+}
+
+func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
+    let data = try Data(contentsOf: folder.appending(path: "progress.json"))
+    return try JSONDecoder.snake.decode(EvaluationCheckpoint.self, from: data)
+}
 
 @Suite(.timeLimit(.minutes(1))) struct EvaluationRunTests {
     private let stopAtOnce = FakeEvaluationLogitsSource.Item(rows: [[0, 0, 0, 1]])
@@ -142,17 +153,17 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         }
     }
 
-    private func fullRun(_ folder: URL, _ scripts: [FakeEvaluationLogitsSource.Item], _ inputs: [EvaluationInput]) async throws
-        -> Data
-    {
+    private func fullRun(
+        _ folder: URL, _ scripts: [FakeEvaluationLogitsSource.Item], _ inputs: [EvaluationInput], role: String = "fp16"
+    ) async throws -> Data {
         _ = try await Evaluation.run(
-            inputs, in: folder, record: runRecord(count: inputs.count), source: FakeEvaluationLogitsSource(scripts), stopTokens: [3]
-        )
+            inputs, in: folder, record: runRecord(count: inputs.count, role: role),
+            source: FakeEvaluationLogitsSource(scripts), stopTokens: [3])
         return try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
     }
 
     @Test(
-        "A run stopped by its limit or by cancellation records each written item in progress.json, resumes after it and ends with the outputs.jsonl of a run without a stop",
+        "A run stopped by its limit or by cancellation resumes after the last written item without writing it again, and ends with the outputs.jsonl of a run without a stop and a progress.json that announces no line",
         arguments: [("limit", 2), ("cancel", 0), ("cancel", 2)])
     func resumedRunMatchesAFullRun(stop: String, written: Int) async throws {
         let base = try temporaryFolder()
@@ -161,54 +172,96 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let folder = base.appending(path: "run")
         let scripts = Array(failingScripts.prefix(written))
         if stop == "cancel" {
-            let source = FakeEvaluationLogitsSource(scripts + [FakeEvaluationLogitsSource.Item(rows: [], cancelsAtPrefill: true)])
+            let source = FakeEvaluationLogitsSource(
+                scripts + [FakeEvaluationLogitsSource.Item(rows: [], cancelsAtPrefill: true)])
             await #expect(throws: CancellationError.self) {
                 try await Evaluation.run(
                     failingItems, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
             }
         } else {
             _ = try await Evaluation.run(
-                failingItems, limit: written, in: folder, record: runRecord(count: 4), source: FakeEvaluationLogitsSource(scripts),
-                stopTokens: [3])
+                failingItems, limit: written, in: folder, record: runRecord(count: 4),
+                source: FakeEvaluationLogitsSource(scripts), stopTokens: [3])
         }
+        let identity = try runRecord(count: 4).identityDigest()
         let outputs = try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
-        let progress = try JSONDecoder().decode(
-            WrittenLines.self, from: Data(contentsOf: folder.appending(path: "progress.json")))
-        #expect(progress == WrittenLines(lines: written, sha256: hex(Data(SHA256.hash(data: outputs)))))
+        let lines = completeLines(outputs)
+        #expect(lines.count == written)
+        let stopped =
+            stop == "cancel" && written > 0
+            ? EvaluationCheckpoint(
+                lines: written - 1, sha256: digest(lines.dropLast().reduce(Data(), +)), nextSha256: digest(outputs),
+                run: identity)
+            : EvaluationCheckpoint(lines: written, sha256: digest(outputs), run: identity)
+        #expect(try checkpoint(in: folder) == stopped)
         let source = FakeEvaluationLogitsSource(Array(failingScripts.dropFirst(written)))
         _ = try await Evaluation.run(
             failingItems, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
         #expect(source.calls.filter { $0.hasPrefix("prefill") }.count == failingItems.count - written)
         #expect(try Data(contentsOf: folder.appending(path: "outputs.jsonl")) == expected)
+        #expect(try checkpoint(in: folder) == EvaluationCheckpoint(lines: 4, sha256: digest(expected), run: identity))
     }
 
     @Test(
-        "A complete line after the recorded ones, left when a run stopped before updating progress.json, and a line cut by an interrupted write are dropped and their items run again",
-        arguments: [true, false])
-    func dropsLinesAfterTheRecordedOnes(complete: Bool) async throws {
+        "A run that stopped after announcing a line in progress.json and before or while writing it resumes and writes that item once",
+        arguments: [false, true])
+    func resumesBeforeTheAnnouncedLine(cut: Bool) async throws {
         let base = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: base) }
         let inputs = items(3)
         let expected = try await fullRun(
             base.appending(path: "full"), [stepThenStop, stepThenStop, stepThenStop], inputs)
         let folder = base.appending(path: "run")
-        _ = try await Evaluation.run(
-            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: FakeEvaluationLogitsSource([stepThenStop]),
-            stopTokens: [3])
+        _ = try await fullRun(folder, [stepThenStop, stepThenStop, stepThenStop], inputs)
+        let lines = completeLines(expected)
         let outputs = folder.appending(path: "outputs.jsonl")
-        let second = Data(expected.split(separator: UInt8(ascii: "\n"))[1]) + Data("\n".utf8)
-        try (Data(contentsOf: outputs) + (complete ? second : second.prefix(20))).write(to: outputs)
-        let source = FakeEvaluationLogitsSource([stepThenStop, stepThenStop])
+        try (lines[0] + lines[1] + (cut ? lines[2].prefix(20) : Data())).write(to: outputs)
+        try Evaluation.write(
+            EvaluationCheckpoint(
+                lines: 2, sha256: digest(lines[0] + lines[1]), nextSha256: digest(expected),
+                run: runRecord(count: 3).identityDigest()), in: folder)
+        let source = FakeEvaluationLogitsSource([stepThenStop])
         _ = try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
-        #expect(source.calls.filter { $0.hasPrefix("prefill") } == ["prefill 2 true", "prefill 3 true"])
+        #expect(source.calls.filter { $0.hasPrefix("prefill") } == ["prefill 3 true"])
         #expect(try Data(contentsOf: outputs) == expected)
     }
 
     @Test(
-        "Recorded lines changed by a byte, removed or reordered, and a progress.json removed or changed, stop the resumed run without generating",
+        "A run that cannot replace progress.json before a line stops before writing that line, and the folder resumes without writing an item twice"
+    )
+    func failedAnnouncementKeepsTheFolderResumable() async throws {
+        let base = try temporaryFolder()
+        let folder = base.appending(path: "run")
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path)
+            try? FileManager.default.removeItem(at: base)
+        }
+        let expected = try await fullRun(base.appending(path: "full"), failingScripts, failingItems)
+        let path = folder.path
+        var scripts = failingScripts
+        scripts[2].beforePrefill = {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: path)
+        }
+        await #expect(throws: (any Error).self) {
+            try await Evaluation.run(
+                failingItems, in: folder, record: runRecord(count: 4), source: FakeEvaluationLogitsSource(scripts),
+                stopTokens: [3])
+        }
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: path)
+        #expect(completeLines(try Data(contentsOf: folder.appending(path: "outputs.jsonl"))).count == 2)
+        let source = FakeEvaluationLogitsSource(Array(failingScripts.dropFirst(2)))
+        _ = try await Evaluation.run(
+            failingItems, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
+        #expect(source.calls.filter { $0.hasPrefix("prefill") }.count == 2)
+        #expect(try Data(contentsOf: folder.appending(path: "outputs.jsonl")) == expected)
+    }
+
+    @Test(
+        "Lines changed by a byte, removed, reordered, added without an announcement or other than the announced one, an older progress.json, another run's files and a missing progress.json stop the resumed run without generating or removing anything",
         arguments: [
             "trailing comma", "another stop token", "stop set to limit", "shorter output_ids", "line removed",
-            "lines swapped", "progress.json removed", "another sha256",
+            "lines swapped", "another sha256", "an older progress.json", "a line that was not announced",
+            "a line other than the announced one", "another run's files", "progress.json removed",
         ])
     func rejectsChangedOutputs(_ change: String) async throws {
         let base = try temporaryFolder()
@@ -216,9 +269,12 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let folder = base.appending(path: "run")
         let inputs = items(3)
         let written = try await fullRun(folder, [stepThenStop, stepThenStop, stepThenStop], inputs)
-        var lines = String(decoding: written, as: UTF8.self).split(separator: "\n").map(String.init)
-        var message =
-            "The first 3 lines of outputs.jsonl differ from progress.json; they were changed outside this command."
+        let identity = try runRecord(count: 3).identityDigest()
+        let original = completeLines(written)
+        var lines = original.map { String(decoding: $0, as: UTF8.self) }
+        var counted = 3
+        var recorded = 3
+        var message: String?
         switch change {
         case "trailing comma": lines[0] = lines[0].replacing(#""output_ids":[1]"#, with: #""output_ids":[1,]"#)
         case "another stop token": lines[0] = lines[0].replacing(#""stop_token":3"#, with: #""stop_token":2"#)
@@ -226,24 +282,57 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         case "shorter output_ids": lines[0] = lines[0].replacing(#""output_ids":[1]"#, with: #""output_ids":[]"#)
         case "line removed":
             lines.remove(at: 1)
-            message =
-                "outputs.jsonl has 2 complete lines, fewer than the 3 that progress.json records; it was changed outside this command."
+            counted = 2
         case "lines swapped": lines.swapAt(0, 1)
-        case "progress.json removed":
+        case "another sha256":
+            try Evaluation.write(
+                EvaluationCheckpoint(lines: 3, sha256: String(repeating: "0", count: 64), run: identity), in: folder)
+        case "an older progress.json":
+            try Evaluation.write(
+                EvaluationCheckpoint(
+                    lines: 1, sha256: digest(original[0]), nextSha256: digest(original[0] + original[1]),
+                    run: identity), in: folder)
+            recorded = 1
+        case "a line that was not announced":
+            lines.append(lines[0])
+            counted = 4
+        case "a line other than the announced one":
+            try Evaluation.write(
+                EvaluationCheckpoint(
+                    lines: 2, sha256: digest(original[0] + original[1]),
+                    nextSha256: digest(original[0] + original[1] + original[0]), run: identity), in: folder)
+            recorded = 2
+        case "another run's files":
+            let other = base.appending(path: "other")
+            _ = try await fullRun(other, [stepThenStop, stepThenStop, stepThenStop], inputs, role: "w8")
+            for name in ["outputs.jsonl", "progress.json"] {
+                try FileManager.default.removeItem(at: folder.appending(path: name))
+                try FileManager.default.copyItem(at: other.appending(path: name), to: folder.appending(path: name))
+            }
+            lines = completeLines(try Data(contentsOf: folder.appending(path: "outputs.jsonl"))).map {
+                String(decoding: $0, as: UTF8.self)
+            }
+            message = "progress.json belongs to another run; the run folder was changed outside this command."
+        default:
             try FileManager.default.removeItem(at: folder.appending(path: "progress.json"))
-            message = "outputs.jsonl has lines, but progress.json is missing; they were changed outside this command."
-        default: try Evaluation.write(WrittenLines(lines: 3, sha256: String(repeating: "0", count: 64)), in: folder)
+            message = "progress.json is missing; the run folder was changed outside this command."
         }
-        let changed = Data(lines.map { $0 + "\n" }.joined().utf8)
+        let changed = Data(lines.joined().utf8)
         let outputs = folder.appending(path: "outputs.jsonl")
         try changed.write(to: outputs)
+        let progress = try? Data(contentsOf: folder.appending(path: "progress.json"))
         let source = FakeEvaluationLogitsSource([stepThenStop])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
         }
-        #expect(error?.message == message)
+        #expect(
+            error?.message
+                == message
+                ?? "outputs.jsonl has \(counted) complete lines, which match neither the \(recorded) lines that progress.json records nor the line that it announced; the run folder was changed outside this command."
+        )
         #expect(source.calls.isEmpty)
         #expect(try Data(contentsOf: outputs) == changed)
+        #expect((try? Data(contentsOf: folder.appending(path: "progress.json"))) == progress)
     }
 
     @Test(
@@ -263,7 +352,9 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
             try JSONEncoder.records.encode(OutputRecord(id: "other", inputSha256: "", inputTokens: 1)) + Data("\n".utf8)
         let changed = written + (repeated ? written : stranger)
         try changed.write(to: outputs)
-        try Evaluation.write(WrittenLines(lines: 2, sha256: hex(Data(SHA256.hash(data: changed)))), in: folder)
+        try Evaluation.write(
+            EvaluationCheckpoint(lines: 2, sha256: digest(changed), run: runRecord(count: 3).identityDigest()),
+            in: folder)
         let source = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
@@ -274,6 +365,7 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
                     ? "outputs.jsonl line 2 (id item-1) repeats an id."
                     : "outputs.jsonl line 2 (id other) has no id of the input records."))
         #expect(source.calls.isEmpty)
+        #expect(try Data(contentsOf: outputs) == changed)
     }
 
     @Test("Once the time limit has passed, the run ends after the item in progress and records its finish")

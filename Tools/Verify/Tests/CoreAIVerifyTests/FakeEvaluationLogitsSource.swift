@@ -10,6 +10,7 @@ final class FakeEvaluationLogitsSource: LogitsSource, Sendable {
         var failsAtPrefill = false
         var failsAtStep: Int?
         var cancelsAtPrefill = false
+        var beforePrefill: (@Sendable () -> Void)?
     }
 
     private struct State {
@@ -32,6 +33,7 @@ final class FakeEvaluationLogitsSource: LogitsSource, Sendable {
     }
 
     func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws {
+        state.withLock { $0.items.first?.beforePrefill }?()
         try state.withLock { state in
             state.calls.append("prefill \(input.count) \(usePrefillFunction)")
             state.current = state.items.isEmpty ? Item(rows: [[0, 0, 0, 1]]) : state.items.removeFirst()

@@ -157,7 +157,7 @@ item ごとに、エンジンを空にし、入力を `prefill` で読み(バン
 | ファイル | 内容 |
 |---|---|
 | `outputs.jsonl` | item ごとの出力の記録。1 行に 1 件の JSON のオブジェクトで、item を終えるごとに追記してディスクへ同期します |
-| `progress.json` | このコマンドが `outputs.jsonl` に書いた行の数 `lines` と、それらの行の改行を含むバイト列の SHA-256 `sha256`。行を追記して同期した後に、atomic に置き換えるので、`outputs.jsonl` に無い行を記録することはありません |
+| `progress.json` | `outputs.jsonl` の確定した行の数 `lines` と、それらの行の改行を含むバイト列の SHA-256 `sha256`、これから書く 1 行を足した後の SHA-256 `next_sha256`(行を書いている間だけある)、再開で照合する実行の条件を鍵の順を固定した JSON にしたものの SHA-256 `run`。行を追記して同期する前に、atomic に置き換えてその行を予告し、次の予告か実行の終わりで、その行を確定させます。これと、これが指す `outputs.jsonl` の行が、済んだ item の正本です |
 | `run.json` | 実行の記録。実行の始めと終わりに書きます |
 
 | 出力の記録の項目 | 値 |
@@ -178,11 +178,11 @@ item ごとに、エンジンを空にし、入力を `prefill` で読み(バン
 | `implementation` | `command`(`coreai-verify evaluate`)、`commit`、`os_version`、`os_build` |
 | `call_shape` | エンジンの `prefill_chunk`、`prefill_function`、`expect_frequent_reshapes`、`requested_compute` と、`metadata.json` の `language.max_context_length` で決まる実効の文脈の上限 `context_limit` |
 | `inputs` | 入力のファイルの `sha256` と `count` |
-| `items` | `run.json` を書いたとき(各回の始めと、`--max-minutes` での終わりを含む正常な終わり)の、`outputs.jsonl` の記録の数。実行の途中と、異常に止まった後は、`outputs.jsonl` の行数より小さいことがあります。済んだ件数の正本は `outputs.jsonl` です。 |
+| `items` | `run.json` を書いたとき(各回の始めと、`--max-minutes`・`--limit` での終わりを含む正常な終わり)の、済んだ item の数。実行の途中と、異常に止まった後は、これより多く済んでいることがあります。済んだ item の正本は `progress.json` と、それが指す `outputs.jsonl` の行です。 |
 | `started`、`finished` | 実行を最初に始めた時刻と、最後に終えた時刻。実行の途中と、誤りで止まった後は `finished` が無い |
 | `load` | 最初の回のエンジンの読み込みの `cached`、`specialize_s`、`load_s` |
 
-`--output` に `run.json` があるときは、同じ実行のものでなければなりません。`contract`、`set`、`role`、`asset.main_hash`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。次に、`outputs.jsonl` の先頭が、このコマンドが書いたバイト列のままであることを確かめます。先頭から `lines` 行の、改行を含むバイト列の SHA-256 が、`progress.json` の `sha256` と同じでなければなりません。改行で終わる行が足りない、SHA-256 が違う、`outputs.jsonl` が空でないのに `progress.json` が無い、のどれかなら、ファイルがこのコマンドの外で変えられたものとして、生成する前に止まります。記録した行より後ろのバイト(書いている途中で切れた行や、`progress.json` を更新する前に止まった行)は消し、その item を流し直します。記録した行の item は流し直しません(誤りで終わった item も)。その中に、入力の記録に無い `id` か、2 回出てくる `id` があれば止まります。この検査が守るのは、実行のフォルダの事故による破損と取り違えです。`outputs.jsonl` と `progress.json` の両方を意図して書き換える操作は対象外で、記録した行の意味も検査し直しません(生成の試験が受け持ちます)。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
+`--output` に `run.json` があるときは、同じ実行のものでなければなりません。`contract`、`set`、`role`、`asset.main_hash`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。`progress.json` が無いか、その `run` が今回の実行の条件の SHA-256 と違えば止まります。`outputs.jsonl` の最後の改行より後ろのバイト(書いている途中で切れた行)は脇に置きます。改行で終わる行が `lines` 行でその SHA-256 が `sha256` と同じか、1 行多くて `next_sha256` と同じ(予告した行を書き終えた後に止まった)なら、それらの行を済んだ item とし、切れたバイトを消して、その item を流し直します。どちらでもなければ、実行のフォルダがこのコマンドの外で変えられたものとして、何も生成せず、何も消さずに止まります。改行で終わる行は、どの場合も消しません。済んだ item は流し直しません(誤りで終わった item も)。その中に、入力の記録に無い `id` か、2 回出てくる `id` があれば止まります。この検査が守るのは、実行のフォルダの事故による破損と、別の実行や同じ実行の以前の時点のファイルとの取り違えです。`outputs.jsonl` と `progress.json` の両方を意図して書き換える操作は対象外で、行の意味も検査し直しません(生成の試験が受け持ちます)。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
 
 標準出力には item ごとに 1 行の JSON を出します。`record` が `evaluate` で、`id`、`input_tokens`、`output_tokens`、`stop`(`stop_token`、`limit`、item に誤りがあれば `error`)、`seconds` を持ちます。文は出しません。取り消しと、入力の記録・契約・バンドル・実行のフォルダを読めないときは、item の誤りにせず、コマンドを止めます。
 

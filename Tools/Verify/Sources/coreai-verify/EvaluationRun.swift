@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 struct EvaluationRun: Codable, Equatable {
@@ -59,5 +60,21 @@ struct EvaluationRun: Codable, Equatable {
             ("asset.main_hash", asset.mainHash == stored.asset.mainHash), ("inputs", inputs == stored.inputs),
             ("call_shape", callShape == stored.callShape), ("implementation", implementation == stored.implementation),
         ].filter { !$0.1 }.map(\.0)
+    }
+
+    func identityDigest() throws -> String {
+        struct Identity: Encodable {
+            let contract: Contract
+            let set: String
+            let role: String
+            let mainHash: String
+            let inputs: Inputs
+            let callShape: CallShape
+            let implementation: Implementation
+        }
+        let identity = Identity(
+            contract: contract, set: set, role: role, mainHash: asset.mainHash, inputs: inputs, callShape: callShape,
+            implementation: implementation)
+        return hex(Data(SHA256.hash(data: try JSONEncoder.records.encode(identity))))
     }
 }
