@@ -80,11 +80,11 @@ def side(name, folder, digest, roles, expected, problems):
         (f"the {name} role is not a role of the contract", "role" in kept and kept["role"] not in roles),
         (f"the {name} logits were made from another forced input",
          "forced_sha256" in kept and kept["forced_sha256"] != digest)) if wrong]
-    listed = record.get("items") if isinstance(record, dict) else None
-    if not isinstance(listed, list):
+    values = record.get("items") if isinstance(record, dict) else None
+    if not isinstance(values, list):
         problems.append(f"the {name} record has no item list")
         return found
-    for index, value in enumerate(listed):
+    for index, value in enumerate(values):
         entry, malformed = validated(value, ENTRY)
         if malformed:
             problems.append(f"item {index} of the {name} record is malformed ({', '.join(malformed)})")
