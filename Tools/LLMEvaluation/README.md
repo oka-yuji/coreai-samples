@@ -152,7 +152,7 @@ The reasons of `incomplete`, in this order:
 | `token_count_differs` | Items with a `token_count` whose `input_tokens` differs in a record of either run |
 | `baseline_error` | Items whose baseline record has an `error` |
 | `unscored_item` | Items of a scored category whose `correct` is `null` in either run with a state other than `missing` and `malformed`, for example `pending_code` |
-| `score_inconsistent` | Items whose correctness differs although both runs generated the same tokens |
+| `score_inconsistent` | Items whose correctness differs although the baseline and candidate `output_ids` are equal; the scored text is decoded from `output_ids` alone, so a different stop does not explain it |
 
 Except for `malformed_record`, the ids are sorted. The generated tokens of a record are `output_ids`, followed by `stop_token` when the run stopped on one.
 

@@ -100,7 +100,7 @@ def compare(document, layer2):
         (regressions if old else improvements).append(name)
         category["regressions" if old else "improvements"] += 1
         position = diverging(before, after) if before and after else None
-        if before and after and position is None:
+        if before and after and before["output_ids"] == after["output_ids"]:
             inconsistent.append(name)
         changed.append({"id": name, "position": position, "baseline_gap": gap(before, position)})
     found["score_inconsistent"] = inconsistent

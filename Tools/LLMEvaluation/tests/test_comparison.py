@@ -93,15 +93,16 @@ class RulesOutsideTheTableTests(unittest.TestCase):
                 found = comparison.compare(document, LAYER2)
                 self.assertEqual(found["critical_failures"], [{"id": "free-ja-0002", "kind": "control_token"}])
 
-    def test_the_first_diverging_position_counts_the_baseline_stop_token(self):
+    def test_equal_output_ids_that_stopped_differently_and_scored_differently_are_inconsistent(self):
         document = case_input("clean_pair")
         record = output(document, "candidate", "ja-reading-0001")
         record.update({"stop": "limit", "top2": record["top2"][:-1]})
         del record["stop_token"]
         score_row(document, "candidate", "ja-reading-0001")["correct"] = False
         found = comparison.compare(document, LAYER2)
-        self.assertEqual(found["verdict"], "regression_found")
-        self.assertEqual(found["incomplete"], [])
+        self.assertEqual(found["verdict"], "incomplete")
+        self.assertEqual(found["incomplete"], [{"reason": "score_inconsistent", "ids": ["ja-reading-0001"]}])
+        self.assertEqual(found["regressions"], ["ja-reading-0001"])
         self.assertTrue(same(found["changed"], [{"id": "ja-reading-0001", "position": 3, "baseline_gap": 0.625}]))
 
     def test_the_record_keeps_the_contract_and_both_run_records(self):
