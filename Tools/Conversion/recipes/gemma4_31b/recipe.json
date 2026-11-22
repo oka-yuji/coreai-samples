@@ -79,37 +79,6 @@
       "min_free_bytes": 21474836480
     },
     {
-      "id": "layers",
-      "role": "verify",
-      "depends": ["prepare", "reference"],
-      "command": [
-        "$python", "-m", "Tools.Conversion.adapters.gemma4_31b.anchor", "layers",
-        "--model", "$recipe_dir/model.json",
-        "--snapshot", "$snapshot",
-        "--prepare", "$prepare",
-        "--reference", "$reference",
-        "--output", "$out"
-      ],
-      "cwd": "$repo",
-      "inputs": [
-        "$adapters/anchor.py",
-        "$adapters/reference.py",
-        "$adapters/prepare.py",
-        "$shared/monitor.py",
-        "$shared/prepare.py",
-        "$shared/typed_head.py",
-        "$repo/Tools/Conversion/adapters/pinned.py",
-        "$repo/Tools/Conversion/storage.py",
-        "$recipe_dir/model.json",
-        "$snapshot/*"
-      ],
-      "outputs": ["layers.json", "monitor.tsv"],
-      "checks": [{"file": "layers.json", "key": ["passed"], "equals": true}],
-      "heavy": true,
-      "timeout_s": 3600,
-      "min_free_bytes": 21474836480
-    },
-    {
       "id": "anchor",
       "role": "reference",
       "depends": ["prepare", "reference"],
@@ -260,6 +229,37 @@
       ],
       "outputs": ["reference.json", "cases", "monitor.tsv"],
       "checks": [{"file": "reference.json", "key": ["passed"], "equals": true}],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 21474836480
+    },
+    {
+      "id": "layers",
+      "role": "verify",
+      "depends": ["prepare", "reference"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.gemma4_31b.anchor", "layers",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--prepare", "$prepare",
+        "--reference", "$reference",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/anchor.py",
+        "$adapters/reference.py",
+        "$adapters/prepare.py",
+        "$shared/monitor.py",
+        "$shared/prepare.py",
+        "$shared/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$snapshot/*"
+      ],
+      "outputs": ["layers.json", "monitor.tsv"],
+      "checks": [{"file": "layers.json", "key": ["passed"], "equals": true}],
       "heavy": true,
       "timeout_s": 3600,
       "min_free_bytes": 21474836480
