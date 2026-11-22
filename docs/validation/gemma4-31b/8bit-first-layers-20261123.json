@@ -1,10 +1,10 @@
 {
   "schema": "gemma4-31b-8bit-summary/1",
-  "scope": "8-bit export of the first layers, its comparison with the FP32 reference restored from the same quantized weights, and the effect of the quantization against the FP32 reference with float16-rounded weights; not a quality evaluation.",
+  "scope": "8-bit export of the first layers with the outputs for speculation, the comparison of its logits with the FP32 reference restored from the same quantized weights, and the effect of the quantization against the FP32 reference with float16-rounded weights; not a quality evaluation.",
   "reference": {
     "weights": "8bit",
     "quantized": {
-      "export_sha256": "2f123c0d1c022dc45f11f7457017b51e24f43725f6ed4741d18f017efb001032",
+      "export_sha256": "02addf2f982c2968c1018a34af175ae0b7ad824a78b8bd43e058b83331156343",
       "file": {
         "bytes": 3294771912,
         "sha256": "5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833"
@@ -40,7 +40,7 @@
         "tokens_sha256": "73d46e7359d93e9d7d66e2bd690764021320ee4801bde538e5d9e76f407309b5",
         "rows": 1428,
         "calls": 17,
-        "seconds": 44.15170087479055,
+        "seconds": 47.13468262553215,
         "logits": {
           "bytes": 1497366656,
           "sha256": "7328ab67bf4f5b9052bf262ed0d154815a77addd9ed91c88a4a193716f143ee3",
@@ -57,7 +57,7 @@
         "tokens_sha256": "3067fb987b33e81073d6facfd4ffe128ce8a9bbc03405c97f592a6041d5818af",
         "rows": 26,
         "calls": 1,
-        "seconds": 0.23850900027900934,
+        "seconds": 0.5502934167161584,
         "logits": {
           "bytes": 27263104,
           "sha256": "c834d47504133ecc62faaf25512074e91e129d05d9d7709bae0d58d47a529024",
@@ -71,13 +71,13 @@
       }
     },
     "timing": {
-      "input_hash_s": 21.86554720904678,
-      "load_s": 4.214017290621996,
-      "total_s": 71.12685666698962
+      "input_hash_s": 31.705286709591746,
+      "load_s": 5.891364165581763,
+      "total_s": 85.94270633440465
     },
     "memory": {
-      "lifetime_peak_footprint_bytes": 55463075584,
-      "max_rss_bytes": 55494541312
+      "lifetime_peak_footprint_bytes": 51210900272,
+      "max_rss_bytes": 51242975232
     }
   },
   "assets": [
@@ -92,20 +92,20 @@
             "index": 0,
             "role": "prepare",
             "status": "executed",
-            "prepare_s": 21.989895208738744,
-            "execute_s": 25.631839166395366,
-            "total_s": 71.20327833294868
+            "prepare_s": 24.546157292090356,
+            "execute_s": 27.147507334128022,
+            "total_s": 76.60556870885193
           },
           {
             "index": 1,
             "role": "export",
             "status": "executed",
-            "prepare_s": 21.921020625159144,
-            "execute_s": 73.60934937559068,
-            "total_s": 122.66961116716266
+            "prepare_s": 23.150626541115344,
+            "execute_s": 77.31841058377177,
+            "total_s": 128.77327199932188
           }
         ],
-        "elapsed_s": 195.52382054086775
+        "elapsed_s": 209.21010700054467
       },
       "export": {
         "quantized": {
@@ -183,12 +183,28 @@
                 }
               },
               "outputs": {
+                "hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    5376
+                  ]
+                },
                 "logits": {
                   "dtype": "float16",
                   "shape": [
                     1,
                     null,
                     262144
+                  ]
+                },
+                "tap_hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    26880
                   ]
                 }
               },
@@ -252,7 +268,16 @@
                   ]
                 }
               },
-              "outputs": {},
+              "outputs": {
+                "tap_hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    26880
+                  ]
+                }
+              },
               "states": {
                 "keyCache": {
                   "dtype": "float16",
@@ -297,6 +322,16 @@
               }
             }
           },
+          "output_order": {
+            "main": [
+              "logits",
+              "hidden_states",
+              "tap_hidden_states"
+            ],
+            "prefill": [
+              "tap_hidden_states"
+            ]
+          },
           "storage_types": {
             "Float16": 1592466186,
             "Float32": 386,
@@ -306,7 +341,8 @@
             "UInt8": 2930049024
           },
           "float16_minus_weights": 4,
-          "uint8_minus_weights": 1376256
+          "uint8_minus_weights": 1376256,
+          "dequantizations": 77
         },
         "tokenizer": {
           "chat_template.jinja": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4",
@@ -319,28 +355,36 @@
           "max_context_length": 16896,
           "hf_model_id": "google/gemma-4-31B-it",
           "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
-          "compression": "8bit"
+          "compression": "8bit",
+          "tap_layers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "tap_convention": "layers-passed:before-final-norm:ascending"
         },
         "bundle": {
           "name": "gemma4_31b_l6_8bit_main_prefill",
-          "main_hash": "1f95f44f26e30ab608191ae73217a4924c515729aeaa6970a4561ac245a99374",
-          "bytes": 6145897927,
+          "main_hash": "72918f8a860f265edd8bccd3b7d6a6cb2fc93d8268265c71109e95825889a5d0",
+          "bytes": 6145898337,
           "files": {
             "gemma4_31b_l6_8bit_main_prefill.aimodel/main.hash": {
               "bytes": 32,
-              "sha256": "c817ea6f4e866ef806d996ed87fb6fa929ec2ca1260570e1f88c0a63b50b2022"
+              "sha256": "94b27f624db0b4725db4ea5fac5ac6a1a1b976dc82d7f0ec3695f1be3ba375f1"
             },
             "gemma4_31b_l6_8bit_main_prefill.aimodel/main.mlirb": {
-              "bytes": 6113705831,
-              "sha256": "1f95f44f26e30ab608191ae73217a4924c515729aeaa6970a4561ac245a99374"
+              "bytes": 6113706119,
+              "sha256": "72918f8a860f265edd8bccd3b7d6a6cb2fc93d8268265c71109e95825889a5d0"
             },
             "gemma4_31b_l6_8bit_main_prefill.aimodel/metadata.json": {
               "bytes": 105,
-              "sha256": "14d9278019417ad322e169777859d29b7a13ccdc24ea08d0aaa64d4a078e9581"
+              "sha256": "fbac76967494b56d3f3b031290449de4c1abb60013f9e9d9b66d14ce7d64ae94"
             },
             "metadata.json": {
-              "bytes": 568,
-              "sha256": "6dfa409503ad1ed1412eb511c0aa30550a0e240eb84946996ff5aa7091ec1a14"
+              "bytes": 690,
+              "sha256": "4e9dc687aa4057f105166810df3c1d8a01c8acb8ecd66ce4393684815b72d90d"
             },
             "tokenizer/chat_template.jinja": {
               "bytes": 18683,
@@ -358,39 +402,39 @@
         },
         "disk": {
           "estimated_write_bytes": 30366678314,
-          "free_before_bytes": 401282338816,
-          "lowest_free_bytes": 379880468480,
+          "free_before_bytes": 366229176320,
+          "lowest_free_bytes": 344846389248,
           "margin_bytes": 64424509440,
           "required_free_bytes": 94791187754,
           "weight_bytes": 8676193804
         },
         "timing": {
-          "bundle_hash_s": 2.2573011247441173,
-          "convert_s": 33.16087441518903,
-          "input_hash_s": 21.957136999815702,
-          "inspect_s": 0.022125625051558018,
-          "load_s": 2.5058028753846884,
-          "quantize_s": 2.542342124506831,
-          "save_s": 4.889002834446728,
-          "tensors_s": 3.101076834835112,
-          "total_s": 71.01946858409792
+          "bundle_hash_s": 2.2886206656694412,
+          "convert_s": 33.55456158332527,
+          "input_hash_s": 23.150917834602296,
+          "inspect_s": 0.025634250603616238,
+          "load_s": 3.709060332737863,
+          "quantize_s": 2.9422604581341147,
+          "save_s": 5.132480333559215,
+          "tensors_s": 3.273619666695595,
+          "total_s": 74.67591791599989
         },
         "resources": {
-          "max_rss_bytes": 20348649472,
-          "lifetime_peak_footprint_bytes": 11580817800,
+          "max_rss_bytes": 20354973696,
+          "lifetime_peak_footprint_bytes": 11587207632,
           "swap": {
-            "first_bytes": 13938783683,
+            "first_bytes": 13896840643,
             "increase_bytes": 0,
             "limit_increase_bytes": 2000000000,
-            "peak_bytes": 13938783683
+            "peak_bytes": 13896840643
           },
           "monitor": {
-            "samples": 14,
+            "samples": 15,
             "interval_s": 5,
             "aborts": 0,
             "failed": false,
             "unreadable_samples": 0,
-            "peak_rss_bytes": 19616006144,
+            "peak_rss_bytes": 19614400512,
             "lowest_free_percent": 91
           }
         }
@@ -410,7 +454,7 @@
           "shortest": 8
         },
         "verifier_sha256": "6205024972ae4a034b507ed5f27039e5d08a450fee213d8aec2803acc376b620",
-        "main_hash": "1f95f44f26e30ab608191ae73217a4924c515729aeaa6970a4561ac245a99374",
+        "main_hash": "72918f8a860f265edd8bccd3b7d6a6cb2fc93d8268265c71109e95825889a5d0",
         "conditions": [
           {
             "name": "short-c1",
@@ -439,7 +483,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 5.716722208075225,
+            "seconds": 6.078609207645059,
             "output": {
               "bytes": 13631488,
               "sha256": "7fed7394dccbde7b5bf0c6edbd161d6a8ec6416ec7e82753f314994f09951d26"
@@ -450,10 +494,10 @@
               "prefix_calls": 0,
               "main_calls": 26,
               "non_finite_count": 0,
-              "load_s": 4.738396792,
-              "prefix_s": 1.5292000000000002e-05,
-              "scoring_s": 0.552614041,
-              "specialize_s": 3.520146375
+              "load_s": 5.058841375,
+              "prefix_s": 2.0125e-05,
+              "scoring_s": 0.603592125,
+              "specialize_s": 3.699075708
             }
           },
           {
@@ -483,7 +527,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 1.4588390830904245,
+            "seconds": 1.529230042360723,
             "output": {
               "bytes": 13631488,
               "sha256": "77a7054efaa36486e900c61b8fac3678977becde278c915bf621ccfd4f9a4b0a"
@@ -494,9 +538,9 @@
               "prefix_calls": 0,
               "main_calls": 1,
               "non_finite_count": 0,
-              "load_s": 1.283684792,
-              "prefix_s": 4.125e-06,
-              "scoring_s": 0.12032495800000001,
+              "load_s": 1.34206625,
+              "prefix_s": 1.0459000000000001e-05,
+              "scoring_s": 0.130496666,
               "specialize_s": 0
             }
           },
@@ -527,7 +571,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 27.447111375629902,
+            "seconds": 25.911394082941115,
             "output": {
               "bytes": 681574400,
               "sha256": "e0be08126082bce4a4c7e5e82692d96cbfcc55e70835fd0fe2ce4ec3e44e9774"
@@ -538,9 +582,9 @@
               "prefix_calls": 0,
               "main_calls": 1300,
               "non_finite_count": 0,
-              "load_s": 1.21936275,
+              "load_s": 1.328626292,
               "prefix_s": 4.458e-06,
-              "scoring_s": 26.167500875,
+              "scoring_s": 24.524037292,
               "specialize_s": 0
             }
           },
@@ -571,7 +615,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 13.891555874608457,
+            "seconds": 13.265589457936585,
             "output": {
               "bytes": 681574400,
               "sha256": "0b86bf19b4ff1a45fe70ab8ae9fd2d1ac9ca95a6281374ad928a162480cadb0b"
@@ -582,9 +626,9 @@
               "prefix_calls": 0,
               "main_calls": 650,
               "non_finite_count": 0,
-              "load_s": 1.073007375,
-              "prefix_s": 4.959e-06,
-              "scoring_s": 12.758507125,
+              "load_s": 1.480381334,
+              "prefix_s": 4.208e-06,
+              "scoring_s": 11.724880292,
               "specialize_s": 0
             }
           },
@@ -615,7 +659,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 7.3767653331160545,
+            "seconds": 7.065047541633248,
             "output": {
               "bytes": 681574400,
               "sha256": "fc5e87679c55e93dd0d4f1541fc3098c3c4e63b77b8b2de2a5047b903851accb"
@@ -626,9 +670,9 @@
               "prefix_calls": 0,
               "main_calls": 325,
               "non_finite_count": 0,
-              "load_s": 1.074870166,
-              "prefix_s": 5.792000000000001e-06,
-              "scoring_s": 6.233197208,
+              "load_s": 1.427175083,
+              "prefix_s": 9.917e-06,
+              "scoring_s": 5.578561458,
               "specialize_s": 0
             }
           },
@@ -659,7 +703,7 @@
               "rows": 16,
               "max_abs_logit": 4.379023551940918
             },
-            "seconds": 5.6518771247938275,
+            "seconds": 6.1208174573257565,
             "output": {
               "bytes": 681574400,
               "sha256": "0a306541deb9293c2c9a9bfecda057d3575e9fe0211c4ea670be758095ff51a3"
@@ -670,9 +714,9 @@
               "prefix_calls": 0,
               "main_calls": 163,
               "non_finite_count": 0,
-              "load_s": 1.08435875,
-              "prefix_s": 5.541000000000001e-06,
-              "scoring_s": 4.505312959,
+              "load_s": 1.522587791,
+              "prefix_s": 4.709e-06,
+              "scoring_s": 4.539376208,
               "specialize_s": 0
             }
           },
@@ -703,7 +747,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 7.005880624987185,
+            "seconds": 7.4439949579536915,
             "output": {
               "bytes": 157286400,
               "sha256": "1e3d7003bc24de27206320e86494b14036c652b9225dcdb4b679da368c8b6b3f"
@@ -714,9 +758,9 @@
               "prefix_calls": 1,
               "main_calls": 300,
               "non_finite_count": 0,
-              "load_s": 1.075937125,
-              "prefix_s": 0.442156333,
-              "scoring_s": 5.425083209,
+              "load_s": 1.513437541,
+              "prefix_s": 0.43989675000000006,
+              "scoring_s": 5.414262584,
               "specialize_s": 0
             }
           },
@@ -747,7 +791,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 2.248276624828577,
+            "seconds": 2.5685617504641414,
             "output": {
               "bytes": 8388608,
               "sha256": "51d9146660210f61c8f8ee255f36dee8235e5f8ef4ebf6da606ff76b69975744"
@@ -758,9 +802,9 @@
               "prefix_calls": 1,
               "main_calls": 4,
               "non_finite_count": 0,
-              "load_s": 1.081411125,
-              "prefix_s": 0.9327188750000001,
-              "scoring_s": 0.14890883300000002,
+              "load_s": 1.459125084,
+              "prefix_s": 0.8844601660000001,
+              "scoring_s": 0.153507209,
               "specialize_s": 0
             }
           },
@@ -791,7 +835,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 3.350222040899098,
+            "seconds": 3.5891730831936,
             "output": {
               "bytes": 8388608,
               "sha256": "f260c6754728baa676163fe39913d3456c1aad3f4c690321e8109082975963bc"
@@ -802,9 +846,9 @@
               "prefix_calls": 1,
               "main_calls": 2,
               "non_finite_count": 0,
-              "load_s": 1.074886792,
-              "prefix_s": 2.052775458,
-              "scoring_s": 0.15132025000000002,
+              "load_s": 1.43532825,
+              "prefix_s": 1.93322725,
+              "scoring_s": 0.15042375000000002,
               "specialize_s": 0
             }
           },
@@ -835,7 +879,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 6.028663791716099,
+            "seconds": 6.183510625734925,
             "output": {
               "bytes": 8388608,
               "sha256": "4f909e89f76e1b235cf1870943cc45a5b2936d96d069ae872928723cfc3ff729"
@@ -846,9 +890,9 @@
               "prefix_calls": 2,
               "main_calls": 8,
               "non_finite_count": 0,
-              "load_s": 1.097936291,
-              "prefix_s": 4.561426125,
-              "scoring_s": 0.29586458400000004,
+              "load_s": 1.4335835000000001,
+              "prefix_s": 4.39394,
+              "scoring_s": 0.282429083,
               "specialize_s": 0
             }
           },
@@ -879,7 +923,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 11.365084790624678,
+            "seconds": 10.997568334452808,
             "output": {
               "bytes": 8388608,
               "sha256": "d9f9df111a461d653040a3a8b3c335fa5898f3a6c9ec70c6f176399bb1d78c54"
@@ -890,9 +934,9 @@
               "prefix_calls": 4,
               "main_calls": 4,
               "non_finite_count": 0,
-              "load_s": 1.079949084,
-              "prefix_s": 9.945772125,
-              "scoring_s": 0.258075375,
+              "load_s": 1.521185041,
+              "prefix_s": 9.135422125,
+              "scoring_s": 0.259311167,
               "specialize_s": 0
             }
           },
@@ -923,7 +967,7 @@
               "rows": 0,
               "max_abs_logit": null
             },
-            "seconds": 12.514010542072356,
+            "seconds": 12.809556541964412,
             "output": {
               "bytes": 33554432,
               "sha256": "3d34c4101fdf5b07e0f58828d95d81a3e9eb4d51e86ab9c2831e572e87932e2d"
@@ -934,9 +978,9 @@
               "prefix_calls": 5,
               "main_calls": 64,
               "non_finite_count": 0,
-              "load_s": 1.080561708,
-              "prefix_s": 10.13144025,
-              "scoring_s": 1.218275292,
+              "load_s": 1.616365666,
+              "prefix_s": 9.784093125,
+              "scoring_s": 1.326409875,
               "specialize_s": 0
             }
           }
@@ -945,7 +989,7 @@
     }
   ],
   "effect": {
-    "rounded_sha256": "e8badd0271df561b5122e50da9a847e708975c5bf0bfb5adf844a42bcda1dbe8",
+    "rounded_sha256": "5ec51dcd5c9789500a36740d60bb668c30a495ae85785119d6f30cd8247b5ec7",
     "layers": 6,
     "criteria": {
       "near_tie": 0.01
