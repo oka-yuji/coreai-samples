@@ -288,7 +288,9 @@ class QuantizedSummaryTests(Records):
         changes = [lambda record: record["quantized"]["file"].update(sha256=SENTINEL),
                    lambda record: record["asset"].update(uint8_minus_weights=SENTINEL),
                    lambda record: record.update(compression_config={"quantization": SENTINEL}),
-                   lambda record: record["quantized"].update(warnings_enabled="yes")]
+                   lambda record: record["quantized"].update(warnings_enabled="yes"),
+                   lambda record: record["quantized"].update(layers=SENTINEL),
+                   lambda record: record["quantized"].update(tensors=[SENTINEL])]
         for index, change in enumerate(changes):
             record = quantized_record()
             change(record)
@@ -303,6 +305,10 @@ class QuantizedSummaryTests(Records):
         self.assertEqual(self.summarize(self.run_files("with-problems")), (1, ""))
         write_json(self.effect, effect_record(sha256(self.reference), schema="other"))
         self.assertEqual(self.summarize(self.run_files("other-schema")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference), restored=[sha256(self.reference)]))
+        self.assertEqual(self.summarize(self.run_files("listed-reference")), (1, ""))
+        self.effect.write_text("[]")
+        self.assertEqual(self.summarize(self.run_files("listed-effect")), (1, ""))
         write_json(self.effect, effect_record(sha256(self.reference)))
         fp16 = Records.run_files(self, "fp16", export_record())
         self.assertEqual(self.summarize(self.run_files("mixed"), fp16), (1, ""))

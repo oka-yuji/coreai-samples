@@ -604,6 +604,18 @@ class RestoredReferenceTests(unittest.TestCase):
                     layers.context(contract, snapshot, 6, output, "8bit", target)
                 load.assert_not_called()
                 self.assertFalse(os.path.lexists(output))
+            index = snapshot / "model.safetensors.index.json"
+            saved = index.read_bytes()
+            for label, content in {"a list": [], "a weight map that is a list": {"weight_map": []},
+                                   "a shard outside the snapshot": {"weight_map": {
+                                       key: "../shard.safetensors" for key in read_json(index)["weight_map"]}}}.items():
+                write_json(index, content)
+                output = folder / f"index-{label.replace(' ', '-')}"
+                with self.subTest(index=label), self.assertRaises(ValueError):
+                    layers.context(contract, snapshot, 6, output, "8bit", write_export(
+                        folder / f"export-index-{label.replace(' ', '-')}", contract, tensors))
+                self.assertFalse(os.path.lexists(output))
+            index.write_bytes(saved)
             source = write_export(folder / "export", contract, tensors)
             for label, (weights, given) in {"8bit without an export": ("8bit", None),
                                             "float16 with an export": ("float16", source),

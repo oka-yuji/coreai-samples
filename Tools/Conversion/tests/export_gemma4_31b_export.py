@@ -214,6 +214,9 @@ class QuantizedExportTests(unittest.TestCase):
                 self.assertEqual(seen, [(True, True, True)])
                 for work in (export.WORK, export.QUANTIZING, export.BUNDLE):
                     self.assertFalse((output / work).exists())
+                failure = output / "failure.json"
+                self.assertEqual(read_json(failure) if failure.exists() else None, {
+                    "schema": export.SCHEMA, "passed": False, "error": "RuntimeError"} if label == "export" else None)
 
 
 

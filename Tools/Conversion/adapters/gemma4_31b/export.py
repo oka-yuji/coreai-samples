@@ -414,6 +414,14 @@ def main():
     contract = load_contract(args.model)
     kinds = check_layers(contract["config"], args.layers)
     args.output.mkdir(parents=True)
+    try:
+        return begin(args, contract, kinds)
+    except Exception as error:
+        write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "error": type(error).__name__})
+        raise
+
+
+def begin(args, contract, kinds):
     elements = weight_elements(args.snapshot, args.layers)
     free, required = shutil.disk_usage(args.output).free, required_bytes(elements, args.precision)
     if free < required:

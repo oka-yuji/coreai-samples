@@ -467,7 +467,8 @@ Next to `export.json` and the bundle (`gemma4_31b_l<layers>_8bit_<functions>.aim
 of every quantized weight as the step passed them to the converter, with the SHA-256 of each tensor in `export.json`.
 The asset summary does not give the tensors one by one, so these hashes are of the tensors that the step passed to the
 converter; the asset itself is checked through its operations and through the logits of the own engine below. The
-converter's work area `export/quantization/` is removed with `export/layers/`. The step starts only with seven bytes per
+converter's work area `export/quantization/` is removed with `export/layers/`. An error after the step made `export/`,
+with either precision, leaves `export/failure.json` with the type of the error. The step starts only with seven bytes per
 weight element of the chosen layers plus 60 GiB free. `QuantizedAssetTests` in
 `Tools/Conversion/tests/test_gemma4_31b_export.py` fixes the checks of a passing run. Their values: the fixed config,
 the Linear weights of the layers as the quantized tensors (41 for six layers, 410 for 60; the full-attention layers have

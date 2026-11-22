@@ -517,6 +517,8 @@ class StartTests(unittest.TestCase):
         count, verify, supervise = raised.exception.calls
         verify.assert_not_called()
         supervise.assert_not_called()
+        self.assertEqual(read_json(self.folder / "short/failure.json"),
+                         {"schema": export.SCHEMA, "passed": False, "error": "PipelineError"})
         code, count, verify, supervise = self.main(arguments(self.folder, self.folder / "enough", precision="8bit",
                                                              compression=config), free=required)
         self.assertEqual(code, 0)

@@ -228,7 +228,10 @@ def quantized_export(folder, contract_path, kinds):
 def checkpoint_shapes(snapshot, names):
     from safetensors import safe_open
 
-    weight_map, files = read_json(Path(snapshot) / "model.safetensors.index.json")["weight_map"], {}
+    index, files = read_json(Path(snapshot) / "model.safetensors.index.json"), {}
+    weight_map = index.get("weight_map") if isinstance(index, dict) else None
+    if not isinstance(weight_map, dict):
+        raise ValueError("The checkpoint index has no weight map")
     for name in names:
         key = PREFIX + name.removeprefix("model.")
         if not isinstance(weight_map.get(key), str) or Path(weight_map[key]).name != weight_map[key]:

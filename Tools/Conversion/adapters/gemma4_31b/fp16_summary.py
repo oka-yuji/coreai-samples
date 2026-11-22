@@ -82,6 +82,8 @@ def layout(functions):
 
 def quantization(record):
     quantized = record["quantized"]
+    if not isinstance(quantized["layers"], list) or not isinstance(quantized["tensors"], dict):
+        raise PipelineError("Expected the quantized weights as a list and their tensors as a mapping")
     return {"quantized": {"layers": len(quantized["layers"]), "skipped": count(quantized["skipped"]),
                           "warnings_enabled": flag(quantized["warnings_enabled"]), "file": logits(quantized["file"]),
                           "tensors": len(quantized["tensors"])}}
@@ -181,8 +183,9 @@ def paired(reports, exports, comparisons, reference_hash):
 
 
 def effected(record, reference_hash):
-    if record.get("schema") != EFFECT_SCHEMA or record.get("problems") != [] \
-            or (record.get("restored") or {}).get("sha256") != reference_hash:
+    restored = record.get("restored") if isinstance(record, dict) else None
+    if not isinstance(restored, dict) or record.get("schema") != EFFECT_SCHEMA or record.get("problems") != [] \
+            or restored.get("sha256") != reference_hash or not isinstance(record.get("rounded"), dict):
         raise PipelineError("Expected the effect of the quantization on the restored reference")
     return {"rounded_sha256": matched(record["rounded"]["sha256"], HEX[64]), "layers": count(record["restored"]["layers"]),
             "criteria": {word(key): number(value) for key, value in record["criteria"].items()},
