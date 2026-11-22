@@ -51,6 +51,7 @@ def fixture():
         outputs.append({"id": entry["id"], "input_sha256": digest(ids), "input_tokens": len(ids),
                         **generation(range(5000 + number % 11, 5001 + number % 11 + number % 3))})
     run = {"contract": dict(IDENTITY), "set": "primary", "role": "reference", "items": len(ENTRIES), "id": "run-1",
+           "asset": {"model": CONTRACT["model"]["repository"], "revision": CONTRACT["model"]["revision"]},
            "started": "2026-11-22T00:00:00Z", "finished": "2026-11-22T01:00:00Z"}
     return {"inputs": inputs, "outputs": outputs, "run": run, "summary": {}, "progress": {}}
 
@@ -348,6 +349,15 @@ class RefusalTests(Folder):
                 state = fixture()
                 by_id(state["outputs"], "extract-ja-0002").update(change)
                 self.refused(state, f"extract-ja-0002: {text}")
+
+    def test_a_run_of_another_model_or_revision_writes_nothing(self):
+        for name, change in (("another revision", lambda asset: asset.update(revision="0" * 40)),
+                             ("another model", lambda asset: asset.update(model="google/gemma-4-26B-it")),
+                             ("no model", lambda asset: asset.pop("model"))):
+            with self.subTest(name):
+                state = fixture()
+                change(state["run"]["asset"])
+                self.refused(state, "the run is not of the model and revision of the contract")
 
     def test_a_run_of_another_role_or_set_writes_nothing(self):
         for key, value, text in (("role", "anchor", "the run is not of the reference role"),

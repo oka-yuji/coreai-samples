@@ -121,7 +121,10 @@ def checked_sources(bundle, summary, run, known, files):
     if not isinstance(run, dict):
         raise ValueError("run.json is not a JSON object")
     identity = {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]}
+    model, asset = bundle["contract"]["model"], run.get("asset") if isinstance(run.get("asset"), dict) else {}
     failed = [text for text, wrong in (
+        ("the run is not of the model and revision of the contract",
+         (asset.get("model"), asset.get("revision")) != (model["repository"], model["revision"])),
         ("inputs.json is not the summary of inputs.jsonl under this contract",
          not same(summary, {"contract": identity, **files})),
         ("the run was made under another contract", not same(run.get("contract"), identity)),
