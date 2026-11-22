@@ -87,8 +87,8 @@ The output folder gets one folder per run, named after the run folder once its p
 |---|---|
 | `id`, `category` | From the item |
 | `kind` | The scorer kind |
-| `correct` | `true` or `false`; `null` for `unscored`, `missing` and `malformed` |
-| `state` | `scored`, `unscored`, `missing` (no record), `malformed` (only malformed records carry its id), or the reason nothing could be read, which makes the item incorrect: `no_digit`, `no_marker`, `no_integer`, `no_json` or `duplicate_key` |
+| `correct` | `true` or `false`; `null` for `unscored`, `item_hash_differs`, `missing` and `malformed` |
+| `state` | `scored`, `unscored`, `item_hash_differs` (a code item whose content differs from the frozen set; its program is not run), `missing` (no record), `malformed` (only malformed records carry its id), or the reason nothing could be read, which makes the item incorrect: `no_digit`, `no_marker`, `no_integer`, `no_json` or `duplicate_key` |
 | `parsed` | The value read: the digit, the integer, the normalized text, the first JSON object or the stripped non-empty lines; `null` when nothing was read, and for code |
 | `f1` | `reading_exact` only: the character F1 |
 | `tp`, `fp`, `fn` | `entity_sets` only: the (key, string) pairs of the item |

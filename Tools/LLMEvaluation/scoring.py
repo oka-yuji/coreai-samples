@@ -179,15 +179,18 @@ def partition(records, vocabulary):
     return good, broken
 
 
-def record_checks(items, good, broken, hashes):
+def differing(items, hashes):
+    return {item["id"] for item in items if digest(item) != hashes.get(item["id"])}
+
+
+def record_checks(items, good, broken, differs):
     ids = {item["id"] for item in items}
     seen = Counter([record["id"] for record in good] + [name for name in broken if isinstance(name, str)])
     return {"missing": sorted(ids - set(seen)), "not_in_set": sorted(set(seen) - ids),
             "duplicate": sorted(key for key, count in seen.items() if count > 1),
             "top2_differs": sorted({record["id"] for record in good
                                     if [entry[0] for entry in record["top2"]] != generated(record)}),
-            "item_hash_differs": sorted(item["id"] for item in items if digest(item) != hashes.get(item["id"])),
-            "malformed": broken}
+            "item_hash_differs": sorted(differs), "malformed": broken}
 
 
 def ratio(numerator, denominator):
@@ -254,10 +257,12 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256, co
         raise ValueError("Duplicate item ids in the items file")
     frozen = frozen_set(bundle, {item["id"] for item in items})
     execution.available()
-    hashes, results, done = committed(bundle), {}, {}
+    differs, results, done = differing(items, committed(bundle)), {}, {}
     vocabulary = tokenizer.get_vocab_size(with_added_tokens=True)
 
     def scored(item, ids):
+        if item["scorer"]["kind"] == "python_tests" and item["id"] in differs:
+            return {"kind": "python_tests", "correct": None, "state": "item_hash_differs", "parsed": None}
         key = (item["id"], tuple(ids))
         if key not in done:
             done[key] = score(item, tokenizer.decode(ids, skip_special_tokens=True))
@@ -281,7 +286,7 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256, co
             "tokenizer": {"sha256": tokenizer_sha256, "vocabulary": vocabulary},
             "scorer": {"commit": commit, "python": platform.python_version()}, "run": read_json(run / "run.json"),
             "outputs": {"sha256": hashlib.sha256(data).hexdigest()},
-            "checks": record_checks(items, good, broken, hashes), "categories": summarize(rows),
+            "checks": record_checks(items, good, broken, differs), "categories": summarize(rows),
             "code": {"timeouts": sum(row.get("rerun", False) for row in rows),
                      "rerun_passed": sum(row.get("rerun", False) and row["correct"] for row in rows)}}
     output.mkdir(parents=True)

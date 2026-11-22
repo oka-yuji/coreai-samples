@@ -35,6 +35,12 @@ def bundle_with(primary, reserve=()):
                                "reserve": {"items": [entries[key] for key in reserve]}}}
 
 
+def frozen_as(listed):
+    bundle = bundle_with([item["id"] for item in listed])
+    entries = [{**entry, "item_sha256": items.digest(item)} for entry, item in zip(bundle["sets"]["primary"]["items"], listed)]
+    return {**bundle, "sets": {"primary": {"items": entries}, "reserve": {"items": []}}}
+
+
 def record(item_id, ids, stop=True):
     generated = ids + ([STOP] if stop else [])
     value = {"id": item_id, "input_sha256": "0" * 64, "input_tokens": 1, "output_ids": ids,
@@ -165,8 +171,9 @@ class RecordCheckTests(unittest.TestCase):
 
     def checked(self, items_list=None, records=None):
         numbered = list(enumerate(self.records if records is None else records, 1))
-        return scoring.record_checks(self.items if items_list is None else items_list,
-                                     *scoring.partition(numbered, VOCABULARY), self.hashes)
+        listed = self.items if items_list is None else items_list
+        return scoring.record_checks(listed, *scoring.partition(numbered, VOCABULARY),
+                                     scoring.differing(listed, self.hashes))
 
     def only(self, name, ids):
         names = ("missing", "not_in_set", "duplicate", "top2_differs", "item_hash_differs", "malformed")
@@ -329,8 +336,8 @@ class ScoreRunTests(unittest.TestCase):
         self.assertEqual(scores["ja-choice-0001"]["parsed"], 2)
         self.assertIs(scores["ja-choice-0001"]["correct"], True)
         self.assertEqual(scores["code-fix-0001"],
-                         {"id": "code-fix-0001", "category": "code-fix", "kind": "python_tests", "correct": False,
-                          "failure": "not_finished", "rerun": False, "state": "scored", "parsed": None})
+                         {"id": "code-fix-0001", "category": "code-fix", "kind": "python_tests", "correct": None,
+                          "state": "item_hash_differs", "parsed": None})
         self.assertEqual((scores["free-ja-0001"]["state"], scores["free-ja-0001"]["correct"]), ("unscored", None))
         self.assertEqual((scores["synth-long-4k-0001"]["state"], scores["synth-long-4k-0001"]["correct"]),
                          ("missing", None))
@@ -355,8 +362,8 @@ class ScoreRunTests(unittest.TestCase):
         categories = summary["categories"]
         self.assertEqual(categories["ja-choice"], {"kind": "choice_digit", "items": 1, "correct": 1, "unscored": 0,
                                                    "states": {"scored": 1}})
-        self.assertEqual(categories["code-fix"], {"kind": "python_tests", "items": 1, "correct": 0, "unscored": 0,
-                                                  "states": {"scored": 1}})
+        self.assertEqual(categories["code-fix"], {"kind": "python_tests", "items": 1, "correct": 0, "unscored": 1,
+                                                  "states": {"item_hash_differs": 1}})
         self.assertEqual(categories["ja-reading"]["mean_f1"], 0.9)
         self.assertEqual(categories["ja-reading"]["correct"], 1)
         self.assertEqual({key: categories["extract-ja"][key] for key in ("correct", "tp", "fp", "fn", "micro_f1")},
@@ -541,7 +548,7 @@ class CodeScoringTests(unittest.TestCase):
                        "answer": None} for number in (1, 2, 3)]
         self.items_path = self.root / "primary.jsonl"
         write_lines(self.items_path, self.items)
-        self.bundle = bundle_with([item["id"] for item in self.items])
+        self.bundle = frozen_as(self.items)
         self.tokenizer = Pieces(["```python\nvalue = 1\n```", "value = 2", "slow", "flaky",
                                  f"open({str(self.trace)!r}, 'w').close()\nvalue = 1"])
 
@@ -588,6 +595,22 @@ class CodeScoringTests(unittest.TestCase):
                           {"correct": True, "failure": None, "rerun": False}])
         self.assertEqual(summary["code"], {"timeouts": 2, "rerun_passed": 1})
         self.assertEqual(summary["categories"]["code-gen-mbpp"]["correct"], 2)
+
+    def test_code_items_that_differ_from_the_frozen_set_are_not_run(self):
+        names = [item["id"] for item in self.items]
+        rewritten = {**self.items[1], "scorer": {**self.items[1]["scorer"], "test": "assert value == 2"}}
+        without_units = {**self.items[2], "scorer": {"kind": "python_tests"}}
+        write_lines(self.items_path, [self.items[0], rewritten, without_units])
+        run = self.run_folder("run", dict(zip(names, ([0], [1], [0]))))
+        with mock.patch.object(execution, "run", wraps=execution.run) as executed:
+            rows, summary = self.scored([run])["run"]
+        self.assertEqual([dict(call.args[0])["test"] for call in executed.call_args_list], ["assert value == 1"])
+        self.assertIs(rows[names[0]]["correct"], True)
+        for name in names[1:]:
+            self.assertEqual(rows[name], {"id": name, "category": "code-gen-mbpp", "kind": "python_tests", "correct": None,
+                                          "state": "item_hash_differs", "parsed": None})
+        self.assertEqual(summary["checks"]["item_hash_differs"], names[1:])
+        self.assertEqual(summary["categories"]["code-gen-mbpp"]["states"], {"scored": 1, "item_hash_differs": 2})
 
     def test_code_is_not_run_when_the_sandbox_cannot_be_used(self):
         run = self.run_folder("run", {self.items[0]["id"]: [4]})
