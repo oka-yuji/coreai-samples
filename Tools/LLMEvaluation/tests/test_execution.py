@@ -1,3 +1,4 @@
+import builtins
 import os
 from pathlib import Path
 import secrets
@@ -65,6 +66,7 @@ class IsolationTests(unittest.TestCase):
                                  "assert subprocess.run([sys.executable, '-c', 'pass']).returncode == 0\n",
                 "interpreter": "import sys\n\nassert sys.flags.isolated and sys.flags.no_site\n"
                                f"assert sys.flags.dont_write_bytecode and sys.executable == {sys.executable!r}\n",
+                "not in the scoring process": "import builtins\n\nbuiltins.ran_in_the_scorer = True\n",
             }
             typed, keys = os.pipe()
             os.write(keys, b"typed\n")
@@ -83,6 +85,7 @@ class IsolationTests(unittest.TestCase):
             with self.assertRaises(BlockingIOError):
                 server.accept()
             self.assertFalse(outside.exists())
+            self.assertFalse(hasattr(builtins, "ran_in_the_scorer"))
 
 
 class FailureTests(unittest.TestCase):
