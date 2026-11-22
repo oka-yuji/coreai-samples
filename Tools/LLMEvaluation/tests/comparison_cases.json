@@ -59,7 +59,7 @@
     {"id": "long-ja-4k-0002", "category": "long-ja-4k", "kind": "reading_exact", "token_count": 4000}
    ],
    "baseline": {
-    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "reference", "items": 23, "inputs": {"count": 23}},
+    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "reference", "items": 23, "inputs": {"count": 23}, "started": "2026-11-22T00:00:00Z", "finished": "2026-11-22T01:00:00Z"},
     "summary": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "items": {"file": "primary.jsonl", "sha256": "i0"}, "tokenizer": {"sha256": "t0", "vocabulary": 262144}, "scorer": {"commit": "s0", "python": "3.11.9"}, "code": {"timeouts": 0, "rerun_passed": 0}, "checks": {"missing": [], "not_in_set": [], "duplicate": [], "top2_differs": [], "item_hash_differs": [], "malformed": []}},
     "scores": [
      {"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
@@ -113,7 +113,7 @@
     ]
    },
    "candidate": {
-    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "fp16", "items": 23, "inputs": {"count": 23}},
+    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "fp16", "items": 23, "inputs": {"count": 23}, "started": "2026-11-22T00:00:00Z", "finished": "2026-11-22T01:00:00Z"},
     "summary": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "items": {"file": "primary.jsonl", "sha256": "i0"}, "tokenizer": {"sha256": "t0", "vocabulary": 262144}, "scorer": {"commit": "s0", "python": "3.11.9"}, "code": {"timeouts": 0, "rerun_passed": 0}, "checks": {"missing": [], "not_in_set": [], "duplicate": [], "top2_differs": [], "item_hash_differs": [], "malformed": []}},
     "scores": [
      {"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
@@ -593,6 +593,40 @@
    "input": [
     ["delete", ["baseline", "run", "items"]],
     ["delete", ["baseline", "run", "inputs"]]
+   ],
+   "expected": []
+  },
+  {
+   "name": "run_record_without_finish",
+   "about": "A run record with all items written and no finish time is an interruption.",
+   "input": [
+    ["delete", ["candidate", "run", "finished"]]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "run_unfinished", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_with_null_finish",
+   "about": "A null finish time is the same as no finish time.",
+   "input": [
+    ["set", ["baseline", "run", "finished"], null]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "run_unfinished", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_without_counts_or_finish",
+   "about": "A run record with neither counts nor a finish time is not judged.",
+   "input": [
+    ["delete", ["baseline", "run", "items"]],
+    ["delete", ["baseline", "run", "inputs"]],
+    ["delete", ["baseline", "run", "finished"]]
    ],
    "expected": []
   },

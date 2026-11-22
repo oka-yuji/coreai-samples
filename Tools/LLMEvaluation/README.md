@@ -148,7 +148,7 @@ The reasons of `incomplete`, in this order:
 | Reason | Ids |
 |---|---|
 | `hash_mismatch` | A run record or a scoring summary has another contract version or `contract.json` SHA-256 than this contract, a run record names another set than `--items`, the two summaries differ in `items`, `tokenizer` or `scorer`, or a summary reports `item_hash_differs`. The ids are those of `item_hash_differs`, possibly none |
-| `run_unfinished` | The run record of either run has an integer `items` and an `inputs.count` that differ, as the record of a run that has not finished does: the generating command writes the number of finished items to `items` and the number of input records to `inputs.count`. A run record without either is not judged. No ids |
+| `run_unfinished` | The run record of either run has an integer `items` and an `inputs.count`, and they differ or `finished` is absent or `null`, as in the record of a run that has not finished: the generating command writes the number of finished items to `items`, the number of input records to `inputs.count` and, last, the finish time to `finished`, so a run stopped after its last output and before `finished` has equal counts. A run record without `items` or `inputs.count` is not judged, whatever its `finished`. No ids |
 | `missing_output`, `not_in_set`, `duplicate_id`, `top2_differs` | The ids of the scoring checks `missing`, `not_in_set`, `duplicate` and `top2_differs` of either run |
 | `malformed_record` | The scoring check `malformed` of the baseline, then the entries of the candidate that the list does not hold yet, in order and without repeats; an entry is an id or a line number |
 | `input_differs` | Items whose baseline and candidate records differ in `input_sha256` |

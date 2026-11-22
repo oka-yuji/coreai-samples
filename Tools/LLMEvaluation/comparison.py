@@ -28,7 +28,7 @@ def repeated(ids, rule):
 def unfinished(run):
     done, inputs = run.get("items"), run.get("inputs")
     return (isinstance(done, int) and not isinstance(done, bool) and isinstance(inputs, dict) and "count" in inputs
-            and done != inputs["count"])
+            and (done != inputs["count"] or run.get("finished") is None))
 
 
 def flags(ids, rules):
