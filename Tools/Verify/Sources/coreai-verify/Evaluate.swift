@@ -164,10 +164,6 @@ struct EvaluationProgress: Encodable {
 }
 
 enum Evaluation {
-    private struct WrittenID: Decodable {
-        let id: String
-    }
-
     static func stored(in folder: URL) throws -> EvaluationRun? {
         var isFolder: ObjCBool = false
         guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isFolder) else {
@@ -210,7 +206,7 @@ enum Evaluation {
                 throw ValidationError(
                     "--output holds another run; these differ from its run.json: \(differing.joined(separator: ", ")).")
             }
-            done = try writtenIDs(in: outputs, inputs: items)
+            done = try writtenIDs(in: outputs, inputs: items, vocabulary: source.vocabSize)
             current = stored
             current.items = done.count
             current.finished = nil
@@ -239,7 +235,7 @@ enum Evaluation {
         return current
     }
 
-    static func writtenIDs(in outputs: URL, inputs: [EvaluationInput]) throws -> Set<String> {
+    static func writtenIDs(in outputs: URL, inputs: [EvaluationInput], vocabulary: Int) throws -> Set<String> {
         let newline = UInt8(ascii: "\n")
         var data = try Data(contentsOf: outputs)
         if let last = data.last, last != newline {
@@ -252,25 +248,76 @@ enum Evaluation {
         let known = Dictionary(inputs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var ids: Set<String> = []
         for (index, line) in data.split(separator: newline, omittingEmptySubsequences: false).dropLast().enumerated() {
-            let place =
-                "outputs.jsonl line \(index + 1)"
-                + ((try? JSONDecoder().decode(WrittenID.self, from: line)).map { " (id \($0.id))" } ?? "")
-            let record: OutputRecord
-            do {
-                record = try JSONDecoder.snake.decode(OutputRecord.self, from: line)
-            } catch {
-                throw ValidationError("\(place) is not an output record: \(error)")
-            }
-            guard let input = known[record.id] else {
+            let record = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any]
+            let id = record?["id"] as? String
+            let place = "outputs.jsonl line \(index + 1)" + (id.map { " (id \($0))" } ?? "")
+            guard let record else { throw ValidationError("\(place) is not a JSON object.") }
+            guard let id, let input = known[id] else {
                 throw ValidationError("\(place) has an id that is not in the input records.")
             }
-            guard record.inputSha256 == input.inputSha256, record.inputTokens == input.inputIds.count else {
-                throw ValidationError(
-                    "\(place) has an input_sha256 or input_tokens that differs from its input record.")
+            if let problem = problem(in: record, input: input, vocabulary: vocabulary) {
+                throw ValidationError("\(place) \(problem).")
             }
-            guard ids.insert(record.id).inserted else { throw ValidationError("\(place) repeats an id.") }
+            guard ids.insert(id).inserted else { throw ValidationError("\(place) repeats an id.") }
         }
         return ids
+    }
+
+    static func problem(in record: [String: Any], input: EvaluationInput, vocabulary: Int) -> String? {
+        func number(_ value: Any?) -> NSNumber? {
+            guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+            return number
+        }
+        func integer(_ value: Any?) -> Int? {
+            number(value).flatMap { CFNumberIsFloatType($0 as CFNumber) ? nil : $0.intValue }
+        }
+        func token(_ value: Any?) -> Int? { integer(value).flatMap { (0..<vocabulary).contains($0) ? $0 : nil } }
+        func probability(_ value: Any?) -> Double? {
+            number(value).map(\.doubleValue).flatMap { (0...1).contains($0) ? $0 : nil }
+        }
+        func firstID(_ value: Any) -> Int? {
+            guard let entry = value as? [Any], entry.count == 4, let first = token(entry[0]),
+                let second = token(entry[2]), first != second, let high = probability(entry[1]),
+                let low = probability(entry[3]), high >= low
+            else { return nil }
+            return first
+        }
+        func all<T>(_ value: Any?, _ read: (Any) -> T?) -> [T]? {
+            guard let values = value as? [Any] else { return nil }
+            let found = values.compactMap(read)
+            return found.count == values.count ? found : nil
+        }
+        guard record["input_sha256"] as? String == input.inputSha256 else {
+            return "has an input_sha256 that differs from its input record"
+        }
+        guard integer(record["input_tokens"]) == input.inputIds.count else {
+            return "has an input_tokens that is not the token count of its input record"
+        }
+        guard let nonFinite = integer(record["non_finite"]), nonFinite >= 0 else {
+            return "has no non_finite count of zero or more"
+        }
+        guard var generated = all(record["output_ids"], token) else {
+            return "has output_ids that are not token IDs below \(vocabulary)"
+        }
+        switch record["stop"] as? String {
+        case "stop_token":
+            guard let stopToken = token(record["stop_token"]) else {
+                return "stops on stop_token without a token ID below \(vocabulary) in stop_token"
+            }
+            generated.append(stopToken)
+        case "limit":
+            guard record["stop_token"] == nil else { return "stops on limit but has stop_token" }
+        default:
+            return "has a stop that is neither stop_token nor limit"
+        }
+        guard let firstIDs = all(record["top2"], firstID) else {
+            return
+                "has a top2 entry that is not two different token IDs below \(vocabulary) with probabilities from 0 to 1, the first at least the second"
+        }
+        guard firstIDs == generated else { return "has top2 first IDs that differ from the generated tokens" }
+        if let error = record["error"], !(error is String) { return "has an error that is not a string" }
+        guard nonFinite == 0 || record["error"] != nil else { return "has non-finite logits without an error" }
+        return nil
     }
 
     static func write(_ record: EvaluationRun, in folder: URL) throws {

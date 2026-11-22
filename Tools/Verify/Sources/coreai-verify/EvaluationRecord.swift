@@ -2,6 +2,7 @@ import ArgumentParser
 import Foundation
 
 protocol LogitsSource {
+    var vocabSize: Int { get }
     func reset()
     func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws
     func step(_ token: Int32) async throws
@@ -20,20 +21,6 @@ struct TopTwo: Encodable, Equatable {
         try entry.encode(firstProbability)
         try entry.encode(second)
         try entry.encode(secondProbability)
-    }
-}
-
-extension TopTwo: Decodable {
-    init(from decoder: any Decoder) throws {
-        var entry = try decoder.unkeyedContainer()
-        first = try entry.decode(Int32.self)
-        firstProbability = try entry.decode(Double.self)
-        second = try entry.decode(Int32.self)
-        secondProbability = try entry.decode(Double.self)
-        guard entry.isAtEnd else {
-            throw DecodingError.dataCorruptedError(
-                in: entry, debugDescription: "A top2 entry has more than four values.")
-        }
     }
 }
 
@@ -67,7 +54,7 @@ enum LogitsRow: Equatable {
     }
 }
 
-struct OutputRecord: Codable, Equatable {
+struct OutputRecord: Encodable, Equatable {
     let id: String
     let inputSha256: String
     let inputTokens: Int

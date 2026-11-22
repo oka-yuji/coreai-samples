@@ -30,6 +30,85 @@ func runRecord(
         load: .init(cached: true, specializeS: 0, loadS: 1.5))
 }
 
+func writtenLine(_ fields: String, tokens: String = #""input_tokens":2"#) -> String {
+    #"{"id":"item-2","input_sha256":"\#(tokensDigest([2, 2]))",\#(tokens),\#(fields)}"#
+}
+
+let stoppedFields =
+    #""output_ids":[1],"stop":"stop_token","stop_token":3,"top2":[[1,0.5,2,0.25],[3,0.75,0,0.125]],"non_finite":0"#
+let stoppedLine = writtenLine(stoppedFields)
+let limitedLine = writtenLine(#""output_ids":[1,2],"stop":"limit","top2":[[1,0.5,0,0.5],[2,1,1,0]],"non_finite":0"#)
+let erroredLine = writtenLine(
+    #""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"error":"EngineError: unloaded","non_finite":2"#)
+
+func atSecondLine(_ problem: String) -> String { "outputs.jsonl line 2 (id item-2) \(problem)." }
+
+let badTokens = atSecondLine("has an input_tokens that is not the token count of its input record")
+let badOutputs = atSecondLine("has output_ids that are not token IDs below 4")
+let badStopToken = atSecondLine("stops on stop_token without a token ID below 4 in stop_token")
+let badTop2 = atSecondLine(
+    "has a top2 entry that is not two different token IDs below 4 with probabilities from 0 to 1, the first at least the second"
+)
+let badFirsts = atSecondLine("has top2 first IDs that differ from the generated tokens")
+
+let malformedLines: [(String, String)] = [
+    (
+        #"{"id":"item-2","input_sha256":"00","input_tokens":2,"# + stoppedFields + "}",
+        atSecondLine("has an input_sha256 that differs from its input record")
+    ),
+    (writtenLine(stoppedFields, tokens: #""input_tokens":0"#), badTokens),
+    (writtenLine(stoppedFields, tokens: #""input_tokens":2.0"#), badTokens),
+    (
+        writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"non_finite":-1"#),
+        atSecondLine("has no non_finite count of zero or more")
+    ),
+    (writtenLine(#""output_ids":[4],"stop":"limit","top2":[[4,0.5,2,0.25]],"non_finite":0"#), badOutputs),
+    (writtenLine(#""output_ids":[1.0],"stop":"limit","top2":[[1,0.5,2,0.25]],"non_finite":0"#), badOutputs),
+    (
+        writtenLine(#""output_ids":[1],"stop":"stop_token","top2":[[1,0.5,2,0.25],[3,0.75,0,0.125]],"non_finite":0"#),
+        badStopToken
+    ),
+    (
+        writtenLine(
+            #""output_ids":[1],"stop":"stop_token","stop_token":7,"top2":[[1,0.5,2,0.25],[7,0.75,0,0.125]],"non_finite":0"#
+        ), badStopToken
+    ),
+    (
+        writtenLine(
+            #""output_ids":[1,2],"stop":"limit","stop_token":3,"top2":[[1,0.5,0,0.5],[2,1,1,0]],"non_finite":0"#),
+        atSecondLine("stops on limit but has stop_token")
+    ),
+    (
+        writtenLine(#""output_ids":[1],"stop":"eos","top2":[[1,0.5,2,0.25]],"non_finite":0"#),
+        atSecondLine("has a stop that is neither stop_token nor limit")
+    ),
+    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,9,0.25]],"non_finite":0"#), badTop2),
+    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,1,0.25]],"non_finite":0"#), badTop2),
+    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,1.5,2,0.25]],"non_finite":0"#), badTop2),
+    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,-0.25]],"non_finite":0"#), badTop2),
+    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.25,2,0.5]],"non_finite":0"#), badTop2),
+    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2]],"non_finite":0"#), badTop2),
+    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[true,0.5,2,0.25]],"non_finite":0"#), badTop2),
+    (
+        writtenLine(#""output_ids":[1],"stop":"stop_token","stop_token":3,"top2":[[1,0.5,2,0.25]],"non_finite":0"#),
+        badFirsts
+    ),
+    (
+        writtenLine(
+            #""output_ids":[1],"stop":"stop_token","stop_token":3,"top2":[[2,0.5,1,0.25],[3,0.75,0,0.125]],"non_finite":0"#
+        ), badFirsts
+    ),
+    (
+        writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"error":null,"non_finite":2"#),
+        atSecondLine("has an error that is not a string")
+    ),
+    (
+        writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"non_finite":2"#),
+        atSecondLine("has non-finite logits without an error")
+    ),
+    ("[1]", "outputs.jsonl line 2 is not a JSON object."),
+]
+
 @Suite(.timeLimit(.minutes(1))) struct EvaluationRunTests {
     private let stopAtOnce = ScriptedLogits.Item(rows: [[0, 0, 0, 1]])
 
@@ -178,48 +257,46 @@ func runRecord(
         #expect(source.calls.isEmpty)
     }
 
-    @Test(
-        "A written line that is not a whole output record, or whose input_sha256 or input_tokens differs from its input record, stops the resumed run without generating",
-        arguments: ["only the id", "another input_sha256", "a top2 entry of three values", "another input_tokens"])
-    func rejectsBrokenWrittenLines(_ broken: String) async throws {
+    private func runWithWrittenLine(_ line: String) async throws -> (URL, Data, [EvaluationInput]) {
         let base = try temporaryFolder()
-        defer { try? FileManager.default.removeItem(at: base) }
         let folder = base.appending(path: "run")
         let inputs = items(3)
         _ = try await Evaluation.run(
             inputs, limit: 1, in: folder, record: runRecord(count: 3), source: ScriptedLogits([stopAtOnce]),
             stopTokens: [3])
-        let good = OutputRecord(
-            id: "item-2", inputSha256: tokensDigest([2, 2]), inputTokens: 2, stop: "stop_token", stopToken: 3,
-            top2: [TopTwo(first: 3, firstProbability: 1, second: 0, secondProbability: 0)])
-        var fields = try jsonObject(JSONEncoder.records.encode(good))
-        switch broken {
-        case "only the id": fields = ["id": "item-2"]
-        case "another input_sha256": fields["input_sha256"] = "00"
-        case "a top2 entry of three values": fields["top2"] = [[3, 1, 0]]
-        default: fields["input_tokens"] = 5
-        }
         let outputs = folder.appending(path: "outputs.jsonl")
-        let written = try Data(contentsOf: outputs) + JSONSerialization.data(withJSONObject: fields) + Data("\n".utf8)
+        let written = try Data(contentsOf: outputs) + Data((line + "\n").utf8)
         try written.write(to: outputs)
+        return (base, written, inputs)
+    }
+
+    @Test(
+        "Written lines of an item that stopped on a stop token, ended at the limit or ended with an error are taken as done",
+        arguments: [stoppedLine, limitedLine, erroredLine])
+    func acceptsWrittenLines(_ line: String) async throws {
+        let (base, _, inputs) = try await runWithWrittenLine(line)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let source = ScriptedLogits([stopAtOnce])
+        let run = try await Evaluation.run(
+            inputs, in: base.appending(path: "run"), record: runRecord(count: 3), source: source, stopTokens: [3])
+        #expect(source.calls == ["reset", "prefill 3 true"])
+        #expect(run.items == 3)
+    }
+
+    @Test(
+        "A written line that the scorer would not take as a well-formed record whose top-2 first IDs are the generated tokens, or that breaks a relation this command keeps, stops the resumed run without generating",
+        arguments: malformedLines)
+    func rejectsMalformedWrittenLines(line: String, message: String) async throws {
+        let (base, written, inputs) = try await runWithWrittenLine(line)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let folder = base.appending(path: "run")
         let source = ScriptedLogits([stopAtOnce, stopAtOnce])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
         }
-        #expect(error?.message.hasPrefix("outputs.jsonl line 2 (id item-2)") == true)
+        #expect(error?.message == message)
         #expect(source.calls.isEmpty)
-        #expect(try Data(contentsOf: outputs) == written)
-    }
-
-    @Test("A whole output record written by an earlier run is read back unchanged")
-    func readsWrittenRecords() throws {
-        let record = OutputRecord(
-            id: "a", inputSha256: "digest", inputTokens: 2, outputIds: [4, 5], stop: "limit",
-            top2: [
-                TopTwo(first: 4, firstProbability: 0.75, second: 1, secondProbability: 0.125),
-                TopTwo(first: 5, firstProbability: 0.5, second: 0, secondProbability: 0.25),
-            ], error: "EngineError: unloaded", nonFinite: 0)
-        #expect(try JSONDecoder.snake.decode(OutputRecord.self, from: JSONEncoder.records.encode(record)) == record)
+        #expect(try Data(contentsOf: folder.appending(path: "outputs.jsonl")) == written)
     }
 
     @Test("Once the time limit has passed, the run ends after the item in progress and records its finish")

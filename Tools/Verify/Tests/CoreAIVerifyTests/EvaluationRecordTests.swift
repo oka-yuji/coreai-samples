@@ -22,6 +22,7 @@ final class ScriptedLogits: LogitsSource, Sendable {
     }
 
     private let state: Mutex<State>
+    let vocabSize = 4
 
     init(_ items: [Item]) {
         state = Mutex(State(items: items))
