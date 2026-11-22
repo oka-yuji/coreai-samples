@@ -11,9 +11,8 @@ does not convert the model, and the diagnostic inputs are not a quality evaluati
   hidden size 5376, MLP width 21504, vocabulary 262144, window 1024, 16 and 4 key/value heads, head
   dimensions 256 and 512, shared keys and values in the full-attention layers, final logit soft cap 30,
   tied embeddings, BOS 2 and stop tokens 1, 106 and 50), the distributed tokenizer files, the reference
-  precision and the upstream converter revision `c8e00c01800ba6ad324707007f7af358efc980a4` (recorded only;
-  no converter checkout or environment is created). A snapshot that differs fails; the contract is not
-  adjusted to the files.
+  precision and the upstream converter revision `c8e00c01800ba6ad324707007f7af358efc980a4` of the converter
+  environment. A snapshot that differs fails; the contract is not adjusted to the files.
 - `fixtures.json`: the twelve diagnostic cases (Japanese and English conversations, code, JSON extraction,
   a long Japanese input built from numbered paragraphs, a one-word turn and a raw continuation). All text
   is self-written.
@@ -40,9 +39,10 @@ python3 -m Tools.Conversion.local run --recipe gemma4_31b --refresh
 ~~~
 
 Setup checks the integrity record against the contract, then under the shared machine lock creates
-`.local/conversion/gemma4_31b/.venv` from this folder's lock, `.local/conversion/gemma4_31b/setup.json` and
-`.local/conversion/gemma4_31b.paths.json`. `--snapshot` selects another folder. The run uses
-`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and a Hugging Face home under `.local/conversion/gemma4_31b/hf-cache`.
+`.local/conversion/gemma4_31b/.venv` from this folder's lock, the converter environment (below),
+`.local/conversion/gemma4_31b/setup.json` and `.local/conversion/gemma4_31b.paths.json`. `--snapshot` selects
+another folder. The run uses `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and a Hugging Face home under
+`.local/conversion/gemma4_31b/hf-cache`.
 
 ## Steps
 
@@ -132,6 +132,17 @@ given with it (the report's artifacts folder of that step holds the file), no re
 twice, and the comparison lists the SHA-256 of the two `reference.json` files, in the same order (the printed
 record keeps them). It lives beside the steps because every `Tools/Conversion/*.py` file is part of each step's
 cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
+
+## Converter environment
+
+`local setup --recipe gemma4_31b` also prepares `.local/conversion/upstream-gemma4-31b/coreai-models`. When the
+folder is missing, it clones Apple's public converter and checks out `upstream_revision` of `model.json`. An
+existing checkout is used only when its origin is the public repository, its HEAD is that revision and no tracked
+file is edited; otherwise setup stops without changing it. Setup then installs the frozen lock of the checkout into
+`<checkout>/.venv` (`uv sync --frozen --no-dev --package coreai-models --python 3.11`) and checks the checkout
+again. It builds no Swift runner. The lock of this revision installs coreai-core 1.0.0b3, coreai-torch 0.4.3,
+coreai-opt 0.4.0, torch 2.9.0 and transformers 5.12.1. The reference environment above stays separate and keeps
+transformers 5.16.1.
 
 ## Terms
 
