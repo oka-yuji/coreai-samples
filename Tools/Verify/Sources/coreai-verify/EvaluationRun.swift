@@ -42,6 +42,17 @@ struct EvaluationRun: Codable, Equatable {
         let loadS: Double
     }
 
+    private struct Identity: Encodable {
+        let id: String
+        let contract: Contract
+        let set: String
+        let role: String
+        let mainHash: String
+        let inputs: Inputs
+        let callShape: CallShape
+        let implementation: Implementation
+    }
+
     let id: String
     let contract: Contract
     let set: String
@@ -64,16 +75,6 @@ struct EvaluationRun: Codable, Equatable {
     }
 
     func identityDigest() throws -> String {
-        struct Identity: Encodable {
-            let id: String
-            let contract: Contract
-            let set: String
-            let role: String
-            let mainHash: String
-            let inputs: Inputs
-            let callShape: CallShape
-            let implementation: Implementation
-        }
         let identity = Identity(
             id: id, contract: contract, set: set, role: role, mainHash: asset.mainHash, inputs: inputs,
             callShape: callShape,
