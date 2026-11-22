@@ -6,14 +6,14 @@ import sys
 
 from ... import summary as pipeline
 from ...storage import PipelineError
-from .anchor import LAYERS_SCHEMA, SCHEMA, read
-from .anchor_compare import SCHEMA as NUMERICS_SCHEMA
-from .reference import SCHEMA as REFERENCE_SCHEMA
+from .anchor import LAYERS_SCHEMA, read
+from .anchor_compare import RECIPE, SCHEMA as NUMERICS_SCHEMA, definition, expectations, identity, provenance
 from .summary import HEX, count, flag, matched, optional, peak, word
 
 SUMMARY_SCHEMA = "gemma4-31b-anchor-summary/1"
 STAGES = {"layers": "layers.json", "anchor": "reference.json", "anchor_w16": "reference.json",
           "anchor_scale_fp32": "reference.json", "anchor_scale_fp16": "reference.json", "half": "reference.json"}
+MODULE = "Tools.Conversion.adapters.gemma4_31b.anchor"
 METRICS = ("max_probability_error_max", "max_probability_error_mean", "max_abs_logit_difference")
 SIGNED = ("kl_mean", "kl_p99", "kl_max")
 COUNTS = ("rows", "top1_matches", "near_tie_mismatches", "other_mismatches")
@@ -25,18 +25,34 @@ def signed(value):
     return value
 
 
+def definitions(expected):
+    steps = {step["id"]: step["command"] for step in read(RECIPE / "recipe.json")[0]["steps"]}
+    result = {"reference": definition("reference", expected)}
+    for name in STAGES.keys() - {"layers"}:
+        command = steps[name]
+        options = {key: value for key, value in zip(command, command[1:]) if key.startswith("--")}
+        result[name] = definition(command[command.index(MODULE) + 1], expected, options.get("--weights"),
+                                  options.get("--embed-scale"))
+    return result
+
+
 def records(report):
     stages = {stage.get("id"): stage for stage in report.get("stages", [])}
-    loaded = {}
+    expected = expectations()
+    wanted, loaded = definitions(expected), {}
     for name, file in (("reference", "reference.json"), *STAGES.items()):
         stage = stages.get(name) or {}
         if not stage.get("artifacts") or stage.get("status") not in ("executed", "reused") or (
                 name != "reference" and (stage["status"] != "executed" or stage.get("origin") != report.get("run_id"))):
             raise PipelineError("Each diagnostic stage must have been executed by the given run")
         record, digest, _ = read(Path(stage["artifacts"]) / file)
-        expected = REFERENCE_SCHEMA if name == "reference" else LAYERS_SCHEMA if name == "layers" else SCHEMA
-        if record.get("schema") != expected:
-            raise PipelineError(f"Expected a {expected} record")
+        if name == "layers":
+            matches = record.get("schema") == LAYERS_SCHEMA and record.get("stage") == "layers" \
+                and not provenance(record, expected)
+        else:
+            matches = identity(record, expected) == (wanted[name], [])
+        if not matches:
+            raise PipelineError(f"The {name} record does not match its definition, the contract or the fixtures")
         loaded[name] = {"stage": stage, "record": record, "sha256": digest}
     return loaded
 
@@ -160,8 +176,11 @@ def main():
     parser.add_argument("--comparison", type=Path, action="append", required=True)
     args = parser.parse_args()
     try:
+        comparisons = [read(path) for path in args.comparison]
+        if len({digest for _, digest, _ in comparisons}) != len(comparisons):
+            raise PipelineError("A comparison is given twice")
         report = read(args.report)[0]
-        result = project(report, records(report), [read(path)[0] for path in args.comparison])
+        result = project(report, records(report), [data for data, _, _ in comparisons])
         print(json.dumps(result, indent=2, allow_nan=False))
         return 0
     except (OSError, ValueError, TypeError, KeyError) as error:

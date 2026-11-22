@@ -186,11 +186,19 @@ Compare two of these records (or one of them and the `reference` record) with th
 ~~~
 
 It reads each `reference.json`, token file and logits file once and uses the same bytes for the SHA-256 and the
-values. It passes only when both records passed and differ, the model and the case IDs are the same, every token and
-logits file has the size and SHA-256 that its own record lists, the token counts, saved positions, first scoring row
-and scoring positions equal that record, every array is float32 with the shape `[saved positions, 262144]`, the forced
-tokens of both sides are the same and no logit is NaN or infinite. Otherwise `problems` lists the findings: a case
-with a finding has no metrics, a finding about the records stops before the cases, and no group is reported. For every
+values. Each record is checked on its own against values computed from `model.json` and `fixtures.json`, not only
+against the other record: the model entries (ID, revision, the SHA-256 of `model.json`, the shard SHA-256 and the files
+verified before loading) must equal the contract, the case IDs must be the twelve fixture IDs in order, the device must
+be the contract device, and the record must be one of the known definitions: the BF16 reference (with its `dtype`
+entries) or an `anchor` or `half` record whose weights, compute, embedding scale and attention rows are those of one of
+its definitions, with the three scales computed from `hidden_size`. The comparison passes only when both records pass
+these checks and passed, differ in SHA-256 and are not the same file (a hard or symbolic link included), every token
+and logits file has the size and SHA-256 that its own record lists and is not the same file as its counterpart, the
+token counts, saved positions, first scoring row and scoring positions equal that record, every array is float32 with
+the shape `[saved positions, 262144]`, the forced tokens of both sides are the same and no logit is NaN or infinite.
+Otherwise `problems` lists the findings: a case with a finding has no metrics, a finding about the records stops before
+the cases, and no group is reported. The output also names the definition of each side (`identities`). The output file
+is created only if it does not exist (an existing file or link is never replaced, and a failed write removes it). For every
 row, with p and q the softmax (float64) of the baseline and the candidate,
 it computes the largest |p − q| over the vocabulary, KL(p ‖ q), the largest absolute logit difference and whether the
 two argmax IDs (the smaller ID on a tie) agree; a mismatch is a near tie when both sides have the same top-two IDs and
@@ -202,9 +210,11 @@ the scoring rows, and it lists every mismatch. The groups are the case kind (`ch
 case with more than 1,056 positions (the sliding window of 1,024 drops the BOS from position 1,024).
 
 `anchor_summary` prints only states, numbers, hashes and fixed words. It stops unless the six steps were executed by
-the given run (`status` executed and `origin` the run ID), the `reference` step of that report holds a
-`reference.json` of the BF16 reference, no two steps hold the same record and every comparison lists the SHA-256 of two
-records of that report:
+the given run (`status` executed and `origin` the run ID), every record of the report (the BF16 reference included)
+passes the checks of the comparison and matches the definition of its step in `recipe.json` (for `anchor` the
+`--weights` and `--embed-scale` of its command), the `layers` record has the contract model and the fixture cases, no
+two steps hold the same record, no comparison is given twice and every comparison lists the SHA-256 of two records of
+that report:
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.anchor_summary --report <report.json> \

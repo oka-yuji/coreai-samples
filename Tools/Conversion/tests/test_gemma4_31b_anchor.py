@@ -3,6 +3,7 @@ import copy
 import io
 import json
 import math
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -38,6 +39,11 @@ MEMORY = {"max_rss_bytes": 10, "footprint_bytes": 5, "lifetime_peak_footprint_by
 OBSERVED = {"samples": 3, "interval_s": 5, "aborts": 0, "failure": None, "unreadable_samples": 0,
             "first": {"swap_used_bytes": 5}, "peak": {"swap_used_bytes": 5, "rss_bytes": 11},
             "lowest": {"free_percent": 40, "free_bytes": {"volume/folder": 1}}}
+EXPECTED = anchor_compare.expectations()
+
+
+def expected(names, vocabulary=4, window=4, **changes):
+    return {**EXPECTED, "cases": list(names), "vocabulary": vocabulary, "window": window, **changes}
 
 
 def tiny_model(folder):
@@ -177,7 +183,7 @@ class LayerwiseTests(unittest.TestCase):
                                               change.get("unexpected", ["model.language_model.layers.6.x"])))
 
 
-def write_reference(folder, cases, passed=True, model=None):
+def write_reference(folder, cases, passed=True, model=None, device="mps"):
     folder = Path(folder)
     (folder / "cases").mkdir(parents=True)
     records = []
@@ -190,7 +196,8 @@ def write_reference(folder, cases, passed=True, model=None):
                         "scoring_positions": len(outputs),
                         "files": {"tokens": reference.file_record(tokens), "logits": reference.file_record(array)}})
     (folder / "reference.json").write_text(json.dumps({"schema": reference.SCHEMA, "passed": passed,
-                                                       "model": model or {"id": "owner/model"}, "cases": records,
+                                                       "dtype": anchor_compare.REFERENCE_DTYPE, "device": device,
+                                                       "model": model or EXPECTED["model"], "cases": records,
                                                        "source": {"reference_sha256": "a" * 64}, "run": folder.name}))
     return folder
 
@@ -212,7 +219,7 @@ class CompareTests(unittest.TestCase):
     def pair(self, folder, first, second, **options):
         a = write_reference(Path(folder) / "a", first)
         b = write_reference(Path(folder) / "b", second)
-        return anchor_compare.compare(a, b, vocabulary=options.get("vocabulary", 4), window=options.get("window", 4))
+        return anchor_compare.compare(a, b, expected([case[0] for case in first], **options))
 
     def test_the_metrics_follow_their_definitions(self):
         baseline = [[0.0, 0.0, -9.0, -9.0], [2.0, 1.99, -9.0, -9.0], [3.0, 0.0, 2.0, -9.0], [1.0, 0.0, 0.0, 0.0]]
@@ -291,7 +298,8 @@ class CompareTests(unittest.TestCase):
                 change(b)
                 if label == "path in the case ID":
                     change(a)
-                result = anchor_compare.compare(a, b, vocabulary=4, window=4)
+                names = ["../case"] if label == "path in the case ID" else ["case"]
+                result = anchor_compare.compare(a, b, expected(names))
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
 
@@ -301,9 +309,73 @@ class CompareTests(unittest.TestCase):
             shutil.copytree(first, Path(folder) / "copy")
             for second in (first, Path(folder) / "copy"):
                 with self.subTest(second=second.name):
-                    result = anchor_compare.compare(first, second, vocabulary=4, window=4)
+                    result = anchor_compare.compare(first, second, expected(["case"]))
                     self.assertFalse(result["passed"])
                     self.assertIn("both artifacts are the same run", result["problems"])
+
+    def test_records_that_agree_with_each_other_but_not_with_the_contract_never_pass(self):
+        clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
+        anchor_record = {"schema": anchor.SCHEMA, "stage": "anchor",
+                         "compute": {"weights": "bfloat16", "compute": "float32", "embed_scale": 73.5, "attention_rows": 512}}
+        changes = {"no model": (lambda data: data.pop("model"), ["case"], "the model differs from the contract"),
+                   "another revision": (lambda data: data["model"].update(revision="0" * 40), ["case"],
+                                        "the model differs from the contract"),
+                   "a case missing in both": (lambda data: None, ["case", "other"], "the cases differ from the fixtures"),
+                   "no dtype in a reference record": (lambda data: data.pop("dtype"), ["case"], anchor_compare.UNKNOWN),
+                   "another device": (lambda data: data.update(device="cpu"), ["case"], anchor_compare.UNKNOWN),
+                   "an unknown embedding scale": (lambda data: data.update(
+                       anchor_record, compute={**anchor_record["compute"], "embed_scale": 73.4}), ["case"], anchor_compare.UNKNOWN),
+                   "no compute": (lambda data: data.update(schema=anchor.SCHEMA, stage="anchor"), ["case"], anchor_compare.UNKNOWN)}
+        for label, (change, names, message) in changes.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))
+                for side in (a, b):
+                    edit(side, change)
+                result = anchor_compare.compare(a, b, expected(names))
+                self.assertFalse(result["passed"])
+                self.assertEqual([problem for problem in result["problems"] if problem.endswith(message)],
+                                 [f"baseline: {message}", f"candidate: {message}"])
+        with tempfile.TemporaryDirectory() as folder:
+            a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))
+            edit(a, lambda data: data.update(anchor_record))
+            result = anchor_compare.compare(a, b, expected(["case"]))
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["identities"], {"baseline": {"stage": "anchor", **anchor_record["compute"]},
+                                                "candidate": anchor_compare.definition("reference", EXPECTED)})
+
+    def test_inputs_that_are_the_same_file_never_pass(self):
+        clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
+        with tempfile.TemporaryDirectory() as folder:
+            a = write_reference(Path(folder) / "a", clean)
+            linked = Path(folder) / "linked"
+            shutil.copytree(a, linked)
+            (linked / "reference.json").unlink()
+            os.link(a / "reference.json", linked / "reference.json")
+            (Path(folder) / "alias").symlink_to(a)
+            for second in (linked, Path(folder) / "alias"):
+                with self.subTest(second=second.name):
+                    result = anchor_compare.compare(a, second, expected(["case"]))
+                    self.assertFalse(result["passed"])
+                    self.assertIn("both records are the same file", result["problems"])
+            other = write_reference(Path(folder) / "other", clean)
+            (other / "cases/case.logits.npy").unlink()
+            os.link(a / "cases/case.logits.npy", other / "cases/case.logits.npy")
+            result = anchor_compare.compare(a, other, expected(["case"]))
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["problems"], ["case: both logits files are the same file"])
+
+    def test_the_output_is_created_once_and_never_replaces_a_file_or_a_link(self):
+        with tempfile.TemporaryDirectory() as folder:
+            target, link, broken = (Path(folder) / name for name in ("out.json", "link.json", "broken.json"))
+            anchor_compare.write_new(target, {"value": 1})
+            link.symlink_to(Path(folder) / "missing.json")
+            for path in (target, link):
+                with self.subTest(path=path.name), self.assertRaises(FileExistsError):
+                    anchor_compare.write_new(path, {"value": 2})
+            with mock.patch.object(anchor_compare.os, "fsync", side_effect=OSError("disk")), self.assertRaises(OSError):
+                anchor_compare.write_new(broken, {"value": 3})
+            self.assertEqual((json.loads(target.read_text()), link.is_symlink(), (Path(folder) / "missing.json").exists(),
+                              broken.exists()), ({"value": 1}, True, False, False))
 
 
 def write_forced(folder):
@@ -375,9 +447,9 @@ class StageTests(unittest.TestCase):
                 with torch.no_grad():
                     values, _ = reference.forced(model, sequence[:-1], sequence[-1:], "cpu")
                 cases.append((f"case{index}", "chat" if index else "raw", sequence[:-1], sequence[-1:], values))
-            write_reference(Path(folder) / "reference", cases,
-                            model={"id": "owner/model", "revision": "r" * 40, "contract_sha256": "c" * 64,
-                                   "weights_sha256": {}, "verified_before_loading": {}})
+            identity = {"id": "owner/model", "revision": "r" * 40, "contract_sha256": "c" * 64, "weights_sha256": {},
+                        "verified_before_loading": {}}
+            write_reference(Path(folder) / "reference", cases, model=identity, device="cpu")
             outputs, records = {}, {}
             for stage, options in (("anchor", {"weights": "bfloat16", "embed_scale": "bfloat16"}), ("half", {})):
                 with mock.patch.object(reference, "verify_inputs", return_value={}), \
@@ -388,8 +460,9 @@ class StageTests(unittest.TestCase):
                 record.update(passed=True)
                 (args.output / "reference.json").write_text(json.dumps(record))
                 outputs[stage], records[stage] = args.output, record
-            result = anchor_compare.compare(outputs["anchor"], Path(folder) / "reference", vocabulary=VOCABULARY,
-                                            window=WINDOW)
+            result = anchor_compare.compare(outputs["anchor"], Path(folder) / "reference",
+                                            expected([case[0] for case in cases], VOCABULARY, WINDOW, model=identity,
+                                                     device="cpu", scales={**EXPECTED["scales"], "bfloat16": 6.9375}))
         self.assertEqual(result["problems"], [])
         self.assertTrue(result["passed"])
         self.assertGreater(result["cases"][0]["all"]["max_abs_logit_difference"], 0.0)
@@ -473,11 +546,11 @@ class SupervisedTests(unittest.TestCase):
 
 
 def stage_record(name, digest, **changes):
-    case = {"id": "case", "kind": "chat", "input_tokens": 2, "output_tokens": 1, "saved_positions": 3,
-            "first_scoring_row": 1, "scoring_positions": 1, "non_finite": 0, "seconds": 0.5,
-            "files": {"logits": {"sha256": "b" * 64}}}
-    record = {"schema": anchor.LAYERS_SCHEMA if name == "layers" else anchor.SCHEMA, "stage": name, "passed": True,
-              "checks": {"finite": True}, "source": {"reference_sha256": digest},
+    case = {"kind": "chat", "input_tokens": 2, "output_tokens": 1, "saved_positions": 3, "first_scoring_row": 1,
+            "scoring_positions": 1, "non_finite": 0, "seconds": 0.5, "files": {"logits": {"sha256": "b" * 64}}}
+    record = {"schema": anchor.LAYERS_SCHEMA if name == "layers" else anchor.SCHEMA, "passed": True,
+              "checks": {"finite": True}, "source": {"reference_sha256": digest}, "device": "mps",
+              "model": copy.deepcopy(EXPECTED["model"]),
               "loading": {"class": "Gemma4ForConditionalGeneration", "attn_implementation": "sdpa", "parameters": 9,
                           "parameter_dtypes": ["torch.bfloat16"], "parameter_devices": ["mps:0"],
                           "info": {"missing_keys": []}, "embed_scale": 73.5, "after_load": dict(MEMORY)},
@@ -486,30 +559,33 @@ def stage_record(name, digest, **changes):
                             "monitor": copy.deepcopy(OBSERVED)},
               "timing": {"total_s": 2.0}}
     if name == "layers":
-        record.update(layers=6, layer_types=["sliding_attention"], limit=1e-4, attention_rows=512,
-                      cases=[{"id": "case", "positions": 3, "max_abs_difference": 1e-6,
-                              "non_finite": {"layerwise": 0, "plain": 0}}])
+        record.update(stage="layers", layers=6, layer_types=["sliding_attention"], limit=1e-4, attention_rows=512,
+                      cases=[{"id": case_id, "positions": 3, "max_abs_difference": 1e-6,
+                              "non_finite": {"layerwise": 0, "plain": 0}} for case_id in EXPECTED["cases"]])
     else:
-        record.update(compute={"weights": "bfloat16", "compute": "float32", "embed_scale": 73.5, "attention_rows": 512},
-                      cases=[case], ranges=[{"point": "residual_input", "layer": 0, "max_abs": 3.0, "case": "case",
-                                             "above_float16_max": 0, "above_half_float16_max": 0}], cast=None)
+        definition = dict(anchor_summary.definitions(EXPECTED)[name])
+        record.update(stage=definition.pop("stage"), compute=definition, cases=[{"id": case_id, **case} for case_id in EXPECTED["cases"]],
+                      ranges=[{"point": "residual_input", "layer": 0, "max_abs": 3.0, "case": "ja_long",
+                               "above_float16_max": 0, "above_half_float16_max": 0}], cast=None)
     record.update(changes)
     return record
 
 
-def write_summary_run(folder, run="run", reused=()):
+def write_summary_run(folder, run="run", reused=(), changes=None):
     folder = Path(folder)
     stages = []
     artifacts = folder / "reference"
     artifacts.mkdir(parents=True)
-    (artifacts / "reference.json").write_text(json.dumps({"schema": reference.SCHEMA, "passed": True}))
+    (artifacts / "reference.json").write_text(json.dumps({
+        "schema": reference.SCHEMA, "passed": True, "dtype": anchor_compare.REFERENCE_DTYPE, "device": "mps",
+        "model": EXPECTED["model"], "cases": [{"id": case_id} for case_id in EXPECTED["cases"]]}))
     digest = sha256(artifacts / "reference.json")
     stages.append({"id": "reference", "role": "reference", "status": "reused", "origin": "earlier",
                    "artifacts": str(artifacts), "execute_s": 0})
     for name, file in anchor_summary.STAGES.items():
         artifacts = folder / name
         artifacts.mkdir()
-        (artifacts / file).write_text(json.dumps(stage_record(name, digest)))
+        (artifacts / file).write_text(json.dumps(stage_record(name, digest, **(changes or {}).get(name, {}))))
         stages.append({"id": name, "role": "verify" if name == "layers" else "reference",
                        "status": "reused" if name in reused else "executed", "origin": "earlier" if name in reused else run,
                        "artifacts": str(artifacts), "execute_s": 1.0})
@@ -568,6 +644,25 @@ class SummaryTests(unittest.TestCase):
                     code, output = self.summarize(report, [comparison_record(hashes or self.hashes(report, "anchor",
                                                                                                   "half"))])
                     self.assertEqual((code, output), (1, ""))
+
+    def test_a_record_that_does_not_match_its_stage_definition_is_rejected(self):
+        anchor_definition = {key: value for key, value in anchor_summary.definitions(EXPECTED)["anchor"].items() if key != "stage"}
+        variants = {"float16 weights recorded as bfloat16": {"anchor_w16": {"compute": anchor_definition}},
+                    "a half record named anchor": {"half": {"stage": "anchor"}},
+                    "layers of another revision": {"layers": {"model": {**EXPECTED["model"], "revision": "0" * 40}}},
+                    "a case missing": {"anchor": {"cases": []}}}
+        with tempfile.TemporaryDirectory() as folder:
+            for label, changes in variants.items():
+                with self.subTest(label=label):
+                    report = write_summary_run(Path(folder) / label.replace(" ", "-"), changes=changes)
+                    code, output = self.summarize(report, [comparison_record(self.hashes(report, "anchor", "reference"))])
+                    self.assertEqual((code, output), (1, ""))
+
+    def test_a_comparison_given_twice_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            report = write_summary_run(folder)
+            comparison = comparison_record(self.hashes(report, "anchor", "reference"))
+            self.assertEqual(self.summarize(report, [comparison, comparison]), (1, ""))
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         for change in (lambda r: r["cases"][0].update(kind="free text"), lambda r: r["compute"].update(weights="a/b"),

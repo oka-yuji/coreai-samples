@@ -1,21 +1,93 @@
 import argparse
 import hashlib
 import io
+import json
+import os
 from pathlib import Path
+import struct
 import sys
 
-from ...storage import write_json
-from . import reference
+from . import anchor, reference
 from .anchor import parse, read
-from .prepare import load_contract
 
 SCHEMA = "gemma4-31b-numerics/1"
-CONTRACT = Path(__file__).resolve().parents[2] / "recipes/gemma4_31b/model.json"
+RECIPE = Path(__file__).resolve().parents[2] / "recipes/gemma4_31b"
 BLOCK_ROWS = 256
 NEAR_TIE = 0.01
 BANDS = ((1, 512), (513, 2048), (2049, 4096), (4097, 16896))
 MARGIN = 32
 FILES = {"tokens": "json", "logits": "npy"}
+REFERENCE_DTYPE = {"weights": "bfloat16", "compute": "bfloat16", "logits_saved": "float32"}
+UNKNOWN = "the stage, weights, compute or embedding scale is not a known definition"
+
+
+def rounded(value, dtype):
+    single = struct.unpack("<f", struct.pack("<f", value))[0]
+    if dtype == "float32":
+        return single
+    if dtype == "float16":
+        return struct.unpack("<e", struct.pack("<e", single))[0]
+    bits = struct.unpack("<I", struct.pack("<f", single))[0]
+    return struct.unpack("<f", struct.pack("<I", (bits + 0x7FFF + (bits >> 16 & 1)) & 0xFFFF0000))[0]
+
+
+def expectations():
+    data = (RECIPE / "model.json").read_bytes()
+    contract = parse(data)
+    files, config = contract["files"], contract["config"]
+    return {"model": {"id": contract["model_id"], "revision": contract["revision"],
+                      "contract_sha256": hashlib.sha256(data).hexdigest(),
+                      "weights_sha256": {name: entry["sha256"] for name, entry in files.items() if name.endswith(".safetensors")},
+                      "verified_before_loading": {name: entry for name, entry in files.items()
+                                                  if name in reference.LOADED_FILES or name.endswith(".safetensors")}},
+            "cases": [case["id"] for case in reference.load_fixtures(RECIPE / "fixtures.json")],
+            "device": contract["reference"]["device"], "vocabulary": config["vocab_size"], "window": config["sliding_window"],
+            "scales": {dtype: rounded(config["hidden_size"] ** 0.5, dtype) for dtype in ("bfloat16", "float32", "float16")}}
+
+
+def definition(stage, expected, weights=None, scale=None):
+    scales = expected["scales"]
+    if stage == "anchor":
+        return {"stage": stage, "weights": weights, "compute": "float32", "embed_scale": scales[scale], "attention_rows": anchor.ROWS}
+    if stage == "half":
+        return {"stage": stage, "weights": "float16", "compute": "float16", "embed_scale": scales["float16"], "attention_rows": None}
+    if stage == "reference":
+        return {"stage": stage, "weights": "bfloat16", "compute": "bfloat16", "embed_scale": scales["bfloat16"],
+                "attention_rows": None}
+    raise ValueError(f"Unknown stage: {stage}")
+
+
+def provenance(record, expected):
+    problems = [] if record.get("model") == expected["model"] else ["the model differs from the contract"]
+    if [case.get("id") for case in record.get("cases") or []] != expected["cases"]:
+        problems.append("the cases differ from the fixtures")
+    return problems
+
+
+def identity(record, expected):
+    if record.get("schema") == reference.SCHEMA:
+        found = definition("reference", expected) if record.get("dtype") == REFERENCE_DTYPE else None
+    else:
+        known = [definition("anchor", expected, weights, scale) for weights in ("bfloat16", "float16")
+                 for scale in expected["scales"]] + [definition("half", expected)]
+        compute = record.get("compute")
+        found = {"stage": record.get("stage"), **compute} if record.get("schema") == anchor.SCHEMA \
+            and isinstance(compute, dict) and {"stage": record.get("stage"), **compute} in known else None
+    known = found is not None and record.get("device") == expected["device"]
+    return found, ([] if known else [UNKNOWN]) + provenance(record, expected)
+
+
+def write_new(path, value):
+    data = json.dumps(value, indent=2, sort_keys=True, allow_nan=False).encode() + b"\n"
+    handle = open(path, "xb")
+    try:
+        with handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        Path(path).unlink(missing_ok=True)
+        raise
 
 
 def load_case(folder, case, vocabulary):
@@ -136,6 +208,8 @@ def compare_case(first, second, vocabulary):
               "all": None, "scoring": None, "mismatches": []}
     if left is None or right is None:
         return result, None
+    result["problems"] += [f"{name}: both {kind} files are the same file" for kind, suffix in FILES.items()
+                           if os.path.samefile(*(Path(folder) / "cases" / f"{name}.{kind}.{suffix}" for folder, _ in (first, second)))]
     if (left["input_tokens"], left["output_tokens"]) != (right["input_tokens"], right["output_tokens"]):
         result["problems"].append(f"{name}: the forced tokens differ")
     result["non_finite"] = {"baseline": reference.non_finite(a), "candidate": reference.non_finite(b)}
@@ -152,28 +226,29 @@ def compare_case(first, second, vocabulary):
     return result, rows
 
 
-def compare(baseline, candidate, vocabulary=None, window=None):
-    config = load_contract(CONTRACT)["config"]
-    vocabulary, window = vocabulary or config["vocab_size"], window or config["sliding_window"]
-    (first, first_sha256, _), (second, second_sha256, _) = (read(Path(folder) / "reference.json")
-                                                            for folder in (baseline, candidate))
-    problems = [f"{label}: the record did not pass" for label, record in (("baseline", first), ("candidate", second))
-                if record.get("passed") is not True]
+def compare(baseline, candidate, expected=None):
+    expected = expected or expectations()
+    paths = [Path(folder) / "reference.json" for folder in (baseline, candidate)]
+    (first, first_sha256, _), (second, second_sha256, _) = (read(path) for path in paths)
+    identities, problems = {}, []
+    for label, record in (("baseline", first), ("candidate", second)):
+        identities[label], issues = identity(record, expected)
+        problems += [f"{label}: {issue}" for issue in issues]
+        if record.get("passed") is not True:
+            problems.append(f"{label}: the record did not pass")
     if first_sha256 == second_sha256:
         problems.append("both artifacts are the same run")
-    if first.get("model") != second.get("model"):
-        problems.append("different model")
-    names = [[case.get("id") for case in record.get("cases", [])] for record in (first, second)]
-    if names[0] != names[1] or not names[0]:
-        problems.append("different cases")
-    pairs = [] if problems else [compare_case((baseline, x), (candidate, y), vocabulary)
+    if paths[0].samefile(paths[1]):
+        problems.append("both records are the same file")
+    pairs = [] if problems else [compare_case((baseline, x), (candidate, y), expected["vocabulary"])
                                  for x, y in zip(first["cases"], second["cases"])]
     problems += [problem for case, _ in pairs for problem in case["problems"]]
-    compared = [(case, rows) for case, (_, rows) in zip(first.get("cases", []), pairs) if rows is not None]
-    passed = not problems and len(compared) == len(names[0])
-    return {"schema": SCHEMA, "passed": passed, "problems": problems, "vocabulary": vocabulary, "window": window,
-            "near_tie_margin": NEAR_TIE, "records_sha256": [first_sha256, second_sha256],
-            "cases": [case for case, _ in pairs], "groups": groups(compared, window) if passed else []}
+    compared = [(case, rows) for case, (_, rows) in zip(first["cases"], pairs) if rows is not None] if pairs else []
+    passed = not problems and len(compared) == len(expected["cases"])
+    return {"schema": SCHEMA, "passed": passed, "problems": problems, "vocabulary": expected["vocabulary"],
+            "window": expected["window"], "near_tie_margin": NEAR_TIE, "records_sha256": [first_sha256, second_sha256],
+            "identities": identities, "cases": [case for case, _ in pairs],
+            "groups": groups(compared, expected["window"]) if passed else []}
 
 
 def main():
@@ -181,10 +256,8 @@ def main():
     for name in ("baseline", "candidate", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
-    if args.output.exists():
-        raise FileExistsError("The comparison must be written to a new file")
     result = compare(args.baseline, args.candidate)
-    write_json(args.output, result)
+    write_new(args.output, result)
     print(f"passed={result['passed']} problems={len(result['problems'])}")
     return 0 if result["passed"] else 1
 
