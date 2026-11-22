@@ -66,8 +66,8 @@ def score(arguments):
             print(f"FAIL: {problem}")
         return 1
     tokenizer, pinned = scoring.pinned(arguments.tokenizer, bundle["contract"])
-    print(json.dumps(scoring.score_runs(bundle, arguments.items, arguments.run, arguments.output, tokenizer, pinned),
-                     indent=2, sort_keys=True))
+    print(json.dumps(scoring.score_runs(bundle, arguments.items, arguments.run, arguments.output, tokenizer, pinned,
+                                        arguments.commit), indent=2, sort_keys=True))
     return 0
 
 
@@ -103,6 +103,7 @@ def main():
     scored.add_argument("--run", type=Path, nargs="+", required=True)
     scored.add_argument("--tokenizer", type=Path, required=True)
     scored.add_argument("--output", type=Path, required=True)
+    scored.add_argument("--commit")
     compared = commands.add_parser("compare")
     for name in ("--baseline", "--candidate", "--scores", "--items", "--output"):
         compared.add_argument(name, type=Path, required=True)

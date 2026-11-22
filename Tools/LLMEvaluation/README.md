@@ -1,6 +1,6 @@
 # Gemma 4 31B quality evaluation
 
-The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, scores output records with every rule except code (issue #668), and compares the scored baseline and candidate of a pair to give the verdict of §7 and its report (issue #671). Running models and code scoring belong to other child issues.
+The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, scores output records with the rules of §6.7 (issue #668, and issue #670 for code), and compares the scored baseline and candidate of a pair to give the verdict of §7 and its report (issue #671). Running models belongs to other child issues.
 
 | File | Contents |
 |---|---|
@@ -8,7 +8,8 @@ The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-cont
 | `sets/primary.json`, `sets/reserve.json` | Item ids, source keys or generator arguments, `item_sha256` and token counts only |
 | `prompts.json` | All prompt wording, the synthetic templates and the `free-ja` instructions |
 | `synthetic/` | Synthetic task generators, the independent solvers that read only the rendered text, and the self-authored vocabulary |
-| `scoring.py` | The scoring rules of §6.7 except code, the record checks and `score` |
+| `scoring.py` | The scoring rules of §6.7, the record checks and `score` |
+| `execution.py` | Code scoring: the code read from an output and its program run in an isolated child process |
 | `comparison.py` | The paired comparison and the verdicts of §7, the report and `compare` |
 | `tests/` | Unit tests, the scoring specification examples (`examples.json`), the expected scoring results derived by hand from §6.7 (`scoring_cases.json`) and the expected comparison results derived by hand from §7 (`comparison_cases.json`) |
 
@@ -52,17 +53,18 @@ Without `--check` it rewrites both set files. Any change to them requires a new 
 
 ## Scoring
 
-`score` scores the output records of one or more runs with the rules of §6.7, except code. The runs of one call share the items, the tokenizer and the scorer, so the baseline and the candidate of a pair belong in the same call.
+`score` scores the output records of one or more runs with the rules of §6.7. The runs of one call share the items, the tokenizer and the scorer, so the baseline and the candidate of a pair belong in the same call.
 
 ```sh
 python3 -m Tools.LLMEvaluation score \
   --items .local/conversion/gemma4_31b/evaluation/new-build/primary.jsonl \
   --run path/to/baseline-run path/to/candidate-run \
   --tokenizer .local/conversion/models/google--gemma-4-31B-it/tokenizer.json \
-  --output .local/conversion/gemma4_31b/evaluation/new-scores
+  --output .local/conversion/gemma4_31b/evaluation/new-scores \
+  --commit "$(git rev-parse HEAD)"
 ```
 
-`--items` is a file written by `build`. Each run folder holds:
+`--items` is a file written by `build`. `--commit` is recorded as the scorer commit; `score` does not call git, and without it the commit is `null`. Each run folder holds:
 
 | File | Contents |
 |---|---|
@@ -74,9 +76,10 @@ python3 -m Tools.LLMEvaluation score \
 - `tokenizer.json` differs in size or SHA-256 from its pin in `contract.json`;
 - the ids of `--items` are not exactly those of one frozen set, `sets/primary.json` or `sets/reserve.json`; the message gives the numbers of missing and extra ids;
 - the output folder exists;
-- two run folder names are equal after NFC normalization and case folding, or a run folder has no name, as the root does.
+- two run folder names are equal after NFC normalization and case folding, or a run folder has no name, as the root does;
+- `/usr/bin/sandbox-exec` is missing or does not start Python with the isolation profile; no output code is run then.
 
-A malformed record does not stop it; the record is reported and not scored. It makes every run folder before it writes any result, and when the output cannot be completed it removes the output folder that it made. It needs `tokenizers` but not `jinja2`; the rules use only the standard library, and the unit tests replace the tokenizer. The scored text is `output_ids` decoded with the pinned tokenizer, skipping special tokens; text in a record is never used. `python_tests` items stay `pending_code` for the code scorer, and no output code is run.
+A malformed record does not stop it; the record is reported and not scored. It makes every run folder before it writes any result, and when the output cannot be completed it removes the output folder that it made. It needs `tokenizers` but not `jinja2`; the rules use only the standard library, and the unit tests replace the tokenizer. The scored text is `output_ids` decoded with the pinned tokenizer, skipping special tokens; text in a record is never used. Code items need macOS; see [Code](#code).
 
 The output folder gets one folder per run, named after the run folder once its path is made absolute, so `--run .` takes the name of the current folder. Its `scores.jsonl` has one line per item of `--items`, in that order, as standard ASCII JSON:
 
@@ -84,11 +87,13 @@ The output folder gets one folder per run, named after the run folder once its p
 |---|---|
 | `id`, `category` | From the item |
 | `kind` | The scorer kind |
-| `correct` | `true` or `false`; `null` for `unscored`, `pending_code`, `missing` and `malformed` |
-| `state` | `scored`, `unscored`, `pending_code`, `missing` (no record), `malformed` (only malformed records carry its id), or the reason nothing could be read, which makes the item incorrect: `no_digit`, `no_marker`, `no_integer`, `no_json` or `duplicate_key` |
-| `parsed` | The value read: the digit, the integer, the normalized text, the first JSON object or the stripped non-empty lines; `null` when nothing was read |
+| `correct` | `true` or `false`; `null` for `unscored`, `item_hash_differs`, `missing` and `malformed` |
+| `state` | `scored`, `unscored`, `item_hash_differs` (a code item whose content differs from the frozen set, whatever its records; its program is not run), `missing` (no record), `malformed` (only malformed records carry its id), or the reason nothing could be read, which makes the item incorrect: `no_digit`, `no_marker`, `no_integer`, `no_json` or `duplicate_key` |
+| `parsed` | The value read: the digit, the integer, the normalized text, the first JSON object or the stripped non-empty lines; `null` when nothing was read, and for code |
 | `f1` | `reading_exact` only: the character F1 |
 | `tp`, `fp`, `fn` | `entity_sets` only: the (key, string) pairs of the item |
+| `failure` | `python_tests` only: `null` for a correct item; `timeout` when the rerun also exceeded the limit; `not_finished` when the units did not run to the end, through an exception or an early end of the process; `exit_status` when they ran to the end and the process then exited with a status other than 0 |
+| `rerun` | `python_tests` only: `true` when the first run exceeded the limit, so the result is that of the rerun |
 
 The character F1 is 2 × overlap ÷ (output length + answer length), where the overlap is that of the character multisets after normalization; it is the maximum over the answers, and 0 when either side is empty. The `entity_sets` predictions are the (key, string) pairs of those of the 8 keys whose values are arrays of strings, each pair counted once. An output without a JSON object, or whose first object has a duplicate key, predicts nothing.
 
@@ -96,14 +101,24 @@ The first JSON object starts at the first `{` from which a standard JSON object 
 
 Its `summary.json`, also standard ASCII JSON, holds:
 
-- `contract` (the version and the SHA-256 of `contract.json`), `items` (the file name and SHA-256 of `--items`, and `set`, the name of the frozen set it holds), `tokenizer` (its SHA-256 and `vocabulary`, its size with the added tokens), `run` (the copy of `run.json`) and `outputs` (`sha256`, the SHA-256 of the `outputs.jsonl` bytes that were scored). `score` reads `--items` and each `outputs.jsonl` once and takes both the content and the SHA-256 from the same bytes.
-- `checks`: facts about the records. The checks give no verdict, and every item with a well-formed record is scored.
+- `contract` (the version and the SHA-256 of `contract.json`), `items` (the file name and SHA-256 of `--items`, and `set`, the name of the frozen set it holds), `tokenizer` (its SHA-256 and `vocabulary`, its size with the added tokens), `scorer` (`commit`, the `--commit` value or `null`, and `python`, the version of the Python that ran `score` and the programs), `run` (the copy of `run.json`) and `outputs` (`sha256`, the SHA-256 of the `outputs.jsonl` bytes that were scored). `score` reads `--items` and each `outputs.jsonl` once and takes both the content and the SHA-256 from the same bytes.
+- `checks`: facts about the records. The checks give no verdict, and every item with a well-formed record is scored, except a code item listed in `item_hash_differs`, whose program is not run.
   - `malformed`: every record that does not have the form of contract §5.1, in file order: a line that is not a standard JSON object (a line with `NaN`, `Infinity` or `-Infinity` is not), or a missing field or a value of another type. `id` and `input_sha256` are strings, `input_tokens` an integer of at least 1, `non_finite` an integer of at least 0, `output_ids` a list of token ids, `stop` either `stop_token` or `limit`, `stop_token` a token id when `stop` is `stop_token`, `top2` a list of `[token id, probability, token id, probability]` with two different token ids and probabilities that are numbers from 0 to 1, the first at least the second (`true` and `false` are not numbers, and a number such as `1e400`, which reads as infinite, is out of range), and `error`, when present, a string. A token id is an integer from 0 to below `vocabulary`. A record is listed by its id when the id is a string, and otherwise by its line number.
-  - The other checks are sorted lists of ids. `missing`, `not_in_set` and `duplicate` count every record with a string id, well-formed or malformed; a record without one counts for none. `missing`: an item that no record names. `not_in_set`: a record whose id is not an item. `duplicate`: an id with more than one record; only the first well-formed record of an id is scored. `item_hash_differs`: an item whose `item_sha256` differs from `sets/*.json`.
+  - The other checks are sorted lists of ids. `missing`, `not_in_set` and `duplicate` count every record with a string id, well-formed or malformed; a record without one counts for none. `missing`: an item that no record names. `not_in_set`: a record whose id is not an item. `duplicate`: an id with more than one record; only the first well-formed record of an id can be scored. `item_hash_differs`: an item whose `item_sha256` differs from `sets/*.json`.
   - `top2_differs` uses only the well-formed records: a record whose `top2` first ids differ from the generated tokens in a value or in number; the generated tokens are `output_ids` followed by `stop_token` when the run stopped on one.
 - `categories`: per category, `kind`, `items`, `correct`, `unscored` (items whose `correct` is `null`) and `states` (the count of each state). `entity_sets` adds the sums `tp`, `fp` and `fn` and `micro_f1` = 2·tp ÷ (2·tp + fp + fn); `reading_exact` adds `mean_f1`, the mean character F1. Either is `null` when its denominator is 0.
+- `code`: `timeouts`, the number of code items of the run whose program exceeded the limit on its first run, and `rerun_passed`, the number of those that passed on the rerun.
 
 `score` prints, for each run, the counts per category and the number of ids in each check.
+
+### Code
+
+Code scoring needs macOS. The rules are those of contract §6.7, fixed by the tests in `tests/test_execution.py` and by `CodeScoringTests` in `tests/test_scoring.py`. This section gives what using it needs and what the tests check.
+
+- `score` itself never imports or runs output code. Each program runs in a child process under `/usr/bin/sandbox-exec`, with the Python that runs `score` started as `-I -S -B` (isolated mode, no `site`, no bytecode files). The profile denies everything except executing a program in place of the running one, which is how that Python starts, reading files and writing inside the program's new, empty temporary folder, which is its working folder; the program cannot create processes. Standard input is empty, and standard output and standard error are discarded. The tests check that a network connection, a write outside that folder, reading standard input and creating a process through `os.fork`, `subprocess`, `os.posix_spawn`, `os.system` or `multiprocessing` fail, and that a write inside it succeeds.
+- A program has 10 seconds of wall-clock time. A program over the limit is ended and runs once more, only once, and the item takes the result of that run. The tests check that no process and no temporary folder remain after a program ends, within or over the limit, also when the program has replaced itself with another program.
+- Within one call, runs whose scored record of an item has the same `output_ids` share one scoring of it and get the same row: its program runs once, and once more only after a timeout.
+- Two points of reading the code are not settled by the contract. A fence line starts with three backticks at the start of a line, so an indented fence is not one. A ```python block opens at a fence line whose first word after the backticks is `python`; `Python`, `python3` or `py` opens another block.
 
 ## Comparison
 
