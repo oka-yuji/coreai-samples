@@ -312,15 +312,19 @@ The step writes `export/` into its artifacts: `export.json`, the record, and the
 `gemma4_31b_l<layers>_fp16_main.aimodel` (`gemma4_31b_l<layers>_fp16_main_prefill.aimodel` with `main,prefill`) and
 `tokenizer/`, the three distributed tokenizer files. The bundle is saved as `bundle.incomplete/` and gets the name
 `bundle/` only after a passed run has written `export.json`; the exit code is 0 only for a passed run. A run passes
-when the export had no compression setting and no quantized weight, Float16 holds at least as many elements as the
-parameters and buffers of the model and the only other storage types are Float32, Int32, UInt32 and UInt64, the asset
-has exactly the functions asked for, with the inputs, outputs and states that the configuration of the contract gives
-and the sequence as their only dynamic dimension, the tokenizer files match the contract and `metadata.json` the
-contract and the arguments, and the volume kept 60 GiB free. The
-step starts only with twice the FP16 weights of the chosen layers plus 60 GiB free; the monitor, its stops and
-`failure.json` are those of `reference`. The loading work area `export/layers/` is removed when the step ends, raises
-an error or is stopped by its monitor, and stays when a signal ends the process, as when the runner stops the step at
-its timeout or on an interruption (SIGTERM, then SIGKILL). The inspection reads the asset with
+when the export had no compression setting and no quantized weight, every parameter and buffer of the PyTorch model is
+float16, the only storage types of the asset are Float16, Float32, Int32, UInt32 and UInt64 and Float32 holds exactly
+`global_head_dim // 2 + head_dim // 2 + 2` elements (two RoPE frequency tables and two constants; 386 for this model),
+the asset has exactly the functions asked for, with the inputs, outputs and states that the configuration of the
+contract gives and the sequence as their only dynamic dimension, the tokenizer files match the contract and
+`metadata.json` the contract and the arguments, and the volume kept 60 GiB free. The storage counts are totals over the
+asset, in which the export folds identical and constant-valued tensors, so they cannot show which tensor is stored in
+which type; the type of each tensor is checked on the PyTorch model, and `export.json` records Float16 minus the
+elements of the weights without judging it. The step starts only with twice the FP16 weights of the chosen layers plus
+60 GiB free; the monitor, its stops and `failure.json` are those of `reference`. The loading work area `export/layers/`
+is removed when the step ends, raises an error or is stopped by its monitor, and stays when a signal ends the process,
+as when the runner stops the step at its timeout or on an interruption (SIGTERM, then SIGKILL). The inspection reads
+the asset with
 `coreai.runtime._AIModelAsset(...).summary(include_statistics=True)`, a non-public interface of the converter
 package. `AssetTests`, `StartTests`, `RecordTests` and `RecipeTests` in
 `Tools/Conversion/tests/test_gemma4_31b_export.py` fix the inspection, the checks before the start, the record and the
@@ -359,7 +363,8 @@ lock, which it does not take itself:
 It refuses an existing output before it reads anything. Into the new folder it writes, for every condition,
 `<condition>.tokens.json`, the logits of `coreai-verify logits` (`<condition>.f16`) and its standard error
 (`<condition>.log`), and last `comparison.json` with `passed`, the findings in `problems` and the numbers of every
-condition, also when a record, the verifier or a condition cannot be read. It prints a short summary of
+condition, also when a record, the verifier or a condition cannot be read, or a failed record without conditions when
+the full record cannot be written. It prints a short summary of
 `comparison.json`, and the exit code is 0 only when the comparison passed. Each `coreai-verify` call is stopped after
 1,800 s.
 
