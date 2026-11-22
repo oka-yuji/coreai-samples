@@ -89,19 +89,36 @@ class EffectTests(unittest.TestCase):
         for folder in (self.restored, self.rounded):
             self.assertEqual(sorted(path.name for path in folder.iterdir()), ["context.npy", "record.json", "short.npy"])
 
-    def test_references_of_other_weights_or_layers_are_refused_and_nothing_is_compared(self):
-        other = self.write("other-layers", layers.RESTORED, self.arrays)
-        record = read_json(other / "record.json")
+    def twelve_layers(self, label, weights, **extra):
+        folder = self.write(label, weights, self.arrays, **extra)
+        record = read_json(folder / "record.json")
         record.update(layers=12, layer_types=layers.check_layers(self.config, 12))
-        write_json(other / "record.json", record)
-        cases = {"two rounded references": (self.rounded, self.rounded), "swapped references": (self.rounded, self.restored),
-                 "a restored reference of other layers": (other, self.rounded)}
-        for label, (restored, rounded) in cases.items():
+        write_json(folder / "record.json", record)
+        return folder
+
+    def test_references_of_other_weights_or_layers_are_refused_and_nothing_is_compared(self):
+        checks = read_json(self.restored / "record.json")["quantized"]
+        restored_weights = "the restored reference does not use the restored weights"
+        rounded_weights = "the rounded reference does not use the rounded weights"
+        layer_counts = "the references are of other layer counts"
+        cases = {"two rounded references": (self.rounded, self.rounded, restored_weights),
+                 "swapped references": (self.rounded, self.restored, rounded_weights),
+                 "a restored reference of other layers": (self.twelve_layers("other-layers", layers.RESTORED), self.rounded,
+                                                          layer_counts),
+                 "rounded weights with the checks of the quantized tensors": (
+                     self.write("rounded-with-checks", layers.WEIGHTS, self.arrays, quantized=checks), self.rounded,
+                     restored_weights),
+                 "two restored references": (
+                     self.restored, self.write("second-restored", layers.RESTORED, self.arrays, quantized=checks),
+                     rounded_weights),
+                 "a rounded reference of other layers": (self.restored, self.twelve_layers("rounded-twelve", layers.WEIGHTS),
+                                                         layer_counts)}
+        for label, (restored, rounded, expected) in cases.items():
             with self.subTest(case=label):
                 code, output, _ = self.run_main(restored, rounded)
                 result = json.loads(output)
                 self.assertEqual((code, result["conditions"]), (1, []))
-                self.assertTrue(result["problems"])
+                self.assertIn(expected, result["problems"])
 
     def test_a_restored_reference_without_the_checks_of_every_quantized_tensor_is_refused(self):
         cases = {"one tensor less": {"export_sha256": "1" * 64, "file": {"bytes": 1, "sha256": "2" * 64}, "tensors": 122},
