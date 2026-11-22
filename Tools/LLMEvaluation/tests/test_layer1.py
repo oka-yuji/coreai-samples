@@ -416,6 +416,8 @@ class RefusalTests(Folder):
         cases = (("a line in writing", lambda state: state["progress"].update(next_sha256="0" * 64), "next_sha256"),
                  ("fewer lines", lambda state: state["progress"].update(lines=len(ENTRIES) - 1), "lines"),
                  ("a float line count", lambda state: state["progress"].update(lines=float(len(ENTRIES))), "lines"),
+                 ("a flag as the line count", lambda state: state["progress"].update(lines=True), "lines"),
+                 ("a null line in writing", lambda state: state["progress"].update(next_sha256=None), "next_sha256"),
                  ("another run", other_run, ": run"),
                  ("other bytes", lambda state: state["progress"].update(sha256="0" * 64), "sha256"))
         for name, change, text in cases:

@@ -71,7 +71,8 @@ def same(value, expected):
 def differing(value, expected):
     if not isinstance(value, dict):
         return sorted(expected)
-    return sorted(key for key in set(value) | set(expected) if not same(value.get(key), expected.get(key)))
+    shared = set(value) & set(expected)
+    return sorted((set(value) ^ set(expected)) | {key for key in shared if not same(value[key], expected[key])})
 
 
 def run_identity(run):
@@ -180,9 +181,10 @@ def write(bundle, inputs, run, output):
     files = {"count": len(known), "sha256": hashlib.sha256(data).hexdigest()}
     identity = checked_sources(bundle, summary, stored, known, files)
     confirmed = {"lines": files["count"], "run": run_identity(stored), "sha256": hashlib.sha256(outputs).hexdigest()}
-    found = differing(strict((run / "progress.json").read_bytes()), confirmed)
-    if found:
-        raise ValueError(f"progress.json does not confirm these output records of this finished run: {', '.join(found)}")
+    progress = strict((run / "progress.json").read_bytes())
+    if not same(progress, confirmed):
+        raise ValueError("progress.json does not confirm these output records of this finished run: "
+                         + ", ".join(differing(progress, confirmed)))
     good, broken = partition(strict_records(outputs), math.inf)
     found = {key: value for key, value in record_checks(bundle["sets"][SET]["items"], good, broken, set()).items()
              if value}
