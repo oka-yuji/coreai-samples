@@ -63,6 +63,7 @@ struct Evaluate: AsyncParsableCommand {
         let engine = try await CoreAIBackend.Engine(bundle: bundle)
         let stats = engine.loadStats
         let record = EvaluationRun(
+            id: UUID().uuidString,
             contract: .init(version: terms.version, sha256: hex(Data(SHA256.hash(data: contractData)))), set: set,
             role: role, asset: .init(name: bundle.name, mainHash: mainHash, sourceModelId: bundle.sourceModelID),
             implementation: .init(commit: commit),

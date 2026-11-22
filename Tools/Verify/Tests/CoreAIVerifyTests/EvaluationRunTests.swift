@@ -18,10 +18,10 @@ func outputLines(_ folder: URL) throws -> [[String: Any]] {
 func runRecord(
     count: Int, contract: String = "contract", set: String = "primary", role: String = "fp16",
     mainHash: String = "hash", inputs: String = "inputs", prefillChunk: Int = 256, contextLimit: Int = 262_144,
-    commit: String = "c0ffee", started: Date = Date(timeIntervalSince1970: 0)
+    commit: String = "c0ffee", started: Date = Date(timeIntervalSince1970: 0), id: String = "run-a"
 ) -> EvaluationRun {
     EvaluationRun(
-        contract: .init(version: "G31-QC-v1", sha256: contract), set: set, role: role,
+        id: id, contract: .init(version: "G31-QC-v1", sha256: contract), set: set, role: role,
         asset: .init(name: "bundle", mainHash: mainHash, sourceModelId: "org/model"),
         implementation: .init(commit: commit),
         callShape: .init(
@@ -154,10 +154,11 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
     }
 
     private func fullRun(
-        _ folder: URL, _ scripts: [FakeEvaluationLogitsSource.Item], _ inputs: [EvaluationInput], role: String = "fp16"
+        _ folder: URL, _ scripts: [FakeEvaluationLogitsSource.Item], _ inputs: [EvaluationInput], role: String = "fp16",
+        id: String = "run-a"
     ) async throws -> Data {
         _ = try await Evaluation.run(
-            inputs, in: folder, record: runRecord(count: inputs.count, role: role),
+            inputs, in: folder, record: runRecord(count: inputs.count, role: role, id: id),
             source: FakeEvaluationLogitsSource(scripts), stopTokens: [3])
         return try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
     }
@@ -212,14 +213,19 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
         let expected = try await fullRun(
             base.appending(path: "full"), [stepThenStop, stepThenStop, stepThenStop], inputs)
         let folder = base.appending(path: "run")
-        _ = try await fullRun(folder, [stepThenStop, stepThenStop, stepThenStop], inputs)
+        _ = try await Evaluation.run(
+            inputs, limit: 2, in: folder, record: runRecord(count: 3),
+            source: FakeEvaluationLogitsSource([stepThenStop, stepThenStop]), stopTokens: [3])
+        var started = try storedRun(folder)
+        started.finished = nil
+        try Evaluation.write(started, in: folder)
         let lines = completeLines(expected)
         let outputs = folder.appending(path: "outputs.jsonl")
         try (lines[0] + lines[1] + (cut ? lines[2].prefix(20) : Data())).write(to: outputs)
         try Evaluation.write(
             EvaluationCheckpoint(
                 lines: 2, sha256: digest(lines[0] + lines[1]), nextSha256: digest(expected),
-                run: runRecord(count: 3).identityDigest()), in: folder)
+                run: started.identityDigest()), in: folder)
         let source = FakeEvaluationLogitsSource([stepThenStop])
         _ = try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
         #expect(source.calls.filter { $0.hasPrefix("prefill") } == ["prefill 3 true"])
@@ -261,7 +267,9 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
         arguments: [
             "trailing comma", "another stop token", "stop set to limit", "shorter output_ids", "line removed",
             "lines swapped", "another sha256", "an older progress.json", "a line that was not announced",
-            "a line other than the announced one", "another run's files", "progress.json removed",
+            "a line other than the announced one", "another run's files",
+            "files of another run with the same conditions", "run.json of another run with the same conditions",
+            "an earlier pair of outputs.jsonl and progress.json", "progress.json removed",
         ])
     func rejectsChangedOutputs(_ change: String) async throws {
         let base = try temporaryFolder()
@@ -282,7 +290,8 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
         case "shorter output_ids": lines[0] = lines[0].replacing(#""output_ids":[1]"#, with: #""output_ids":[]"#)
         case "line removed":
             lines.remove(at: 1)
-            counted = 2
+            message =
+                "outputs.jsonl has 2 complete lines, fewer than the 3 finished items that run.json records; the run folder was changed outside this command."
         case "lines swapped": lines.swapAt(0, 1)
         case "another sha256":
             try Evaluation.write(
@@ -313,6 +322,30 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
                 String(decoding: $0, as: UTF8.self)
             }
             message = "progress.json belongs to another run; the run folder was changed outside this command."
+        case "files of another run with the same conditions":
+            let other = base.appending(path: "other")
+            _ = try await fullRun(other, [stepThenStop, stepThenStop, stepThenStop], inputs, id: "run-b")
+            for name in ["outputs.jsonl", "progress.json"] {
+                try FileManager.default.removeItem(at: folder.appending(path: name))
+                try FileManager.default.copyItem(at: other.appending(path: name), to: folder.appending(path: name))
+            }
+            lines = completeLines(try Data(contentsOf: folder.appending(path: "outputs.jsonl"))).map {
+                String(decoding: $0, as: UTF8.self)
+            }
+            message = "progress.json belongs to another run; the run folder was changed outside this command."
+        case "run.json of another run with the same conditions":
+            let other = base.appending(path: "other")
+            _ = try await fullRun(other, [stepThenStop, stepThenStop, stepThenStop], inputs, id: "run-b")
+            try FileManager.default.removeItem(at: folder.appending(path: "run.json"))
+            try FileManager.default.copyItem(
+                at: other.appending(path: "run.json"), to: folder.appending(path: "run.json"))
+            message = "progress.json belongs to another run; the run folder was changed outside this command."
+        case "an earlier pair of outputs.jsonl and progress.json":
+            lines.removeLast()
+            try Evaluation.write(
+                EvaluationCheckpoint(lines: 2, sha256: digest(original[0] + original[1]), run: identity), in: folder)
+            message =
+                "outputs.jsonl has 2 complete lines, fewer than the 3 finished items that run.json records; the run folder was changed outside this command."
         default:
             try FileManager.default.removeItem(at: folder.appending(path: "progress.json"))
             message = "progress.json is missing; the run folder was changed outside this command."
@@ -321,6 +354,7 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
         let outputs = folder.appending(path: "outputs.jsonl")
         try changed.write(to: outputs)
         let progress = try? Data(contentsOf: folder.appending(path: "progress.json"))
+        let runFile = try Data(contentsOf: folder.appending(path: "run.json"))
         let source = FakeEvaluationLogitsSource([stepThenStop])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
@@ -333,6 +367,7 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
         #expect(source.calls.isEmpty)
         #expect(try Data(contentsOf: outputs) == changed)
         #expect((try? Data(contentsOf: folder.appending(path: "progress.json"))) == progress)
+        #expect(try Data(contentsOf: folder.appending(path: "run.json")) == runFile)
     }
 
     @Test(
@@ -366,6 +401,72 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
                     : "outputs.jsonl line 2 (id other) has no id of the input records."))
         #expect(source.calls.isEmpty)
         #expect(try Data(contentsOf: outputs) == changed)
+    }
+
+    @Test(
+        "A progress.json whose lines is the largest integer or negative, and a run.json whose items is negative or more than the input records, stop the resumed run without crashing or removing anything",
+        arguments: [("lines", Int.max), ("lines", -1), ("items", -1), ("items", 4)])
+    func rejectsCountsOutOfRange(field: String, value: Int) async throws {
+        let base = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let folder = base.appending(path: "run")
+        let inputs = items(3)
+        let cancelled = FakeEvaluationLogitsSource([.init(rows: [], cancelsAtPrefill: true)])
+        await #expect(throws: CancellationError.self) {
+            try await Evaluation.run(
+                inputs, in: folder, record: runRecord(count: 3), source: cancelled, stopTokens: [3])
+        }
+        var stored = try storedRun(folder)
+        var message =
+            "outputs.jsonl has 0 complete lines, which match neither the \(value) lines that progress.json records nor the line that it announced; the run folder was changed outside this command."
+        if field == "lines" {
+            try Evaluation.write(
+                EvaluationCheckpoint(
+                    lines: value, sha256: EvaluationCheckpoint.emptyDigest,
+                    nextSha256: EvaluationCheckpoint.emptyDigest,
+                    run: stored.identityDigest()), in: folder)
+        } else {
+            stored.items = value
+            try Evaluation.write(stored, in: folder)
+            message =
+                "run.json records \(value) finished items, not a count from 0 to 3; the run folder was changed outside this command."
+        }
+        let names = ["outputs.jsonl", "progress.json", "run.json"]
+        let before = try names.map { try Data(contentsOf: folder.appending(path: $0)) }
+        let source = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce, stopAtOnce])
+        let error = await #expect(throws: ValidationError.self) {
+            try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
+        }
+        #expect(error?.message == message)
+        #expect(source.calls.isEmpty)
+        #expect(try names.map { try Data(contentsOf: folder.appending(path: $0)) } == before)
+    }
+
+    @Test(
+        "A run.json without an id, written by an earlier version of this command, stops the resumed run without removing anything"
+    )
+    func rejectsRunRecordWithoutID() async throws {
+        let base = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let folder = base.appending(path: "run")
+        let inputs = items(3)
+        _ = try await fullRun(folder, [stepThenStop, stepThenStop, stepThenStop], inputs)
+        let runURL = folder.appending(path: "run.json")
+        var fields = try jsonObject(Data(contentsOf: runURL))
+        fields["id"] = nil
+        try JSONSerialization.data(withJSONObject: fields).write(to: runURL)
+        let names = ["outputs.jsonl", "progress.json", "run.json"]
+        let before = try names.map { try Data(contentsOf: folder.appending(path: $0)) }
+        let source = FakeEvaluationLogitsSource([stepThenStop])
+        let error = await #expect(throws: ValidationError.self) {
+            try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
+        }
+        #expect(
+            error?.message.hasPrefix(
+                "run.json could not be read as a run record of this command, and a run folder of an earlier version cannot be resumed"
+            ) == true)
+        #expect(source.calls.isEmpty)
+        #expect(try names.map { try Data(contentsOf: folder.appending(path: $0)) } == before)
     }
 
     @Test("Once the time limit has passed, the run ends after the item in progress and records its finish")
@@ -431,7 +532,7 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
             JSONSerialization.jsonObject(with: JSONEncoder.records.encode(record)) as? NSDictionary)
         let implementation = record.implementation
         let expected: NSDictionary = [
-            "contract": ["version": "G31-QC-v1", "sha256": "contract"], "set": "primary", "role": "fp16",
+            "id": "run-a", "contract": ["version": "G31-QC-v1", "sha256": "contract"], "set": "primary", "role": "fp16",
             "asset": ["name": "bundle", "main_hash": "hash", "source_model_id": "org/model"],
             "implementation": [
                 "command": "coreai-verify evaluate", "commit": "c0ffee", "os_version": implementation.osVersion,

@@ -42,6 +42,7 @@ struct EvaluationRun: Codable, Equatable {
         let loadS: Double
     }
 
+    let id: String
     let contract: Contract
     let set: String
     let role: String
@@ -64,6 +65,7 @@ struct EvaluationRun: Codable, Equatable {
 
     func identityDigest() throws -> String {
         struct Identity: Encodable {
+            let id: String
             let contract: Contract
             let set: String
             let role: String
@@ -73,7 +75,8 @@ struct EvaluationRun: Codable, Equatable {
             let implementation: Implementation
         }
         let identity = Identity(
-            contract: contract, set: set, role: role, mainHash: asset.mainHash, inputs: inputs, callShape: callShape,
+            id: id, contract: contract, set: set, role: role, mainHash: asset.mainHash, inputs: inputs,
+            callShape: callShape,
             implementation: implementation)
         return hex(Data(SHA256.hash(data: try JSONEncoder.records.encode(identity))))
     }
