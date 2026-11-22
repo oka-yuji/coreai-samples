@@ -432,16 +432,17 @@ work directory.
 ### Conditions
 
 - The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power). Every
-  model job held the shared machine lock, and none started while another model process ran. No other session held
-  the lock between these runs; the times below are records, not measurements.
-- Commit 1494a4c4 with no local changes for every model job. Converter `apple/coreai-models`
+  model job held the shared machine lock, and none started while another model process ran. Another session held the
+  lock between the two comparisons; the times below are records, not measurements.
+- Commit 1494a4c4 with no local changes for the FP32 reference and the exports, and commit 474bc2e0, which changed
+  only the comparison tool and its tests after 1494a4c4, for the comparisons. Converter `apple/coreai-models`
   `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core 1.0.0b3, coreai-models 0.1.0, coreai-opt 0.4.0,
   coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors 0.7.0. Reference: transformers 5.16.1,
   torch 2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` was built in release from the same commit.
 - Runs (2026-11-23 JST, pipeline run IDs in UTC): the FP32 reference (`layers.py context`) from 02:05:41; the exports
   `20261122T170658-b5e24d4e` (`main` and `prefill`) from 02:06:58 and `20261122T171023-84a7c490` (`main` only) from
   02:10:23, each with the `prepare` step of the recipe (the `export` step ran in both, not reused); the comparisons
-  from 02:13:30 and from 02:16:52.
+  from 02:56:49 and from 03:10:16.
 - Inputs: `short` (26 tokens) and `context` (16,896 tokens), fixed-seed token IDs of the recipe's FP32 tools, not
   text.
 
@@ -497,18 +498,18 @@ holds for both.
 
 | Condition | Rows | Largest absolute logit difference | Top-1 changes in a near tie / outside | Rows of the known call shape: count, largest difference | Seconds (`main` and `prefill` / `main` only) |
 |---|---:|---:|---:|---:|---:|
-| `short-c1` | 26 | 0.458 | 25 / 0 | – | 15.6 / 10.5 |
-| `short-c26` | 26 | 0.480 | 25 / 0 | – | 4.2 / 2.8 |
-| `window-c1` | 1,300 | 0.989 | 1,266 / 0 | – | 37.7 / 40.8 |
-| `window-c2` | 1,300 | 0.929 | 1,266 / 0 | – | 22.3 / 22.3 |
-| `window-c4` | 1,300 | 0.855 | 1,266 / 0 | – | 12.2 / 12.1 |
-| `window-c8` | 1,300 | 0.861 | 1,250 / 0 | 16, 4.266 | 9.3 / 8.4 |
-| `prefix-c1` | 300 | 0.836 | 294 / 0 | – | 12.1 / 12.8 |
-| `capacity-2048` | 16 | 0.437 | 15 / 0 | – | 5.0 / 4.4 |
-| `capacity-4096` | 16 | 0.535 | 14 / 0 | – | 6.8 / 6.4 |
-| `capacity-8192` | 16 | 0.459 | 16 / 0 | – | 11.9 / 12.7 |
-| `capacity-16384` | 16 | 0.567 | 15 / 0 | – | 20.8 / 22.3 |
-| `tail` | 64 | 0.466 | 61 / 0 | – | 22.1 / 24.1 |
+| `short-c1` | 26 | 0.458 | 25 / 0 | – | 15.4 / 11.1 |
+| `short-c26` | 26 | 0.480 | 25 / 0 | – | 3.9 / 2.8 |
+| `window-c1` | 1,300 | 0.989 | 1,266 / 0 | – | 36.6 / 33.6 |
+| `window-c2` | 1,300 | 0.929 | 1,266 / 0 | – | 20.7 / 18.6 |
+| `window-c4` | 1,300 | 0.855 | 1,266 / 0 | – | 12.4 / 10.2 |
+| `window-c8` | 1,300 | 0.861 | 1,250 / 0 | 16, 4.266 | 8.8 / 7.7 |
+| `prefix-c1` | 300 | 0.836 | 294 / 0 | – | 12.2 / 10.7 |
+| `capacity-2048` | 16 | 0.437 | 15 / 0 | – | 4.7 / 4.2 |
+| `capacity-4096` | 16 | 0.535 | 14 / 0 | – | 5.7 / 5.8 |
+| `capacity-8192` | 16 | 0.459 | 16 / 0 | – | 7.7 / 9.9 |
+| `capacity-16384` | 16 | 0.567 | 15 / 0 | – | 11.9 / 18.1 |
+| `tail` | 64 | 0.466 | 61 / 0 | – | 14.6 / 20.4 |
 
 - The rows of the known call shape are rows 96 to 111 of `window-c8`, from its calls of 8 tokens that end at 104 and
   112 positions; they are left out of the judgment. The other rows of that condition stay at 0.861.
@@ -520,7 +521,7 @@ holds for both.
   19,423 and 25,971 of the 262,144 logits per row are at 29.98 or above in absolute value. The top two reference
   logits of nearly every row are then within 0.01, so the top-1 criterion rarely applies; the logit difference is the
   measure here, as in #665.
-- The first condition of each asset specialized the asset (10.7 s and 7.1 s); the others used the specialization
+- The first condition of each asset specialized the asset (10.5 s and 7.7 s); the others used the specialization
   cache. The caches took 21,660,868 KiB (`resources.bin` 22,163,497,512 B) and 16,962,060 KiB (`resources.bin`
   17,352,106,248 B), the sizes that #665 found for the same forms, and were removed after the comparisons.
 - Compared with §3.2 of the #665 spike, which read a text input and a reference computed with the spike's own model
@@ -545,10 +546,10 @@ holds for both.
 | FP32 reference `record.json` | `ce9788b96d98ac3725b5f7d0efa5ab40dfccc9af9c5ede4fac2f063fd9ae35d6` |
 | Report of the export with `main` and `prefill` | `eead1a1dd0daae6984e66738c40521c32fe13e654aeb3ce8c2f2dc1e2486dbf4` |
 | Its `export.json` | `f03e81c94d072e601060c44a9665cd17dfaf46e685e602c252bee9b213dfc5ec` |
-| Its `comparison.json` | `67522ad333cd9fd28a6b7555d4f711b40da6ec711e2dbb807221f15cd1e467b8` |
+| Its `comparison.json` | `e6271e92dccbc63dda9e5fae1316337de2b2408f48b757dbbac2202479b05b9e` |
 | Report of the export with `main` only | `82da28ff5691527dfb666375d40a87773d50669663fbc3ee7e61459db8eae4bf` |
 | Its `export.json` | `1f3c7c4bc2ebe2f0471c60dd0231f29b9d489114539625264778360a25bfdb28` |
-| Its `comparison.json` | `3d5e167bd829d094e063d652c8f640147348b58ed4501cdfbc2e1d002c497cfc` |
+| Its `comparison.json` | `8093eaeedc8b7a2fd418fa0ba0d80b80fc5c432e054b7fe1039dc8f60ed031df` |
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 reference record.json> \
