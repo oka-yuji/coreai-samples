@@ -408,6 +408,7 @@ class QuantizedSummaryTests(Records):
 
     def test_an_8bit_summary_needs_the_effect_of_its_reference_and_an_fp16_summary_refuses_one(self):
         self.assertEqual(self.summarize(self.run_files("no-effect"), options=[]), (1, ""))
+        self.assertEqual(self.errors, "Cannot summarize local records (PipelineError).\n")
         write_json(self.effect, effect_record("0" * 64))
         self.assertEqual(self.summarize(self.run_files("other-reference")), (1, ""))
         write_json(self.effect, effect_record(sha256(self.reference), problems=["two rounded references"]))
