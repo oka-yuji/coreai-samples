@@ -206,9 +206,10 @@ def conclude(output, record, observed, started):
     record["passed"] = all(record["checks"].values())
     record["timing"]["total_s"] = time.perf_counter() - started
     if record["passed"]:
-        (output / INCOMPLETE).rename(output / BUNDLE)
         record["bundle"]["folder"] = BUNDLE
     write_json(output / "export.json", record)
+    if record["passed"]:
+        (output / INCOMPLETE).rename(output / BUNDLE)
     return 0 if record["passed"] else 1
 
 

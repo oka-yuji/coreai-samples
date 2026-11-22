@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from Tools.Conversion.adapters.gemma4_31b import export
+from Tools.Conversion.adapters.gemma4_31b import export, native
 from Tools.Conversion.adapters.gemma4_31b.layers import check_layers
 from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
 from Tools.Conversion.recipe import expand, load_recipe
@@ -265,15 +265,40 @@ class StartTests(unittest.TestCase):
 
 
 class RecordTests(unittest.TestCase):
-    def conclude(self, lowest, asset_problems=()):
+    def prepared(self):
         folder = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(folder))
         output = folder / "out"
         (output / export.INCOMPLETE).mkdir(parents=True)
+        (output / export.INCOMPLETE / "metadata.json").write_text("{}")
+        files = {"metadata.json": {"bytes": 2, "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}}
+        return output, files
+
+    def conclude(self, lowest, asset_problems=()):
+        output, files = self.prepared()
         record = {"problems": list(asset_problems), "disk": {"required_free_bytes": 1}, "timing": {},
-                  "bundle": {"folder": export.INCOMPLETE}}
+                  "bundle": {"folder": export.INCOMPLETE, "files": files}}
         code = export.conclude(output, record, observed(output, lowest), 0.0)
         return code, read_json(output / "export.json"), output
+
+    def test_a_failed_record_write_leaves_no_bundle_under_the_final_name(self):
+        output, files = self.prepared()
+        record = {"problems": [], "disk": {}, "timing": {}, "bundle": {"folder": export.INCOMPLETE, "files": files}}
+        with mock.patch.object(export, "write_json", side_effect=OSError("no space")), self.assertRaises(OSError):
+            export.conclude(output, record, observed(output, 10**15), 0.0)
+        self.assertFalse((output / export.BUNDLE).exists())
+        self.assertTrue((output / export.INCOMPLETE).is_dir())
+        self.assertFalse((output / "export.json").exists())
+
+    def test_a_failed_rename_fails_the_export_and_the_comparison_refuses_its_folder(self):
+        output, files = self.prepared()
+        record = {"problems": [], "disk": {}, "timing": {}, "bundle": {"folder": export.INCOMPLETE, "files": files}}
+        with mock.patch.object(Path, "rename", side_effect=OSError("busy")), self.assertRaises(OSError):
+            export.conclude(output, record, observed(output, 10**15), 0.0)
+        self.assertFalse((output / export.BUNDLE).exists())
+        self.assertEqual(read_json(output / "export.json")["bundle"]["folder"], export.BUNDLE)
+        problems = native.load_export(output, CONTRACT, RECIPE / "model.json")[-1]
+        self.assertIn("the bundle folder holds other files than its export record", problems)
 
     def test_a_run_whose_free_disk_fell_below_60_gib_fails_and_keeps_the_bundle_unpublished(self):
         code, record, output = self.conclude(60 * 2**30 - 1)
@@ -327,6 +352,7 @@ class RecipeTests(unittest.TestCase):
         sources = read_json(RECIPE / "recipe-fp16.json")
         self.assertEqual(sources["steps"][0], read_json(RECIPE / "recipe.json")["steps"][0])
         self.assertEqual(sources["environment"], read_json(RECIPE / "recipe.json")["environment"])
+
 
 
 if __name__ == "__main__":
