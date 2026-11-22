@@ -140,6 +140,50 @@ twice, and the comparison lists the SHA-256 of the two `reference.json` files, i
 record keeps them). It lives beside the steps because every `Tools/Conversion/*.py` file is part of each step's
 cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
 
+## Quality evaluation baseline
+
+Two modules write the outputs of the `reference` role of the quality contract `G31-QC-v1` (#669): `inputs` renders the
+items of a set into input records without loading the model, and `baseline` generates from those records with the BF16
+weights on MPS. They are not steps of `recipe.json`, because the primary set takes hours and runs in sessions that
+continue one run folder, releasing the shared machine lock between them. Run them from the repository root with the
+reference environment; `baseline` loads the model, so take the heavy-job lock of `AGENTS.md` first.
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.inputs \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --contract Tools/LLMEvaluation/contract.json --set Tools/LLMEvaluation/sets/primary.json \
+  --items <build>/primary.jsonl --output <new folder>
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.baseline \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --prepare <folder of ready.json> --contract Tools/LLMEvaluation/contract.json --inputs <inputs folder>/inputs.jsonl \
+  --commit <commit> --output <run folder> --log <new folder> --max-minutes 60
+~~~
+
+- `inputs`: `--items` is the `primary.jsonl` of `python3 -m Tools.LLMEvaluation build`, `--set` the frozen set file and
+  `--output` a new folder. It writes `inputs.jsonl`, one record per item in item order with `id`, `input_ids`,
+  `input_sha256` and `max_new_tokens`, and `inputs.json`, with the version and SHA-256 of `contract.json` and the count
+  and SHA-256 of `inputs.jsonl`. It writes nothing when an item does not match. `RecordTests` in
+  `Tools/Conversion/tests/test_gemma4_31b_inputs.py` fixes its checks.
+- `baseline`: `--prepare` is the output folder of the `prepare` step, `--commit` the commit to record (the command
+  does not run git), `--output` the run folder and `--log` a new folder outside it for the session's `monitor.tsv` and
+  `session.json`, or `failure.json` when the monitor stops the session. The run folder holds `outputs.jsonl`, the
+  output records of contract §5.1; `progress.json`, the progress of those lines; and `run.json`, the run record, which
+  has `finished` after a session that ended with exit code 0 (the next session removes it when it starts).
+  `InputRecordTests` in `Tools/Conversion/tests/test_gemma4_31b_baseline.py` fixes the checks of the input records,
+  `GenerationTests` and `SmallModelTests` the generation, `RunFolderTests` the run folder and its resume, and
+  `SessionTests` the end of a session.
+
+With `--max-minutes`, a session ends after the item in progress once that many minutes have passed since the command
+started. Its last line of standard output (`record` `session`) has `complete`; run the same command with a new `--log`
+folder until `complete` is true. A session that stops for another reason exits with a nonzero code, and the same
+command with a new `--log` folder continues the run once the cause is removed. When an item ends with an error, its
+record is written and the command stops; a baseline record with an error makes the comparison `incomplete`, so report
+it instead of continuing. When the command refuses a run folder, it changes nothing in it; do not edit the files of a
+run folder, and start a new run folder instead.
+
+The published record of the primary-set run is
+[docs/validation/gemma4-31b/baseline-20261122.md](../../../../docs/validation/gemma4-31b/baseline-20261122.md).
+
 ## FP32 anchor and FP16 diagnostics
 
 Six more heavy steps (#662) read the `reference` artifacts and run under the same shared lock, one process each. Each
