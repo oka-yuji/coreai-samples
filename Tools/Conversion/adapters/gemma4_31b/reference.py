@@ -440,13 +440,16 @@ def main():
         if not monitor.ready.wait(FIRST_SAMPLE_TIMEOUT_S):
             return fail(reasons[0] if reasons else f"no readable monitor sample within {FIRST_SAMPLE_TIMEOUT_S} s")
         record = reference(args, contract, ready)
+        observed = monitor.finish()
+        if reasons:
+            return fail(reasons[0])
+        finalize(record, observed, memory(contract["reference"]["device"]))
+        record["timing"]["total_s"] = time.perf_counter() - started
+        write_json(output, record)
     except KeyboardInterrupt:
         if not reasons:
             raise
         return fail(reasons[0])
-    finalize(record, monitor.finish(), memory(contract["reference"]["device"]))
-    record["timing"]["total_s"] = time.perf_counter() - started
-    write_json(output, record)
     return 0 if record["passed"] else 1
 
 

@@ -478,6 +478,36 @@ class MonitorTests(unittest.TestCase):
             self.assertEqual((code, failure["passed"], failure["abort"][:9]), (1, False, "swap rose"))
             self.assertFalse((output / "reference.json").exists())
 
+    def test_a_stop_while_the_stage_finishes_still_writes_the_failure(self):
+        class Finishing(ReadyMonitor):
+            def __init__(self, on_abort, interrupt):
+                super().__init__(on_abort, delay=None)
+                self.ready.set()
+                self.interrupt, self.calls = interrupt, 0
+
+            def finish(self):
+                self.calls += 1
+                if self.calls == 1:
+                    self.on_abort(reference.UNREADABLE)
+                    if self.interrupt:
+                        raise KeyboardInterrupt
+                return {**copy.deepcopy(OBSERVED), "aborts": 1, "abort": reference.UNREADABLE}
+
+        def finished(*arguments):
+            return {**checked_record({"finite": True}), "timing": {}}
+
+        for interrupt in (True, False):
+            with tempfile.TemporaryDirectory() as folder, self.subTest(interrupt=interrupt), \
+                    mock.patch.object(reference, "memory", return_value=dict(MEMORY)):
+                try:
+                    code, output = run_main(folder, lambda path, volumes, patterns, on_abort, interrupt=interrupt:
+                                            Finishing(on_abort, interrupt), finished)
+                except KeyboardInterrupt:
+                    self.fail("a stop while the stage finished escaped main")
+                failure = json.loads((output / "failure.json").read_text())
+                self.assertEqual((code, failure["passed"], failure["abort"]), (1, False, reference.UNREADABLE))
+                self.assertFalse((output / "reference.json").exists())
+
     def test_the_model_is_not_loaded_before_the_first_readable_sample(self):
         seen = {}
 
