@@ -26,25 +26,32 @@ extension ModelIntegrationTests {
         value.isFinite ? Double(value) : String(describing: value)
     }
 
+    private func singleTokenLogits(_ engine: Engine, _ tokens: [Int32]) async throws -> [[Float16]] {
+        var rows: [[Float16]] = []
+        for token in tokens {
+            try await engine.step(token)
+            rows.append(engine.logits())
+        }
+        return rows
+    }
+
+    private func loadRecord(_ engine: Engine, seconds: Double) -> [String: Any] {
+        ["cached": engine.loadStats.cached, "specialize_s": engine.loadStats.specializeSeconds, "load_s": seconds]
+    }
+
     private func callShapeRecord(_ path: String) async throws -> [String: Any] {
         let bundle = try ModelBundle(url: URL(filePath: path))
         try #require(bundle.sourceModelID == "google/gemma-4-31B-it")
         let tokens = try await callShapeTokens(bundle)
         let clock = ContinuousClock()
-        let loadStart = clock.now
+        var start = clock.now
         let engine = try await Engine(bundle: bundle)
-        let referenceStart = clock.now
-        var reference: [[Float16]] = []
-        for token in tokens {
-            try await engine.step(token)
-            reference.append(engine.logits())
-        }
-        let sweepStart = clock.now
+        let prefillLoad = loadRecord(engine, seconds: (clock.now - start) / .seconds(1))
+        start = clock.now
+        let reference = try await singleTokenLogits(engine, tokens)
         var calls: [[Int]] = []
         var prefillDiffs: [Float] = []
-        var oneCallDiffs: [Float] = []
         var prefillNonFinite: [Int] = []
-        var oneCallNonFinite: [Int] = []
         var shapeFailures: [String] = []
         for length in 1...tokens.count {
             let input = Array(tokens.prefix(length))
@@ -64,17 +71,38 @@ extension ModelIntegrationTests {
             }
             if read != planned { shapeFailures.append("length \(length): \(read), planned \(planned)") }
             let prefilled = engine.logits()
-            engine.reset()
-            try await engine.readInOneCall(input)
-            let oneCall = engine.logits()
             calls.append(read)
             prefillDiffs.append(StateCheck(current: reference[length - 1], reread: prefilled).maxAbsDiff)
-            oneCallDiffs.append(StateCheck(current: reference[length - 1], reread: oneCall).maxAbsDiff)
             prefillNonFinite.append(prefilled.count(where: { !$0.isFinite }))
+        }
+        let prefillSeconds = (clock.now - start) / .seconds(1)
+        let rule: Any =
+            engine.callShapeRule.map {
+                [
+                    "avoided_ends": [$0.avoidedEnds.lowerBound, $0.avoidedEnds.upperBound],
+                    "shortest_affected_length": $0.shortestAffectedLength,
+                ] as [String: Any]
+            } ?? NSNull()
+        let hasPrefillFunction = engine.hasPrefillFunction
+        let prefillChunkSize = engine.prefillChunkSize
+        engine.unload()
+        start = clock.now
+        let oneCallEngine = try await Engine(bundle: bundle)
+        let oneCallLoad = loadRecord(oneCallEngine, seconds: (clock.now - start) / .seconds(1))
+        start = clock.now
+        let oneCallReference = try await singleTokenLogits(oneCallEngine, tokens)
+        var oneCallDiffs: [Float] = []
+        var oneCallNonFinite: [Int] = []
+        for length in 1...tokens.count {
+            oneCallEngine.reset()
+            try await oneCallEngine.readInOneCall(Array(tokens.prefix(length)))
+            let oneCall = oneCallEngine.logits()
+            oneCallDiffs.append(StateCheck(current: oneCallReference[length - 1], reread: oneCall).maxAbsDiff)
             oneCallNonFinite.append(oneCall.count(where: { !$0.isFinite }))
         }
-        let end = clock.now
-        let referenceNonFinite = reference.reduce(0) { $0 + $1.count(where: { !$0.isFinite }) }
+        let oneCallSeconds = (clock.now - start) / .seconds(1)
+        oneCallEngine.unload()
+        let referenceNonFinite = (reference + oneCallReference).reduce(0) { $0 + $1.count(where: { !$0.isFinite }) }
         let lengths = Array(1...tokens.count)
         let prefillOver = lengths.filter { prefillDiffs[$0 - 1] >= 2.0 }
         let oneCallOverOutside = lengths.filter { !(97...112).contains($0) && oneCallDiffs[$0 - 1] >= 2.0 }
@@ -97,25 +125,17 @@ extension ModelIntegrationTests {
         print(
             "call-shape \(bundle.name) prefill_max=\(prefillLargest) one_call_97_112_max=\(insideLargest)"
                 + " one_call_other_max=\(outsideLargest) one_call_97_112_at_least_2=\(oneCallOverInside)"
-                + " non_finite=\(nonFinite) sweep_s=\((end - sweepStart) / .seconds(1))")
-        let rule: Any =
-            engine.callShapeRule.map {
-                [
-                    "avoided_ends": [$0.avoidedEnds.lowerBound, $0.avoidedEnds.upperBound],
-                    "shortest_affected_length": $0.shortestAffectedLength,
-                ] as [String: Any]
-            } ?? NSNull()
-        let record: [String: Any] = [
+                + " non_finite=\(nonFinite) prefill_s=\(prefillSeconds) one_call_s=\(oneCallSeconds)")
+        return [
             "name": bundle.name, "source_model_id": bundle.sourceModelID ?? NSNull(),
-            "main_hash": bundle.mainHash ?? NSNull(), "has_prefill_function": engine.hasPrefillFunction,
-            "prefill_chunk_size": engine.prefillChunkSize, "call_shape_rule": rule, "tokens": tokens.map(Int.init),
-            "cached": engine.loadStats.cached, "specialize_s": engine.loadStats.specializeSeconds,
-            "load_s": (referenceStart - loadStart) / .seconds(1),
-            "reference_s": (sweepStart - referenceStart) / .seconds(1),
-            "sweep_s": (end - sweepStart) / .seconds(1), "reference_non_finite": referenceNonFinite,
-            "non_finite": nonFinite, "prefill_largest": prefillLargest, "one_call_largest_97_112": insideLargest,
-            "one_call_largest_other": outsideLargest, "one_call_at_least_2_97_112": oneCallOverInside,
-            "prefill_at_least_2": prefillOver, "one_call_at_least_2_other": oneCallOverOutside,
+            "main_hash": bundle.mainHash ?? NSNull(), "has_prefill_function": hasPrefillFunction,
+            "prefill_chunk_size": prefillChunkSize, "call_shape_rule": rule, "tokens": tokens.map(Int.init),
+            "prefill_engine": prefillLoad, "one_call_engine": oneCallLoad, "prefill_s": prefillSeconds,
+            "one_call_s": oneCallSeconds, "references_equal": reference == oneCallReference,
+            "reference_non_finite": referenceNonFinite, "non_finite": nonFinite, "prefill_largest": prefillLargest,
+            "one_call_largest_97_112": insideLargest, "one_call_largest_other": outsideLargest,
+            "one_call_at_least_2_97_112": oneCallOverInside, "prefill_at_least_2": prefillOver,
+            "one_call_at_least_2_other": oneCallOverOutside,
             "rows": lengths.map { length -> [String: Any] in
                 [
                     "length": length, "prefill_calls": calls[length - 1],
@@ -126,8 +146,6 @@ extension ModelIntegrationTests {
                 ]
             },
         ]
-        engine.unload()
-        return record
     }
 
     @Test(
