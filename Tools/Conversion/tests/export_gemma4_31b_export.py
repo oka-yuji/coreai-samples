@@ -7,6 +7,7 @@ from unittest import mock
 
 import coreai_models
 from safetensors import safe_open
+import torch
 
 from Tools.Conversion.adapters.gemma4_31b import export, layers
 from Tools.Conversion.adapters.pinned import sha256
@@ -30,6 +31,14 @@ def arguments(contract, snapshot, output, functions="main", precision="fp16"):
     return ["export", "--model", str(contract), "--snapshot", str(snapshot), "--upstream", str(upstream),
             "--layers", "6", "--functions", functions, "--context", "4096", "--precision", precision,
             "--output", str(output), *(["--compression", str(CONFIG)] if precision == "8bit" else [])]
+
+
+def loaded(snapshot):
+    from Tools.Conversion.adapters.gemma4_31b.model import Gemma4ForCausalLM
+
+    return Gemma4ForCausalLM.from_hf_memory_efficient(
+        str(snapshot), max_context_length=4096, target_dtype=torch.float16, num_layers=6, hf_config_attr="text_config",
+        hf_state_dict_prefix=layers.PREFIX).eval()
 
 
 class ExportTests(unittest.TestCase):
@@ -156,6 +165,32 @@ class QuantizedExportTests(unittest.TestCase):
             self.assertEqual(record["quantized"]["skipped"], 5 * 5 + 4)
             self.assertTrue(any("Skipping quantization." in problem for problem in record["problems"]))
             self.assertFalse((output / export.BUNDLE).exists())
+
+    def test_restoring_gives_the_weights_that_the_converter_dequantizes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, _ = write_snapshot(folder, hidden_size=64)
+            model, counter = loaded(snapshot), export.Skips()
+            with export.counting(counter) as enabled:
+                model, config = export.quantize(model, CONFIG, folder / "work")
+            self.assertEqual((config, counter.count, enabled), (export.QUANTIZATION, 0, True))
+            entries, tensors = export.quantized_tensors(model)
+            self.assertEqual(len(entries), 41)
+            parts, modules, differ = dict(tensors), dict(model.named_modules()), 0
+            for entry in entries:
+                name = entry["name"]
+                with torch.no_grad():
+                    converted = getattr(modules[name.rsplit(".", 1)[0]], "weight").detach()
+                    restored = layers.restore(*(parts[f"{name}.{part}"] for part in PARTS))
+                    data, scale, minval = (parts[f"{name}.{part}"] for part in PARTS)
+                    blocks = data.shape[1] // scale.shape[1]
+                    once = data.float() * scale.float().repeat_interleave(blocks, 1) \
+                        + minval.float().repeat_interleave(blocks, 1)
+                with self.subTest(weight=name):
+                    self.assertEqual(converted.dtype, torch.float16)
+                    self.assertTrue(torch.equal(restored, converted))
+                differ += not torch.equal(once.to(torch.float16), converted)
+            self.assertGreater(differ, 0)
 
     def test_the_work_areas_are_removed_when_the_8bit_export_fails_or_is_interrupted(self):
         with tempfile.TemporaryDirectory() as folder:

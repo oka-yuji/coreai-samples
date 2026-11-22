@@ -15,7 +15,7 @@ from ..pinned import sha256
 from .anchor import read
 from .compare import BLOCK_ROWS, CONTRACT
 from .export import BUNDLE, FUNCTIONS, SCHEMA as EXPORT_SCHEMA
-from .layers import CONDITIONS, CONTEXT_SCHEMA, check_layers, kept_rows, tokens
+from .layers import CONDITIONS, CONTEXT_SCHEMA, QUANTIZED, WEIGHT_KINDS, check_layers, kept_rows, tokens
 from .prepare import load_contract
 from .reference import LOADED_FILES
 
@@ -167,7 +167,7 @@ def load_reference(folder, contract, contract_path):
 def load_export(folder, contract, contract_path):
     record, hashed, _ = read(folder / "export.json")
     problems = [] if record.get("schema") == EXPORT_SCHEMA and record.get("passed") is True else [
-        "the export is not a passed FP16 export"]
+        "the export is not a passed export"]
     problems += layer_problems(record, contract, "export")
     if record.get("model") != pinned_model(contract, contract_path):
         problems.append("the export recorded another model or contract")
@@ -185,8 +185,26 @@ def load_export(folder, contract, contract_path):
         problems.append("main.hash of the bundle differs from the export record")
     if record.get("functions") not in [list(functions) for functions in FUNCTIONS.values()]:
         problems.append("the export recorded other functions than main or main and prefill")
+    tensors = folder / QUANTIZED
+    if record.get("precision") == "8bit" and (tensors.is_symlink() or not tensors.is_file()
+                                              or file_hash(tensors) != (record.get("quantized") or {}).get("file")):
+        problems.append("the quantized tensors of the export differ from its record")
     facts = {"bundle": bundle, "main_hash": recorded.get("main_hash"), "prefill": "prefill" in (record.get("functions") or [])}
     return record, hashed, facts, problems
+
+
+def correspondence(exported, export_hash, reference):
+    precision = exported.get("precision")
+    if precision not in tuple(WEIGHT_KINDS) or reference.get("weights") != WEIGHT_KINDS[precision]:
+        return [f"the reference does not use the weights of the export of precision {precision!r}"]
+    if precision != "8bit":
+        return []
+    recorded = exported.get("quantized") or {}
+    tensors = recorded.get("tensors")
+    expected = {"export_sha256": export_hash, "file": recorded.get("file"),
+                "tensors": len(tensors) if isinstance(tensors, dict) else None}
+    return [] if reference.get("quantized") == expected else [
+        "the reference was not restored from the quantized tensors of this export"]
 
 
 def run_verifier(command, timeout, log):
@@ -293,8 +311,10 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
         problems += found
     except Exception as error:
         problems.append(f"the export record is unreadable ({type(error).__name__})")
-    if None not in (reference_hash, export_hash) and exported.get("layers") != reference.get("layers"):
-        problems.append("the export and the reference are of other layer counts")
+    if None not in (reference_hash, export_hash):
+        if exported.get("layers") != reference.get("layers"):
+            problems.append("the export and the reference are of other layer counts")
+        problems += correspondence(exported, export_hash, reference)
     verifier_record = None
     if not problems:
         try:

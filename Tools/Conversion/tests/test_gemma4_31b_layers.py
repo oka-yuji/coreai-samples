@@ -19,10 +19,10 @@ try:
 except ImportError:
     torch = None
 
-from Tools.Conversion.adapters.gemma4_31b import layers
+from Tools.Conversion.adapters.gemma4_31b import export, layers
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
-from Tools.Conversion.storage import digest, read_json, write_json
+from Tools.Conversion.storage import digest, file_hash, read_json, write_json
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
 SLIDING, FULL = "sliding_attention", "full_attention"
@@ -344,11 +344,12 @@ class ConditionTests(unittest.TestCase):
                     mock.patch.object(layers, "original_model") as original_model:
                 for count in (0, 5, 7, 13):
                     with self.subTest(layers=count), self.assertRaisesRegex(ValueError, "full-attention"):
-                        layers.context(contract, Path(folder) / "snapshot", count, Path(folder) / f"layers-{count}")
+                        layers.context(contract, Path(folder) / "snapshot", count, Path(folder) / f"layers-{count}",
+                                       "float16")
                     self.assertFalse((Path(folder) / f"layers-{count}").exists())
                 for name in ("used", "dangling"):
                     with self.subTest(output=name), self.assertRaises(FileExistsError):
-                        layers.context(contract, Path(folder) / "snapshot", 6, Path(folder) / name)
+                        layers.context(contract, Path(folder) / "snapshot", 6, Path(folder) / name, "float16")
             verify.assert_not_called()
             original_model.assert_not_called()
 
@@ -366,7 +367,7 @@ class ConditionTests(unittest.TestCase):
                 before = seen()
                 with self.subTest(output=label), mock.patch.object(layers, "load_contract", wraps=layers.load_contract) as load, \
                         self.assertRaises(FileExistsError):
-                    layers.context(broken, Path(folder) / "snapshot", 6, output)
+                    layers.context(broken, Path(folder) / "snapshot", 6, output, "float16")
                 load.assert_not_called()
                 self.assertEqual(seen(), before)
 
@@ -381,7 +382,7 @@ class ConditionTests(unittest.TestCase):
             try:
                 with mock.patch.object(layers, "load_contract", wraps=layers.load_contract) as load, \
                         self.assertRaises(FileExistsError):
-                    layers.context(broken, Path(folder) / "snapshot", 6, output)
+                    layers.context(broken, Path(folder) / "snapshot", 6, output, "float16")
                 load.assert_not_called()
             finally:
                 closed.chmod(0o700)
@@ -407,7 +408,7 @@ class ContextReferenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             snapshot, contract = write_snapshot(folder)
             config = load_contract(contract)["config"]
-            record = layers.context(contract, snapshot, 6, Path(folder) / "context")
+            record = layers.context(contract, snapshot, 6, Path(folder) / "context", "float16")
             self.assertEqual(read_json(Path(folder) / "context/record.json"), record)
             self.assertEqual((record["schema"], record["implementation"], record["layers"], record["layer_types"],
                               record["chunk"]), (layers.CONTEXT_SCHEMA, "original", 6, TEXT["layer_types"][:6], 1024))
@@ -469,6 +470,134 @@ class OriginalRunTests(unittest.TestCase):
                     layers.run("original", contract, snapshot, 6, Path(folder) / "changed")
             load.assert_not_called()
             self.assertEqual(list((Path(folder) / "changed").iterdir()), [])
+
+
+def quantized_tensors(text, seed=5):
+    generator = torch.Generator().manual_seed(seed)
+    parameters = dict(original(text=text).named_parameters())
+    tensors = {}
+    for name in sorted(export.quantized_names(text["layer_types"][:6])):
+        rows, columns = parameters[name].shape
+        tensors[f"{name}.quantized_data"] = torch.randint(0, 256, (rows, columns), dtype=torch.uint8, generator=generator)
+        tensors[f"{name}.scale"] = (torch.rand(rows, columns // 32, generator=generator) * 0.01 + 1e-3).to(torch.float16)
+        tensors[f"{name}.minval"] = (-0.5 * torch.rand(rows, columns // 32, generator=generator)).to(torch.float16)
+    return tensors
+
+
+def write_export(folder, contract, tensors, **changes):
+    folder.mkdir()
+    digests = export.save_quantized(folder / layers.QUANTIZED, list(tensors.items()))
+    record = {"schema": export.SCHEMA, "precision": "8bit", "layers": 6, "model": {"contract_sha256": sha256(contract)},
+              "quantized": {"file": file_hash(folder / layers.QUANTIZED), "tensors": digests}, **changes}
+    write_json(folder / "export.json", record)
+    return folder
+
+
+def float16_restore(data, scale, minval):
+    blocks = data.shape[1] // scale.shape[1]
+    product = data.numpy().astype(np.float16) * np.repeat(scale.numpy(), blocks, axis=1)
+    return torch.from_numpy(product + np.repeat(minval.numpy(), blocks, axis=1))
+
+
+@unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
+class RestoredReferenceTests(unittest.TestCase):
+    TEXT = {**TEXT, "hidden_size": 64}
+
+    def test_restoring_rounds_each_operation_to_float16_like_the_converter(self):
+        tensors = quantized_tensors(self.TEXT)
+        name = "model.layers.0.mlp.down_proj.weight"
+        data, scale, minval = (tensors[f"{name}.{part}"] for part in ("quantized_data", "scale", "minval"))
+        restored = layers.restore(data, scale, minval)
+        self.assertEqual((restored.dtype, tuple(restored.shape)), (torch.float16, tuple(data.shape)))
+        self.assertTrue(torch.equal(restored, float16_restore(data, scale, minval)))
+        blocks = data.shape[1] // scale.shape[1]
+        once = (data.float() * scale.float().repeat_interleave(blocks, 1) + minval.float().repeat_interleave(blocks, 1))
+        self.assertFalse(torch.equal(restored, once.to(torch.float16)))
+
+    def test_the_restored_reference_reads_the_quantized_weights_and_records_the_tensors_that_it_checked(self):
+        with tempfile.TemporaryDirectory() as folder:
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            source = write_export(Path(folder) / "export", contract, tensors)
+            record = layers.context(contract, snapshot, 6, Path(folder) / "restored", "8bit", source)
+            self.assertEqual(read_json(Path(folder) / "restored/record.json"), record)
+            self.assertEqual(record["weights"], layers.RESTORED)
+            self.assertEqual(record["quantized"], {"export_sha256": sha256(source / "export.json"),
+                                                   "file": file_hash(source / layers.QUANTIZED), "tensors": 123})
+            rounded = layers.context(contract, snapshot, 6, Path(folder) / "rounded", "float16")
+            self.assertEqual(rounded["weights"], layers.WEIGHTS)
+            self.assertNotIn("quantized", rounded)
+            model, _, _ = layers.original_model(snapshot, 6)
+            with torch.no_grad():
+                for name, parameter in model.named_parameters():
+                    if f"{name}.quantized_data" in tensors:
+                        parameter.copy_(float16_restore(*(tensors[f"{name}.{part}"] for part in
+                                                          ("quantized_data", "scale", "minval"))).float())
+                ids = layers.tokens("short", load_contract(contract)["config"])
+                expected = model(torch.tensor([ids]), use_cache=False).logits[0].numpy()
+            short = np.load(Path(folder) / "restored/short.npy")
+            self.assertLess(float(np.abs(short - expected).max()), 1e-3)
+            self.assertGreater(float(np.abs(short - np.load(Path(folder) / "rounded/short.npy")).max()), 0.1)
+
+    def test_a_restored_reference_refuses_tensors_or_records_that_differ_from_the_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            name = "model.layers.1.self_attn.k_proj.weight"
+
+            def record_of(target, change):
+                record = read_json(target / "export.json")
+                change(record)
+                write_json(target / "export.json", record)
+
+            def flipped(target, recorded):
+                data = bytearray((target / layers.QUANTIZED).read_bytes())
+                data[-1] ^= 1
+                (target / layers.QUANTIZED).write_bytes(bytes(data))
+                if recorded:
+                    record_of(target, lambda record: record["quantized"].update(file=file_hash(target / layers.QUANTIZED)))
+
+            cases = {"a tensor hash that differs from the export record": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"]["tensors"].update({f"{name}.scale": "0" * 64}))),
+                     "a file changed after the export": (tensors, lambda target: flipped(target, False)),
+                     "a changed tensor under an updated file record": (tensors, lambda target: flipped(target, True)),
+                     "the same tensors in another file": (tensors, lambda target: (
+                         (target / layers.QUANTIZED).unlink(),
+                         export.save_quantized(target / layers.QUANTIZED, list(reversed(tensors.items()))))),
+                     "an extra zero point": ({**tensors, f"{name}.zero_point": torch.zeros(4, 2, dtype=torch.uint8)}, None),
+                     "a missing minimum": ({key: value for key, value in tensors.items() if key != f"{name}.minval"},
+                                           None),
+                     "a weight that the model does not have": (
+                         {key.replace("layers.1.", "layers.7.") if key.startswith(f"{name}.") else key: value
+                          for key, value in tensors.items()}, None),
+                     "a weight of another shape": ({**tensors, f"{name}.quantized_data": tensors[
+                         f"{name}.quantized_data"][:, :32].contiguous(), f"{name}.scale": tensors[f"{name}.scale"][:, :1]
+                         .contiguous(), f"{name}.minval": tensors[f"{name}.minval"][:, :1].contiguous()}, None),
+                     "scales of another type": ({**tensors, f"{name}.scale": tensors[f"{name}.scale"].float()}, None),
+                     "another precision": (tensors, lambda target: record_of(target, lambda record: record.update(
+                         precision="float16"))),
+                     "another layer count": (tensors, lambda target: record_of(target, lambda record: record.update(
+                         layers=12))),
+                     "another contract": (tensors, lambda target: record_of(target, lambda record: record["model"].update(
+                         contract_sha256="0" * 64)))}
+            for index, (label, (chosen, change)) in enumerate(cases.items()):
+                target = write_export(folder / f"export-{index}", contract, chosen)
+                if change:
+                    change(target)
+                output = folder / f"restored-{index}"
+                with self.subTest(case=label), self.assertRaises(ValueError):
+                    layers.context(contract, snapshot, 6, output, "8bit", target)
+                self.assertFalse((output / "record.json").exists())
+            source = write_export(folder / "export", contract, tensors)
+            for label, (weights, given) in {"8bit without an export": ("8bit", None),
+                                            "float16 with an export": ("float16", source),
+                                            "another kind of weights": ("bfloat16", None)}.items():
+                with self.subTest(case=label), mock.patch.object(layers, "load_contract") as load, \
+                        self.assertRaises(ValueError):
+                    layers.context(contract, snapshot, 6, folder / label.replace(" ", "-"), weights, given)
+                load.assert_not_called()
+                self.assertFalse((folder / label.replace(" ", "-")).exists())
 
 
 if __name__ == "__main__":

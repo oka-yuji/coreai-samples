@@ -11,8 +11,9 @@ import resource
 import sys
 import time
 
-from ...storage import digest, read_json, write_json
+from ...storage import digest, file_hash, read_json, write_json
 from ..pinned import sha256
+from .anchor import read
 from .compare import BLOCK_ROWS, CONTRACT, recorded
 from .prepare import load_contract
 from .reference import LOADED_FILES, file_record, footprint, verify_inputs
@@ -23,6 +24,7 @@ CONTEXT_SCHEMA = "gemma4-31b-context-logits/1"
 PREFIX = "model.language_model."
 SLIDING, FULL = "sliding_attention", "full_attention"
 QUANTIZED = "quantized.safetensors"
+PARTS = ("quantized_data", "scale", "minval")
 LAYER = re.compile(r"layers\.(\d+)\.")
 IMPLEMENTATIONS = ("original", "class")
 INPUTS = {"short": (26, 0), "long": (1400, 1)}
@@ -38,6 +40,9 @@ CHUNKS = (1, 2, 4, 8)
 CRITERIA = {"short": {"max_abs_logit": 1e-3},
             "long": {"max_abs_logit": 5e-3, "max_probability_error": 1e-6, "top1_mismatches": 0}}
 WEIGHTS = "every checkpoint tensor rounded to float16, computed in float32 on the CPU"
+RESTORED = ("the quantized Linear weights restored from the tensors that the export passed to the converter, every other "
+            "checkpoint tensor rounded to float16, computed in float32 on the CPU")
+WEIGHT_KINDS = {"float16": WEIGHTS, "8bit": RESTORED}
 PACKAGES = ("numpy", "safetensors", "torch", "transformers")
 CONVERTER = ("coreai-core", "coreai-models", "coreai-opt", "coreai-torch")
 
@@ -186,6 +191,52 @@ def tensor_sha256(tensor):
     return hashlib.sha256(tensor.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()).hexdigest()
 
 
+def restore(data, scale, minval):
+    blocks = data.shape[-1] // scale.shape[-1]
+    return data.to(scale.dtype) * scale.repeat_interleave(blocks, -1) + minval.repeat_interleave(blocks, -1)
+
+
+def quantized_export(folder, contract_path, layers):
+    from .export import SCHEMA
+
+    record, hashed, _ = read(folder / "export.json")
+    if not isinstance(record, dict) or (record.get("schema"), record.get("precision"), record.get("layers"),
+                                        (record.get("model") or {}).get("contract_sha256")) \
+            != (SCHEMA, "8bit", layers, sha256(contract_path)):
+        raise ValueError("The export is not an 8-bit export of these layers with this contract")
+    quantized, path = record.get("quantized") or {}, folder / QUANTIZED
+    if path.is_symlink() or not path.is_file() or file_hash(path) != quantized.get("file") \
+            or not isinstance(quantized.get("tensors"), dict):
+        raise ValueError("The quantized tensors differ from the export record")
+    return {"export_sha256": hashed, "file": quantized["file"]}, quantized["tensors"]
+
+
+def restored_weights(model, path, digests):
+    import torch
+    from safetensors import safe_open
+
+    parameters = dict(model.named_parameters())
+    with safe_open(str(path), framework="pt") as handle:
+        names = set(handle.keys())
+        weights = {name.rsplit(".", 1)[0] for name in names}
+        if names != set(digests) or names != {f"{weight}.{part}" for weight in weights for part in PARTS}:
+            raise ValueError("The quantized tensors are not the data, scales and minimums that the export recorded")
+        for weight in sorted(weights):
+            data, scale, minval = tensors = [handle.get_tensor(f"{weight}.{part}") for part in PARTS]
+            for part, tensor in zip(PARTS, tensors):
+                if tensor_sha256(tensor) != digests[f"{weight}.{part}"]:
+                    raise ValueError(f"The SHA-256 of {weight}.{part} differs from the export record")
+            target = parameters.get(weight)
+            if target is None or (data.dtype, scale.dtype, minval.dtype) != (torch.uint8, torch.float16, torch.float16) \
+                    or data.shape != target.shape or scale.dim() != 2 or minval.shape != scale.shape \
+                    or scale.shape[0] != data.shape[0] or not 0 < scale.shape[1] <= data.shape[1] \
+                    or data.shape[1] % scale.shape[1]:
+                raise ValueError(f"{weight} is not a uint8 Linear weight of the model with float16 blocks")
+            with torch.no_grad():
+                target.copy_(restore(data, scale, minval).to(torch.float32))
+    return len(names)
+
+
 def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):
     import numpy as np
     import torch
@@ -203,12 +254,15 @@ def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):
     return np.concatenate(blocks), bounds
 
 
-def context(contract_path, snapshot, layers, output):
+def context(contract_path, snapshot, layers, output, weights, export=None):
     if os.path.lexists(output):
         raise FileExistsError(f"The reference must be written to a new folder: {output}")
+    if weights not in WEIGHT_KINDS or (weights == "8bit") != (export is not None):
+        raise ValueError("Give an export exactly for the weights restored from its quantized tensors")
     contract = load_contract(contract_path)
     config = contract["config"]
     check_layers(config, layers)
+    quantized, digests = quantized_export(export, contract_path, layers) if export is not None else ({}, None)
     import numpy as np
 
     output.mkdir(parents=True)
@@ -216,6 +270,8 @@ def context(contract_path, snapshot, layers, output):
     verified = verify_inputs(snapshot, contract)
     hashed = time.perf_counter()
     model, scale, layer_types = original_model(snapshot, layers)
+    if quantized:
+        quantized["tensors"] = restored_weights(model, export / QUANTIZED, digests)
     loaded = time.perf_counter()
     inputs = {}
     for name in ("short", "context"):
@@ -231,7 +287,8 @@ def context(contract_path, snapshot, layers, output):
     record = {"schema": CONTEXT_SCHEMA, "implementation": "original", "layers": layers, "layer_types": layer_types,
               "model": {"id": contract["model_id"], "revision": contract["revision"],
                         "contract_sha256": sha256(contract_path), "verified_before_loading": verified},
-              "weights": WEIGHTS, "embed_scale": scale, "chunk": REFERENCE_CHUNK,
+              "weights": WEIGHT_KINDS[weights], **({"quantized": quantized} if quantized else {}),
+              "embed_scale": scale, "chunk": REFERENCE_CHUNK,
               "versions": {name: importlib.metadata.version(name) for name in PACKAGES}, "inputs": inputs,
               "timing": {"input_hash_s": hashed - started, "load_s": loaded - hashed,
                          "total_s": time.perf_counter() - started},
@@ -339,14 +396,18 @@ def main():
     for name in ("original", "model-class"):
         checker.add_argument(f"--{name}", type=Path, required=True)
     contexts = commands.add_parser("context", help="FP32 logits of the original implementation on the rows that the "
-                                                   "twelve conditions of the Core AI comparison score.")
+                                                   "twelve conditions of the Core AI comparison score, with the weights "
+                                                   "rounded to float16 or restored from the quantized tensors of an "
+                                                   "8-bit export.")
     contexts.add_argument("--layers", type=int, required=True)
     for name in ("model", "snapshot", "output"):
         contexts.add_argument(f"--{name}", type=Path, required=True)
+    contexts.add_argument("--weights", choices=tuple(WEIGHT_KINDS), required=True)
+    contexts.add_argument("--export", type=Path)
     args = parser.parse_args()
     if args.command in ("run", "context"):
         record = (run(args.implementation, args.model, args.snapshot, args.layers, args.output) if args.command == "run"
-                  else context(args.model, args.snapshot, args.layers, args.output))
+                  else context(args.model, args.snapshot, args.layers, args.output, args.weights, args.export))
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
               record["memory"], flush=True)
         return 0

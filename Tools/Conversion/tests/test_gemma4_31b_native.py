@@ -233,7 +233,8 @@ class CompareTests(unittest.TestCase):
                             "logits": layers.file_record(self.reference / f"{name}.npy")}
         write_json(self.reference / "record.json", {"schema": layers.CONTEXT_SCHEMA, "implementation": "original",
                                                      "layers": 6, "layer_types": self.kinds, "chunk": 1024,
-                                                     "model": model_record(self.contract), "inputs": inputs})
+                                                     "weights": layers.WEIGHTS, "model": model_record(self.contract),
+                                                     "inputs": inputs})
         self.export = self.folder / "export"
         bundle = self.export / export.BUNDLE
         (bundle / "asset.aimodel").mkdir(parents=True)
@@ -243,7 +244,7 @@ class CompareTests(unittest.TestCase):
                     for path in sorted(bundle.rglob("*")) if path.is_file()}
         write_json(self.export / "export.json", {"schema": export.SCHEMA, "passed": True, "layers": 6,
                                                  "layer_types": self.kinds, "functions": ["main", "prefill"],
-                                                 "model": model_record(self.contract),
+                                                 "precision": "float16", "model": model_record(self.contract),
                                                  "bundle": {"folder": export.BUNDLE, "name": "asset",
                                                             "main_hash": MAIN_HASH, "files": recorded}})
         self.verifier = self.folder / "verifier"
@@ -486,6 +487,66 @@ class CompareTests(unittest.TestCase):
                 result = self.run_compare(label=label.replace(" ", "-"))
                 for path, data in backups.items():
                     path.write_bytes(data)
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
+                self.assertEqual(result["conditions"], [])
+                self.assertFalse(self.calls.exists())
+
+    def quantized(self):
+        tensors = self.export / layers.QUANTIZED
+        tensors.write_bytes(b"quantized tensors")
+        entry = {"bytes": tensors.stat().st_size, "sha256": sha256(tensors)}
+        edit(self.export / "export.json", lambda record: record.update(
+            precision="8bit", quantized={"file": entry, "tensors": {"a.quantized_data": "1" * 64, "a.scale": "2" * 64}}))
+        edit(self.reference / "record.json", lambda record: record.update(
+            weights=layers.RESTORED, quantized={"export_sha256": sha256(self.export / "export.json"), "file": entry,
+                                                "tensors": 2}))
+
+    def test_an_8bit_export_is_compared_with_the_reference_restored_from_its_quantized_tensors(self):
+        self.quantized()
+        result = self.run_compare()
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual(len(result["conditions"]), 12)
+
+    def test_an_export_and_a_reference_of_other_weights_stop_before_the_verifier_runs(self):
+        tensors = self.export / layers.QUANTIZED
+
+        def link():
+            copy = self.folder / "copy.safetensors"
+            copy.write_bytes(tensors.read_bytes())
+            tensors.unlink()
+            tensors.symlink_to(copy)
+
+        cases = {"an FP16 export with a restored reference": (False, lambda: edit(
+                     self.reference / "record.json", lambda record: record.update(weights=layers.RESTORED))),
+                 "an FP16 export with a reference without weights": (False, lambda: edit(
+                     self.reference / "record.json", lambda record: record.pop("weights"))),
+                 "an export without a precision": (False, lambda: edit(
+                     self.export / "export.json", lambda record: record.pop("precision"))),
+                 "an export of another precision": (False, lambda: edit(
+                     self.export / "export.json", lambda record: record.update(precision="4bit"))),
+                 "an 8-bit export with the rounded reference": (True, lambda: edit(
+                     self.reference / "record.json", lambda record: record.update(weights=layers.WEIGHTS))),
+                 "a reference restored for another export record": (True, lambda: edit(
+                     self.reference / "record.json", lambda record: record["quantized"].update(export_sha256="0" * 64))),
+                 "a reference restored from another file": (True, lambda: edit(
+                     self.reference / "record.json", lambda record: record["quantized"]["file"].update(sha256="0" * 64))),
+                 "a reference of another tensor count": (True, lambda: edit(
+                     self.reference / "record.json", lambda record: record["quantized"].update(tensors=3))),
+                 "quantized tensors changed after the export": (True, lambda: tensors.write_bytes(b"quantized tensorz")),
+                 "no quantized tensors": (True, tensors.unlink),
+                 "quantized tensors behind a link": (True, link)}
+        for label, (eight_bit, change) in cases.items():
+            with self.subTest(case=label):
+                backups = {path: path.read_bytes() for path in (self.reference / "record.json", self.export / "export.json")}
+                if eight_bit:
+                    self.quantized()
+                change()
+                self.calls.unlink(missing_ok=True)
+                result = self.run_compare(label=label.replace(" ", "-"))
+                for path, data in backups.items():
+                    path.write_bytes(data)
+                tensors.unlink(missing_ok=True)
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
                 self.assertEqual(result["conditions"], [])
