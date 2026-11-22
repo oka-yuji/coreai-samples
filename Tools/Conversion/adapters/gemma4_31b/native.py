@@ -12,6 +12,7 @@ import time
 
 from ...storage import digest, file_hash, write_json
 from ..pinned import sha256
+from .anchor import read
 from .compare import BLOCK_ROWS, CONTRACT
 from .export import BUNDLE, SCHEMA as EXPORT_SCHEMA
 from .layers import CONDITIONS, CONTEXT_SCHEMA, check_layers, kept_rows, tokens
@@ -86,8 +87,7 @@ def layer_problems(record, contract, label):
 def load_reference(folder, contract, contract_path):
     import numpy as np
 
-    data, hashed = read_once(folder / "record.json")
-    record = json.loads(data)
+    record, hashed, _ = read(folder / "record.json")
     problems = [] if (record.get("schema"), record.get("implementation")) == (CONTEXT_SCHEMA, "original") else [
         "the reference is not a context run of the original implementation"]
     problems += layer_problems(record, contract, "reference")
@@ -98,11 +98,7 @@ def load_reference(folder, contract, contract_path):
         entry, ids, rows = (record.get("inputs") or {}).get(name) or {}, tokens(name, contract["config"]), kept_rows(name)
         if (entry.get("positions"), entry.get("tokens_sha256"), entry.get("rows")) != (len(ids), digest(ids), rows):
             problems.append(f"the reference did not keep the rows of the {name} input of the conditions")
-        try:
-            content, content_hash = read_once(folder / f"{name}.npy")
-        except OSError:
-            problems.append(f"the reference has no {name} logits")
-            continue
+        content, content_hash = read_once(folder / f"{name}.npy")
         logits = entry.get("logits") or {}
         if (len(content), content_hash) != (logits.get("bytes"), logits.get("sha256")):
             problems.append(f"the {name} logits differ from the size and SHA-256 in the reference record")
@@ -116,8 +112,7 @@ def load_reference(folder, contract, contract_path):
 
 
 def load_export(folder, contract, contract_path):
-    data, hashed = read_once(folder / "export.json")
-    record = json.loads(data)
+    record, hashed, _ = read(folder / "export.json")
     problems = [] if record.get("schema") == EXPORT_SCHEMA and record.get("passed") is True else [
         "the export is not a passed FP16 export"]
     problems += layer_problems(record, contract, "export")
@@ -130,15 +125,12 @@ def load_export(folder, contract, contract_path):
         problems.append("the bundle folder holds other files than its export record")
     else:
         for relative, entry in sorted(files.items()):
-            try:
-                if (bundle / relative).is_symlink() or file_hash(bundle / relative) != entry:
-                    problems.append(f"a bundle file differs from the export record: {relative}")
-            except (OSError, ValueError):
-                problems.append(f"a bundle file is unreadable: {relative}")
+            if (bundle / relative).is_symlink() or file_hash(bundle / relative) != entry:
+                problems.append(f"a bundle file differs from the export record: {relative}")
     main = bundle / f"{recorded.get('name')}.aimodel" / "main.hash"
     if not main.is_file() or main.read_bytes().hex() != recorded.get("main_hash"):
         problems.append("main.hash of the bundle differs from the export record")
-    return record, hashed, bundle, problems
+    return record, hashed, {"bundle": bundle, "main_hash": recorded.get("main_hash")}, problems
 
 
 def run_verifier(command, timeout, log):
@@ -165,15 +157,25 @@ def printed(stdout):
     return value if isinstance(value, dict) else None
 
 
-def condition(name, source, length, start, chunk, config, arrays, bundle, main_hash, verifier, output):
+def condition(spec, config, arrays, facts, verifier, output):
+    name, source, length, start, chunk = spec
+    entry = {"name": name, "input": source, "tokens": length, "start": start, "chunk": chunk, "rows": length - start,
+             "problems": [], "checks": {}}
+    try:
+        measured(entry, config, arrays, facts, verifier, output)
+    except Exception as error:
+        entry["problems"].append(f"the condition could not be compared ({type(error).__name__})")
+    entry["passed"] = not entry["problems"] and bool(entry["checks"]) and all(entry["checks"].values())
+    return entry
+
+
+def measured(entry, config, arrays, facts, verifier, output):
     import numpy as np
 
-    ids, rows, vocabulary = tokens(source, config)[:length], length - start, config["vocab_size"]
-    entry = {"name": name, "input": source, "tokens": length, "start": start, "chunk": chunk, "rows": rows,
-             "problems": [], "checks": {}}
-    problems = entry["problems"]
+    name, source, length, start, chunk, rows = (entry[key] for key in ("name", "input", "tokens", "start", "chunk", "rows"))
+    ids, vocabulary, problems = tokens(source, config)[:length], config["vocab_size"], entry["problems"]
     (output / f"{name}.tokens.json").write_text(json.dumps(ids))
-    command = [str(verifier), "logits", "--model", str(bundle), "--tokens", str(output / f"{name}.tokens.json"),
+    command = [str(verifier), "logits", "--model", str(facts["bundle"]), "--tokens", str(output / f"{name}.tokens.json"),
                "--start", str(start), "--chunk", str(chunk), "--output", str(output / f"{name}.f16")]
     began = time.perf_counter()
     try:
@@ -191,23 +193,22 @@ def condition(name, source, length, start, chunk, config, arrays, bundle, main_h
             expected = {"record": "logits", "token_count": length, "start": start, "chunk": chunk,
                         "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
                         "shape": [rows, vocabulary], "dtype": "float16", "byte_order": "little",
-                        "main_calls": math.ceil(rows / chunk), "main_hash": main_hash}
+                        "main_calls": math.ceil(rows / chunk), "main_hash": facts["main_hash"]}
             problems += [f"the verifier recorded {key} {record.get(key)!r}, not {value!r}"
                          for key, value in expected.items() if record.get(key) != value]
     entry["seconds"] = time.perf_counter() - began
-    if not problems:
-        data, content_hash = read_once(output / f"{name}.f16")
-        entry["output"] = {"bytes": len(data), "sha256": content_hash}
-        if len(data) != rows * vocabulary * 2:
-            problems.append(f"the logits file holds {len(data)} B, not {rows * vocabulary * 2} B")
-        else:
-            index = {row: position for position, row in enumerate(kept_rows(source))}
-            known = np.zeros(rows, dtype=bool)
-            known[[row - start for row in known_rows(start, length, chunk)]] = True
-            entry.update(measure(np.frombuffer(data, dtype="<f2").reshape(rows, vocabulary), arrays[source],
-                                 np.array([index[position] for position in range(start, length)]), known))
-    entry["passed"] = not problems and bool(entry["checks"]) and all(entry["checks"].values())
-    return entry
+    if problems:
+        return
+    data, content_hash = read_once(output / f"{name}.f16")
+    entry["output"] = {"bytes": len(data), "sha256": content_hash}
+    if len(data) != rows * vocabulary * 2:
+        problems.append(f"the logits file holds {len(data)} B, not {rows * vocabulary * 2} B")
+        return
+    index = {row: position for position, row in enumerate(kept_rows(source))}
+    known = np.zeros(rows, dtype=bool)
+    known[[row - start for row in known_rows(start, length, chunk)]] = True
+    entry.update(measure(np.frombuffer(data, dtype="<f2").reshape(rows, vocabulary), arrays[source],
+                         np.array([index[position] for position in range(start, length)]), known))
 
 
 def compare(export_folder, reference_folder, verifier, output, contract_path=CONTRACT):
@@ -215,23 +216,27 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
         raise FileExistsError(f"The comparison must be written to a new folder: {output}")
     contract = load_contract(contract_path)
     output.mkdir(parents=True)
-    problems = []
+    problems, reference, reference_hash, arrays, exported, export_hash, facts = [], {}, None, {}, {}, None, None
     try:
         reference, reference_hash, arrays, found = load_reference(reference_folder, contract, contract_path)
         problems += found
-    except (OSError, ValueError) as error:
-        reference, reference_hash, arrays = {}, None, {}
+    except Exception as error:
         problems.append(f"the reference record is unreadable ({type(error).__name__})")
     try:
-        exported, export_hash, bundle, found = load_export(export_folder, contract, contract_path)
+        exported, export_hash, facts, found = load_export(export_folder, contract, contract_path)
         problems += found
-    except (OSError, ValueError) as error:
-        exported, export_hash, bundle = {}, None, None
+    except Exception as error:
         problems.append(f"the export record is unreadable ({type(error).__name__})")
-    if exported.get("layers") != reference.get("layers"):
+    if None not in (reference_hash, export_hash) and exported.get("layers") != reference.get("layers"):
         problems.append("the export and the reference are of other layer counts")
-    main_hash = (exported.get("bundle") or {}).get("main_hash")
-    conditions = [] if problems else [condition(*spec, contract["config"], arrays, bundle, main_hash, verifier, output)
+    verifier_record = None
+    if not problems:
+        try:
+            data, verifier_hash = read_once(verifier)
+            verifier_record = {"bytes": len(data), "sha256": verifier_hash}
+        except Exception as error:
+            problems.append(f"the verifier is unreadable ({type(error).__name__})")
+    conditions = [] if problems else [condition(spec, contract["config"], arrays, facts, verifier, output)
                                       for spec in CONDITIONS]
     result = {"schema": SCHEMA, "problems": problems,
               "passed": not problems and len(conditions) == len(CONDITIONS) and all(item["passed"] for item in conditions),
@@ -239,9 +244,8 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
               "known_call": {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST},
               "reference": {"sha256": reference_hash, "layers": reference.get("layers")},
               "export": {"sha256": export_hash, "layers": exported.get("layers"), "functions": exported.get("functions"),
-                         "main_hash": main_hash},
-              "verifier": {"bytes": Path(verifier).stat().st_size, "sha256": sha256(verifier)} if not problems else None,
-              "conditions": conditions}
+                         "main_hash": facts["main_hash"] if facts else None},
+              "verifier": verifier_record, "conditions": conditions}
     write_json(output / "comparison.json", result)
     return result
 

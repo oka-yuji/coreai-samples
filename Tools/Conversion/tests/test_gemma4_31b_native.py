@@ -48,7 +48,11 @@ for row in change.get("constant", []):
     values[row] = 1.0
 values = values[:len(values) + change.get("rows", 0)] if change.get("rows", 0) < 0 else np.concatenate(
     [values, values[:change.get("rows", 0)]])
-Path(arguments["--output"]).write_bytes(values.astype("<f2").tobytes())
+output = Path(arguments["--output"])
+if not change.get("no_output"):
+    output.write_bytes(values.astype("<f2").tobytes())
+if change.get("unreadable"):
+    output.chmod(0)
 record = {{"record": "logits", "token_count": len(ids), "start": start, "chunk": chunk,
           "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
           "shape": [len(ids) - start, values.shape[1]], "dtype": "float16", "byte_order": "little",
@@ -248,6 +252,71 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(failing, {"capacity-2048": {"finite", "max_abs_logit", "top1"},
                                    "capacity-4096": {"no_constant_rows", "max_abs_logit"},
                                    "capacity-8192": {"max_abs_logit"}, "capacity-16384": {"max_abs_logit", "top1"}})
+
+    def test_a_condition_that_cannot_be_compared_is_recorded_and_the_others_are_still_compared(self):
+        result = self.run_compare({"window-c2": {"no_output": True}, "window-c4": {"unreadable": True}})
+        self.assertFalse(result["passed"])
+        self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
+        conditions = self.conditions(result)
+        self.assertEqual(conditions["window-c2"]["problems"], ["the condition could not be compared (FileNotFoundError)"])
+        self.assertEqual(conditions["window-c4"]["problems"], ["the condition could not be compared (PermissionError)"])
+        self.assertEqual({name for name, entry in conditions.items() if not entry["passed"]}, {"window-c2", "window-c4"})
+
+    def test_a_missing_or_not_executable_verifier_still_leaves_a_failed_comparison(self):
+        missing = native.compare(self.export, self.reference, self.folder / "absent", self.folder / "missing", self.contract)
+        self.assertEqual(read_json(self.folder / "missing/comparison.json"), missing)
+        self.assertFalse(missing["passed"])
+        self.assertEqual(missing["problems"], ["the verifier is unreadable (FileNotFoundError)"])
+        self.run_compare(label="written")
+        self.verifier.chmod(0o644)
+        denied = native.compare(self.export, self.reference, self.verifier, self.folder / "denied", self.contract)
+        self.assertEqual(read_json(self.folder / "denied/comparison.json"), denied)
+        self.assertFalse(denied["passed"])
+        self.assertEqual(len(denied["conditions"]), 12)
+        self.assertEqual({tuple(entry["problems"]) for entry in denied["conditions"]},
+                         {("the condition could not be compared (PermissionError)",)})
+
+    def test_any_failure_inside_a_condition_becomes_its_problem_without_the_message(self):
+        with mock.patch.object(native, "measure", side_effect=RuntimeError("private-example-sentinel")):
+            result = self.run_compare(label="raising")
+        self.assertFalse(result["passed"])
+        self.assertEqual({tuple(entry["problems"]) for entry in result["conditions"]},
+                         {("the condition could not be compared (RuntimeError)",)})
+        self.assertNotIn("private-example-sentinel", (self.folder / "raising/comparison.json").read_text())
+
+    def test_unreadable_records_or_logits_leave_a_failed_comparison_without_running_the_verifier(self):
+        context = self.reference / "context.npy"
+        garbage = b"not an array" * 8
+        record = read_json(self.reference / "record.json")
+        record["inputs"]["context"]["logits"].update(bytes=len(garbage), sha256=hashlib.sha256(garbage).hexdigest())
+        cases = {"a reference record that is a list": (self.reference / "record.json", b"[]", "reference"),
+                 "a reference record that is a string": (self.reference / "record.json", b'"text"', "reference"),
+                 "a broken reference record": (self.reference / "record.json", b"{", "reference"),
+                 "an export record that is a list": (self.export / "export.json", b"[]", "export"),
+                 "an export record whose bundle is a list": (self.export / "export.json",
+                                                             json.dumps({**read_json(self.export / "export.json"),
+                                                                         "bundle": ["bundle"]}).encode(), "export"),
+                 "a broken export record": (self.export / "export.json", b"{", "export")}
+        for label, (target, content, kind) in cases.items():
+            saved = target.read_bytes()
+            target.write_bytes(content)
+            self.calls.unlink(missing_ok=True)
+            with self.subTest(case=label):
+                result = self.run_compare(label=label.replace(" ", "-"))
+                self.assertEqual(read_json(self.folder / label.replace(" ", "-") / "comparison.json"), result)
+                self.assertFalse(result["passed"])
+                self.assertTrue(any(problem.startswith(f"the {kind} record is unreadable (") for problem in result["problems"]))
+                self.assertFalse(self.calls.exists())
+            target.write_bytes(saved)
+        saved = {path: path.read_bytes() for path in (context, self.reference / "record.json")}
+        context.write_bytes(garbage)
+        write_json(self.reference / "record.json", record)
+        result = self.run_compare(label="garbage-logits")
+        for path, data in saved.items():
+            path.write_bytes(data)
+        self.assertFalse(result["passed"])
+        self.assertIn("the reference record is unreadable (ValueError)", result["problems"])
+        self.assertFalse(self.calls.exists())
 
     def test_a_verifier_that_does_not_finish_in_time_is_stopped_and_its_condition_fails(self):
         with mock.patch.object(native, "TIMEOUT_S", 1.0):
