@@ -99,7 +99,7 @@ swift build -c release
 | Option | Meaning |
 |---|---|
 | `--tokens` | A JSON array of token IDs, such as `[151644, 872, 198]`. An empty array is rejected. Every ID must be below `language.vocab_size`, and the sequence can have at most `language.max_context_length` tokens. |
-| `--start` | The first position whose logits are written, from 0 to the last position. The tokens before it are read in calls of at most the engine's prefill chunk size, recorded as `prefix_chunk`; the last or only call can be shorter. Their rows are not written to the file. With a `prefill` function, these calls make no logits array. Without one, they go through `main`, which needs a logits array of up to prefix chunk × vocab × 2 bytes (2 GiB for 4,096 × 262,144) whatever `--chunk` is. |
+| `--start` | The first position whose logits are written, from 0 to the last position. The tokens before it are read in the calls that the engine's `callLengths(from:count:)` returns: each at most the engine's prefill chunk size, recorded as `prefix_chunk`, and shorter where the [call shape rule](#call-shapes) requires; the last or only call can also be shorter. Their rows are not written to the file. With a `prefill` function, these calls make no logits array. Without one, they go through `main`, which needs a logits array of up to prefix chunk × vocab × 2 bytes (2 GiB for 4,096 × 262,144) whatever `--chunk` is. |
 | `--chunk` | A positive number of tokens per `main` call from `--start`. Each call is exactly one `main` call, and the last one can be shorter. |
 | `--output` | The output file. It must not exist yet; the command does not overwrite a file. |
 
@@ -112,20 +112,32 @@ The command prints one JSON line with `record` set to `logits`:
 | `token_count`, `tokens_sha256` | The number of tokens and the SHA-256 of the decimal IDs joined by commas |
 | `start`, `chunk` | The options |
 | `shape`, `dtype`, `byte_order` | `[positions, vocab]`, `float16` and `little` |
-| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the upper bound of tokens in one of those calls, the engine's prefill chunk size (the last or only call can be shorter), and the number of calls |
+| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the upper bound of tokens in one of those calls, the engine's prefill chunk size (the last or only call, and a call shortened by the call shape rule, can be shorter), and the number of calls actually made |
 | `main_calls` | The number of `main` calls from `start` |
 | `main_hash` | The asset's `main.hash` in hex, the SHA-256 of `main.mlirb`; absent when the file is missing |
 | `requested_compute`, `expect_frequent_reshapes`, `cached`, `cache_query_error`, `specialize_s` | The own engine's specialization request and cache state, as in the `own-load` record |
 | `non_finite_count` | NaN and infinite values in the written rows. The command still succeeds, so check this count. |
 | `load_s`, `prefix_s`, `scoring_s` | Seconds to load the engine, to read the tokens before `start`, and to read and write the positions from `start` |
 
-The command uses the Verification SPI of `Engine`. `readInOneCall(_:usePrefillFunction:)` reads a chunk in exactly one call of `main`, or of `prefill` when it is requested and the bundle has one. `logits(row:)` returns one row of the last `main` call; the last row equals `logits()`. A row can be read only until the next read, `restore`, `reset` or `unload`. After a `prefill`-only read or one of these operations, and for a row outside the last call, it throws `LogitRowError`. It also throws when the vocab axis of the logits array is not contiguous (a stride other than 1 or an interleaved layout), rather than reading other values. `prefillChunkSize` is part of the same SPI. These reads leave `prefillTokens`, `prefillSeconds`, `decodeTokens` and `decodeSeconds` of `Engine.Stats` unchanged.
+The command uses the Verification SPI of `Engine`. `readInOneCall(_:usePrefillFunction:)` reads a chunk in exactly one call of `main`, or of `prefill` when it is requested and the bundle has one. `logits(row:)` returns one row of the last `main` call; the last row equals `logits()`. A row can be read only until the next read, `restore`, `reset` or `unload`. After a `prefill`-only read or one of these operations, and for a row outside the last call, it throws `LogitRowError`. It also throws when the vocab axis of the logits array is not contiguous (a stride other than 1 or an interleaved layout), rather than reading other values. `prefillChunkSize` and `callLengths(from:count:)`, the lengths of the calls that reading `count` tokens from position `from` takes, are part of the same SPI. These reads leave `prefillTokens`, `prefillSeconds`, `decodeTokens` and `decodeSeconds` of `Engine.Stats` unchanged.
 
 The model-free checks are `swift test --package-path CoreAISamplesKit --filter LogitRowLayoutTests` and `swift test --package-path Tools/Verify -c release --filter PositionLogitsTests`. With a bundle, the model checks compare the last row with `logits()`, single-token chunks with `step`, and chunks of 2, 4 and 8 with single-token chunks. The first two must match bit for bit. Longer chunks change the order of the computation, so they must have no non-finite values and may differ in the top token only where the eight-tick near-tie rule allows; the test prints the largest absolute difference for each chunk length.
 
 ```bash
 COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.positionLogits
 ```
+
+## Call shapes
+
+Core AI returns wrong logits for one call shape of the Gemma 4 31B conversion: a call of 8 or more tokens after which the total number of positions is 97 to 112. In #665 this moved the logits of the first six layers in FP16 by up to 6.19 from the FP32 reference, without non-finite values. `Engine` avoids the shape for assets whose `metadata.json` has `source.hf_model_id` `google/gemma-4-31B-it`, and only for them; other assets keep their call lengths. Both prefill paths, the `prefill` function and `main`, take the longest call within the prefill chunk size that does not end there: from position 0, 100 tokens are read as 96 + 4 and 112 tokens as 96 + 7 + 7 + 2. The `prefill`-function path still leaves the last token for `main`. The rule is a table in `Engine` keyed by the source model ID, not a field of the bundle. `readInOneCall(_:usePrefillFunction:)` still reads the chunk it is given in one call, so it can reproduce the error. `coreai-verify logits` reads the tokens before `--start` with `callLengths(from:count:)` and keeps the `--chunk` length from `--start`.
+
+The model-free check is `swift test --package-path CoreAISamplesKit --filter CallShapeTests`. The model check takes Gemma 4 31B bundle folders separated by `:` in `COREAI_GEMMA4_SHAPE_BUNDLES` and a new JSON file in `COREAI_GEMMA4_SHAPE_REPORT`; it refuses an existing file and a bundle with another source model ID. Take the heavy-job lock first. `check.sh` clears `COREAI_*` variables, so run it directly:
+
+```bash
+COREAI_GEMMA4_SHAPE_BUNDLES=/path/to/bundle-a:/path/to/bundle-b COREAI_GEMMA4_SHAPE_REPORT=/new/report.json swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.gemma4CallShapes
+```
+
+For each bundle, the test encodes a fixed English text with the bundle's tokenizer and keeps `<bos>` and the next 299 tokens. It reads them one token at a time as the reference, then for every length from 1 to 300 resets the engine and compares the last position's logits after `prefill` and after one `main` call (`readInOneCall`) with the reference, by the largest absolute difference. The prefill read must stay below 2.0 at every length and make the planned calls. The one-call read must reach 2.0 at some length from 97 to 112 and stay below 2.0 at every other length. No logit may be non-finite. The value 2.0 lies between the differences that #665 measured for the normal shapes (0.17 to 0.84) and for the failing shapes (3.06 to 6.19). The report has, for each bundle, `main_hash`, the rule, the tokens, the times, and for each length the calls of the prefill read, both differences and the non-finite counts.
 
 ## Measurement fields and boundaries
 

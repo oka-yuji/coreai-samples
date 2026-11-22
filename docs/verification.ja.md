@@ -98,7 +98,7 @@ swift build -c release
 | 指定 | 意味 |
 |---|---|
 | `--tokens` | トークン ID の JSON の配列(例: `[151644, 872, 198]`)。空の配列は断ります。各 ID は `language.vocab_size` 未満、トークンの数は `language.max_context_length` 以下にします。 |
-| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの prefill の塊の長さ(記録の `prefix_chunk`)を上限に区切って読み(最後の、または唯一の呼び出しは、それより短いことがある)、その行はファイルに書きません。`prefill` 関数があればそれで読み、logits の配列を作りません。無ければ `main` で読むので、`--chunk` によらず、最大で前置きの塊 × 語彙 × 2 バイトの logits の配列が要ります(4,096 × 262,144 で 2 GiB)。 |
+| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの `callLengths(from:count:)` が返す呼び出しで読みます。1 回はエンジンの prefill の塊の長さ(記録の `prefix_chunk`)以下で、[呼び出しの形の規則](#呼び出しの形)が求めるところでは短くなります(最後の、または唯一の呼び出しも短いことがある)。その行はファイルに書きません。`prefill` 関数があればそれで読み、logits の配列を作りません。無ければ `main` で読むので、`--chunk` によらず、最大で前置きの塊 × 語彙 × 2 バイトの logits の配列が要ります(4,096 × 262,144 で 2 GiB)。 |
 | `--chunk` | `--start` から後を 1 回の `main` に通すトークンの数で、正の数。1 回ごとにちょうど 1 回の `main` の呼び出しで、最後の 1 回は短くなることがあります。 |
 | `--output` | 出力のファイル。まだ無いファイルを指定します。あるファイルは上書きしません。 |
 
@@ -111,20 +111,32 @@ swift build -c release
 | `token_count`、`tokens_sha256` | トークンの数と、10 進の ID をコンマでつないだ文字列の SHA-256 |
 | `start`、`chunk` | 指定の値 |
 | `shape`、`dtype`、`byte_order` | `[位置数, 語彙]`、`float16`、`little` |
-| `prefix_function`、`prefix_chunk`、`prefix_calls` | `start` より前のトークンを読んだ関数(`prefill`、`prefill` 関数が無ければ `main`。`start` が 0 のときは無い)、1 回の呼び出しのトークンの数の上限(最後の、または唯一の呼び出しは、それより短いことがある)、呼び出しの回数 |
+| `prefix_function`、`prefix_chunk`、`prefix_calls` | `start` より前のトークンを読んだ関数(`prefill`、`prefill` 関数が無ければ `main`。`start` が 0 のときは無い)、1 回の呼び出しのトークンの数の上限で、エンジンの prefill の塊の長さ(最後の、または唯一の呼び出しと、呼び出しの形の規則で短くした呼び出しは、それより短いことがある)、実際に呼んだ回数 |
 | `main_calls` | `start` から後の `main` の呼び出しの回数 |
 | `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いときは無い |
 | `requested_compute`、`expect_frequent_reshapes`、`cached`、`cache_query_error`、`specialize_s` | 自前のエンジンの特殊化の要求とキャッシュの状態。`own-load` の記録と同じ |
 | `non_finite_count` | 書き出した行の NaN と無限大の数。0 でなくてもコマンドは成功するので、この数を確かめます。 |
 | `load_s`、`prefix_s`、`scoring_s` | エンジンの読み込み、`start` より前のトークンの読み込み、`start` から後の読み込みと書き出しの秒数 |
 
-このコマンドは `Engine` の Verification SPI を使います。`readInOneCall(_:usePrefillFunction:)` は、塊をちょうど 1 回の `main` の呼び出し(頼まれて、バンドルに `prefill` 関数があれば `prefill`)で読みます。`logits(row:)` は直前の `main` の呼び出しの 1 行を返し、最後の行は `logits()` と同じです。行を読めるのは、次の読み込み・`restore`・`reset`・`unload` までです。`prefill` だけで読んだ直後とこれらの後、直前の呼び出しの範囲外の行では `LogitRowError` を投げます。logits の配列の語彙の軸が連続でないとき(stride が 1 でない、または interleave の配置)も、別の値を読まずに `LogitRowError` を投げます。`prefillChunkSize` も同じ SPI にあります。この読み込みは、`Engine.Stats` の `prefillTokens`・`prefillSeconds`・`decodeTokens`・`decodeSeconds` を変えません。
+このコマンドは `Engine` の Verification SPI を使います。`readInOneCall(_:usePrefillFunction:)` は、塊をちょうど 1 回の `main` の呼び出し(頼まれて、バンドルに `prefill` 関数があれば `prefill`)で読みます。`logits(row:)` は直前の `main` の呼び出しの 1 行を返し、最後の行は `logits()` と同じです。行を読めるのは、次の読み込み・`restore`・`reset`・`unload` までです。`prefill` だけで読んだ直後とこれらの後、直前の呼び出しの範囲外の行では `LogitRowError` を投げます。logits の配列の語彙の軸が連続でないとき(stride が 1 でない、または interleave の配置)も、別の値を読まずに `LogitRowError` を投げます。`prefillChunkSize` と、位置 `from` から `count` 個のトークンを読むときの呼び出しの長さの列を返す `callLengths(from:count:)` も、同じ SPI にあります。この読み込みは、`Engine.Stats` の `prefillTokens`・`prefillSeconds`・`decodeTokens`・`decodeSeconds` を変えません。
 
 モデルの要らない確認は `swift test --package-path CoreAISamplesKit --filter LogitRowLayoutTests` と `swift test --package-path Tools/Verify -c release --filter PositionLogitsTests` です。バンドルを渡すと、モデルを使う試験が、最後の行を `logits()` と、1 トークンずつの塊を `step` と、2・4・8 の塊を 1 トークンずつの塊と比べます。前の 2 つはビットまで一致しなければなりません。長い塊は計算の順が変わるので、非有限値が無く、上位のトークンが違うのは 8 目盛りの同点近傍の規則が許す場合だけであることを求め、塊の長さごとに logits の最大絶対差を出力します。
 
 ```bash
 COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.positionLogits
 ```
+
+## 呼び出しの形
+
+Gemma 4 31B の変換物には、Core AI が誤った logits を返す呼び出しの形が 1 つあります。8 トークン以上の呼び出しで、呼び出しの後の位置の総数が 97〜112 になるものです。#665 では、先頭 6 層の FP16 で logits が FP32 の参照から最大 6.19 ずれました(非有限値は出ていません)。`Engine` は、`metadata.json` の `source.hf_model_id` が `google/gemma-4-31B-it` の資産でだけ、この形を避けます。ほかの資産の呼び出しの長さは変えません。prefill の 2 つの経路(`prefill` 関数と `main`)はどちらも、prefill の塊の長さ以下で、そこで終わらない最も長い呼び出しを選びます。位置 0 から、100 トークンは 96 + 4、112 トークンは 96 + 7 + 7 + 2 で読みます。`prefill` 関数の経路は、今までどおり最後の 1 トークンを `main` に残します。規則は `Engine` が出どころのモデル ID で引く表で持ち、バンドルの項目にはしていません。`readInOneCall(_:usePrefillFunction:)` は渡された塊を今までどおり 1 回で読むので、誤りを再現できます。`coreai-verify logits` は、`--start` より前を `callLengths(from:count:)` で読み、`--start` から後は `--chunk` の長さのまま読みます。
+
+モデルの要らない確認は `swift test --package-path CoreAISamplesKit --filter CallShapeTests` です。モデルを使う確認には、Gemma 4 31B のバンドルのフォルダを `:` 区切りで `COREAI_GEMMA4_SHAPE_BUNDLES` に、新しい JSON のファイルを `COREAI_GEMMA4_SHAPE_REPORT` に渡します。あるファイルと、出どころのモデル ID が違うバンドルは断ります。先に重いジョブのロックを取ります。`check.sh` は `COREAI_*` の変数を消すので、直接流します。
+
+```bash
+COREAI_GEMMA4_SHAPE_BUNDLES=/path/to/bundle-a:/path/to/bundle-b COREAI_GEMMA4_SHAPE_REPORT=/new/report.json swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.gemma4CallShapes
+```
+
+試験はバンドルごとに、固定の英語の文をバンドルの tokenizer で token にし、`<bos>` と続く 299 トークンを使います。1 トークンずつ読んだ logits を基準にして、長さ 1〜300 のそれぞれで、エンジンを空にしてから `prefill` で読んだ最後の位置と、1 回の `main`(`readInOneCall`)で読んだ最後の位置を、基準との絶対値の差の最大で比べます。`prefill` は全部の長さで 2.0 未満で、予定どおりの呼び出しをすること。1 回の `main` は 97〜112 のどれかで 2.0 以上になり、ほかの長さでは 2.0 未満であること。非有限値が無いこと。2.0 は、#665 で測った正常な形の差(0.17〜0.84)と誤りの形の差(3.06〜6.19)の間に置いた値です。記録には、バンドルごとに `main_hash`、規則、トークン、時間と、長さごとの `prefill` の呼び出しの長さの列、2 つの差、非有限値の数を書きます。
 
 ## 計測項目と境界
 
