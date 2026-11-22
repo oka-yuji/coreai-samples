@@ -471,7 +471,7 @@ that the manifest of its stage recorded, that the two runs, the reference and ev
 `model.json`, and that the two runs are of the layers and tap layers of every export. A comparison that fails a
 criterion is printed with `passed` false, as a failed condition of the own engine is; `SummaryTests` in
 `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
-[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#fp16-export-of-the-first-six-layers).
+[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-in-the-first-six-layers-695).
 
 ## Terms
 

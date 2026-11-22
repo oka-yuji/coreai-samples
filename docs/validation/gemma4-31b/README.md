@@ -551,6 +551,9 @@ holds for both.
 | Its `export.json` | `1f3c7c4bc2ebe2f0471c60dd0231f29b9d489114539625264778360a25bfdb28` |
 | Its `comparison.json` | `8093eaeedc8b7a2fd418fa0ba0d80b80fc5c432e054b7fe1039dc8f60ed031df` |
 
+The summary of this section was made with the tools of commit f6a3990e; the current tools read only the records with
+the outputs for speculation ([Outputs for speculation in the first six layers](#outputs-for-speculation-in-the-first-six-layers-695)).
+
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 reference record.json> \
   --report <report.json> --export <export.json> --comparison <comparison.json> \
