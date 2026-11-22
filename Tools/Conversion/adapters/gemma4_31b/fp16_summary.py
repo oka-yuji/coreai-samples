@@ -9,11 +9,11 @@ from ...storage import PipelineError
 from .anchor import read
 from .anchor_summary import signed
 from .export import SCHEMA as EXPORT_SCHEMA
-from .layers import CONTEXT_SCHEMA
+from .layers import COMPARISON as LAYERS_SCHEMA, CONTEXT_SCHEMA
 from .native import PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER
 from .summary import HEX, REPOSITORY, SHARD, count, flag, matched, optional, word
 
-SCHEMA = "gemma4-31b-fp16-summary/1"
+SCHEMA = "gemma4-31b-fp16-summary/2"
 RELATIVE = re.compile(r"[A-Za-z0-9_.-]{1,64}(/[A-Za-z0-9_.-]{1,64}){0,3}")
 
 
@@ -85,6 +85,8 @@ def exported(record):
                         "elements_by_dtype": numbers(record["weights"]["elements_by_dtype"], True),
                         "quantized_layouts": count(record["weights"]["quantized_layouts"])},
             "asset": {"functions": layout(record["asset"]["functions"]),
+                      "output_order": {word(name): [word(item) for item in items]
+                                       for name, items in record["asset"]["output_order"].items()},
                       "storage_types": numbers(record["asset"]["storage_types"], True),
                       "float16_minus_weights": signed(record["asset"]["float16_minus_weights"])},
             "tokenizer": {word(name): matched(value, HEX[64]) for name, value in record["tokenizer"].items()},
@@ -92,7 +94,9 @@ def exported(record):
                          "max_context_length": count(metadata["language"]["max_context_length"]),
                          "hf_model_id": matched(metadata["source"]["hf_model_id"], REPOSITORY),
                          "revision": matched(metadata["source"]["revision"], HEX[40]),
-                         "compression": None if metadata["compression"] is None else word(metadata["compression"])},
+                         "compression": None if metadata["compression"] is None else word(metadata["compression"]),
+                         "tap_layers": [count(tap) for tap in metadata["tap_layers"]],
+                         "tap_convention": word(metadata["tap_convention"])},
             "bundle": {"name": word(bundle["name"]), "main_hash": matched(bundle["main_hash"], HEX[64]),
                        "bytes": count(bundle["bytes"]),
                        "files": {relative(path): logits(entry) for path, entry in bundle["files"].items()}},
@@ -139,6 +143,30 @@ def compared(record):
             "conditions": [condition(entry) for entry in record["conditions"]]}
 
 
+def ratio(entry):
+    return {"largest_ratio": optional(entry["largest_ratio"]), "passed": flag(entry["passed"])}
+
+
+def model_class(record, exports):
+    if record.get("schema") != LAYERS_SCHEMA:
+        raise PipelineError(f"Expected a {LAYERS_SCHEMA} comparison")
+    if any((export["layers"], export["metadata"]["tap_layers"]) != (record["layers"], record["tap_layers"])
+           for export in exports):
+        raise PipelineError("The comparison of the model class must be of the layers and tap layers of every export")
+    return {"passed": flag(record["passed"]), "problems": len(record["problems"]), "layers": count(record["layers"]),
+            "tap_layers": [count(tap) for tap in record["tap_layers"]], "ratio_limit": number(record["ratio_limit"]),
+            "records_sha256": [matched(value, HEX[64]) for value in record["records_sha256"]],
+            "inputs": {word(name): {"criteria": {word(key): number(value) for key, value in entry["criteria"].items()},
+                                    "rows": count(entry["rows"]), "max_abs_logit": optional(entry["max_abs_logit"]),
+                                    "max_probability_error": optional(entry["max_probability_error"]),
+                                    "top1_mismatches": count(entry["top1_mismatches"]),
+                                    "hidden_states": ratio(entry["outputs"]["hidden_states"]),
+                                    "tap_hidden_states": {word(tap): ratio(value) for tap, value
+                                                          in entry["outputs"]["tap_hidden_states"].items()},
+                                    "checks": {word(key): flag(value) for key, value in entry["checks"].items()}}
+                       for name, entry in record["inputs"].items()}}
+
+
 def paired(reports, exports, comparisons, reference_hash):
     files = [Path(path).resolve() for path, _, _, _ in exports]
     if not len(reports) == len(exports) == len(comparisons) or len(set(files)) != len(files) \
@@ -159,10 +187,11 @@ def paired(reports, exports, comparisons, reference_hash):
             raise PipelineError("Each comparison must be made from the export record given with it and the reference")
 
 
-def project(reports, exports, comparisons, context):
-    return {"schema": SCHEMA, "scope": "FP16 export of the first layers and its comparison with the FP32 reference; "
-                                       "not a quality evaluation.",
-            "reference": reference(context),
+def project(reports, exports, comparisons, context, layered):
+    return {"schema": SCHEMA, "scope": "FP16 export of the first layers with the outputs for speculation, the comparison "
+                                       "of its logits with the FP32 reference and of the model class with the original "
+                                       "implementation; not a quality evaluation.",
+            "reference": reference(context), "model_class": model_class(layered, exports),
             "assets": [{"pipeline": pipeline.project(report), "export": exported(record), "comparison": compared(result)}
                        for report, record, result in zip(reports, exports, comparisons, strict=True)]}
 
@@ -170,6 +199,8 @@ def project(reports, exports, comparisons, context):
 def main():
     parser = argparse.ArgumentParser(description="Print only shareable numbers from Gemma 4 31B FP16 export records.")
     parser.add_argument("--reference", type=Path, required=True)
+    parser.add_argument("--layers-comparison", type=Path, required=True,
+                        help="The result that layers.py compare prints for the same layers and tap layers.")
     for name in ("report", "export", "comparison"):
         parser.add_argument(f"--{name}", type=Path, action="append", required=True)
     args = parser.parse_args()
@@ -179,8 +210,8 @@ def main():
         comparisons = [read(path)[0] for path in args.comparison]
         context, reference_hash, _ = read(args.reference)
         paired(reports, exports, comparisons, reference_hash)
-        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context), indent=2,
-                         allow_nan=False))
+        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context,
+                                 read(args.layers_comparison)[0]), indent=2, allow_nan=False))
         return 0
     except Exception as error:
         print(f"Cannot summarize local records ({type(error).__name__}).", file=sys.stderr)

@@ -36,11 +36,12 @@ def export_record():
             "model": MODEL, "layers": 6, "layer_types": KINDS, "functions": ["main"], "context": 16896, "precision": "float16",
             "compression_config": None, "upstream_revision": "1" * 40, "versions": {"coreai-core": "1.0.0b3"},
             "weights": {"tensors": 85, "elements": 9, "elements_by_dtype": {"torch.float16": 9}, "quantized_layouts": 0},
-            "asset": {"functions": {"main": function}, "storage_types": {"Float16": 13, "Int32": 2},
-                      "float16_minus_weights": -12},
+            "asset": {"functions": {"main": function}, "output_order": {"main": ["logits", "hidden_states", "tap_hidden_states"]},
+                      "storage_types": {"Float16": 13, "Int32": 2}, "float16_minus_weights": -12},
             "tokenizer": {"tokenizer.json": "2" * 64},
             "metadata": {"name": "gemma4_31b_l6_fp16_main", "language": {"vocab_size": 262144, "max_context_length": 16896},
-                         "source": {"hf_model_id": "google/gemma-4-31B-it", "revision": "a" * 40}, "compression": None},
+                         "source": {"hf_model_id": "google/gemma-4-31B-it", "revision": "a" * 40}, "compression": None,
+                         "tap_layers": [1, 2, 3, 4, 5], "tap_convention": export.TAP_CONVENTION},
             "bundle": {"folder": "bundle", "name": "gemma4_31b_l6_fp16_main", "main_hash": "3" * 64, "bytes": 4,
                        "files": {"gemma4_31b_l6_fp16_main.aimodel/main.mlirb": {"bytes": 4, "sha256": "4" * 64}}},
             "disk": {"required_free_bytes": 5, "lowest_free_bytes": 6},
@@ -69,12 +70,25 @@ def comparison_record(export_hash, reference_hash):
             "verifier": {"bytes": 1, "sha256": "6" * 64}, "conditions": [first, entry]}
 
 
+def layers_record():
+    ratio = {"largest_ratio": 2e-5, "passed": True}
+    entry = {"criteria": {"max_abs_logit": 0.005, "max_probability_error": 1e-06, "top1_mismatches": 0}, "rows": 1400,
+             "max_abs_logit": 0.001, "max_probability_error": 1e-08, "top1_mismatches": 0,
+             "non_finite": {"original": 0, "class": 0},
+             "outputs": {"hidden_states": ratio, "tap_hidden_states": {str(tap): ratio for tap in range(1, 6)}},
+             "checks": {"max_abs_logit": True, "hidden_states": True, "tap_hidden_states": True}}
+    return {"schema": layers.COMPARISON, "passed": True, "problems": [], "layers": 6, "tap_layers": [1, 2, 3, 4, 5],
+            "ratio_limit": 1e-3, "records_sha256": ["7" * 64, "8" * 64], "inputs": {"short": entry, "long": entry}}
+
+
 class SummaryTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(self.folder))
         self.reference = self.folder / "context.json"
         write_json(self.reference, context_record())
+        self.layers = self.folder / "layers.json"
+        write_json(self.layers, layers_record())
 
     def run_files(self, label, record=None, origin=None, stage_role="export", manifest=None):
         artifacts = self.folder / label / "artifacts"
@@ -97,7 +111,7 @@ class SummaryTests(unittest.TestCase):
         return self.folder / label / "report.json", artifacts / "export/export.json", self.folder / label / "comparison.json"
 
     def summarize(self, *runs):
-        argv = ["fp16_summary", "--reference", str(self.reference)]
+        argv = ["fp16_summary", "--reference", str(self.reference), "--layers-comparison", str(self.layers)]
         for report, record, comparison in runs:
             argv += ["--report", str(report), "--export", str(record), "--comparison", str(comparison)]
         output = io.StringIO()
@@ -122,6 +136,33 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(asset["export"]["asset"]["float16_minus_weights"], -12)
         self.assertEqual({key for entry in asset["comparison"]["conditions"] for key in entry["verifier"]}, set(native.PUBLIC))
         self.assertEqual(asset["pipeline"]["stages"][1]["role"], "export")
+        self.assertEqual((asset["export"]["metadata"]["tap_layers"], asset["export"]["metadata"]["tap_convention"],
+                          asset["export"]["asset"]["output_order"]),
+                         ([1, 2, 3, 4, 5], export.TAP_CONVENTION, {"main": ["logits", "hidden_states", "tap_hidden_states"]}))
+        compared = result["model_class"]
+        self.assertEqual((compared["passed"], compared["layers"], compared["tap_layers"], compared["ratio_limit"]),
+                         (True, 6, [1, 2, 3, 4, 5], 1e-3))
+        self.assertEqual(compared["inputs"]["long"]["hidden_states"], {"largest_ratio": 2e-5, "passed": True})
+        self.assertEqual(set(compared["inputs"]["long"]["tap_hidden_states"]), {"1", "2", "3", "4", "5"})
+        self.assertNotIn("non_finite", compared["inputs"]["long"])
+
+    def test_a_comparison_of_the_model_class_of_other_layers_tap_layers_or_text_is_refused(self):
+        changes = {"other tap layers": lambda record: record.update(tap_layers=[1, 2, 3, 4]),
+                   "other layers": lambda record: record.update(layers=12),
+                   "another schema": lambda record: record.update(schema="gemma4-31b-layer-comparison/1"),
+                   "free text as a tap layer": lambda record: record["inputs"]["long"]["outputs"]["tap_hidden_states"].update(
+                       {f"/{SENTINEL}": {"largest_ratio": 0.0, "passed": True}}),
+                   "a ratio as text": lambda record: record["inputs"]["short"]["outputs"]["hidden_states"].update(
+                       largest_ratio="small"),
+                   "no outputs": lambda record: record["inputs"]["short"].pop("outputs")}
+        run = self.run_files("first")
+        self.assertEqual(self.summarize(run)[0], 0)
+        for label, change in changes.items():
+            record = layers_record()
+            change(record)
+            write_json(self.layers, record)
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize(run), (1, ""))
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         changes = [lambda record: record["bundle"]["files"].update({f"/{SENTINEL}/main.mlirb": {"bytes": 1, "sha256": "4" * 64}}),
@@ -187,8 +228,8 @@ class SummaryTests(unittest.TestCase):
             report, record, comparison = self.run_files(label.replace(" ", "-"))
             {"report": report, "comparison": comparison}[kind].write_text(content)
             errors = io.StringIO()
-            argv = ["fp16_summary", "--reference", str(self.reference), "--report", str(report), "--export", str(record),
-                    "--comparison", str(comparison)]
+            argv = ["fp16_summary", "--reference", str(self.reference), "--layers-comparison", str(self.layers),
+                    "--report", str(report), "--export", str(record), "--comparison", str(comparison)]
             output = io.StringIO()
             with self.subTest(case=label), mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), \
                     contextlib.redirect_stderr(errors):
