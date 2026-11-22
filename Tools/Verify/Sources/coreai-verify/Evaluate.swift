@@ -70,7 +70,8 @@ struct Evaluate: AsyncParsableCommand {
             implementation: .init(commit: commit),
             callShape: .init(
                 prefillChunk: engine.prefillChunkSize, prefillFunction: engine.hasPrefillFunction,
-                expectFrequentReshapes: stats.expectsFrequentReshapes, requestedCompute: stats.requestedComputeUnit),
+                expectFrequentReshapes: stats.expectsFrequentReshapes, requestedCompute: stats.requestedComputeUnit,
+                contextLimit: engine.contextLimit),
             inputs: .init(sha256: hex(Data(SHA256.hash(data: inputData))), count: items.count), items: 0,
             started: .now,
             load: .init(cached: stats.cached, specializeS: stats.specializeSeconds, loadS: stats.totalSeconds))
@@ -114,6 +115,7 @@ struct EvaluationRun: Codable, Equatable {
         let prefillFunction: Bool
         let expectFrequentReshapes: Bool?
         let requestedCompute: String?
+        let contextLimit: Int
     }
 
     struct Inputs: Codable, Equatable {

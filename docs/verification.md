@@ -176,7 +176,7 @@ The run folder holds two files:
 | `set`, `role` | The options |
 | `asset` | The bundle's `name`, `main_hash`, and `source_model_id` (`source.hf_model_id` in `metadata.json`) when present |
 | `implementation` | `command` (`coreai-verify evaluate`), `commit`, `os_version` and `os_build` |
-| `call_shape` | The engine's `prefill_chunk`, `prefill_function`, `expect_frequent_reshapes` and `requested_compute` |
+| `call_shape` | The engine's `prefill_chunk`, `prefill_function`, `expect_frequent_reshapes`, `requested_compute` and `context_limit`, the effective context limit that `language.max_context_length` in `metadata.json` sets |
 | `inputs` | `sha256` and `count` of the input file |
 | `items` | The number of records in `outputs.jsonl` |
 | `started`, `finished` | When the run first started, and when it last ended; `finished` is absent while the run is in progress or after it stopped on an error |

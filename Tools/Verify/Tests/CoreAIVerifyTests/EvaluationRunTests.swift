@@ -16,8 +16,8 @@ func outputLines(_ folder: URL) throws -> [[String: Any]] {
 
 func runRecord(
     count: Int, contract: String = "contract", set: String = "primary", role: String = "fp16",
-    mainHash: String = "hash", inputs: String = "inputs", prefillChunk: Int = 256, commit: String = "c0ffee",
-    started: Date = Date(timeIntervalSince1970: 0)
+    mainHash: String = "hash", inputs: String = "inputs", prefillChunk: Int = 256, contextLimit: Int = 262_144,
+    commit: String = "c0ffee", started: Date = Date(timeIntervalSince1970: 0)
 ) -> EvaluationRun {
     EvaluationRun(
         contract: .init(version: "G31-QC-v1", sha256: contract), set: set, role: role,
@@ -25,7 +25,7 @@ func runRecord(
         implementation: .init(commit: commit),
         callShape: .init(
             prefillChunk: prefillChunk, prefillFunction: true, expectFrequentReshapes: true,
-            requestedCompute: "default"),
+            requestedCompute: "default", contextLimit: contextLimit),
         inputs: .init(sha256: inputs, count: count), items: 0, started: started,
         load: .init(cached: true, specializeS: 0, loadS: 1.5))
 }
@@ -81,11 +81,12 @@ func runRecord(
     }
 
     @Test(
-        "A run folder whose contract, set, role, asset, input records, call shape or implementation differs is rejected without generating",
+        "A run folder whose contract, set, role, asset, input records, call shape, effective context limit or implementation differs is rejected without generating",
         arguments: [
             ("contract", runRecord(count: 3, contract: "other")), ("set", runRecord(count: 3, set: "reserve")),
             ("role", runRecord(count: 3, role: "w8")), ("asset.main_hash", runRecord(count: 3, mainHash: "other")),
             ("inputs", runRecord(count: 3, inputs: "other")), ("call_shape", runRecord(count: 3, prefillChunk: 4096)),
+            ("call_shape", runRecord(count: 3, contextLimit: 8192)),
             ("implementation", runRecord(count: 3, commit: "other")),
         ])
     func rejectsAnotherRun(field: String, other: EvaluationRun) async throws {
@@ -263,7 +264,7 @@ func runRecord(
             ],
             "call_shape": [
                 "prefill_chunk": 256, "prefill_function": true, "expect_frequent_reshapes": true,
-                "requested_compute": "default",
+                "requested_compute": "default", "context_limit": 262_144,
             ],
             "inputs": ["sha256": "inputs", "count": 4], "items": 2, "started": "1970-01-01T00:00:00Z",
             "finished": "1970-01-01T00:01:00Z", "load": ["cached": true, "specialize_s": 0, "load_s": 1.5],
