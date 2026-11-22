@@ -120,6 +120,7 @@ class SummaryTests(unittest.TestCase):
                          [None, "prefill"])
         self.assertEqual(result["reference"]["inputs"]["context"]["rows"], 26)
         self.assertEqual(asset["export"]["asset"]["float16_minus_weights"], -12)
+        self.assertEqual({key for entry in asset["comparison"]["conditions"] for key in entry["verifier"]}, set(native.PUBLIC))
         self.assertEqual(asset["pipeline"]["stages"][1]["role"], "export")
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
@@ -194,6 +195,15 @@ class SummaryTests(unittest.TestCase):
                 self.assertEqual(fp16_summary.main(), 1)
                 self.assertEqual(output.getvalue(), "")
                 self.assertRegex(errors.getvalue(), r"^Cannot summarize local records \(\w+\)\.\n$")
+
+    def test_a_condition_without_a_field_of_the_verifier_record_stops_with_the_fixed_error_and_prints_nothing(self):
+        for key in ("cached", "load_s", "prefix_calls"):
+            report, record, comparison = self.run_files(f"lacking-{key}")
+            data = json.loads(comparison.read_text())
+            del data["conditions"][1]["verifier"][key]
+            comparison.write_text(json.dumps(data))
+            with self.subTest(key=key):
+                self.assertEqual(self.summarize((report, record, comparison)), (1, ""))
 
 
 if __name__ == "__main__":

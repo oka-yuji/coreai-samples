@@ -24,6 +24,14 @@ MAX_ABS_LOGIT = 2.0
 NEAR_TIE = 0.01
 KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
+VERIFIER = {"record": "text", "token_count": "count", "start": "count", "chunk": "count", "tokens_sha256": "text",
+            "shape": "shape", "dtype": "text", "byte_order": "text", "main_calls": "count", "main_hash": "text",
+            "prefix_function": "text", "prefix_calls": "count", "prefix_chunk": "count", "cached": "flag",
+            "non_finite_count": "count", "load_s": "seconds", "prefix_s": "seconds", "scoring_s": "seconds",
+            "specialize_s": "seconds"}
+OPTIONAL = {"prefix_function"}
+PUBLIC = ("cached", "prefix_function", "prefix_calls", "main_calls", "non_finite_count", "load_s", "prefix_s", "scoring_s",
+          "specialize_s")
 
 
 def read_once(path):
@@ -35,6 +43,26 @@ def pinned_model(contract, contract_path):
     return {"id": contract["model_id"], "revision": contract["revision"], "contract_sha256": sha256(contract_path),
             "verified_before_loading": {name: entry for name, entry in contract["files"].items()
                                         if name in LOADED_FILES or name.endswith(".safetensors")}}
+
+
+def valid(kind, value):
+    if kind == "count":
+        return type(value) is int and value >= 0
+    if kind == "seconds":
+        return type(value) in (int, float) and math.isfinite(value) and value >= 0
+    if kind == "shape":
+        return type(value) is list and all(valid("count", size) for size in value)
+    return type(value) is {"flag": bool, "text": str}[kind]
+
+
+def validated(record):
+    kept, malformed = {}, []
+    for key, kind in VERIFIER.items():
+        if key in record and valid(kind, record[key]):
+            kept[key] = record[key]
+        elif key in record or key not in OPTIONAL:
+            malformed.append(key)
+    return kept, malformed
 
 
 def known_rows(start, length, chunk):
@@ -186,12 +214,13 @@ def printed(stdout):
 
 def condition(spec, config, arrays, facts, verifier, output):
     name, source, length, start, chunk = spec
-    entry = {"name": name, "input": source, "tokens": length, "start": start, "chunk": chunk, "rows": length - start,
-             "problems": [], "checks": {}}
+    fixed = {"name": name, "input": source, "tokens": length, "start": start, "chunk": chunk, "rows": length - start}
+    entry = {**fixed, "problems": [], "checks": {}}
     try:
         measured(entry, config, arrays, facts, verifier, output)
+        json.dumps(entry, allow_nan=False)
     except Exception as error:
-        entry["problems"].append(f"the condition could not be compared ({type(error).__name__})")
+        entry = {**fixed, "problems": [f"the condition could not be compared ({type(error).__name__})"], "checks": {}}
     entry["passed"] = not entry["problems"] and bool(entry["checks"]) and all(entry["checks"].values())
     return entry
 
@@ -216,16 +245,19 @@ def measured(entry, config, arrays, facts, verifier, output):
         if record is None:
             problems.append("the verifier did not print one JSON object")
         else:
+            record, malformed = validated(record)
             entry["verifier"] = record
-            expected = {"record": "logits", "token_count": length, "start": start, "chunk": chunk,
-                        "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
-                        "shape": [rows, vocabulary], "dtype": "float16", "byte_order": "little",
-                        "main_calls": math.ceil(rows / chunk), "main_hash": facts["main_hash"],
-                        **prefix_record(start, prefill_chunk(), facts["prefill"])}
-            problems += [f"the verifier recorded {key} {record.get(key)!r}, not {value!r}"
-                         for key, value in expected.items() if record.get(key) != value]
-            if start == 0 and "prefix_function" in record:
-                problems.append("the verifier recorded a prefix function for a condition that starts at position 0")
+            problems += [f"the verifier record is malformed ({key})" for key in malformed]
+            if not malformed:
+                expected = {"record": "logits", "token_count": length, "start": start, "chunk": chunk,
+                            "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
+                            "shape": [rows, vocabulary], "dtype": "float16", "byte_order": "little",
+                            "main_calls": math.ceil(rows / chunk), "main_hash": facts["main_hash"],
+                            **prefix_record(start, prefill_chunk(), facts["prefill"])}
+                problems += [f"the verifier recorded {key} {record.get(key)!r}, not {value!r}"
+                             for key, value in expected.items() if record.get(key) != value]
+                if start == 0 and "prefix_function" in record:
+                    problems.append("the verifier recorded a prefix function for a condition that starts at position 0")
     entry["seconds"] = time.perf_counter() - began
     if problems:
         return
@@ -276,7 +308,12 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
               "export": {"sha256": export_hash, "layers": exported.get("layers"), "functions": exported.get("functions"),
                          "main_hash": facts["main_hash"] if facts else None},
               "verifier": verifier_record, "conditions": conditions}
-    write_json(output / "comparison.json", result)
+    try:
+        write_json(output / "comparison.json", result)
+    except Exception as error:
+        result = {"schema": SCHEMA, "passed": False, "conditions": [],
+                  "problems": [f"the comparison could not be recorded ({type(error).__name__})"]}
+        write_json(output / "comparison.json", result)
     return result
 
 

@@ -10,7 +10,7 @@ from .anchor import read
 from .anchor_summary import signed
 from .export import SCHEMA as EXPORT_SCHEMA
 from .layers import CONTEXT_SCHEMA
-from .native import SCHEMA as COMPARISON_SCHEMA
+from .native import PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER
 from .summary import HEX, REPOSITORY, SHARD, count, flag, matched, optional, word
 
 SCHEMA = "gemma4-31b-fp16-summary/1"
@@ -107,6 +107,9 @@ def exported(record):
                                       "lowest_free_percent": optional(monitor["lowest"]["free_percent"], True)}}}
 
 
+SHARED = {"count": count, "seconds": number, "flag": flag, "text": word}
+
+
 def condition(entry):
     verifier = entry["verifier"]
     prefix = verifier.get("prefix_function")
@@ -120,9 +123,8 @@ def condition(entry):
             "max_abs_logit": optional(entry["max_abs_logit"]), "top1_mismatches": numbers(entry["top1_mismatches"], True),
             "known": {"rows": count(entry["known"]["rows"]), "max_abs_logit": optional(entry["known"]["max_abs_logit"])},
             "seconds": number(entry["seconds"]), "output": logits(entry["output"]),
-            "verifier": {"cached": flag(verifier["cached"]), "prefix_function": None if prefix is None else word(prefix),
-                         **{key: count(verifier[key]) for key in ("prefix_calls", "main_calls", "non_finite_count")},
-                         **{key: number(verifier[key]) for key in ("load_s", "prefix_s", "scoring_s", "specialize_s")}}}
+            "verifier": {key: None if key == "prefix_function" and prefix is None else SHARED[VERIFIER[key]](verifier[key])
+                         for key in PUBLIC}}
 
 
 def compared(record):

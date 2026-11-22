@@ -66,7 +66,10 @@ if start:
 record.update(change.get("record", {{}}))
 for key in change.get("drop", []):
     record.pop(key)
-print(change.get("stdout", json.dumps(record)))
+text = json.dumps(record)
+for old, new in change.get("replace", []):
+    text = text.replace(old, new)
+print(change.get("stdout", text))
 sys.exit(change.get("exit", 0))
 """
 
@@ -301,6 +304,66 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(conditions["window-c2"]["problems"], ["the condition could not be compared (FileNotFoundError)"])
         self.assertEqual(conditions["window-c4"]["problems"], ["the condition could not be compared (PermissionError)"])
         self.assertEqual({name for name, entry in conditions.items() if not entry["passed"]}, {"window-c2", "window-c4"})
+
+    def test_a_verifier_record_with_a_missing_wrong_or_non_finite_field_fails_only_its_condition(self):
+        result = self.run_compare({"window-c2": {"replace": [['"load_s": 0.1', '"load_s": 1e999']]},
+                                   "window-c4": {"drop": ["cached"]}, "prefix-c1": {"record": {"main_calls": "300"}},
+                                   "tail": {"record": {"extra": "dropped"}}})
+        self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
+        conditions = self.conditions(result)
+        self.assertEqual({name: entry["problems"] for name, entry in conditions.items() if not entry["passed"]},
+                         {"window-c2": ["the verifier record is malformed (load_s)"],
+                          "window-c4": ["the verifier record is malformed (cached)"],
+                          "prefix-c1": ["the verifier record is malformed (main_calls)"]})
+        self.assertEqual(set(conditions["tail"]["verifier"]), set(native.VERIFIER))
+        self.assertEqual(set(conditions["short-c1"]["verifier"]), set(native.VERIFIER) - {"prefix_function"})
+
+    def test_non_finite_logits_or_reference_values_fail_their_conditions_and_the_comparison_is_recorded(self):
+        array = np.load(self.arrays["short"])
+        array[3, 5] = np.nan
+        np.save(self.arrays["short"], array)
+        record = read_json(self.reference / "record.json")
+        record["inputs"]["short"]["logits"] = layers.file_record(Path(self.arrays["short"]))
+        write_json(self.reference / "record.json", record)
+        result = self.run_compare({"window-c1": {"set": [[0, 0, float("inf")]]}})
+        self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
+        conditions = self.conditions(result)
+        failing = {name for name, entry in conditions.items() if not entry["passed"]}
+        self.assertEqual(failing, {"short-c1", "short-c26", "window-c1"})
+        for name in failing:
+            self.assertEqual((conditions[name]["max_abs_logit"], conditions[name]["checks"]["finite"]), (None, False))
+
+    def test_a_condition_record_that_is_not_json_is_reset_and_the_other_conditions_are_kept(self):
+        measure = native.measure
+
+        def broken(swift, reference, indices, known):
+            values = measure(swift, reference, indices, known)
+            return {**values, "max_abs_logit": float("nan")} if len(swift) == 300 else values
+
+        with mock.patch.object(native, "measure", side_effect=broken):
+            result = self.run_compare(label="nan")
+        self.assertEqual(read_json(self.folder / "nan/comparison.json"), result)
+        conditions = self.conditions(result)
+        self.assertEqual(conditions["prefix-c1"], {"name": "prefix-c1", "input": "context", "tokens": 1300, "start": 1000,
+                                                   "chunk": 1, "rows": 300, "checks": {}, "passed": False,
+                                                   "problems": ["the condition could not be compared (ValueError)"]})
+        self.assertEqual({name for name, entry in conditions.items() if not entry["passed"]}, {"prefix-c1"})
+
+    def test_a_comparison_that_cannot_be_recorded_leaves_a_minimal_failed_record(self):
+        calls = []
+
+        def failing_once(path, value):
+            calls.append(path)
+            if len(calls) == 1:
+                raise OSError("no space")
+            return write_json(path, value)
+
+        with mock.patch.object(native, "write_json", side_effect=failing_once):
+            result = self.run_compare(label="unrecorded")
+        expected = {"schema": native.SCHEMA, "passed": False, "conditions": [],
+                    "problems": ["the comparison could not be recorded (OSError)"]}
+        self.assertEqual(result, expected)
+        self.assertEqual(read_json(self.folder / "unrecorded/comparison.json"), expected)
 
     def test_a_missing_or_not_executable_verifier_still_leaves_a_failed_comparison(self):
         missing = native.compare(self.export, self.reference, self.folder / "absent", self.folder / "missing", self.contract)
