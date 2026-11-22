@@ -286,6 +286,23 @@ def load_model(snapshot, device):
                                                               output_loading_info=True)
 
 
+def loading_record(model, info, device):
+    parameters = list(model.parameters())
+    return {"class": type(model).__name__, "arguments": {"dtype": "bfloat16", "device_map": device,
+                                                         "output_loading_info": True},
+            "info": {key: sorted(map(str, value)) for key, value in info.items()},
+            "attn_implementation": model.config._attn_implementation, "parameters": sum(p.numel() for p in parameters),
+            "parameter_dtypes": sorted({str(p.dtype) for p in parameters}),
+            "parameter_devices": sorted({str(p.device) for p in parameters}), "training": model.training,
+            "tied_embeddings": model.get_output_embeddings().weight is model.get_input_embeddings().weight,
+            "after_load": memory(device)}
+
+
+def loading_clean(loading, device):
+    return not any(loading["info"].values()) and loading["parameter_dtypes"] == ["torch.bfloat16"] \
+        and all(name.startswith(device) for name in loading["parameter_devices"]) and not loading["training"]
+
+
 def run_cases(model, tokenizer, cases, stops, bos, device, output):
     import numpy as np
 
@@ -331,8 +348,7 @@ def run_cases(model, tokenizer, cases, stops, bos, device, output):
 
 
 def evaluate(loading, records, device):
-    return {"loading_clean": not any(loading["info"].values()) and loading["parameter_dtypes"] == ["torch.bfloat16"]
-            and all(name.startswith(device) for name in loading["parameter_devices"]) and not loading["training"],
+    return {"loading_clean": loading_clean(loading, device),
             "finite": all(not any(record["non_finite"].values()) and record["rerun"]["non_finite"] == 0 for record in records),
             "greedy_chosen_is_max": all(record["greedy_chosen_is_max"] for record in records),
             "rerun_tokens_match": all(record["rerun"]["tokens_match"] for record in records)}
@@ -369,15 +385,7 @@ def reference(args, contract, ready):
     model, info = load_model(args.snapshot, device)
     model.eval()
     loaded = time.perf_counter()
-    parameters = list(model.parameters())
-    loading = {"class": type(model).__name__, "arguments": {"dtype": "bfloat16", "device_map": device,
-                                                            "output_loading_info": True},
-               "info": {key: sorted(map(str, value)) for key, value in info.items()},
-               "attn_implementation": model.config._attn_implementation, "parameters": sum(p.numel() for p in parameters),
-               "parameter_dtypes": sorted({str(p.dtype) for p in parameters}),
-               "parameter_devices": sorted({str(p.device) for p in parameters}), "training": model.training,
-               "tied_embeddings": model.get_output_embeddings().weight is model.get_input_embeddings().weight,
-               "after_load": memory(device)}
+    loading = loading_record(model, info, device)
     with torch.no_grad():
         records, peaks = run_cases(model, tokenizer, cases, config["eos_token_id"], config["bos_token_id"], device,
                                    args.output)
@@ -411,6 +419,34 @@ def reference(args, contract, ready):
                        "greedy_s": greedy_seconds, "greedy_tokens_per_s": greedy_tokens / greedy_seconds}}
 
 
+def supervise(folder, schema, work, conclude):
+    reasons = []
+    monitor = ReferenceMonitor(folder / "monitor.tsv", [folder], [], reasons.append)
+    started = time.perf_counter()
+
+    def fail(reason):
+        write_json(folder / "failure.json", {"schema": schema, "passed": False, "abort": reason,
+                                             "elapsed_s": time.perf_counter() - started,
+                                             "max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                                             "lifetime_peak_footprint_bytes": footprint()[1],
+                                             "monitor": monitor.finish()})
+        return 1
+
+    try:
+        monitor.start()
+        if not monitor.ready.wait(FIRST_SAMPLE_TIMEOUT_S):
+            return fail(reasons[0] if reasons else f"no readable monitor sample within {FIRST_SAMPLE_TIMEOUT_S} s")
+        result = work()
+        observed = monitor.finish()
+        if reasons:
+            return fail(reasons[0])
+        return conclude(result, observed, started)
+    except KeyboardInterrupt:
+        if not reasons:
+            raise
+        return fail(reasons[0])
+
+
 def main():
     parser = argparse.ArgumentParser(description="Record BF16 MPS reference outputs of Gemma 4 31B for the fixtures.")
     for name in ("model", "snapshot", "fixtures", "prepare", "output"):
@@ -423,34 +459,14 @@ def main():
     ready = read_json(args.prepare / "ready.json")
     if ready.get("ready") is not True or ready.get("contract_sha256") != sha256(args.model):
         raise ValueError("Run prepare with this contract first")
-    reasons = []
-    monitor = ReferenceMonitor(args.output / "monitor.tsv", [args.output], [], reasons.append)
-    started = time.perf_counter()
 
-    def fail(reason):
-        write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "abort": reason,
-                                                  "elapsed_s": time.perf_counter() - started,
-                                                  "max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-                                                  "lifetime_peak_footprint_bytes": footprint()[1],
-                                                  "monitor": monitor.finish()})
-        return 1
-
-    try:
-        monitor.start()
-        if not monitor.ready.wait(FIRST_SAMPLE_TIMEOUT_S):
-            return fail(reasons[0] if reasons else f"no readable monitor sample within {FIRST_SAMPLE_TIMEOUT_S} s")
-        record = reference(args, contract, ready)
-        observed = monitor.finish()
-        if reasons:
-            return fail(reasons[0])
+    def conclude(record, observed, started):
         finalize(record, observed, memory(contract["reference"]["device"]))
         record["timing"]["total_s"] = time.perf_counter() - started
         write_json(output, record)
-    except KeyboardInterrupt:
-        if not reasons:
-            raise
-        return fail(reasons[0])
-    return 0 if record["passed"] else 1
+        return 0 if record["passed"] else 1
+
+    return supervise(args.output, SCHEMA, lambda: reference(args, contract, ready), conclude)
 
 
 if __name__ == "__main__":
