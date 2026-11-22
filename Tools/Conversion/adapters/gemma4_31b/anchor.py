@@ -229,8 +229,11 @@ def load(snapshot, dtype, device, config=None):
     import transformers
 
     options = {"config": config} if config is not None else {}
-    return getattr(transformers, reference.MODEL_CLASS).from_pretrained(
-        str(snapshot), dtype=getattr(torch, dtype), device_map=device, output_loading_info=True, **options)
+    loader = getattr(transformers, reference.MODEL_CLASS).from_pretrained
+    if dtype == "bfloat16":
+        return loader(str(snapshot), dtype=torch.bfloat16, device_map=device, output_loading_info=True, **options)
+    model, info = loader(str(snapshot), dtype=getattr(torch, dtype), output_loading_info=True, **options)
+    return model.to(device), info
 
 
 def loaded(model, info, device):
