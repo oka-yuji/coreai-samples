@@ -208,6 +208,14 @@ class SetupTests(unittest.TestCase):
                                       "coreai-models", "--python", "3.11", {"UV_PROJECT_ENVIRONMENT": str(upstream / ".venv")}),
                                      ("check", upstream, revision)])
 
+    def test_setup_writes_the_converter_checkout_into_the_bindings_for_the_export_recipe(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.run_setup(folder, [])
+            workspace = Path(folder) / "workspace"
+            bindings = json.loads((workspace / "gemma4_31b.paths.json").read_text())
+        self.assertEqual(bindings["upstream"], str(workspace / "upstream-gemma4-31b/coreai-models"))
+        self.assertEqual(set(bindings), {"python", "hf_cache", "setup_record", "snapshot", "upstream"})
+
     def test_setup_refuses_a_converter_checkout_of_another_revision_or_with_edits(self):
         revision, steps = load_contract(RECIPE / "model.json")["upstream_revision"], []
         with tempfile.TemporaryDirectory() as folder:

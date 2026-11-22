@@ -413,3 +413,147 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.anchor_summary --report <report.
   --comparison <A32 → A> --comparison <A32 → A32(W16)> --comparison <A32(W16) → FP16> \
   --comparison <A32 → scale 73.32121> --comparison <A32 → scale 73.3125> > docs/validation/gemma4-31b/anchor-20261122.json
 ~~~
+
+## FP16 export of the first six layers
+
+This section copies the numbers of the FP16 export of the first six layers (five sliding-window layers and one
+full-attention layer) of the
+[`recipe-fp16.json`](../../../Tools/Conversion/recipes/gemma4_31b/README.md#fp16-export-of-the-first-layers) recipe to
+two dynamic-shape Core AI bundles for macOS, one with the functions `main` and `prefill` and one with `main` only, and
+of the comparison of the logits that the own engine reads from them (`coreai-verify logits`) with an FP32
+reference of the same six layers (#680). Six layers do not make a usable model: the record shows that the export, the
+asset and the reads of the engine are right for these layers, not the quality of the model.
+[`fp16-first-layers-20261122.json`](fp16-first-layers-20261122.json) holds the states, numbers, hashes, versions and
+fixed names of the records, from `fp16_summary`, which checked that each pipeline report is the run whose stage
+manifest recorded its `export.json` and that each comparison was made from that `export.json` and the reference
+record. It has no local paths, commands or environment variables; the records, bundles and logits stay in the local
+work directory.
+
+### Conditions
+
+- The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power). Every
+  model job held the shared machine lock, and none started while another model process ran. Another session held the
+  lock between the two comparisons; the times below are records, not measurements.
+- Commit 1494a4c4 with no local changes for the FP32 reference and the exports, and commit 474bc2e0, which changed
+  only the comparison tool and its tests after 1494a4c4, for the comparisons. Converter `apple/coreai-models`
+  `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core 1.0.0b3, coreai-models 0.1.0, coreai-opt 0.4.0,
+  coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors 0.7.0. Reference: transformers 5.16.1,
+  torch 2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` was built in release from the same commit.
+- Runs (2026-11-23 JST, pipeline run IDs in UTC): the FP32 reference (`layers.py context`) from 02:05:41; the exports
+  `20261122T170658-b5e24d4e` (`main` and `prefill`) from 02:06:58 and `20261122T171023-84a7c490` (`main` only) from
+  02:10:23, each with the `prepare` step of the recipe (the `export` step ran in both, not reused); the comparisons
+  from 02:56:49 and from 03:10:16.
+- Inputs: `short` (26 tokens) and `context` (16,896 tokens), fixed-seed token IDs of the recipe's FP32 tools, not
+  text.
+
+### Exports
+
+| | `main` and `prefill` | `main` only |
+|---|---:|---:|
+| Pipeline | 207.7 s | 187.8 s |
+| `prepare` step | 27.1 s | 27.4 s |
+| `export` step | 75.8 s | 57.7 s |
+| Export tool | 72.71 s | 55.07 s |
+| Hashing the files to load | 23.24 s | 23.62 s |
+| Loading the model class in FP16 | 4.08 s | 2.62 s |
+| `export_macos_model` | 34.46 s | 17.87 s |
+| Saving the asset | 6.91 s | 7.05 s |
+| Hashing the bundle | 3.30 s | 3.27 s |
+| Peak resident memory | 20,772,356,096 B | 23,251,156,992 B |
+| Kernel lifetime footprint peak | 9,483,761,440 B | 14,485,538,192 B |
+| Swap increase (limit 2,000,000,000 B) | 0 B | 0 B |
+| Free disk required at the start | 81,776,897,048 B | 81,776,897,048 B |
+| Lowest free disk during the run (limit 64,424,509,440 B) | 402,811,510,784 B | 392,170,766,336 B |
+| `main.mlirb` | 8,676,277,835 B | 8,676,248,369 B |
+| `main.hash`, the SHA-256 of `main.mlirb` | `6cb1ece64c6f1a928d1c2e8e41c60026e346d9f89fb4421460bf426a98e0f08f` | `5441cb49d1846fae7292fe4eab0b09a4ac1d0b263b531043fb448b26028afa42` |
+| Bundle | 8,708,469,929 B | 8,708,440,447 B |
+
+Both assets passed the inspection. No compression setting was given and the PyTorch model had no quantized weight; its
+85 parameters and buffers held 4,338,096,902 float16 elements, and no other type. Both assets store Float16
+4,338,096,906 elements (4 more than the weights, a difference that is recorded and not judged) and the constants
+Float32 386 (the expected 512 / 2 + 256 / 2 + 2), Int32 148, UInt32 29 and UInt64 1 (the same as the six-layer
+`slicepos` assets of #665), and no other type. The functions are those asked for, with `input_ids` and `position_ids`
+int32 [1, ?], `logits` float16 [1, ?, 262144] from `main`, `keyCache` and `valueCache` float16 [1, 1, 4, ?, 512] and
+`slidingKeyCache` and `slidingValueCache` float16 [5, 1, 16, ?, 256]. The three tokenizer files are the distributed
+files, and
+`metadata.json` has vocabulary 262,144, context limit 16,896, `source.hf_model_id` `google/gemma-4-31B-it` and
+`source.revision` `842da3794eaa0b77d5f08bae87a17459d91ff475`. `export.json` records the size and SHA-256 of every
+bundle file. The free disk check counts twice the 8,676,193,804 B of FP16 weights plus 60 GiB.
+
+### FP32 reference
+
+`layers.py context` took 71.9 s: 23.76 s to hash the files to load, 2.22 s to load the first six layers of the
+original implementation, 0.2 s for `short` in one call and 45.0 s for `context` in 17 calls of up to 1,024 tokens with
+the cache of the implementation. It kept 26 rows of `short` (27,263,104 B) and 1,428 rows of `context`
+(1,497,366,656 B), all finite. Peak resident memory 51,173,048,320 B, kernel lifetime footprint peak
+51,124,933,424 B.
+
+### Comparison
+
+Both assets passed all twelve conditions: no non-finite value in any written or reference row, no constant written
+row, every largest absolute logit difference below 2.0, and no top-1 change outside a near tie. Every one of
+the twelve logits files of the asset with `main` only is byte-identical to the one of the asset with `main` and
+`prefill`, also where the tokens before `--start` went through `main` instead of the `prefill` function, so the table
+holds for both.
+
+| Condition | Rows | Largest absolute logit difference | Top-1 changes in a near tie / outside | Rows of the known call shape: count, largest difference | Seconds (`main` and `prefill` / `main` only) |
+|---|---:|---:|---:|---:|---:|
+| `short-c1` | 26 | 0.458 | 25 / 0 | – | 15.4 / 11.1 |
+| `short-c26` | 26 | 0.480 | 25 / 0 | – | 3.9 / 2.8 |
+| `window-c1` | 1,300 | 0.989 | 1,266 / 0 | – | 36.6 / 33.6 |
+| `window-c2` | 1,300 | 0.929 | 1,266 / 0 | – | 20.7 / 18.6 |
+| `window-c4` | 1,300 | 0.855 | 1,266 / 0 | – | 12.4 / 10.2 |
+| `window-c8` | 1,300 | 0.861 | 1,250 / 0 | 16, 4.266 | 8.8 / 7.7 |
+| `prefix-c1` | 300 | 0.836 | 294 / 0 | – | 12.2 / 10.7 |
+| `capacity-2048` | 16 | 0.437 | 15 / 0 | – | 4.7 / 4.2 |
+| `capacity-4096` | 16 | 0.535 | 14 / 0 | – | 5.7 / 5.8 |
+| `capacity-8192` | 16 | 0.459 | 16 / 0 | – | 7.7 / 9.9 |
+| `capacity-16384` | 16 | 0.567 | 15 / 0 | – | 11.9 / 18.1 |
+| `tail` | 64 | 0.466 | 61 / 0 | – | 14.6 / 20.4 |
+
+- The rows of the known call shape are rows 96 to 111 of `window-c8`, from its calls of 8 tokens that end at 104 and
+  112 positions; they are left out of the judgment. The other rows of that condition stay at 0.861.
+- On the asset with `prefill`, the tokens before `--start` went through the `prefill` function (1, 1, 1, 2, 4 and 5
+  calls for `prefix-c1`, the four `capacity` conditions and `tail`), and no `coreai-verify` process stopped. On the
+  asset with `main` only they went through `main`. The comparison checked the function, the calls and the chunk of
+  these reads against the rules of the engine.
+- The first six layers saturate the logits: in the reference rows of `window-c8` and `capacity-2048`, a median of
+  19,423 and 25,971 of the 262,144 logits per row are at 29.98 or above in absolute value. The top two reference
+  logits of nearly every row are then within 0.01, so the top-1 criterion rarely applies; the logit difference is the
+  measure here, as in #665.
+- The first condition of each asset specialized the asset (10.5 s and 7.7 s); the others used the specialization
+  cache. The caches took 21,660,868 KiB (`resources.bin` 22,163,497,512 B) and 16,962,060 KiB (`resources.bin`
+  17,352,106,248 B), the sizes that #665 found for the same forms, and were removed after the comparisons.
+- Compared with §3.2 of the #665 spike, which read a text input and a reference computed with the spike's own model
+  class, the differences are of the same size: `short` 0.458 and 0.480 (0.378 and 0.559), the window with calls of 1,
+  2 and 4 tokens 0.855 to 0.989 (0.64 to 0.75), the known rows 4.266 (4.34), the reads after the prefix of 1,000 tokens
+  0.836 (0.561), the capacity boundaries 0.437 to 0.567 (0.29 to 0.45) and the tail 0.466 (0.531).
+
+### Limits
+
+- Six of the 60 layers, FP16 only, one machine, one OS build and one software environment; the inputs are token IDs
+  of fixed seeds, not a quality set. The export and comparison of all 60 layers and the 8-bit assets are later steps.
+- Saturated logits make the top-1 criterion weak for six layers; the probability thresholds of the quality contract
+  are not used.
+- The rows of the call shape that `Engine` avoids for this model (calls of 8 or more tokens after which the positions
+  total 97 to 112) are recorded but not judged. `coreai-verify logits` reads the `--chunk` calls as given, so
+  `window-c8` reproduces that shape.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| FP32 reference `record.json` | `ce9788b96d98ac3725b5f7d0efa5ab40dfccc9af9c5ede4fac2f063fd9ae35d6` |
+| Report of the export with `main` and `prefill` | `eead1a1dd0daae6984e66738c40521c32fe13e654aeb3ce8c2f2dc1e2486dbf4` |
+| Its `export.json` | `f03e81c94d072e601060c44a9665cd17dfaf46e685e602c252bee9b213dfc5ec` |
+| Its `comparison.json` | `e6271e92dccbc63dda9e5fae1316337de2b2408f48b757dbbac2202479b05b9e` |
+| Report of the export with `main` only | `82da28ff5691527dfb666375d40a87773d50669663fbc3ee7e61459db8eae4bf` |
+| Its `export.json` | `1f3c7c4bc2ebe2f0471c60dd0231f29b9d489114539625264778360a25bfdb28` |
+| Its `comparison.json` | `8093eaeedc8b7a2fd418fa0ba0d80b80fc5c432e054b7fe1039dc8f60ed031df` |
+
+~~~sh
+python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 reference record.json> \
+  --report <report.json> --export <export.json> --comparison <comparison.json> \
+  --report <report.json> --export <export.json> --comparison <comparison.json> \
+  > docs/validation/gemma4-31b/fp16-first-layers-20261122.json
+~~~
