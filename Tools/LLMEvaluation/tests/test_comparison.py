@@ -294,6 +294,33 @@ class CompareRunTests(unittest.TestCase):
                     self.compared(baseline, candidate, scores, name=f"{case}/verdict")
                 self.assertFalse((self.folder / case / "verdict").exists())
 
+    def test_a_rerun_that_is_not_complete_is_rejected(self):
+        done = {**RUN, "inputs": {"sha256": "i", "count": 2}, "items": 2, "finished": "t"}
+        for case in ("missing_output", "not_in_set", "unfinished", "unscored_row"):
+            with self.subTest(case):
+                baseline = self.run_folder(f"{case}/base", "reference")
+                candidate = self.run_folder(f"{case}/cand", "fp16", **done)
+                fields = {**done, "call_shape": {"prefill_chunk": 8}}
+                if case == "unfinished":
+                    del fields["finished"]
+                rerun = self.run_folder(f"{case}/again", "fp16", answer=9, **fields)
+                path = rerun / "outputs.jsonl"
+                records = path.read_text(encoding="utf-8").splitlines(keepends=True)
+                if case == "missing_output":
+                    path.write_text(records[0], encoding="utf-8")
+                elif case == "not_in_set":
+                    stray = {**json.loads(records[0]), "id": "free-ja-9999"}
+                    path.write_text("".join(records) + json.dumps(stray) + "\n", encoding="utf-8")
+                scores = self.scored(baseline, candidate, rerun, name=f"{case}/scores")
+                if case == "unscored_row":
+                    path = scores / "again" / "scores.jsonl"
+                    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+                    write_lines(path, [{**row, "correct": None, "state": "pending_code"}
+                                       if row["kind"] != "unscored" else row for row in rows])
+                with self.assertRaises(ValueError):
+                    self.compared(baseline, candidate, scores, name=f"{case}/verdict", rerun=scores / "again")
+                self.assertFalse((self.folder / case / "verdict").exists())
+
     def test_scores_that_are_not_of_the_items_are_rejected(self):
         baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
         scores = self.scored(baseline, candidate)

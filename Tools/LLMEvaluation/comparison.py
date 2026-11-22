@@ -13,6 +13,7 @@ CHECKS = {"missing_output": "missing", "not_in_set": "not_in_set", "duplicate_id
           "top2_differs": "top2_differs"}
 SIDES = ("baseline", "candidate")
 SAME_RUN = ("asset", "inputs", "implementation", "set", "role")
+RECORD_CHECKS = ("missing", "not_in_set", "duplicate", "top2_differs", "item_hash_differs", "malformed")
 
 
 def repeated(ids, rule):
@@ -213,9 +214,16 @@ def rerun_scoring(folder, rows, candidate):
     shapes = [runs[side].get("call_shape") for side in runs]
     if shapes[0] is not None and shapes[0] == shapes[1]:
         problems.append("run.call_shape is the same")
+    problems += [f"checks.{name} is not empty" for name in RECORD_CHECKS
+                 if (summary.get("checks") or {}).get(name) != []]
+    if unfinished(runs["rerun"]):
+        problems.append("the rerun run record is unfinished")
+    unscored = sum(row["kind"] != "unscored" and row["correct"] is None for row in found)
+    if unscored:
+        problems.append(f"{unscored} items of scored categories have no correct value")
     if problems:
-        raise ValueError(f"The rerun scoring in {Path(folder).name} is not a rerun of the candidate's assets, inputs "
-                         f"and implementation with another call shape: {'; '.join(problems)}")
+        raise ValueError(f"The rerun scoring in {Path(folder).name} cannot be used as a rerun of the candidate's "
+                         f"assets, inputs and implementation with another call shape: {'; '.join(problems)}")
     return summary.get("run"), found
 
 
