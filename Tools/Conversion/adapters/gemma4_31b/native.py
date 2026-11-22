@@ -14,7 +14,7 @@ from ...storage import digest, file_hash, write_json
 from ..pinned import sha256
 from .anchor import read
 from .compare import BLOCK_ROWS, CONTRACT
-from .export import BUNDLE, SCHEMA as EXPORT_SCHEMA
+from .export import BUNDLE, FUNCTIONS, SCHEMA as EXPORT_SCHEMA
 from .layers import CONDITIONS, CONTEXT_SCHEMA, check_layers, kept_rows, tokens
 from .prepare import load_contract
 from .reference import LOADED_FILES
@@ -44,6 +44,30 @@ def known_rows(start, length, chunk):
         if end - first >= KNOWN_SHORTEST and end in KNOWN_ENDS:
             rows.extend(range(first, end))
     return rows
+
+
+def prefill_chunk():
+    return 4096 if os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") >= 64 << 30 else 2048
+
+
+def call_lengths(position, count, limit):
+    lengths, end = [], position
+    while end < position + count:
+        length = min(limit, position + count - end)
+        while length >= KNOWN_SHORTEST and end + length in KNOWN_ENDS:
+            length -= 1
+        lengths.append(length)
+        end += length
+    return lengths
+
+
+def prefix_record(start, chunk, prefill):
+    if start == 0:
+        return {"prefix_calls": 0, "prefix_chunk": chunk}
+    lengths = call_lengths(0, start, chunk)
+    unsplit = lengths == [min(chunk, start - first) for first in range(0, start, chunk)]
+    return {"prefix_function": "prefill" if prefill and unsplit else "main", "prefix_calls": len(lengths),
+            "prefix_chunk": chunk}
 
 
 def measure(swift, reference, indices, known):
@@ -130,7 +154,10 @@ def load_export(folder, contract, contract_path):
     main = bundle / f"{recorded.get('name')}.aimodel" / "main.hash"
     if not main.is_file() or main.read_bytes().hex() != recorded.get("main_hash"):
         problems.append("main.hash of the bundle differs from the export record")
-    return record, hashed, {"bundle": bundle, "main_hash": recorded.get("main_hash")}, problems
+    if record.get("functions") not in [list(functions) for functions in FUNCTIONS.values()]:
+        problems.append("the export recorded other functions than main or main and prefill")
+    facts = {"bundle": bundle, "main_hash": recorded.get("main_hash"), "prefill": "prefill" in (record.get("functions") or [])}
+    return record, hashed, facts, problems
 
 
 def run_verifier(command, timeout, log):
@@ -193,9 +220,12 @@ def measured(entry, config, arrays, facts, verifier, output):
             expected = {"record": "logits", "token_count": length, "start": start, "chunk": chunk,
                         "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
                         "shape": [rows, vocabulary], "dtype": "float16", "byte_order": "little",
-                        "main_calls": math.ceil(rows / chunk), "main_hash": facts["main_hash"]}
+                        "main_calls": math.ceil(rows / chunk), "main_hash": facts["main_hash"],
+                        **prefix_record(start, prefill_chunk(), facts["prefill"])}
             problems += [f"the verifier recorded {key} {record.get(key)!r}, not {value!r}"
                          for key, value in expected.items() if record.get(key) != value]
+            if start == 0 and "prefix_function" in record:
+                problems.append("the verifier recorded a prefix function for a condition that starts at position 0")
     entry["seconds"] = time.perf_counter() - began
     if problems:
         return

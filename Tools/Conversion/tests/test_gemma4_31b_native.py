@@ -22,6 +22,7 @@ from Tools.Conversion.storage import digest, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
 
 ENGINE = Path(__file__).resolve().parents[3] / "CoreAISamplesKit/Sources/CoreAIBackend/Engine.swift"
+LOGITS = Path(__file__).resolve().parents[3] / "Tools/Verify/Sources/coreai-verify/PositionLogits.swift"
 VOCABULARY = TEXT["vocab_size"]
 MAIN_HASH = "ab" * 32
 FAKE = """#!{python}
@@ -53,13 +54,18 @@ if not change.get("no_output"):
     output.write_bytes(values.astype("<f2").tobytes())
 if change.get("unreadable"):
     output.chmod(0)
+prefill = plan["prefill_chunk"]
 record = {{"record": "logits", "token_count": len(ids), "start": start, "chunk": chunk,
           "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
           "shape": [len(ids) - start, values.shape[1]], "dtype": "float16", "byte_order": "little",
-          "prefix_function": None if start == 0 else "prefill", "prefix_chunk": 4096, "prefix_calls": int(start > 0),
+          "prefix_chunk": prefill, "prefix_calls": -(-start // prefill),
           "main_calls": -(-(len(ids) - start) // chunk), "main_hash": plan["main_hash"], "cached": True,
           "non_finite_count": 0, "load_s": 0.1, "prefix_s": 0.0, "scoring_s": 0.2, "specialize_s": 0.0}}
+if start:
+    record["prefix_function"] = "prefill"
 record.update(change.get("record", {{}}))
+for key in change.get("drop", []):
+    record.pop(key)
 print(change.get("stdout", json.dumps(record)))
 sys.exit(change.get("exit", 0))
 """
@@ -164,6 +170,24 @@ class KnownCallTests(unittest.TestCase):
         self.assertIn('"google/gemma-4-31B-it": (avoidedEnds: 97...112, shortestAffectedLength: 8)', ENGINE.read_text())
         self.assertEqual((native.KNOWN_ENDS, native.KNOWN_SHORTEST), (range(97, 113), 8))
 
+    def test_the_reads_before_the_start_follow_the_engine_and_the_verifier(self):
+        self.assertEqual(native.call_lengths(0, 100, 4096), [96, 4])
+        self.assertEqual(native.call_lengths(0, 112, 4096), [96, 7, 7, 2])
+        self.assertEqual(native.call_lengths(0, 8184, 4096), [4096, 4088])
+        self.assertEqual(native.call_lengths(0, 16832, 4096), [4096, 4096, 4096, 4096, 448])
+        self.assertEqual(native.prefix_record(0, 4096, True), {"prefix_calls": 0, "prefix_chunk": 4096})
+        self.assertEqual(native.prefix_record(16832, 4096, True),
+                         {"prefix_function": "prefill", "prefix_calls": 5, "prefix_chunk": 4096})
+        self.assertEqual(native.prefix_record(16832, 4096, False)["prefix_function"], "main")
+        self.assertEqual(native.prefix_record(100, 4096, True),
+                         {"prefix_function": "main", "prefix_calls": 2, "prefix_chunk": 4096})
+        self.assertEqual(native.prefix_record(1000, 2048, True),
+                         {"prefix_function": "prefill", "prefix_calls": 1, "prefix_chunk": 2048})
+        self.assertIn("return physicalMemory >= 64 << 30 ? 4096 : 2048", ENGINE.read_text())
+        self.assertIn("let unsplit = lengths == pieces(0..<start, size: chunkSize).map(\\.count)", LOGITS.read_text())
+        self.assertIn('return hasPrefillFunction && unsplit ? "prefill" : "main"', LOGITS.read_text())
+        self.assertIn(native.prefill_chunk(), (2048, 4096))
+
 
 @unittest.skipIf(np is None, "NumPy is required for the comparison")
 class CompareTests(unittest.TestCase):
@@ -207,7 +231,7 @@ class CompareTests(unittest.TestCase):
     def run_compare(self, changes=None, label="out"):
         plan = {"conditions": {name: [length, start, chunk] for name, _, length, start, chunk in layers.CONDITIONS},
                 "changes": changes or {}, "arrays": self.arrays, "rows": self.rows, "main_hash": MAIN_HASH,
-                "calls": str(self.calls)}
+                "calls": str(self.calls), "prefill_chunk": native.prefill_chunk()}
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
@@ -252,6 +276,16 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(failing, {"capacity-2048": {"finite", "max_abs_logit", "top1"},
                                    "capacity-4096": {"no_constant_rows", "max_abs_logit"},
                                    "capacity-8192": {"max_abs_logit"}, "capacity-16384": {"max_abs_logit", "top1"}})
+
+    def test_the_record_of_the_reads_before_the_start_must_match_the_engine(self):
+        other = 2048 if native.prefill_chunk() == 4096 else 4096
+        changes = {"prefix-c1": {"record": {"prefix_function": "main"}}, "capacity-2048": {"drop": ["prefix_function"]},
+                   "capacity-4096": {"record": {"prefix_calls": 2}}, "capacity-8192": {"drop": ["prefix_calls"]},
+                   "capacity-16384": {"record": {"prefix_chunk": other}}, "short-c1": {"record": {"prefix_function": "prefill"}},
+                   "short-c26": {"drop": ["prefix_calls"]}, "tail": {"record": {"prefix_function": None}}}
+        result = self.run_compare(changes)
+        failing = {name for name, entry in self.conditions(result).items() if not entry["passed"]}
+        self.assertEqual(failing, set(changes))
 
     def test_a_condition_that_cannot_be_compared_is_recorded_and_the_others_are_still_compared(self):
         result = self.run_compare({"window-c2": {"no_output": True}, "window-c4": {"unreadable": True}})
@@ -346,7 +380,8 @@ class CompareTests(unittest.TestCase):
                  "a reference of the model class": ("reference", lambda record: record.update(implementation="class")),
                  "an export of another model": ("export", lambda record: record["model"].update(id="other/model")),
                  "an export that did not pass": ("export", lambda record: record.update(passed=False)),
-                 "an export of another main hash": ("export", lambda record: record["bundle"].update(main_hash="cd" * 32))}
+                 "an export of another main hash": ("export", lambda record: record["bundle"].update(main_hash="cd" * 32)),
+                 "an export of other functions": ("export", lambda record: record.update(functions="main,prefill"))}
         for label, (target, change) in cases.items():
             with self.subTest(case=label):
                 backups = {path: path.read_bytes() for path in (self.reference / "record.json", self.export / "export.json")}
