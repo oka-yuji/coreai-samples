@@ -165,8 +165,8 @@ the text model. It imports the converter, so it runs only in the converter envir
 - Sliding-window layers cut the prefix that `update_and_fetch` returns to its last `L = sym_min(seq, window − 1 + n)`
   positions and mask it with the boolean `0 ≤ q − k < window`, where `q` and `k` are values of `position_ids` (the
   last n and the last L). They call the composite SDPA with `is_causal=False` and scale 1.0. Full-attention layers
-  call it with `is_causal=True` over the whole prefix. No position comes from an `arange` of a dynamic length, and
-  the composite `window_size` is not used.
+  call it with `is_causal=True` over the whole prefix. The class builds no position or mask from an `arange` of a
+  dynamic length (both come from `position_ids`), and it does not use the composite `window_size`.
 - The rest of the graph: the embedding times the BF16 rounding of √hidden (73.5 for 5376), RMSNorm with the weight
   `w`, `q_norm` and `k_norm` before RoPE, `v_norm` without a weight (in full-attention layers on the K projection
   before `k_norm`), the proportional RoPE through `DecomposedRoPE` in full-attention layers and the composite RoPE
@@ -200,11 +200,11 @@ implementation, and compares two such runs.
   --original <new folder>/original --model-class <new folder>/class --output <new folder>/comparison.json
 ~~~
 
-- `run` loads model weights, so it runs under the shared machine lock (six layers hold 4,338,096,902 values,
-  17.4 GB in FP32). It refuses an existing output folder. Right before loading it checks the snapshot with
-  `verify_inputs` of the reference step (the size and SHA-256 of every file to load, and exactly the pinned files).
-  Both implementations round every checkpoint tensor to FP16 and compute in FP32 on the CPU, with the BF16
-  rounding of √hidden as the embedding multiplier.
+- `run` loads model weights: start it under the shared machine lock, which it does not take itself (six layers
+  hold 4,338,096,902 values, 17.4 GB in FP32). It refuses an existing output folder. Right before loading it checks
+  the snapshot with `verify_inputs` of the reference step (the size and SHA-256 of every file to load, and exactly
+  the pinned files). Both implementations round every checkpoint tensor to FP16 and compute in FP32 on the CPU,
+  with the BF16 rounding of √hidden as the embedding multiplier.
   - `original` (reference environment) is the Transformers `Gemma4ForCausalLM` with eager attention, built for the
     first N layers of `config.json`. It loads exactly those layers, the embedding and the final norm under
     `model.language_model.` and stops when a key is missing or left over. Its multiplier buffer is set to the BF16
@@ -242,7 +242,8 @@ environments:
   -p 'export_*.py' -v
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
   -p 'test_gemma4_31b_layers.py' -v
-.local/conversion/gemma4_31b/.venv/bin/python -m unittest discover -s Tools/Conversion/tests -p 'test_gemma4_31b_*.py' -v
+.local/conversion/gemma4_31b/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
+  -p 'test_gemma4_31b_*.py' -v
 ~~~
 
 They build a synthetic Gemma 4 text model (five sliding-window layers and one full-attention layer, twice; window
@@ -251,10 +252,12 @@ implementation of the converter environment (Transformers 5.12.1, eager, FP32, C
 one token at a time, in chunks of 2, 4 and 8, and as a prefill of 20 tokens followed by one token at a time; every
 reading stays below a largest logit difference of 1e-3. The same comparison detects a window one position wider
 or narrower, unmasked later positions in the window or in the full-attention layers, a window slice one position
-shorter and positions shifted by one. They also check the state shapes for 1 to 12 layers, that each state keeps
-one dynamic dimension in the graph of `torch.export` (no Core AI conversion), the unsupported configurations, and
-`run` of both implementations followed by `compare` on a synthetic snapshot. `test_gemma4_31b_layers.py` covers
-the original implementation and `compare` without the converter.
+shorter and the positions of the new tokens shifted by one. They also check the state shapes for 1 to 12 layers,
+that each state keeps one dynamic dimension in the graph of `torch.export` (no Core AI conversion), the unsupported
+configurations, and `run` of both implementations on a synthetic snapshot followed by `compare`, which reports no
+problem and logit differences below 1e-3 (the test does not apply the probability criterion of `long`, which is
+meant for the vocabulary of 262,144 tokens). `test_gemma4_31b_layers.py` covers the original implementation and
+`compare` without the converter.
 
 ## Terms
 
