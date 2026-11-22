@@ -265,7 +265,7 @@ def main():
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
               record["memory"], flush=True)
         return 0
-    if args.output.exists():
+    if args.output.exists() or args.output.is_symlink():
         raise FileExistsError("The comparison must be written to a new file")
     result = compare(args.original, args.model_class)
     write_json(args.output, result)

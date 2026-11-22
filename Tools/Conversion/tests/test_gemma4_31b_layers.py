@@ -257,6 +257,23 @@ class CompareTests(unittest.TestCase):
             with self.subTest(layers=value), self.assertRaisesRegex(ValueError, "must end with a full-attention layer"):
                 layers.check_layers(full_first, value)
 
+    def test_an_output_that_is_a_dangling_symbolic_link_is_refused_and_the_link_is_kept(self):
+        missing = self.folder / "missing"
+        result = {"passed": True, "problems": [], "inputs": {}}
+        for command in ("run", "compare"):
+            output = self.folder / f"{command}-output"
+            output.symlink_to(missing)
+            arguments = ["layers", "compare", "--original", "a", "--model-class", "b", "--output", str(output)]
+            with self.subTest(command=command):
+                with self.assertRaises(FileExistsError):
+                    if command == "run":
+                        layers.run("original", self.contract, self.folder / "snapshot", 6, output)
+                    else:
+                        with mock.patch("sys.argv", arguments), \
+                                mock.patch.object(layers, "compare", return_value=result):
+                            layers.main()
+                self.assertEqual(os.readlink(output), str(missing))
+
     def test_runs_that_read_the_same_file_never_pass_and_copies_are_not_stopped_by_that_check(self):
         for label, link in {"symbolic-link": os.symlink, "hard-link": os.link}.items():
             with self.subTest(link=label):
