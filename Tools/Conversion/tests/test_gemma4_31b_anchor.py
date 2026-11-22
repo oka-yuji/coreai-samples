@@ -695,7 +695,7 @@ class SummaryTests(unittest.TestCase):
         paths = []
         for index, data in enumerate(comparisons):
             path = report.parent / f"comparison{index}.json"
-            path.write_text(json.dumps(data))
+            path.write_text(data if isinstance(data, str) else json.dumps(data))
             paths.append(path)
         argv = ["summary", "--report", str(report), *(item for path in paths for item in ("--comparison", str(path)))]
         output, errors = io.StringIO(), io.StringIO()
@@ -785,6 +785,24 @@ class SummaryTests(unittest.TestCase):
             report = write_summary_run(folder)
             comparison = comparison_record(self.hashes(report, "anchor", "reference"))
             self.assertEqual(self.summarize(report, [comparison, comparison]), (1, ""))
+
+    def test_two_comparisons_of_the_same_pair_of_records_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            report = write_summary_run(folder)
+            first, second = self.hashes(report, "anchor", "reference"), self.hashes(report, "anchor", "half")
+            reformatted = json.dumps(comparison_record(first), indent=4, sort_keys=True)
+            variants = {"the same comparison written again": ([comparison_record(first), reformatted], 1),
+                        "the baseline and the candidate swapped": ([comparison_record(first), comparison_record(first[::-1])], 1),
+                        "two different pairs": ([comparison_record(first), comparison_record(second)], 0)}
+            for label, (comparisons, expected_code) in variants.items():
+                with self.subTest(label=label):
+                    code, output = self.summarize(report, comparisons)
+                    self.assertEqual(code, expected_code)
+                    if expected_code == 0:
+                        self.assertEqual([(item["baseline"], item["candidate"]) for item in json.loads(output)["comparisons"]],
+                                         [("anchor", "reference"), ("anchor", "half")])
+                    else:
+                        self.assertEqual((output, self.errors), ("", "Cannot summarize local records (PipelineError).\n"))
 
     def test_values_that_the_step_or_the_group_requires_are_not_dropped(self):
         for name, change in (("anchor", lambda record: record.pop("ranges")), ("anchor_w16", lambda record: record.update(cast=None))):

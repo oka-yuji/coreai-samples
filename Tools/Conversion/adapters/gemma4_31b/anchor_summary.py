@@ -205,6 +205,10 @@ def project(report, loaded, comparisons):
     if len(names) != len(loaded):
         raise PipelineError("Two stages hold the same record")
     reference = loaded["reference"]
+    projected = [comparison(data, names) for data in comparisons]
+    pairs = [frozenset((item["baseline"], item["candidate"])) for item in projected]
+    if len(set(pairs)) != len(pairs):
+        raise PipelineError("Two comparisons compare the same pair of records")
     return {"schema": SUMMARY_SCHEMA,
             "scope": "FP32 anchor and FP16 numerics of the diagnostic fixtures; not a quality evaluation.",
             "pipeline": pipeline.project(report), "run_id": word(report["run_id"]),
@@ -212,7 +216,7 @@ def project(report, loaded, comparisons):
                           "record_sha256": matched(reference["sha256"], HEX[64])},
             "layers": layers_record(loaded["layers"]),
             "records": [logits_record(loaded[name], name) for name in STAGES if name != "layers"],
-            "comparisons": [comparison(data, names) for data in comparisons]}
+            "comparisons": projected}
 
 
 def main():
@@ -221,11 +225,9 @@ def main():
     parser.add_argument("--comparison", type=Path, action="append", required=True)
     args = parser.parse_args()
     try:
-        comparisons = [read(path) for path in args.comparison]
-        if len({digest for _, digest, _ in comparisons}) != len(comparisons):
-            raise PipelineError("A comparison is given twice")
+        comparisons = [read(path)[0] for path in args.comparison]
         report = read(args.report)[0]
-        result = project(report, records(report), [data for data, _, _ in comparisons])
+        result = project(report, records(report), comparisons)
         print(json.dumps(result, indent=2, allow_nan=False))
         return 0
     except (OSError, ValueError, TypeError, KeyError) as error:

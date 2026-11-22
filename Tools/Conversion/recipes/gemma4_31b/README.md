@@ -231,8 +231,8 @@ and SHA-256 of that file (read once for this check and for the values) in its ou
 the checks of the comparison and matches the definition of its step in `recipe.json` (for `anchor` the `--weights`
 and `--embed-scale` of its command); the `layers` record has the contract model and the fixture case IDs in order;
 every record of the six steps names, as `source`, exactly the SHA-256 of the report's `reference.json`; no two steps
-hold the same record, no comparison is given twice and every comparison lists the SHA-256 of two records of that
-report. It also stops when the report, a manifest, a record or a comparison does not have the shape of the entries
+hold the same record, no two comparisons compare the same pair of records (in either order) and every comparison
+lists the SHA-256 of two records of that report. It also stops when the report, a manifest, a record or a comparison does not have the shape of the entries
 that it reads:
 
 ~~~sh
