@@ -254,10 +254,9 @@ def counts(uint8=0, float16=0):
 
 
 class QuantizedAssetTests(unittest.TestCase):
-    def test_the_measured_layout_of_the_first_six_layers_passes_in_both_function_layouts(self):
-        for functions in (("main",), BOTH):
-            with self.subTest(functions=functions):
-                self.assertEqual(quantized_problems(functions=functions), [])
+    def test_the_measured_layout_of_the_first_six_layers_passes_with_main_and_prefill_only(self):
+        self.assertEqual(quantized_problems(), [])
+        self.assertTrue(quantized_problems(functions=("main",)))
         self.assertEqual(export.name_of(6, BOTH, "8bit"), "gemma4_31b_l6_8bit_main_prefill")
         self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896, "8bit")["compression"], "8bit")
 
@@ -497,7 +496,9 @@ class StartTests(unittest.TestCase):
         del without[without.index("--precision"):without.index("--precision") + 2]
         cases = {"no precision": without, "another precision": arguments(self.folder, self.folder / "4bit", precision="4bit"),
                  "8bit without the config": arguments(self.folder, self.folder / "8bit", precision="8bit"),
-                 "fp16 with the config": arguments(self.folder, self.folder / "fp16", compression=config)}
+                 "fp16 with the config": arguments(self.folder, self.folder / "fp16", compression=config),
+                 "8bit with main only": arguments(self.folder, self.folder / "main", functions="main", precision="8bit",
+                                                  compression=config)}
         for label, argv in cases.items():
             with self.subTest(case=label), mock.patch("sys.stderr"), self.assertRaises(SystemExit) as raised:
                 self.main(argv)

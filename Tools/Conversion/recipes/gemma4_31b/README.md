@@ -447,7 +447,8 @@ fixes these checks. The published record is
 
 ## 8-bit export of the first layers
 
-`recipe-8bit.json` is `recipe-fp16.json` with `--precision 8bit` and `--compression compression-8bit.yaml`. Before
+`recipe-8bit.json` is `recipe-fp16.json` with `--precision 8bit` and `--compression compression-8bit.yaml`, and its
+`functions` can be `main,prefill` only: the export refuses `main` alone with `--precision 8bit`. Before
 `export_macos_model`, the `export` step quantizes the weights of the `torch.nn.Linear` layers of the model class with
 the converter's `quantize_for_export` and the config of `compression-8bit.yaml`: uint8, asymmetric, blocks of 32 along
 the input axis, float16 minimums, eager execution, no activation or KV cache quantization. The embedding, the shared

@@ -533,6 +533,8 @@ class CompareTests(unittest.TestCase):
                      self.reference / "record.json", lambda record: record["quantized"]["file"].update(sha256="0" * 64))),
                  "a reference of another tensor count": (True, lambda: edit(
                      self.reference / "record.json", lambda record: record["quantized"].update(tensors=3))),
+                 "an 8-bit export with main only": (True, lambda: edit(
+                     self.export / "export.json", lambda record: record.update(functions=["main"]))),
                  "quantized tensors changed after the export": (True, lambda: tensors.write_bytes(b"quantized tensorz")),
                  "no quantized tensors": (True, tensors.unlink),
                  "quantized tensors behind a link": (True, link)}

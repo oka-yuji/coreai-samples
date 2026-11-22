@@ -185,6 +185,8 @@ def load_export(folder, contract, contract_path):
         problems.append("main.hash of the bundle differs from the export record")
     if record.get("functions") not in [list(functions) for functions in FUNCTIONS.values()]:
         problems.append("the export recorded other functions than main or main and prefill")
+    if record.get("precision") == "8bit" and record.get("functions") != list(FUNCTIONS["main,prefill"]):
+        problems.append("an 8-bit export recorded other functions than main and prefill")
     tensors = folder / QUANTIZED
     if record.get("precision") == "8bit" and (tensors.is_symlink() or not tensors.is_file()
                                               or file_hash(tensors) != (record.get("quantized") or {}).get("file")):

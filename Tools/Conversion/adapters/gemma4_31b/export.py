@@ -121,6 +121,8 @@ def float16_problems(record):
 
 def quantization_problems(record, kinds, functions):
     problems, quantized = [], record["quantized"]
+    if tuple(functions) != FUNCTIONS["main,prefill"]:
+        problems.append(f"an 8-bit asset has the functions main and prefill, not {list(functions)}")
     if record["compression_config"] != QUANTIZATION:
         problems.append(f"the export was given {shown(record['compression_config'])}, not the fixed 8-bit config")
     names, expected = sorted(entry["name"] for entry in quantized["layers"]), sorted(quantized_names(kinds))
@@ -405,6 +407,8 @@ def main():
     args = parser.parse_args()
     if (args.precision == "8bit") != (args.compression is not None):
         parser.error("--compression is required with --precision 8bit and refused with --precision fp16")
+    if args.precision == "8bit" and args.functions != "main,prefill":
+        parser.error("--precision 8bit exports the functions main,prefill only")
     if os.path.lexists(args.output):
         raise FileExistsError(f"The export must be written to a new folder: {args.output}")
     contract = load_contract(args.model)

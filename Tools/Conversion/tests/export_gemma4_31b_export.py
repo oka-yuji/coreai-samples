@@ -159,7 +159,7 @@ class QuantizedExportTests(unittest.TestCase):
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder)
             output = folder / "out"
-            with mock.patch("sys.argv", arguments(contract, snapshot, output, "main", "8bit")):
+            with mock.patch("sys.argv", arguments(contract, snapshot, output, "main,prefill", "8bit")):
                 self.assertEqual(export.main(), 1)
             record = read_json(output / "export.json")
             self.assertFalse(record["passed"])
@@ -205,8 +205,8 @@ class QuantizedExportTests(unittest.TestCase):
                                  (output / layers.QUANTIZED).is_file()))
                     raise error
 
-                with self.subTest(case=label), mock.patch("sys.argv", arguments(contract, snapshot, output, "main",
-                                                                                  "8bit")), \
+                with self.subTest(case=label), mock.patch("sys.argv", arguments(contract, snapshot, output,
+                                                                                  "main,prefill", "8bit")), \
                         mock.patch("coreai_models.export.macos.export_macos_model", exported), \
                         mock.patch.object(export, "supervise", side_effect=lambda folder, schema, work, conclude: work()), \
                         self.assertRaises(type(error)):
