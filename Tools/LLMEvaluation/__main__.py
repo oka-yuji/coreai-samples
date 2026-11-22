@@ -66,8 +66,23 @@ def score(arguments):
             print(f"FAIL: {problem}")
         return 1
     tokenizer, pinned = scoring.pinned(arguments.tokenizer, bundle["contract"])
-    print(json.dumps(scoring.score_runs(bundle, arguments.items, arguments.run, arguments.output, tokenizer, pinned),
-                     indent=2, sort_keys=True))
+    print(json.dumps(scoring.score_runs(bundle, arguments.items, arguments.run, arguments.output, tokenizer, pinned,
+                                        arguments.commit), indent=2, sort_keys=True))
+    return 0
+
+
+def compare(arguments):
+    from Tools.LLMEvaluation import comparison
+
+    bundle = items.load()
+    found = checks.problems(bundle)
+    if found:
+        for problem in found:
+            print(f"FAIL: {problem}")
+        return 1
+    print(json.dumps(comparison.compare_runs(bundle, arguments.items, arguments.baseline, arguments.candidate,
+                                             arguments.scores, arguments.output, arguments.layer1,
+                                             arguments.substitute_reason), indent=2))
     return 0
 
 
@@ -88,8 +103,15 @@ def main():
     scored.add_argument("--run", type=Path, nargs="+", required=True)
     scored.add_argument("--tokenizer", type=Path, required=True)
     scored.add_argument("--output", type=Path, required=True)
+    scored.add_argument("--commit")
+    compared = commands.add_parser("compare")
+    for name in ("--baseline", "--candidate", "--scores", "--items", "--output"):
+        compared.add_argument(name, type=Path, required=True)
+    compared.add_argument("--layer1", type=Path)
+    compared.add_argument("--substitute-reason")
     arguments = parser.parse_args()
-    return {"validate": validate, "select": select, "build": build, "score": score}[arguments.command](arguments)
+    return {"validate": validate, "select": select, "build": build, "score": score,
+            "compare": compare}[arguments.command](arguments)
 
 
 if __name__ == "__main__":

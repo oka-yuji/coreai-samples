@@ -99,11 +99,11 @@ swift build -c release
 | Option | Meaning |
 |---|---|
 | `--tokens` | A JSON array of token IDs, such as `[151644, 872, 198]`. An empty array is rejected. Every ID must be below `language.vocab_size`, and the sequence can have at most `language.max_context_length` tokens. |
-| `--start` | The first position whose logits are written, from 0 to the last position. The tokens before it are read in calls of at most the engine's prefill chunk size, recorded as `prefix_chunk`; the last or only call can be shorter. Their rows are not written to the file. With a `prefill` function, these calls make no logits array. Without one, they go through `main`, which needs a logits array of up to prefix chunk × vocab × 2 bytes (2 GiB for 4,096 × 262,144) whatever `--chunk` is. |
+| `--start` | The first position whose logits are written, from 0 to the last position. The tokens before it are read in the calls that the engine's `callLengths(from:count:)` returns: each at most the engine's prefill chunk size, recorded as `prefix_chunk`, and shorter where the [call shape rule](#call-shapes) requires; the last or only call can also be shorter. Their rows are not written to the file. With a `prefill` function, these calls go through it and make no logits array, unless the call shape rule splits the prefix differently from the prefill chunks. Without a `prefill` function, and for such a split prefix, they go through `main`, and their logits are discarded. Each of those `main` calls needs a logits array of its length × vocab × 2 bytes whatever `--chunk` is: up to the prefix chunk without a `prefill` function (2 GiB for 4,096 × 262,144), and 96 × 262,144 × 2 bytes = 48 MiB for the longest call of a split prefix on the Gemma 4 31B asset. |
 | `--chunk` | A positive number of tokens per `main` call from `--start`. Each call is exactly one `main` call, and the last one can be shorter. |
 | `--output` | The output file. It must not exist yet; the command does not overwrite a file. |
 
-The row of position p is the next-token distribution after reading tokens 0 through p, the logits that `main` returned for position p. The file is little-endian float16 without a header, shaped `[positions, vocab]` with positions = token count − start. Each row is written as soon as its `main` call returns. Memory holds the rows of one `main` call, chunk length × vocab × 2 bytes: with a 262,144-token vocabulary, a chunk of 256 takes 128 MiB, and 16,384 positions in one chunk take 8 GiB. Without a `prefill` function, the reads before `--start` also hold up to prefix chunk × vocab × 2 bytes, which a smaller `--chunk` does not reduce. The file takes positions × vocab × 2 bytes. When the command fails, it removes the file it created; treat a file as complete only when its record line was printed. NumPy reads it with `np.fromfile(path, dtype="<f2").reshape(shape)`.
+The row of position p is the next-token distribution after reading tokens 0 through p, the logits that `main` returned for position p. The file is little-endian float16 without a header, shaped `[positions, vocab]` with positions = token count − start. Each row is written as soon as its `main` call returns. Memory holds the rows of one `main` call, chunk length × vocab × 2 bytes: with a 262,144-token vocabulary, a chunk of 256 takes 128 MiB, and 16,384 positions in one chunk take 8 GiB. When the reads before `--start` go through `main`, without a `prefill` function or for a prefix that the call shape rule splits (`--start` 97 to 112 on the Gemma 4 31B asset), they also hold one call's length × vocab × 2 bytes, which a smaller `--chunk` does not reduce: up to the prefix chunk without a `prefill` function, and 96 × 262,144 × 2 bytes = 48 MiB for a split prefix. The file takes positions × vocab × 2 bytes. When the command fails, it removes the file it created; treat a file as complete only when its record line was printed. If the process stops before the command finishes, the partly written file stays; remove it before running again with the same `--output`. NumPy reads it with `np.fromfile(path, dtype="<f2").reshape(shape)`.
 
 The command prints one JSON line with `record` set to `logits`:
 
@@ -112,20 +112,97 @@ The command prints one JSON line with `record` set to `logits`:
 | `token_count`, `tokens_sha256` | The number of tokens and the SHA-256 of the decimal IDs joined by commas |
 | `start`, `chunk` | The options |
 | `shape`, `dtype`, `byte_order` | `[positions, vocab]`, `float16` and `little` |
-| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`, or `main` without a `prefill` function; absent when `start` is 0), the upper bound of tokens in one of those calls, the engine's prefill chunk size (the last or only call can be shorter), and the number of calls |
+| `prefix_function`, `prefix_chunk`, `prefix_calls` | The function that read the tokens before `start` (`prefill`; `main` without a `prefill` function or when the call shape rule splits the prefix differently from the prefill chunks; absent when `start` is 0), the upper bound of tokens in one of those calls, the engine's prefill chunk size (the last or only call, and a call shortened by the call shape rule, can be shorter), and the number of calls actually made |
 | `main_calls` | The number of `main` calls from `start` |
 | `main_hash` | The asset's `main.hash` in hex, the SHA-256 of `main.mlirb`; absent when the file is missing |
 | `requested_compute`, `expect_frequent_reshapes`, `cached`, `cache_query_error`, `specialize_s` | The own engine's specialization request and cache state, as in the `own-load` record |
 | `non_finite_count` | NaN and infinite values in the written rows. The command still succeeds, so check this count. |
 | `load_s`, `prefix_s`, `scoring_s` | Seconds to load the engine, to read the tokens before `start`, and to read and write the positions from `start` |
 
-The command uses the Verification SPI of `Engine`. `readInOneCall(_:usePrefillFunction:)` reads a chunk in exactly one call of `main`, or of `prefill` when it is requested and the bundle has one. `logits(row:)` returns one row of the last `main` call; the last row equals `logits()`. A row can be read only until the next read, `restore`, `reset` or `unload`. After a `prefill`-only read or one of these operations, and for a row outside the last call, it throws `LogitRowError`. It also throws when the vocab axis of the logits array is not contiguous (a stride other than 1 or an interleaved layout), rather than reading other values. `prefillChunkSize` is part of the same SPI. These reads leave `prefillTokens`, `prefillSeconds`, `decodeTokens` and `decodeSeconds` of `Engine.Stats` unchanged.
+The command uses the Verification SPI of `Engine`. `readInOneCall(_:usePrefillFunction:)` reads a chunk in exactly one call of `main`, or of `prefill` when it is requested and the bundle has one. `logits(row:)` returns one row of the last `main` call; the last row equals `logits()`. A row can be read only until the next read, `restore`, `reset` or `unload`. After a `prefill`-only read or one of these operations, and for a row outside the last call, it throws `LogitRowError`. It also throws when the vocab axis of the logits array is not contiguous (a stride other than 1 or an interleaved layout), rather than reading other values. `prefillChunkSize` and `callLengths(from:count:)`, the lengths of the calls that reading `count` tokens from position `from` takes, are part of the same SPI. These reads leave `prefillTokens`, `prefillSeconds`, `decodeTokens` and `decodeSeconds` of `Engine.Stats` unchanged.
 
 The model-free checks are `swift test --package-path CoreAISamplesKit --filter LogitRowLayoutTests` and `swift test --package-path Tools/Verify -c release --filter PositionLogitsTests`. With a bundle, the model checks compare the last row with `logits()`, single-token chunks with `step`, and chunks of 2, 4 and 8 with single-token chunks. The first two must match bit for bit. Longer chunks change the order of the computation, so they must have no non-finite values and may differ in the top token only where the eight-tick near-tie rule allows; the test prints the largest absolute difference for each chunk length.
 
 ```bash
 COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.positionLogits
 ```
+
+## Call shapes
+
+Core AI returns wrong logits for one call shape of the Gemma 4 31B conversion: a call of 8 or more tokens after which the total number of positions is 97 to 112. In #665 this moved the logits of the first six layers in FP16 by up to 6.19 from the FP32 reference, without non-finite values. `Engine` avoids the shape for assets whose `metadata.json` has `source.hf_model_id` `google/gemma-4-31B-it`, and only for them; other assets keep their call lengths. Both prefill paths, the `prefill` function and `main`, take the longest call within the prefill chunk size that does not end there. On an asset without a `prefill` function, and for the prefix of `coreai-verify logits`, 100 tokens from position 0 are read in calls of 96 + 4 and 112 tokens in 96 + 7 + 7 + 2. With a `prefill` function, the `prefill` function reads all but the last token (96 + 3 for 100 tokens, 96 + 7 + 7 + 1 for 112 tokens) and `main` reads the last token. The rule is a table in `Engine` keyed by the source model ID, not a field of the bundle. `readInOneCall(_:usePrefillFunction:)` still reads the chunk it is given in one call, so it can reproduce the error. `coreai-verify logits` reads the tokens before `--start` with `callLengths(from:count:)` and keeps the `--chunk` length from `--start`.
+
+On a Gemma 4 31B asset with a `prefill` function, a multi-token `main` call made with `readInOneCall` right after two or more `prefill`-function calls can abort the process with an MPSGraph assertion (`Failed to resolve dynamic dimensions for memref.alloc`). In direct checks of the engine, `prefill` 96 + 4 followed by `main` 4, 96 + 7 followed by 7 and 50 + 3 followed by 3 aborted; `prefill` 100 followed by `main` 4, 96 + 4 followed by 8, 96 + 5 followed by 4 and 96 + 7 + 7 + 2 followed by 2 did not, and neither did the same lengths on the asset without a `prefill` function. The full condition is not known. `prefill` itself ends with a 1-token `main` call and has not aborted for any input length from 1 to 300 in the model check below. When the rule splits the prefix of `coreai-verify logits` differently from the prefill chunks (on this asset, `--start` 97 to 112), the command reads the whole prefix with `main` and discards those logits; otherwise it reads the prefix as before, with the `prefill` function when the asset has one. On the six-layer FP16 asset with a `prefill` function and 128 tokens, every `--start` from 96 to 113 with `--chunk` 1, 2, 4, 7 and 8 completed (90 runs, no non-finite values). The written logits differed from those of `--start 0 --chunk 1` by at most 0.754 in every run whose `--chunk` calls avoid the call shape. With `--chunk 8` and `--start` 96 to 104, a written call of 8 tokens ends at 97 to 112, because `--chunk` is read as given; those calls differed by 1.34 to 15.85, and the other rows of those runs by at most 0.512.
+
+The model-free check is `swift test --package-path CoreAISamplesKit --filter CallShapeTests`. The model check takes Gemma 4 31B bundle folders separated by `:` in `COREAI_GEMMA4_SHAPE_BUNDLES` and a new JSON file in `COREAI_GEMMA4_SHAPE_REPORT`; it refuses an existing file and a bundle with another source model ID. Take the heavy-job lock first. `check.sh` clears `COREAI_*` variables, so run it directly:
+
+```bash
+COREAI_GEMMA4_SHAPE_BUNDLES=/path/to/bundle-a:/path/to/bundle-b COREAI_GEMMA4_SHAPE_REPORT=/new/report.json swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.gemma4CallShapes
+```
+
+For each bundle, the test encodes a fixed English text with the bundle's tokenizer and keeps `<bos>` and the next 299 tokens. The `prefill` reads and the one-call reads use separate engines, each with its own reference read one token at a time. On the two-function asset, an engine that has run the `prefill` function with 1 and then 2 tokens from position 0 aborts the process in MPSGraph (`Failed to resolve dynamic dimensions for memref.alloc`) when `main` then reads 3 tokens from position 0 (and likewise 4 tokens after 2 and 3); a new engine does not. For every length from 1 to 300, the test resets the engine and compares the last position's logits after `prefill`, or after one `main` call (`readInOneCall`), with that engine's reference, by the largest absolute difference. The prefill read must stay below 2.0 at every length and make the planned calls. The one-call read must reach 2.0 at some length from 97 to 112 and stay below 2.0 at every other length. No logit may be non-finite. The value 2.0 lies between the differences that #665 measured for the normal shapes (0.17 to 0.84) and for the failing shapes (3.06 to 6.19). The report has, for each bundle, `main_hash`, the rule, the tokens, the times, whether the two references are equal, and for each length the calls of the prefill read, both differences and the non-finite counts.
+
+## Evaluation output records
+
+`coreai-verify evaluate` generates from the input token sequences of a quality evaluation with the own engine, and writes the output records and the run record of a quality contract, such as §5.1 of the [Gemma 4 31B quality contract](specs/gemma4-31b-quality-contract.md). It loads the model, so take the heavy-job lock described in `AGENTS.md` first.
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify evaluate --model <bundle> --inputs inputs.jsonl --contract ../LLMEvaluation/contract.json \
+  --set primary --role fp16 --commit <commit> --output <run-folder>
+```
+
+| Option | Meaning |
+|---|---|
+| `--model` | The bundle folder. Its asset must have `main.hash`, which names the asset in the run record. |
+| `--inputs` | The input records, described below. |
+| `--contract` | The contract's `contract.json`. Its `version` and SHA-256 go into the run record, its `generation.eos_token_id` are the stop tokens, and `--role` must be one of the keys of its `roles`. |
+| `--set`, `--role` | The set name, such as `primary`, and the role, such as `fp16`, written to the run record. |
+| `--commit` | The repository commit written to the run record. The command does not run git. |
+| `--output` | A new run folder inside an existing folder, or the folder of the same run to resume. An existing folder without `run.json` starts a new run only when it is empty, or holds nothing but an empty `outputs.jsonl` and possibly a `progress.json` of no lines, as a start that stopped before writing `run.json` leaves it; any other folder without `run.json` is rejected. |
+| `--max-minutes` | Optional. Once this many minutes have passed since the command started, the run ends normally after the item in progress is written, so at least one item runs when items remain. |
+| `--limit` | Optional. Runs only the first N input records, for a check. |
+
+`inputs.jsonl` holds one input record per line, a JSON object with `id` (a string), `input_ids` (an array of token IDs), `input_sha256` (the SHA-256 of the IDs written in decimal and joined by commas, as UTF-8; the `tokens_sha256` of `logits`) and `max_new_tokens` (the most tokens the item may generate, counting a stop token). Other fields are ignored. Before it loads the model, the command checks every record and stops without writing anything when an id appears twice, `input_ids` is empty or holds an ID outside `language.vocab_size`, `max_new_tokens` is not positive, or `input_sha256` differs from the IDs.
+
+For each item the engine is reset, the input is read with `prefill` (through the `prefill` function when the bundle has one), and each step reads the logits of the last position, float16 over the whole vocabulary. A step with non-finite logits ends the item. Otherwise the step appends to `top2` the two tokens with the largest logits, a tie going to the lower ID, with their probabilities from the temperature-1 softmax over the whole vocabulary in double precision, taken after subtracting the largest logit. The ranking uses the logits, so a second token far below the first stays second even when its probability rounds to zero. The first of them is the generated token. A stop token ends the item with `stop` set to `stop_token`. Any other token is appended to `output_ids`; at `max_new_tokens` the item ends with `stop` set to `limit`, and otherwise the token is read with `step`. Neither the stop token nor the last token at the limit is read.
+
+The run folder holds three files:
+
+| File | Contents |
+|---|---|
+| `outputs.jsonl` | One output record per item, one JSON object per line, appended and synced to disk as each item ends |
+| `progress.json` | `lines`, the number of confirmed lines of `outputs.jsonl`, and `sha256`, the SHA-256 of their bytes with their newlines; `next_sha256`, the SHA-256 after the line about to be written, present only while a line is being written; and `run`, the SHA-256 of the run's `id` and the conditions that a resume compares, written as JSON with sorted keys. Before each line is appended and synced, the command replaces it atomically to announce the line, and the next announcement or the end of the run confirms the line. With the lines of `outputs.jsonl` that it covers, it is the record of the finished items. |
+| `run.json` | The run record, written when the run starts and when it ends |
+
+| Output record field | Value |
+|---|---|
+| `id`, `input_sha256` | From the input record |
+| `input_tokens` | The number of input tokens |
+| `output_ids` | The generated IDs before the first stop token |
+| `stop`, `stop_token` | `stop_token` with the stop token's ID in `stop_token`, or `limit` without `stop_token` |
+| `top2` | One `[first id, first probability, second id, second probability]` per generated token, counting a stop token, so an item that ended on `limit` has as many entries as `output_ids` |
+| `error` | Absent when the item ended without an error. Otherwise the reason it ended: non-finite logits, or an error thrown by `prefill` or `step`, such as a context overflow. Such an item keeps the `output_ids` and `top2` generated so far and has `stop` set to `limit`, and the run continues with the next item. |
+| `non_finite` | The number of non-finite logits at the step that ended the item, otherwise 0 |
+
+| Run record field | Value |
+|---|---|
+| `id` | A UUID made when the run first starts, kept by every resume; `progress.json` is bound to it |
+| `contract` | `version` and `sha256` of `contract.json` |
+| `set`, `role` | The options |
+| `asset` | The bundle's `name`, `main_hash`, and `source_model_id` (`source.hf_model_id` in `metadata.json`) when present |
+| `implementation` | `command` (`coreai-verify evaluate`), `commit`, `os_version` and `os_build` |
+| `call_shape` | The engine's `prefill_chunk`, `prefill_function`, `expect_frequent_reshapes`, `requested_compute` and `context_limit`, the effective context limit that `language.max_context_length` in `metadata.json` sets |
+| `inputs` | `sha256` and `count` of the input file |
+| `items` | The number of finished items when `run.json` was written: when a session starts, and when it ends normally, including an end by `--max-minutes` or `--limit`. While a run is in progress and after it stopped abnormally, it can be smaller; the record of the finished items is `progress.json` with the lines of `outputs.jsonl` that it covers. |
+| `started`, `finished` | When the run first started, and when it last ended; `finished` is absent while the run is in progress or after it stopped on an error |
+| `load` | `cached`, `specialize_s` and `load_s` of the engine load in the first session |
+
+When `--output` holds a `run.json`, it must be that of the same run: `contract`, `set`, `role`, `asset.main_hash`, `asset.source_model_id`, `inputs`, `call_shape` and `implementation` must equal this run's, or the command stops before it generates. The engine chooses how it reads the input by `asset.source_model_id`, so it is compared as well, including when it is absent. A `run.json` without `id`, written by an earlier version of this command, cannot be resumed. `progress.json` must exist, and its `run` must equal the digest of the `id` and the conditions in `run.json`. `items` in `run.json` must be from 0 to the number of input records, and `lines` in `progress.json` from 0 to the number of complete lines of `outputs.jsonl`. Bytes after the last newline of `outputs.jsonl`, a line cut by an interrupted write, are left aside. The complete lines are the finished items when there are at least `items` of them and either `lines` of them with the SHA-256 `sha256`, or one more with `next_sha256`, the announced line that was written before the run stopped; the cut bytes are then removed, and their item runs again. Otherwise the command stops before it generates and removes nothing. A complete line is never removed. The finished items do not run again, including items that ended with an error, and an id among them that is not in the input records or appears twice stops the command. These checks detect a cut last line; `outputs.jsonl` and `progress.json` that disagree, when only one of them is older, newer or changed; files of a run with other conditions; files of another run, even with the same conditions; and fewer complete lines than `items` in `run.json`. They do not detect two things: `outputs.jsonl` and `progress.json` rolled back together to an earlier point of the same session, which cannot be told from an interruption at that point, so the run continues from there; and `outputs.jsonl` and `progress.json` rewritten on purpose to match each other, which pass even when `run.json` is left unchanged, because a resume does not check the meaning of the lines again (the tests of the generation cover it). A resumed run keeps `started` and `load`, and updates `items` and `finished`.
+
+Standard output gets one JSON line per item, with `record` set to `evaluate`, `id`, `input_tokens`, `output_tokens`, `stop` (`stop_token`, `limit`, or `error` when the item has an error) and `seconds`. It prints no text. Cancellation and failures to read the input records, the contract, the bundle or the run folder stop the command instead of becoming an item error.
+
+The model-free checks are `swift test --package-path Tools/Verify -c release --filter "EvaluationRecordTests|EvaluationRunTests"`.
 
 ## Measurement fields and boundaries
 

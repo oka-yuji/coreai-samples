@@ -3,17 +3,20 @@
 This recipe pins [google/gemma-4-31B-it](https://huggingface.co/google/gemma-4-31B-it) at revision
 `842da3794eaa0b77d5f08bae87a17459d91ff475` and records the outputs of the original Transformers
 implementation with the distributed BF16 weights, BF16 compute and MPS for twelve self-written diagnostic
-inputs. Later steps (an FP32 reference, the Core AI comparison and quality checks) read these outputs. It
-does not convert the model, and the diagnostic inputs are not a quality evaluation set.
+inputs. The [FP32 anchor and FP16 diagnostics](#fp32-anchor-and-fp16-diagnostics) of this recipe and later work (the
+Core AI comparison and quality checks) read these outputs. It does not convert the model, and the diagnostic inputs
+are not a quality evaluation set. It also defines the converter environment and a model class for a macOS export
+with dynamic shapes, with a tool that compares the first layers of that class with the original implementation in
+FP32 ([Converter environment and model class](#converter-environment-and-model-class)). Nothing is exported to Core
+AI yet.
 
 - `model.json`: the contract. It pins the size and SHA-256 of all twelve files of the revision, the main
   text configuration values (60 layers as five sliding-window layers followed by one full-attention layer,
   hidden size 5376, MLP width 21504, vocabulary 262144, window 1024, 16 and 4 key/value heads, head
   dimensions 256 and 512, shared keys and values in the full-attention layers, final logit soft cap 30,
   tied embeddings, BOS 2 and stop tokens 1, 106 and 50), the distributed tokenizer files, the reference
-  precision and the upstream converter revision `c8e00c01800ba6ad324707007f7af358efc980a4` (recorded only;
-  no converter checkout or environment is created). A snapshot that differs fails; the contract is not
-  adjusted to the files.
+  precision and the upstream converter revision `c8e00c01800ba6ad324707007f7af358efc980a4` of the converter
+  environment. A snapshot that differs fails; the contract is not adjusted to the files.
 - `fixtures.json`: the twelve diagnostic cases (Japanese and English conversations, code, JSON extraction,
   a long Japanese input built from numbered paragraphs, a one-word turn and a raw continuation). All text
   is self-written.
@@ -40,9 +43,10 @@ python3 -m Tools.Conversion.local run --recipe gemma4_31b --refresh
 ~~~
 
 Setup checks the integrity record against the contract, then under the shared machine lock creates
-`.local/conversion/gemma4_31b/.venv` from this folder's lock, `.local/conversion/gemma4_31b/setup.json` and
-`.local/conversion/gemma4_31b.paths.json`. `--snapshot` selects another folder. The run uses
-`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and a Hugging Face home under `.local/conversion/gemma4_31b/hf-cache`.
+`.local/conversion/gemma4_31b/.venv` from this folder's lock, the converter environment (below),
+`.local/conversion/gemma4_31b/setup.json` and `.local/conversion/gemma4_31b.paths.json`. `--snapshot` selects
+another folder. The run uses `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and a Hugging Face home under
+`.local/conversion/gemma4_31b/hf-cache`.
 
 ## Steps
 
@@ -103,13 +107,15 @@ error (a separate timer takes over the kill). A stop at any point from the start
 `reference.json`, including one while the monitor starts or after the model work, ends with `failure.json`. A run
 that finishes after a stop, with an unreadable sample or a monitor error is not `passed`, and neither is a run
 without its peak resident memory, kernel lifetime footprint peak, MPS allocation or swap increase. These are
-recorded after loading, after every case and at the end. The stage needs 20 GiB of free disk; the saved logits of
-the twelve cases take about 3.4 GB per run.
+recorded after loading, after every case and at the end. The stage needs 20 GiB of free disk; its saved logits of
+the twelve cases take about 3.4 GB. Six diagnostic steps follow `reference`
+([FP32 anchor and FP16 diagnostics](#fp32-anchor-and-fp16-diagnostics)).
 
 ## Second run and shared numbers
 
-`--refresh` runs both steps again in new processes. Compare the two reference artifacts (the `artifacts`
-folders that the two reports list for `reference`) with the reference environment:
+`--refresh` runs every step of the recipe again in new processes: `prepare`, `reference` and the six diagnostic
+steps described below. Compare the two reference artifacts (the `artifacts` folders that the two reports list for
+`reference`) with the reference environment:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.compare \
@@ -217,6 +223,156 @@ session, which cannot be told from an interruption at that point, nor deliberate
 
 The published record of the primary-set run is
 [docs/validation/gemma4-31b/baseline-20261122.md](../../../../docs/validation/gemma4-31b/baseline-20261122.md).
+
+## FP32 anchor and FP16 diagnostics
+
+Six more heavy steps (#662) read the `reference` artifacts and run under the same shared lock, one process each. Each
+step reads `reference.json` and the token files of the `reference` step once, requires a `reference` record with
+`passed` true, each token file to have the size and SHA-256 that the record lists and every token ID to be an integer in the
+vocabulary, and takes the forced sequence of every case from them (the input followed by the greedy output). It then
+hashes the files it loads like `reference` (`verify_inputs`) and stops before loading when any of them differs. The
+monitor, its stop conditions and `failure.json` are those of `reference`; the record is written only after the monitor
+has ended without a stop. Each step also needs 20 GiB of free disk when it starts. `anchor`, `anchor_w16`,
+`anchor_scale_fp32`, `anchor_scale_fp16` and `half` each save another 3.4 GB of logits, so a run of the recipe keeps
+about 20.4 GB of logits with those of `reference`.
+
+- `anchor` loads the BF16 weights on MPS and computes the forced sequence in FP32: right before each unit (the embedding,
+  every decoder layer, the final norm and the output head) runs, every floating-point parameter and buffer of that unit
+  is replaced by an FP32 value, and the BF16 value is put back right after it, so the FP32 copy of the whole model is
+  never resident. The values come from a function from the tensor name to its value. With `--weights bfloat16` it is the
+  loaded BF16 tensor in FP32; with `--weights float16` it is the loaded tensor cast to float16 and back to FP32.
+  `--embed-scale` sets the value of the embedding scale (`model.language_model.embed_tokens.embed_scale`) to
+  √5376 rounded to bfloat16 (73.5), float32 (73.32121) or float16 (73.3125); the original implementation multiplies
+  by the scale cast to the weight dtype, so the BF16 reference uses 73.5. The
+  layers, norms, attention, RoPE, the soft cap and the masks are the code of the original implementation. Attention runs
+  through the original `sdpa` function in blocks of 512 query rows, each with every key and value and the matching rows
+  of the causal and sliding-window masks, which the Transformers mask functions build for the whole sequence without
+  the causal shortcut. The saved logits have the layout of `reference` (`cases/<id>.logits.npy`, float32, every
+  position; `cases/<id>.tokens.json` holds the forced tokens). The step records, for the residual stream before and
+  after every layer, the attention output, the input of `down_proj` (gate × up), the input and output of the final norm
+  and the output head before the soft cap, the largest absolute value, the case where it occurred and the number of
+  elements above 65504 and above 32752. With `--weights float16` it also records, for every tensor that the model
+  loaded (a tied tensor once), the elements that the cast changes, those that it turns from nonzero to zero, the
+  elements that are not finite after the cast, those above 65504 in magnitude and the largest absolute error among the
+  finite results. Its `passed` requires clean loading, no NaN or infinite value in any saved row, a clean monitor and
+  recorded resources. The recipe runs it four times: `anchor` (BF16 weights, scale 73.5), `anchor_w16` (float16
+  weights, scale 73.5), `anchor_scale_fp32` and `anchor_scale_fp16` (BF16 weights, the other two scales).
+- `half` loads the BF16 weights on MPS like `reference` and replaces every BF16 parameter and buffer by its float16
+  cast one tensor at a time. The embedding scale therefore keeps the BF16 value 73.5 (exact in float16), the constant of
+  `anchor_w16`, while every other tensor has the dtype and value that `from_pretrained(dtype=torch.float16)` gives (a
+  unit test compares every tensor on a small model; `from_pretrained` itself would compute the scale as 73.3125). It then
+  runs the same one-pass forward as `reference` (`use_cache=False`) in float16. It saves the logits in the same layout and counts the values that are not finite per case. Its `passed`
+  requires clean loading, a clean monitor and recorded resources, not finite logits.
+- `layers` (role `verify`) loads layers 0 to 5 (five sliding-window layers and one full-attention layer) with the
+  embedding, the final norm and the head in BF16 on MPS and requires the loading lists to be empty except the unexpected
+  keys, which must be exactly the keys of layers 6 to 59 in `model.safetensors.index.json`. It computes every forced
+  sequence (including `ja_long`, 2,066 positions) as `anchor` does with BF16 weights, then converts the same model to
+  FP32 with `model.float()` (the embedding scale stays 73.5) and runs the plain forward of `reference`. Its `passed`
+  requires clean loading, finite logits on both paths, a largest absolute logit difference of at most 1e-4 for every
+  sequence, a clean monitor and recorded resources.
+
+Compare the `reference.json` records of two of the steps `reference`, `anchor`, `anchor_w16`, `anchor_scale_fp32`,
+`anchor_scale_fp16` and `half` with the reference environment. The `layers` step writes `layers.json`, which this
+comparison does not read:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.anchor_compare \
+  --baseline <artifacts of the baseline step> --candidate <artifacts of the candidate step> > <comparison.json>
+~~~
+
+The result is written to standard output as JSON and nothing else is written there; the exit code is 0 only when
+the comparison passed, and `problems` lists the findings otherwise. A `reference.json` that is missing or is not JSON
+ends the command with an error and no result. `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_anchor.py`
+fixes the checks on the records and the case files.
+
+For every row, with p and q the softmax (float64) of the baseline and the candidate, it computes the largest |p − q|
+over the vocabulary, KL(p ‖ q), the largest absolute logit difference and whether the two argmax IDs (the smaller ID
+on a tie) agree; a mismatch is a near tie when both sides have the same top-two IDs and the baseline probability of
+the baseline winner exceeds that of the candidate winner by at most 0.01. Per case and per group it reports the
+maximum and the mean of the largest |p − q|, the mean, 99th percentile and maximum of KL, the largest logit
+difference, the top-1 matches, the near-tie mismatches and the other mismatches, over every row and over the scoring
+rows, and it lists every mismatch. The groups are the case kind (`chat` or `raw`) by input-length band (1–512,
+513–2,048, 2,049–4,096, 4,097–16,896 tokens, `other` for any other length; only the bands with cases), and the rows
+992 to 1,056 of every case with more than 1,056 positions (the sliding window of 1,024 drops the BOS from position
+1,024). A group without rows is not reported.
+
+`anchor_summary` prints the public summary (only states, numbers, hashes and fixed words) to standard output:
+
+~~~sh
+python3 -m Tools.Conversion.adapters.gemma4_31b.anchor_summary --report <report.json> \
+  --comparison <comparison.json> [--comparison <comparison.json> ...]
+~~~
+
+It stops and prints no summary when a check on the report, on the records of its steps or on the given comparisons
+fails; `SummaryTests` in the same test file fixes these checks.
+
+## Converter environment and model class
+
+### Converter environment
+
+`local setup --recipe gemma4_31b` also prepares `.local/conversion/upstream-gemma4-31b/coreai-models`: a checkout of
+Apple's public converter at `upstream_revision` of `model.json`, with the frozen lock of that checkout installed in
+its `.venv`. An existing checkout is used only when it is a clean checkout of that revision; otherwise setup stops
+without changing it. This converter environment is separate from the reference environment of the steps above.
+
+### Model class
+
+`adapters/gemma4_31b/model.py` defines `Gemma4ForCausalLM`, a subclass of the converter's `BaseForCausalLM`. It
+imports the converter, so it runs only in the converter environment.
+
+- `main` takes `input_ids` [1, n] and `position_ids` [1, P + n] (the positions of the P cached tokens followed by
+  those of the n new ones) and returns `logits` [1, n, vocabulary]; `prefill` takes the same inputs and returns
+  nothing.
+- The states are `keyCache` and `valueCache` [full-attention layers, 1, 4, ?, 512] and `slidingKeyCache` and
+  `slidingValueCache` [sliding-window layers, 1, 16, ?, 256] (the `forward` arguments `k_cache`, `v_cache`,
+  `sliding_k_cache` and `sliding_v_cache`); the sequence is their only dynamic dimension.
+- Sliding-window layers cut the cached keys and values to the last positions that the window can reach and mask
+  them with the values of `position_ids`. No position or mask comes from an `arange` of a dynamic length, and the
+  composite SDPA's `window_size` is not used.
+- `from_hf_memory_efficient(..., num_layers=N, hf_config_attr="text_config",
+  hf_state_dict_prefix="model.language_model.")` reads the first N layers; their states follow the pattern of five
+  sliding-window layers and one full-attention layer.
+- A configuration that the class does not cover stops with `ValueError` before any weight is read (`text_config` in
+  `model.py`).
+
+### FP32 logits of the first layers
+
+`adapters/gemma4_31b/layers.py` writes the FP32 logits of the first N layers of either implementation for two fixed
+inputs, `short` and `long`, and compares two such runs:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
+  --implementation original --layers 6 --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/original
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers \
+  run --implementation class --layers 6 --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/class
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers compare \
+  --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
+~~~
+
+`run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
+layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and refuses any other before it creates
+the folder or reads a weight. It writes `short.npy`, `long.npy` and, last, `record.json` into a new folder.
+`compare` passes only for a run of the original implementation and a run of the model class on the same inputs
+whose differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for
+`long` a largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position
+with another `argmax`.
+
+### Tests
+
+The tests of the model class are in `Tools/Conversion/tests/export_gemma4_31b_model.py`. The default pattern of
+`unittest discover` (`test*.py`) does not collect them; run them in the converter environment, where
+`test_gemma4_31b_layers.py` also runs, and run every `test_gemma4_31b_*.py` in the reference environment:
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
+  -p 'export_*.py' -v
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
+  -p 'test_gemma4_31b_layers.py' -v
+.local/conversion/gemma4_31b/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
+  -p 'test_gemma4_31b_*.py' -v
+~~~
 
 ## Terms
 

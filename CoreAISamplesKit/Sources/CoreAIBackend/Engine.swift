@@ -59,11 +59,40 @@ public final class Engine {
         return physicalMemory >= 64 << 30 ? 4096 : 2048
     }
 
+    typealias CallShapeRule = (avoidedEnds: ClosedRange<Int>, shortestAffectedLength: Int)
+
+    static let callShapeRules: [String: CallShapeRule] = [
+        "google/gemma-4-31B-it": (avoidedEnds: 97...112, shortestAffectedLength: 8)
+    ]
+
+    static func callShapeRule(modelID: String?, rules: [String: CallShapeRule] = callShapeRules) -> CallShapeRule? {
+        modelID.flatMap { rules[$0] }
+    }
+
+    static func callLength(position: Int, remaining: Int, limit: Int, rule: CallShapeRule?) -> Int {
+        var length = min(limit, remaining)
+        guard let rule else { return length }
+        while length >= rule.shortestAffectedLength, rule.avoidedEnds.contains(position + length) { length -= 1 }
+        return length
+    }
+
+    static func callLengths(from position: Int, count: Int, limit: Int, rule: CallShapeRule?) -> [Int] {
+        var lengths: [Int] = []
+        var end = position
+        while end < position + count {
+            let length = callLength(position: end, remaining: position + count - end, limit: limit, rule: rule)
+            lengths.append(length)
+            end += length
+        }
+        return lengths
+    }
+
     public let vocabSize: Int
     public let contextLimit: Int
     public let hasPrefillFunction: Bool
     public let isHybrid: Bool
     @_spi(Verification) public let prefillChunkSize: Int
+    let callShapeRule: CallShapeRule?
     public let loadStats: LoadStats
     public var stats = Stats()
     public var measuresPreparation = false
@@ -134,6 +163,7 @@ public final class Engine {
         self.prefillChunkSize = Self.prefillChunkSize(
             modelID: bundle.sourceModelID, assetHash: bundle.mainHash, isHybrid: isHybrid,
             physicalMemory: ProcessInfo.processInfo.physicalMemory)
+        self.callShapeRule = Self.callShapeRule(modelID: bundle.sourceModelID)
         self.scratch = [Float](repeating: 0, count: bundle.vocabSize)
         self.loadStats = LoadStats(
             cached: resolved.cached,
@@ -207,16 +237,16 @@ public final class Engine {
         var rest = input[...]
         onProgress(0)
         if let prefillFunction, usePrefillFunction {
-            while rest.count > 1 {
-                let chunk = rest.prefix(min(prefillChunkSize, rest.count - 1))
+            for length in callLengths(from: context.tokens.count, count: rest.count - 1) {
+                let chunk = rest.prefix(length)
                 try await forward(prefillFunction, chunk, logits: false)
                 stats.prefillTokens += chunk.count
                 rest = rest.dropFirst(chunk.count)
                 onProgress(input.count - rest.count)
             }
         }
-        while !rest.isEmpty {
-            let chunk = rest.prefix(prefillChunkSize)
+        for length in callLengths(from: context.tokens.count, count: rest.count) {
+            let chunk = rest.prefix(length)
             try await forward(main, chunk, logits: true)
             stats.prefillTokens += chunk.count
             rest = rest.dropFirst(chunk.count)
@@ -232,6 +262,10 @@ public final class Engine {
         try await forward(main, [token][...], logits: true)
         stats.decodeTokens += 1
         stats.decodeSeconds += (ContinuousClock.now - start) / .seconds(1)
+    }
+
+    @_spi(Verification) public func callLengths(from position: Int, count: Int) -> [Int] {
+        Self.callLengths(from: position, count: count, limit: prefillChunkSize, rule: callShapeRule)
     }
 
     @_spi(Verification) public func readInOneCall(_ chunk: [Int32], usePrefillFunction: Bool = false) async throws {
