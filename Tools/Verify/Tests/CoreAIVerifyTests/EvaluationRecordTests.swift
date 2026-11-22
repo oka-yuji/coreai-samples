@@ -1,61 +1,8 @@
 import ArgumentParser
 import Foundation
-import Synchronization
 import Testing
 
 @testable import coreai_verify
-
-struct ScriptedFailure: Error {}
-
-final class ScriptedLogits: LogitsSource, Sendable {
-    struct Item: Sendable {
-        var rows: [[Float16]]
-        var failsAtPrefill = false
-        var failsAtStep: Int?
-        var cancelsAtPrefill = false
-    }
-
-    private struct State {
-        var items: [Item]
-        var current = Item(rows: [])
-        var position = 0
-        var calls: [String] = []
-    }
-
-    private let state: Mutex<State>
-
-    init(_ items: [Item]) {
-        state = Mutex(State(items: items))
-    }
-
-    var calls: [String] { state.withLock { $0.calls } }
-
-    func reset() {
-        state.withLock { $0.calls.append("reset") }
-    }
-
-    func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws {
-        try state.withLock { state in
-            state.calls.append("prefill \(input.count) \(usePrefillFunction)")
-            state.current = state.items.isEmpty ? Item(rows: [[0, 0, 0, 1]]) : state.items.removeFirst()
-            state.position = 0
-            if state.current.cancelsAtPrefill { throw CancellationError() }
-            if state.current.failsAtPrefill { throw ScriptedFailure() }
-        }
-    }
-
-    func step(_ token: Int32) async throws {
-        try state.withLock { state in
-            state.calls.append("step \(token)")
-            state.position += 1
-            if state.position == state.current.failsAtStep { throw ScriptedFailure() }
-        }
-    }
-
-    func logits() -> [Float16] {
-        state.withLock { $0.current.rows[$0.position] }
-    }
-}
 
 func evaluationInput(_ id: String, _ ids: [Int32], maxNewTokens: Int = 8) -> EvaluationInput {
     EvaluationInput(id: id, inputIds: ids, inputSha256: tokensDigest(ids.map(Int.init)), maxNewTokens: maxNewTokens)
@@ -70,7 +17,7 @@ func jsonObject(_ data: Data) throws -> [String: Any] {
         "Each step's first top-2 id is the generated token, a tie goes to the lowest id, and the probabilities are the softmax over the whole vocabulary"
     )
     func greedyTopTwo() async throws {
-        let source = ScriptedLogits([.init(rows: [[1, 3, 3, 0], [0, 0, 1, 0], [2, 2, 2, 2], [0, 0, 0, 4]])])
+        let source = FakeEvaluationLogitsSource([.init(rows: [[1, 3, 3, 0], [0, 0, 1, 0], [2, 2, 2, 2], [0, 0, 0, 4]])])
         let record = try await evaluationInput("a", [5, 6, 7]).generate(with: source, stopTokens: [3])
         #expect(record.top2.map(\.first) == [1, 2, 0, 3])
         #expect(record.top2.map(\.second) == [2, 0, 1, 0])
@@ -112,11 +59,11 @@ func jsonObject(_ data: Data) throws -> [String: Any] {
     func stopKinds() async throws {
         let rows: [[Float16]] = [[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
         let stopped = try await evaluationInput("stop", [9]).generate(
-            with: ScriptedLogits([.init(rows: rows)]), stopTokens: [3])
+            with: FakeEvaluationLogitsSource([.init(rows: rows)]), stopTokens: [3])
         #expect(stopped.stop == "stop_token" && stopped.stopToken == 3)
         #expect(stopped.outputIds == [1, 2])
         #expect(stopped.top2.map(\.first) == [1, 2, 3])
-        let source = ScriptedLogits([.init(rows: rows)])
+        let source = FakeEvaluationLogitsSource([.init(rows: rows)])
         let limited = try await evaluationInput("limit", [9], maxNewTokens: 2).generate(with: source, stopTokens: [3])
         #expect(limited.stop == "limit" && limited.stopToken == nil)
         #expect(limited.outputIds == [1, 2])
@@ -131,7 +78,7 @@ func jsonObject(_ data: Data) throws -> [String: Any] {
         "Non-finite logits and errors thrown by prefill or step end the item with non_finite and error and keep what was generated, and an item without an error has no error field"
     )
     func errorsEndTheItem() async throws {
-        let source = ScriptedLogits(failingScripts)
+        let source = FakeEvaluationLogitsSource(failingScripts)
         var records: [OutputRecord] = []
         for item in failingItems { records.append(try await item.generate(with: source, stopTokens: [3])) }
         #expect(records.map(\.nonFinite) == [3, 0, 0, 0])
@@ -186,7 +133,7 @@ let failingItems = [
     evaluationInput("clean", [5]),
 ]
 
-let failingScripts: [ScriptedLogits.Item] = [
+let failingScripts: [FakeEvaluationLogitsSource.Item] = [
     .init(rows: [[0, 1, 0, 0], [.nan, .infinity, 0, -.infinity], [0, 0, 0, 1]]),
     .init(rows: [], failsAtPrefill: true),
     .init(rows: [[0, 0, 1, 0], [0, 1, 0, 0]], failsAtStep: 1),

@@ -34,8 +34,8 @@ func runRecord(
 let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}"#
 
 @Suite(.timeLimit(.minutes(1))) struct EvaluationRunTests {
-    private let stopAtOnce = ScriptedLogits.Item(rows: [[0, 0, 0, 1]])
-    private let stepThenStop = ScriptedLogits.Item(rows: [[0, 1, 0, 0], [0, 0, 0, 1]])
+    private let stopAtOnce = FakeEvaluationLogitsSource.Item(rows: [[0, 0, 0, 1]])
+    private let stepThenStop = FakeEvaluationLogitsSource.Item(rows: [[0, 1, 0, 0], [0, 0, 0, 1]])
 
     private func items(_ count: Int) -> [EvaluationInput] {
         (1...count).map { evaluationInput("item-\($0)", Array(repeating: Int32($0), count: $0)) }
@@ -52,7 +52,7 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let base = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: base) }
         let folder = base.appending(path: "run")
-        let source = ScriptedLogits(failingScripts)
+        let source = FakeEvaluationLogitsSource(failingScripts)
         let run = try await Evaluation.run(
             failingItems, in: folder, record: runRecord(count: failingItems.count), source: source, stopTokens: [3])
         let lines = try outputLines(folder)
@@ -69,12 +69,12 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         defer { try? FileManager.default.removeItem(at: base) }
         let folder = base.appending(path: "run")
         let inputs = items(4)
-        let first = ScriptedLogits([stopAtOnce, stopAtOnce])
+        let first = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce])
         let partial = try await Evaluation.run(
             inputs, limit: 2, in: folder, record: runRecord(count: 4), source: first, stopTokens: [3])
         #expect(partial.items == 2 && partial.finished != nil)
         #expect(try storedRun(folder).items == 2)
-        let second = ScriptedLogits([stopAtOnce, stopAtOnce])
+        let second = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce])
         let resumed = try await Evaluation.run(
             inputs, in: folder, record: runRecord(count: 4, started: .now), source: second, stopTokens: [3])
         #expect(second.calls == ["reset", "prefill 3 true", "reset", "prefill 4 true"])
@@ -99,10 +99,10 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let folder = base.appending(path: "run")
         let inputs = items(3)
         _ = try await Evaluation.run(
-            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: ScriptedLogits([stopAtOnce]),
+            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: FakeEvaluationLogitsSource([stopAtOnce]),
             stopTokens: [3])
         let before = try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
-        let source = ScriptedLogits([stopAtOnce, stopAtOnce])
+        let source = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: other, source: source, stopTokens: [3])
         }
@@ -126,7 +126,7 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
         for (name, text) in files { try Data(text.utf8).write(to: folder.appending(path: name)) }
         let inputs = items(2)
-        let source = ScriptedLogits([stopAtOnce, stopAtOnce])
+        let source = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce])
         if starts {
             let run = try await Evaluation.run(
                 inputs, in: folder, record: runRecord(count: 2), source: source, stopTokens: [3])
@@ -142,11 +142,11 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         }
     }
 
-    private func fullRun(_ folder: URL, _ scripts: [ScriptedLogits.Item], _ inputs: [EvaluationInput]) async throws
+    private func fullRun(_ folder: URL, _ scripts: [FakeEvaluationLogitsSource.Item], _ inputs: [EvaluationInput]) async throws
         -> Data
     {
         _ = try await Evaluation.run(
-            inputs, in: folder, record: runRecord(count: inputs.count), source: ScriptedLogits(scripts), stopTokens: [3]
+            inputs, in: folder, record: runRecord(count: inputs.count), source: FakeEvaluationLogitsSource(scripts), stopTokens: [3]
         )
         return try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
     }
@@ -161,21 +161,21 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let folder = base.appending(path: "run")
         let scripts = Array(failingScripts.prefix(written))
         if stop == "cancel" {
-            let source = ScriptedLogits(scripts + [ScriptedLogits.Item(rows: [], cancelsAtPrefill: true)])
+            let source = FakeEvaluationLogitsSource(scripts + [FakeEvaluationLogitsSource.Item(rows: [], cancelsAtPrefill: true)])
             await #expect(throws: CancellationError.self) {
                 try await Evaluation.run(
                     failingItems, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
             }
         } else {
             _ = try await Evaluation.run(
-                failingItems, limit: written, in: folder, record: runRecord(count: 4), source: ScriptedLogits(scripts),
+                failingItems, limit: written, in: folder, record: runRecord(count: 4), source: FakeEvaluationLogitsSource(scripts),
                 stopTokens: [3])
         }
         let outputs = try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
         let progress = try JSONDecoder().decode(
             WrittenLines.self, from: Data(contentsOf: folder.appending(path: "progress.json")))
         #expect(progress == WrittenLines(lines: written, sha256: hex(Data(SHA256.hash(data: outputs)))))
-        let source = ScriptedLogits(Array(failingScripts.dropFirst(written)))
+        let source = FakeEvaluationLogitsSource(Array(failingScripts.dropFirst(written)))
         _ = try await Evaluation.run(
             failingItems, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
         #expect(source.calls.filter { $0.hasPrefix("prefill") }.count == failingItems.count - written)
@@ -193,12 +193,12 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
             base.appending(path: "full"), [stepThenStop, stepThenStop, stepThenStop], inputs)
         let folder = base.appending(path: "run")
         _ = try await Evaluation.run(
-            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: ScriptedLogits([stepThenStop]),
+            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: FakeEvaluationLogitsSource([stepThenStop]),
             stopTokens: [3])
         let outputs = folder.appending(path: "outputs.jsonl")
         let second = Data(expected.split(separator: UInt8(ascii: "\n"))[1]) + Data("\n".utf8)
         try (Data(contentsOf: outputs) + (complete ? second : second.prefix(20))).write(to: outputs)
-        let source = ScriptedLogits([stepThenStop, stepThenStop])
+        let source = FakeEvaluationLogitsSource([stepThenStop, stepThenStop])
         _ = try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
         #expect(source.calls.filter { $0.hasPrefix("prefill") } == ["prefill 2 true", "prefill 3 true"])
         #expect(try Data(contentsOf: outputs) == expected)
@@ -237,7 +237,7 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let changed = Data(lines.map { $0 + "\n" }.joined().utf8)
         let outputs = folder.appending(path: "outputs.jsonl")
         try changed.write(to: outputs)
-        let source = ScriptedLogits([stepThenStop])
+        let source = FakeEvaluationLogitsSource([stepThenStop])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
         }
@@ -255,7 +255,7 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let folder = base.appending(path: "run")
         let inputs = items(3)
         _ = try await Evaluation.run(
-            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: ScriptedLogits([stopAtOnce]),
+            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: FakeEvaluationLogitsSource([stopAtOnce]),
             stopTokens: [3])
         let outputs = folder.appending(path: "outputs.jsonl")
         let written = try Data(contentsOf: outputs)
@@ -264,7 +264,7 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let changed = written + (repeated ? written : stranger)
         try changed.write(to: outputs)
         try Evaluation.write(WrittenLines(lines: 2, sha256: hex(Data(SHA256.hash(data: changed)))), in: folder)
-        let source = ScriptedLogits([stopAtOnce, stopAtOnce])
+        let source = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
         }
@@ -281,7 +281,7 @@ let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae4
         let base = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: base) }
         let folder = base.appending(path: "run")
-        let source = ScriptedLogits([stopAtOnce, stopAtOnce, stopAtOnce])
+        let source = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce, stopAtOnce])
         let result = try await Evaluation.run(
             items(3), in: folder, record: runRecord(count: 3), source: source, stopTokens: [3], maxMinutes: 0)
         #expect(result.items == 1 && result.finished != nil)
