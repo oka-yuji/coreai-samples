@@ -215,41 +215,45 @@ def forward(model, tokens, cache, device):
                  logits_to_keep=1).logits[0, -1]
 
 
-def generate(model, entry, stops, device, chunk=CHUNK):
+def decode(model, entry, stops, device, chunk, record, info, started):
     from transformers import DynamicCache
 
-    ids, started, info = entry["input_ids"], time.perf_counter(), {}
-    record = {"id": entry["id"], "input_sha256": entry["input_sha256"], "input_tokens": len(ids), "output_ids": [],
-              "top2": [], "non_finite": 0}
-    cache = DynamicCache(config=model.config)
+    ids, cache = entry["input_ids"], DynamicCache(config=model.config)
+    for position in range(0, len(ids), chunk):
+        logits = forward(model, ids[position:position + chunk], cache, device)
+        release(device, info)
+    info["first_token_s"] = time.perf_counter() - started
+    while True:
+        row = logits.float().cpu().numpy()
+        count = non_finite(row)
+        if count:
+            record.update(non_finite=count, error=f"non-finite logits at output position {len(record['top2'])}")
+            return
+        first, second = leaders(row)
+        chance, other = probabilities(row, [first, second])
+        record["top2"].append([first, chance, second, other])
+        if first in stops:
+            record.update(stop="stop_token", stop_token=first)
+            return
+        record["output_ids"].append(first)
+        if len(record["output_ids"]) == entry["max_new_tokens"]:
+            return
+        logits = forward(model, [first], cache, device)
+
+
+def generate(model, entry, stops, device, chunk=CHUNK):
+    started, info = time.perf_counter(), {}
+    record = {"id": entry["id"], "input_sha256": entry["input_sha256"], "input_tokens": len(entry["input_ids"]),
+              "output_ids": [], "top2": [], "non_finite": 0}
     try:
-        for position in range(0, len(ids), chunk):
-            logits = forward(model, ids[position:position + chunk], cache, device)
-            release(device, info)
-        info["first_token_s"] = time.perf_counter() - started
-        while True:
-            row = logits.float().cpu().numpy()
-            count = non_finite(row)
-            if count:
-                record.update(non_finite=count, error=f"non-finite logits at output position {len(record['top2'])}")
-                break
-            first, second = leaders(row)
-            chance, other = probabilities(row, [first, second])
-            record["top2"].append([first, chance, second, other])
-            if first in stops:
-                record.update(stop="stop_token", stop_token=first)
-                break
-            record["output_ids"].append(first)
-            if len(record["output_ids"]) == entry["max_new_tokens"]:
-                break
-            logits = forward(model, [first], cache, device)
+        decode(model, entry, stops, device, chunk, record, info, started)
+        release(device, info)
+        info.update(memory(device))
     except Exception as error:
-        record["error"] = f"{type(error).__name__}: {error}"
+        record.setdefault("error", f"{type(error).__name__}: {error}")
     record.setdefault("stop", "limit")
-    del cache
-    release(device, info)
     info["seconds"] = time.perf_counter() - started
-    return record, {**info, **memory(device)}
+    return record, info
 
 
 def main():

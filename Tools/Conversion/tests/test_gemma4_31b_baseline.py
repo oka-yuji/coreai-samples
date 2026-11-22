@@ -9,6 +9,7 @@ import shutil
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 try:
     import numpy as np
@@ -157,6 +158,32 @@ class GenerationTests(unittest.TestCase):
                 self.assertIsInstance(record["error"], str)
                 self.assertTrue(scoring.well_formed(record, 8))
         self.assertEqual(self.generate(cases["runtime error"][0])[0]["error"], "RuntimeError: out of memory")
+
+    def test_a_failure_while_generating_or_after_it_is_written_as_the_first_error_and_stops_the_run(self):
+        first, stop = [0, 0, 0, 0, 2, 0, 1, 0], [0, 3, 0, 0, 2, 0, 1, 0]
+        cases = {"the model, then the release": ([first, RuntimeError("out of memory")], "release",
+                                                  [None, RuntimeError("synchronize failed")], "RuntimeError: out of memory"),
+                 "the model, then the memory record": ([first, RuntimeError("out of memory")], "memory",
+                                                        RuntimeError("memory failed"), "RuntimeError: out of memory"),
+                 "only the memory record after a stop token": ([first, stop], "memory", RuntimeError("memory failed"),
+                                                               "RuntimeError: memory failed")}
+        for label, (rows, target, effect, message) in cases.items():
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as base, \
+                    mock.patch.object(baseline, target, side_effect=effect):
+                folder, calls = Path(base) / "run", []
+
+                def made(entry):
+                    calls.append(entry["id"])
+                    return baseline.generate(FakeModel(rows), entry, {1}, "cpu")
+
+                with self.assertRaisesRegex(RuntimeError, "ended with an error"):
+                    session(folder, inputs_of(2), made=made, run=conditions(inputs={"sha256": "d" * 64, "count": 2}))
+                lines = complete_lines((folder / "outputs.jsonl").read_bytes())
+                record = json.loads(lines[0])
+                self.assertEqual((calls, len(lines), record["error"], record["output_ids"]),
+                                 (["ja-choice-0001"], 1, message, [4]))
+                self.assertTrue(scoring.well_formed(record, 8))
+                self.assertNotIn("finished", read_json(folder / "run.json"))
 
     def test_inputs_longer_than_the_chunk_are_read_in_chunks_with_at_least_one_token_in_the_last(self):
         row = [0, 3, 0, 0, 0, 0, 0, 0]
