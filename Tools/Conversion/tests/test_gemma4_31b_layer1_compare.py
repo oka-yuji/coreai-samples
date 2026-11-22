@@ -312,20 +312,39 @@ class CorrespondenceTests(Comparison):
         self.failed(result, "ja-choice-0001: the item is not in the forced input")
         self.failed(result, "the baseline logits were made from another forced input")
 
-    def test_a_forced_record_of_another_row_count_or_outside_the_bands_fails(self):
+    def forged(self, change):
         copied = self.folder / "forced"
         copied.mkdir()
-        records = [dict(record) for record in self.records]
-        records[0]["rows"], records[1]["input_tokens"] = LAYER1["positions"]["max_per_item"] + 1, 20000
+        records = [copy.deepcopy(record) for record in self.records]
+        change(records)
         data = "".join(json.dumps(record) + "\n" for record in records).encode()
         (copied / "forced.jsonl").write_bytes(data)
         summary = read_json(self.forced / "forced.json")
         summary["forced"]["sha256"] = hashlib.sha256(data).hexdigest()
+        summary["bands"] = {f"{low}-{high}": sum(low <= record["input_tokens"] <= high for record in records)
+                            for low, high in LAYER1["bands"]}
         write_json(copied / "forced.json", summary)
         self.forced_sha256 = summary["forced"]["sha256"]
-        result = self.compared(forced=copied)
-        for record in records[:2]:
-            self.failed(result, f"{record['id']}: the forced record has an input length outside the bands or another row count")
+        return copied
+
+    def test_a_forced_record_moved_to_another_band_with_its_hashes_rebuilt_fails_its_item(self):
+        def moved(records):
+            records[0]["input_tokens"] = 3000
+
+        result = self.compared(forced=self.forged(moved))
+        self.failed(result, f"{self.records[0]['id']}: the forced record is inconsistent: its start is not input_tokens - 1")
+        self.assertIsNone(entry(result, self.records[0]["id"])["max_probability_error"])
+        self.assertEqual([band["items"] for band in result["bands"]], [71, 0, 12, 4])
+        self.assertFalse(any("made from another forced input" in problem or "forced.json" in problem
+                             for problem in result["problems"]))
+
+    def test_a_forced_record_of_another_row_count_or_outside_the_bands_fails(self):
+        def changed(records):
+            records[0]["rows"], records[1]["input_tokens"] = LAYER1["positions"]["max_per_item"] + 1, 20000
+
+        result = self.compared(forced=self.forged(changed))
+        self.failed(result, f"{self.records[0]['id']}: the forced record is inconsistent: its rows are outside 1 to max_per_item")
+        self.failed(result, f"{self.records[1]['id']}: the forced record is inconsistent: its input length is outside the bands")
         self.assertFalse(any("made from another forced input" in problem for problem in result["problems"]))
 
     def test_the_same_folder_on_both_sides_fails(self):

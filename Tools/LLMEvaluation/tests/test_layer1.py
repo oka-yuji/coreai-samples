@@ -210,6 +210,63 @@ class ForcedInputTests(Folder):
         self.assertEqual(json.loads(process.stdout), json.loads((output / "forced.json").read_text()))
 
 
+class ForcedRecordTests(Folder):
+    def written(self):
+        state = fixture()
+        generate(state, "code-gen-he-0001", range(4000, 4200))
+        return self.forced(state)[1]
+
+    def test_every_written_record_is_consistent(self):
+        rule = CONTRACT["layer1"]
+        self.assertEqual({name: layer1.inconsistencies(record, rule) for name, record in self.written().items()},
+                         {name: [] for name in ORDER})
+
+    def test_each_broken_relation_of_a_forced_record_is_reported(self):
+        records, rule = self.written(), CONTRACT["layer1"]
+
+        def rehashed(record):
+            record["tokens_sha256"] = digest(record["tokens"])
+
+        def longer(record):
+            record["tokens"].append(7)
+            rehashed(record)
+
+        def tail(record):
+            record["tokens"][-1] += 1
+            rehashed(record)
+
+        def above(record):
+            record["rows"] += 1
+            record["targets"].append(9)
+            record["tokens"].append(record["targets"][-2])
+            rehashed(record)
+
+        cases = (("ja-choice-0001", lambda record: record.update(rows=True), ["it does not have the fields of a forced record"]),
+                 ("ja-choice-0001", lambda record: record["tokens"].__setitem__(0, "2"),
+                  ["it does not have the fields of a forced record"]),
+                 ("ja-choice-0001", lambda record: record.update(tokens_sha256="0" * 64),
+                  ["its tokens_sha256 is not that of its tokens"]),
+                 ("ja-choice-0001", lambda record: record.update(input_sha256="0" * 64),
+                  ["its input_sha256 is not that of its first input_tokens tokens"]),
+                 ("ja-choice-0001", lambda record: record.update(start=record["start"] + 1), ["its start is not input_tokens - 1"]),
+                 ("ja-choice-0001", longer, ["its tokens are not input_tokens + rows - 1",
+                                             "its tokens after the input are not the first rows - 1 targets"]),
+                 ("ja-choice-0001", lambda record: record["targets"].append(9), ["its targets are not one per row"]),
+                 ("ja-choice-0001", tail, ["its tokens after the input are not the first rows - 1 targets"]),
+                 ("code-gen-he-0001", above, ["its rows are outside 1 to max_per_item"]))
+        for name, change, expected in cases:
+            with self.subTest(expected[0]):
+                record = copy.deepcopy(records[name])
+                change(record)
+                self.assertEqual(layer1.inconsistencies(record, rule), expected)
+        self.assertEqual(layer1.inconsistencies([], rule), ["it is not a JSON object"])
+        empty = copy.deepcopy(records["ja-choice-0001"])
+        empty.update(rows=0, targets=[], tokens=empty["tokens"][:empty["input_tokens"] - 1])
+        self.assertIn("its rows are outside 1 to max_per_item", layer1.inconsistencies(empty, rule))
+        narrow = {**rule, "bands": [[1, 4]]}
+        self.assertEqual(layer1.inconsistencies(records["ja-choice-0002"], narrow), ["its input length is outside the bands"])
+
+
 class RefusalTests(Folder):
     def refused(self, state, text, after=None, bundle=BUNDLE):
         inputs, run = save(state, tempfile.mkdtemp(dir=self.root))

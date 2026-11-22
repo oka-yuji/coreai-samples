@@ -7,7 +7,7 @@ import sys
 
 from Tools.LLMEvaluation import checks, items
 from Tools.LLMEvaluation.items import FILES
-from Tools.LLMEvaluation.layer1 import SET, band, chosen, label
+from Tools.LLMEvaluation.layer1 import SET, band, chosen, inconsistencies, label
 from ...storage import write_json
 from ..verify_llm import compare as judged, probabilities
 from .anchor import parse, read
@@ -21,7 +21,6 @@ SIDES = ("baseline", "candidate")
 DTYPES = {"float16": "<f2", "float32": "<f4"}
 SIDE = {"schema": "text", "role": "text", "weights": "text", "forced_sha256": "text"}
 ENTRY = {"id": "text", "file": "text", "dtype": "text", "shape": "shape", "sha256": "text", "tokens_sha256": "text"}
-FORCED = {"id": "text", "rows": "count", "input_tokens": "count", "tokens_sha256": "text"}
 LIMITS = ("non_finite_values", "max_probability_error", "band_mean_max_probability_error", "significant_top1_mismatches",
           "near_tie_probability_margin")
 REPORT = ("kl_mean", "kl_p99", "kl_max", "max_abs_logit_difference", "top1_agreement", "near_tie_count")
@@ -38,7 +37,7 @@ def validated(record, table):
     return {key: record[key] for key in table if key not in malformed}, malformed
 
 
-def forced_input(folder, expected, identity, problems):
+def forced_input(folder, expected, identity, rule, problems):
     data = (folder / "forced.jsonl").read_bytes()
     summary, summary_sha256, _ = read(folder / "forced.json")
     summary, digest = summary if isinstance(summary, dict) else {}, hashlib.sha256(data).hexdigest()
@@ -53,15 +52,15 @@ def forced_input(folder, expected, identity, problems):
         except Exception as error:
             problems.append(f"forced.jsonl line {number} is not JSON ({type(error).__name__})")
             continue
-        kept, malformed = validated(record, FORCED)
-        if malformed:
-            problems.append(f"forced.jsonl line {number} is malformed ({', '.join(malformed)})")
-        elif kept["id"] in records:
-            problems.append(f"forced.jsonl repeats {kept['id']}")
-        elif kept["id"] not in expected:
-            problems.append(f"forced.jsonl holds {kept['id']}, which is not a layer 1 item")
+        name = record.get("id") if isinstance(record, dict) else None
+        if not isinstance(name, str):
+            problems.append(f"forced.jsonl line {number} has no item id")
+        elif name in records:
+            problems.append(f"forced.jsonl repeats {name}")
+        elif name not in expected:
+            problems.append(f"forced.jsonl holds {name}, which is not a layer 1 item")
         else:
-            records[kept["id"]] = kept
+            records[name] = record, inconsistencies(record, rule)
     return {"sha256": digest, "summary_sha256": summary_sha256}, records
 
 
@@ -148,14 +147,15 @@ def blank(name):
 def item(name, records, sides, vocabulary, rule):
     import numpy as np
 
-    entry, record = blank(name), records.get(name)
+    entry, (record, wrong) = blank(name), records.get(name, (None, []))
     if record is None:
         entry["problems"].append("the item is not in the forced input")
         return entry, None
+    if wrong:
+        entry["problems"] += [f"the forced record is inconsistent: {text}" for text in wrong]
+        return entry, None
     entry.update(band=band(rule["bands"], record["input_tokens"]), input_tokens=record["input_tokens"],
                  rows=record["rows"])
-    if entry["band"] is None or not 1 <= record["rows"] <= rule["positions"]["max_per_item"]:
-        entry["problems"].append("the forced record has an input length outside the bands or another row count")
     arrays = {key: loaded(key, sides[key], record, vocabulary, entry["problems"]) for key in SIDES}
     if entry["problems"]:
         return entry, None
@@ -189,7 +189,7 @@ def measured(bundle, vocabulary, forced, folders):
     contract, problems = bundle["contract"], []
     rule, expected = contract["layer1"], [entry["id"] for entry in chosen(bundle)]
     identity = {"version": contract["version"], "sha256": bundle["hashes"][FILES["contract"]]}
-    hashes, records = forced_input(forced, expected, identity, problems)
+    hashes, records = forced_input(forced, expected, identity, rule, problems)
     sides = {name: side(name, folders[name], hashes["sha256"], contract["roles"], expected, problems) for name in SIDES}
     if all(sides[name]["sha256"] for name in SIDES) and (
             os.path.samefile(folders["baseline"], folders["candidate"])

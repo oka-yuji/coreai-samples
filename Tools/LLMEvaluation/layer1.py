@@ -50,6 +50,27 @@ def token_ids(value):
     return isinstance(value, list) and bool(value) and all(type(token) is int and token >= 0 for token in value)
 
 
+def inconsistencies(record, rule):
+    if not isinstance(record, dict):
+        return ["it is not a JSON object"]
+    if not (all(isinstance(record.get(key), str) for key in ("id", "input_sha256", "tokens_sha256"))
+            and all(type(record.get(key)) is int and record[key] >= 0 for key in ("start", "rows", "input_tokens"))
+            and all(isinstance(record.get(key), list) and all(type(token) is int and token >= 0 for token in record[key])
+                    for key in ("tokens", "targets"))):
+        return ["it does not have the fields of a forced record"]
+    tokens, targets, rows, length = record["tokens"], record["targets"], record["rows"], record["input_tokens"]
+    return [text for text, failed in (
+        ("its tokens_sha256 is not that of its tokens", record["tokens_sha256"] != tokens_sha256(tokens)),
+        ("its input_sha256 is not that of its first input_tokens tokens",
+         record["input_sha256"] != tokens_sha256(tokens[:length])),
+        ("its start is not input_tokens - 1", record["start"] != length - 1),
+        ("its tokens are not input_tokens + rows - 1", len(tokens) != length + rows - 1),
+        ("its targets are not one per row", len(targets) != rows),
+        ("its tokens after the input are not the first rows - 1 targets", tokens[length:] != targets[:max(rows - 1, 0)]),
+        ("its rows are outside 1 to max_per_item", not 1 <= rows <= rule["positions"]["max_per_item"]),
+        ("its input length is outside the bands", band(rule["bands"], length) is None)) if failed]
+
+
 def by_id(data, name):
     rows = data.split(b"\n")
     if rows[-1] == b"":
@@ -127,6 +148,8 @@ def write(bundle, inputs, run, output):
         problems += [f"{entry['id']}: {text}" for text in wrong]
         rows += [made] if made else []
         categories[entry["category"]] = categories.get(entry["category"], 0) + 1
+    problems += [f"{row['id']}: the written record is inconsistent: {text}" for row in rows
+                 for text in inconsistencies(row, rule)]
     if problems:
         raise ValueError(f"{len(problems)} findings stop the forced input: {'; '.join(problems[:5])}")
     content = "".join(canonical(row) + "\n" for row in rows).encode("utf-8")
