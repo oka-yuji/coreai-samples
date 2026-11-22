@@ -68,6 +68,7 @@ let malformedLines: [(String, String)] = [
         writtenLine(#""output_ids":[1],"stop":"stop_token","top2":[[1,0.5,2,0.25],[3,0.75,0,0.125]],"non_finite":0"#),
         badStopToken
     ),
+    (writtenLine(#""output_ids":[1],"stop":"stop_token","top2":[[1,0.5,2,0.25]],"non_finite":0"#), badStopToken),
     (
         writtenLine(
             #""output_ids":[1],"stop":"stop_token","stop_token":7,"top2":[[1,0.5,2,0.25],[7,0.75,0,0.125]],"non_finite":0"#
