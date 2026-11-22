@@ -5,8 +5,8 @@ import re
 import sys
 
 from ... import summary as pipeline
-from ...storage import PipelineError, read_json
-from ..pinned import sha256
+from ...storage import PipelineError
+from .anchor import read
 from .export import SCHEMA as EXPORT_SCHEMA
 from .layers import CONTEXT_SCHEMA
 from .native import SCHEMA as COMPARISON_SCHEMA
@@ -136,16 +136,21 @@ def compared(record):
 
 
 def paired(reports, exports, comparisons, reference_hash):
-    files = [Path(path).resolve() for path in exports]
+    files = [Path(path).resolve() for path, _, _, _ in exports]
     if not len(reports) == len(exports) == len(comparisons) or len(set(files)) != len(files) \
             or len({report.get("run_id") for report in reports}) != len(reports):
         raise PipelineError("Give each export once, with its report and its comparison")
-    for report, file, comparison in zip(reports, files, comparisons):
+    for report, file, (_, _, digest, size), comparison in zip(reports, files, exports, comparisons):
         stage = next((stage for stage in report.get("stages", []) if stage.get("role") == "export"), {})
         if stage.get("status") != "executed" or stage.get("origin") != report.get("run_id") or not stage.get("artifacts") \
                 or Path(stage["artifacts"]).resolve() / "export" / "export.json" != file:
             raise PipelineError("Each report must be the run that wrote the export record given with it")
-        if (comparison.get("export") or {}).get("sha256") != sha256(file) \
+        manifest = read(Path(stage["artifacts"]).parent / "manifest.json")[0]
+        if (manifest.get("version"), manifest.get("status"), manifest.get("run_id"), manifest.get("stage")) \
+                != (1, "completed", report["run_id"], "export") \
+                or manifest["outputs"]["artifacts"]["tree"].get("export/export.json") != {"bytes": size, "sha256": digest}:
+            raise PipelineError("Each export record must be the output that the run of its stage recorded")
+        if (comparison.get("export") or {}).get("sha256") != digest \
                 or (comparison.get("reference") or {}).get("sha256") != reference_hash:
             raise PipelineError("Each comparison must be made from the export record given with it and the reference")
 
@@ -165,12 +170,15 @@ def main():
         parser.add_argument(f"--{name}", type=Path, action="append", required=True)
     args = parser.parse_args()
     try:
-        reports, exports, comparisons = ([read_json(path) for path in paths] for paths in (args.report, args.export,
-                                                                                         args.comparison))
-        paired(reports, args.export, comparisons, sha256(args.reference))
-        print(json.dumps(project(reports, exports, comparisons, read_json(args.reference)), indent=2, allow_nan=False))
+        reports = [read(path)[0] for path in args.report]
+        exports = [(path, *read(path)) for path in args.export]
+        comparisons = [read(path)[0] for path in args.comparison]
+        context, reference_hash, _ = read(args.reference)
+        paired(reports, exports, comparisons, reference_hash)
+        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context), indent=2,
+                         allow_nan=False))
         return 0
-    except (OSError, ValueError, TypeError, KeyError) as error:
+    except Exception as error:
         print(f"Cannot summarize local records ({type(error).__name__}).", file=sys.stderr)
         return 1
 

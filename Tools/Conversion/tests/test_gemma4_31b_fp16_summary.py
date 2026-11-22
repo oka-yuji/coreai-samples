@@ -1,5 +1,6 @@
 import contextlib
 import copy
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -74,12 +75,20 @@ class SummaryTests(unittest.TestCase):
         self.reference = self.folder / "context.json"
         write_json(self.reference, context_record())
 
-    def run_files(self, label, record=None, origin=None, stage_role="export"):
+    def run_files(self, label, record=None, origin=None, stage_role="export", manifest=None):
         artifacts = self.folder / label / "artifacts"
         write_json(artifacts / "export/export.json", record or export_record())
+        data = (artifacts / "export/export.json").read_bytes()
+        recorded = {"version": 1, "key": "0" * 64, "status": "completed", "run_id": origin or label, "stage": "export",
+                    "outputs": {"required": ["export"], "artifacts": {"tree": {
+                        "export": {"directory": True},
+                        "export/export.json": {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}}}}}
+        if manifest:
+            manifest(recorded)
+        write_json(self.folder / label / "manifest.json", recorded)
         report = {"version": 1, "run_id": label, "status": "completed", "verification": "not_configured",
-                  "stages": [{"role": "prepare", "status": "executed", "origin": label},
-                             {"role": stage_role, "status": "executed", "origin": origin or label,
+                  "stages": [{"id": "prepare", "role": "prepare", "status": "executed", "origin": label},
+                             {"id": "export", "role": stage_role, "status": "executed", "origin": origin or label,
                               "artifacts": str(artifacts), "execute_s": 1.0}]}
         write_json(self.folder / label / "report.json", report)
         comparison = comparison_record(sha256(artifacts / "export/export.json"), sha256(self.reference))
@@ -139,6 +148,50 @@ class SummaryTests(unittest.TestCase):
                 self.assertEqual((code, output == ""), (expected, expected == 1))
         write_json(self.reference, {**context_record(), "embed_scale": 74.0})
         self.assertEqual(self.summarize(first)[0], 1)
+
+    def test_the_export_record_must_be_the_output_that_the_manifest_of_its_stage_recorded(self):
+        def remove(entry):
+            del entry["outputs"]["artifacts"]["tree"]["export/export.json"]
+
+        variants = {"another run": lambda entry: entry.update(run_id="other"),
+                    "another stage": lambda entry: entry.update(stage="prepare"),
+                    "an incomplete stage": lambda entry: entry.update(status="running"),
+                    "another version": lambda entry: entry.update(version=2),
+                    "no entry for export.json": remove,
+                    "another size": lambda entry: entry["outputs"]["artifacts"]["tree"]["export/export.json"].update(bytes=1)}
+        self.assertEqual(self.summarize(self.run_files("recorded"))[0], 0)
+        for label, change in variants.items():
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize(self.run_files(label.replace(" ", "-"), manifest=change)), (1, ""))
+        run = self.run_files("no-manifest")
+        (self.folder / "no-manifest/manifest.json").unlink()
+        self.assertEqual(self.summarize(run), (1, ""))
+        run = self.run_files("listed-manifest")
+        (self.folder / "listed-manifest/manifest.json").write_text("[]")
+        self.assertEqual(self.summarize(run), (1, ""))
+
+    def test_an_export_record_replaced_after_the_run_is_refused_even_with_a_comparison_made_from_it(self):
+        report, record, comparison = self.run_files("replaced")
+        write_json(record, {**export_record(), "context": 16384})
+        write_json(comparison, comparison_record(sha256(record), sha256(self.reference)))
+        self.assertEqual(self.summarize((report, record, comparison)), (1, ""))
+
+    def test_records_of_another_shape_stop_with_the_fixed_error_and_print_nothing(self):
+        cases = {"a comparison that is a list": ("comparison", "[]"), "a report that is a string": ("report", '"text"'),
+                 "a comparison whose export is a list": ("comparison", json.dumps({"export": [], "reference": {}})),
+                 "a broken comparison": ("comparison", "{")}
+        for label, (kind, content) in cases.items():
+            report, record, comparison = self.run_files(label.replace(" ", "-"))
+            {"report": report, "comparison": comparison}[kind].write_text(content)
+            errors = io.StringIO()
+            argv = ["fp16_summary", "--reference", str(self.reference), "--report", str(report), "--export", str(record),
+                    "--comparison", str(comparison)]
+            output = io.StringIO()
+            with self.subTest(case=label), mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), \
+                    contextlib.redirect_stderr(errors):
+                self.assertEqual(fp16_summary.main(), 1)
+                self.assertEqual(output.getvalue(), "")
+                self.assertRegex(errors.getvalue(), r"^Cannot summarize local records \(\w+\)\.\n$")
 
 
 if __name__ == "__main__":
