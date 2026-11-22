@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "purpose": "Self-written diagnostic inputs for the Gemma 4 31B reference outputs. This is not a quality evaluation set.",
+  "cases": [
+    {
+      "id": "ja_question",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "user", "content": "日本の四季について、それぞれの季節の特徴を一文ずつ説明してください。"}
+      ]
+    },
+    {
+      "id": "ja_system",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "system", "content": "あなたは丁寧な日本語で簡潔に答えるアシスタントです。回答は三文以内にしてください。"},
+        {"role": "user", "content": "電車の中で静かに過ごすためのこつを教えてください。"}
+      ]
+    },
+    {
+      "id": "ja_two_turns",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "user", "content": "私の名前は山田です。好きな色は緑です。覚えておいてください。"},
+        {"role": "assistant", "content": "承知しました。山田さんの好きな色は緑ですね。"},
+        {"role": "user", "content": "私の好きな色は何でしたか。一言で答えてください。"}
+      ]
+    },
+    {
+      "id": "en_question",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "user", "content": "Explain in two sentences why the sky looks blue during the day."}
+      ]
+    },
+    {
+      "id": "en_system",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "system", "content": "You are a concise assistant. Answer in at most three sentences."},
+        {"role": "user", "content": "What should I check before leaving my house for a long trip?"}
+      ]
+    },
+    {
+      "id": "code_python",
+      "kind": "chat",
+      "max_new_tokens": 128,
+      "messages": [
+        {"role": "user", "content": "Write a Python function merge_intervals(intervals) that takes a list of [start, end] pairs and returns the overlapping intervals merged and sorted by start. Include a short docstring."}
+      ]
+    },
+    {
+      "id": "code_swift",
+      "kind": "chat",
+      "max_new_tokens": 128,
+      "messages": [
+        {"role": "user", "content": "The following Swift function should return the average of the numbers, but it crashes for an empty array and returns the wrong value for [1, 2]. Fix it and explain the change briefly.\n\nfunc average(_ values: [Int]) -> Double {\n    var total = 0\n    for value in values {\n        total += value\n    }\n    return Double(total / values.count)\n}"}
+      ]
+    },
+    {
+      "id": "json_ja",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "user", "content": "次の文から名前、年齢、住んでいる市を取り出し、キーが name、age、city の JSON だけを出力してください。\n\n文: 田中花子さんは三十四歳で、札幌市に住んでいて、週末はよく図書館に行きます。"}
+      ]
+    },
+    {
+      "id": "json_en",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "user", "content": "Extract the product name, the quantity and the unit price from the sentence below and output only a JSON object with the keys product, quantity and unit_price.\n\nSentence: The office ordered twelve blue notebooks at 3.50 dollars each for the new team."}
+      ]
+    },
+    {
+      "id": "ja_long",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "paragraphs": {
+        "count": 30,
+        "template": "第{n}段落。この段落の番号は{n}です。倉庫の{place}の棚には{color}箱が置かれていて、中には{item}が{n}個入っています。係の人はこの箱を朝と夕方に一度ずつ確かめ、数が合っていることを帳面に書き留めました。",
+        "values": {
+          "item": ["りんご", "鉛筆", "消しゴム", "封筒", "電池", "手袋", "定規", "磁石"],
+          "color": ["赤い", "青い", "黄色い", "白い", "黒い"],
+          "place": ["北側", "南側", "東側"]
+        },
+        "separator": "\n\n",
+        "ask": 6,
+        "question": "上の文章の第{n}段落について、棚の場所、箱の色、中身とその個数を一文で答えてください。"
+      }
+    },
+    {
+      "id": "one_word",
+      "kind": "chat",
+      "max_new_tokens": 64,
+      "messages": [
+        {"role": "user", "content": "こんにちは"}
+      ]
+    },
+    {
+      "id": "raw_text",
+      "kind": "raw",
+      "max_new_tokens": 64,
+      "text": "朝の駅前にある小さなパン屋では、毎日六時になると"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[project]
+name = "coreai-samples-gemma4-31b"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "accelerate==1.15.0",
+  "huggingface-hub==1.33.0",
+  "numpy==2.4.6",
+  "safetensors==0.8.0",
+  "torch==2.15.0",
+  "transformers==5.16.1"
+]

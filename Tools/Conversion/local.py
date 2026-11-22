@@ -104,6 +104,9 @@ def setup(workspace, recipe, snapshot, lock=None):
     if recipe.parent.name == "chronos2":
         from .adapters.chronos2.setup import setup as setup_chronos2
         return setup_chronos2(workspace, recipe, snapshot, lock)
+    if recipe.parent.name == "gemma4_31b":
+        from .adapters.gemma4_31b.setup import setup as setup_gemma4_31b
+        return setup_gemma4_31b(workspace, recipe, snapshot, lock)
     contract_path = recipe.parent / "model.json"
     contract = read_json(contract_path)
     if recipe.parent.name == "jev27b":
