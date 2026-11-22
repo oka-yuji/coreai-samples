@@ -37,7 +37,7 @@ final class ScriptedLogits: LogitsSource, Sendable {
     func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws {
         try state.withLock { state in
             state.calls.append("prefill \(input.count) \(usePrefillFunction)")
-            state.current = state.items.removeFirst()
+            state.current = state.items.isEmpty ? Item(rows: [[0, 0, 0, 1]]) : state.items.removeFirst()
             state.position = 0
             if state.current.cancelsAtPrefill { throw CancellationError() }
             if state.current.failsAtPrefill { throw ScriptedFailure() }
