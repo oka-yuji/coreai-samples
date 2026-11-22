@@ -1,3 +1,5 @@
+from collections import Counter
+import contextlib
 import copy
 import json
 import math
@@ -115,6 +117,20 @@ class RulesOutsideTheTableTests(unittest.TestCase):
                                          "candidate": document["candidate"]["run"]})
 
 
+@contextlib.contextmanager
+def counted_reads():
+    reads, originals = Counter(), {name: getattr(Path, name) for name in ("read_bytes", "read_text")}
+
+    def counting(name):
+        def read(self, *arguments, **options):
+            reads[Path(self).resolve()] += 1
+            return originals[name](self, *arguments, **options)
+        return read
+
+    with mock.patch.multiple(Path, **{name: counting(name) for name in originals}):
+        yield reads
+
+
 def built(category, count):
     entries = [entry for entry in BUNDLE["sets"]["primary"]["items"] if entry["category"] == category][:count]
     return [items.item(CATEGORIES[category], entry, None, BUNDLE) for entry in entries]
@@ -229,6 +245,20 @@ class CompareRunTests(unittest.TestCase):
                 record = items.read_json(self.folder / f"accepted-{number}" / "verdict.json")
                 self.assertEqual(record["substitute_reason"], reason)
                 self.assertEqual(record["verdict"], "no_regression_found")
+
+    def test_each_file_that_is_hashed_or_compared_is_read_once(self):
+        baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
+        layer1 = self.folder / "layer1.json"
+        layer1.write_text("{}", encoding="utf-8")
+        with counted_reads() as reads:
+            scores = self.scored(baseline, candidate)
+        for path in (self.items_path, baseline / "outputs.jsonl", candidate / "outputs.jsonl"):
+            self.assertEqual(reads[path.resolve()], 1, f"score read {path.name} again")
+        with counted_reads() as reads:
+            self.compared(baseline, candidate, scores, layer1=layer1)
+        for path in (self.items_path, layer1, *(folder / name for folder in (baseline, candidate)
+                                                for name in ("outputs.jsonl", "run.json"))):
+            self.assertEqual(reads[path.resolve()], 1, f"compare read {path.name} again")
 
     def test_an_existing_output_folder_is_rejected(self):
         baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
