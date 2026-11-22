@@ -24,10 +24,7 @@ struct PositionLogits: AsyncParsableCommand {
     @Option(help: "Tokens per main call from the start position.")
     var chunk: Int
 
-    @Option(
-        help:
-            "Output file of little-endian float16 logits shaped [positions, vocab]. It must not exist yet. The rows are written to a new file next to it, named with a unique ID and .partial, which takes the output name when the last row is written."
-    )
+    @Option(help: "Output file of little-endian float16 logits shaped [positions, vocab]. It must not exist yet.")
     var output: String
 
     func validate() throws {
@@ -69,26 +66,6 @@ struct PositionLogits: AsyncParsableCommand {
         return hasPrefillFunction && unsplit ? "prefill" : "main"
     }
 
-    static func writeFile<Value>(at path: String, _ body: (URL) async throws -> Value) async throws -> Value {
-        guard !FileManager.default.fileExists(atPath: path) else {
-            throw ValidationError("The output file already exists: \(path)")
-        }
-        let partial = URL(filePath: "\(path).\(UUID().uuidString).partial")
-        try Data().write(to: partial, options: .withoutOverwriting)
-        do {
-            let result = try await body(partial)
-            guard renamex_np(partial.path(percentEncoded: false), path, UInt32(RENAME_EXCL)) == 0 else {
-                let code = errno
-                if code == EEXIST { throw ValidationError("The output file already exists: \(path)") }
-                throw POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO)
-            }
-            return result
-        } catch {
-            try? FileManager.default.removeItem(at: partial)
-            throw error
-        }
-    }
-
     func run() async throws {
         let ids = try tokenIDs()
         try Self.validateTokens(ids, start: start)
@@ -98,10 +75,17 @@ struct PositionLogits: AsyncParsableCommand {
             throw ValidationError(
                 "The token file must hold at most \(bundle.maxContextLength) IDs from 0 to \(bundle.vocabSize - 1).")
         }
-        try emit(try await Self.writeFile(at: output) { try await write(ids, bundle: bundle, to: $0) })
+        let url = URL(filePath: output)
+        try Data().write(to: url, options: .withoutOverwriting)
+        do {
+            try await write(ids, bundle: bundle, to: url)
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            throw error
+        }
     }
 
-    func write(_ ids: [Int32], bundle: ModelBundle, to url: URL) async throws -> PositionLogitsRecord {
+    func write(_ ids: [Int32], bundle: ModelBundle, to url: URL) async throws {
         let file = try FileHandle(forWritingTo: url)
         let clock = ContinuousClock()
         let loadStart = clock.now
@@ -129,14 +113,16 @@ struct PositionLogits: AsyncParsableCommand {
         try file.close()
         let end = clock.now
         let stats = engine.loadStats
-        return PositionLogitsRecord(
-            tokenCount: ids.count, tokensSha256: tokensDigest(ids.map(Int.init)), start: start, chunk: chunk,
-            shape: [ids.count - start, engine.vocabSize], prefixFunction: prefixFunction,
-            prefixChunk: engine.prefillChunkSize, prefixCalls: prefix.count, mainCalls: scored.count,
-            mainHash: bundle.mainHash, requestedCompute: stats.requestedComputeUnit,
-            expectFrequentReshapes: stats.expectsFrequentReshapes, cached: stats.cached,
-            cacheQueryError: stats.cacheQueryError, specializeS: stats.specializeSeconds,
-            nonFiniteCount: nonFinite, loadS: seconds(prefixStart - loadStart),
-            prefixS: seconds(scoringStart - prefixStart), scoringS: seconds(end - scoringStart))
+        try emit(
+            PositionLogitsRecord(
+                tokenCount: ids.count, tokensSha256: tokensDigest(ids.map(Int.init)), start: start, chunk: chunk,
+                shape: [ids.count - start, engine.vocabSize],
+                prefixFunction: prefixFunction,
+                prefixChunk: engine.prefillChunkSize, prefixCalls: prefix.count, mainCalls: scored.count,
+                mainHash: bundle.mainHash, requestedCompute: stats.requestedComputeUnit,
+                expectFrequentReshapes: stats.expectsFrequentReshapes, cached: stats.cached,
+                cacheQueryError: stats.cacheQueryError, specializeS: stats.specializeSeconds,
+                nonFiniteCount: nonFinite, loadS: seconds(prefixStart - loadStart),
+                prefixS: seconds(scoringStart - prefixStart), scoringS: seconds(end - scoringStart)))
     }
 }
