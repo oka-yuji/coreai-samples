@@ -117,9 +117,11 @@ executor は、推論の状態を取得・変更する前に依頼を検査し�
 
 - **準備済みのコピーを消すには**、呼び出したプログラムのそのバンドルのコピーを消す `Engine.deleteSpecializationCache(bundle:)` を呼ぶか、デモアプリのモデルの見出しにある **モデル情報**(ⓘ)の **準備済みキャッシュを削除**(Clear Prepared Copy。画面の確認では `--clear-prepared`)を使うか、フォルダを消します。
 
-ライブラリでは `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)` を、モデルの初期化の `reloadPolicy:` に渡して設定します。間隔を 0 にすると周期の読み直しを、footprint の上限を 0 にするとメモリの条件を止めます。
+ライブラリでは `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)` を、モデルの初期化の `reloadPolicy:` に渡して設定します。間隔を 0 にすると周期の読み直しを、footprint の上限を 0 にするとプロセス全体の footprint の条件を、`graphicsGrowthLimitBytes` を 0 にすると下の graphics の増分の条件を止めます。
 
 既定は、読み込みを伴う依頼 10 回と、プロセスの footprint 18,000,000,000 バイト(10 進の 18 GB)の条件です。閾値は 2026 年 10 月 9 日に、128 GiB の M4 Max、macOS 27.0(26A428)、Xcode 27 で、Qwen3.8-27B の 4bit の動的形状の `gdnfp32` の変種を使って較正しました。2026-10-09 13:03:12 UTC に始めた `M4-h36-memory-v2` の実行(run ID `3cc72f3295ab`)は、30 プロンプト、10 ターンごとに新しい会話、文脈の上限 16,384、ターンあたり最大 64 トークンの生成、間隔 10、footprint の条件なしでした。30 ターンすべてのターン直後のその場の footprint の最大は 11,937,577,240 バイトで、1.5 倍して 10 進の GB に切り上げると 18,000,000,000 バイトです。遅らせた標本はこの計算に使っていません。これは計測から決めた読み直しの条件で、どの端末でも安全なメモリの予算ではありません。
+
+3 つ目の条件は、モデルを読み込むたびに最初の読み取りが正常に終わってから取る基準から、graphics footprint(graphics の ledger と、その compressed の ledger の和)が `graphicsGrowthLimitBytes` 以上増えたら、次の読み取りの前に読み直します。既定で有効なのは検証した Qwen3.5-0.8B の資産だけ(536,870,912 バイト、512 MiB)で、ほかのバンドルでは値を渡すと有効になり、0 を渡すと止まります。
 
 ## 制限
 
