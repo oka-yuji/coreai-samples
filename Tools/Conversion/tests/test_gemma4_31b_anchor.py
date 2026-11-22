@@ -344,6 +344,9 @@ class CompareTests(unittest.TestCase):
                    "no compute": (lambda data: data.update(schema=anchor.SCHEMA, stage="anchor"), ["case"], anchor_compare.UNKNOWN),
                    "a stage inside compute": (lambda data: data.update(
                        anchor_record, stage="other", compute={**anchor_record["compute"], "stage": "anchor"}), ["case"],
+                       anchor_compare.UNKNOWN),
+                   "an extra entry in compute": (lambda data: data.update(
+                       anchor_record, compute={**anchor_record["compute"], "stage": "anchor"}), ["case"],
                        anchor_compare.UNKNOWN)}
         for label, (change, names, message) in changes.items():
             with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
