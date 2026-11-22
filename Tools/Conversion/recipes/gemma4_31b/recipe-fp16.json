@@ -8,7 +8,7 @@
     "converter": "$upstream/.venv/bin/python",
     "context": "16896"
   },
-  "python": "$python",
+  "python": "$converter",
   "environment": {
     "HF_HOME": "$hf_cache",
     "HF_HUB_CACHE": "$hf_cache/hub",

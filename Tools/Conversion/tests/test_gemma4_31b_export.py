@@ -1,4 +1,6 @@
+import contextlib
 import copy
+import io
 import json
 import os
 from pathlib import Path
@@ -6,12 +8,14 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+import venv
 
 from Tools.Conversion.adapters.gemma4_31b import export, native
 from Tools.Conversion.adapters.gemma4_31b.layers import check_layers
 from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
 from Tools.Conversion.recipe import expand, load_recipe
-from Tools.Conversion.storage import PipelineError, read_json
+from Tools.Conversion.runner import run
+from Tools.Conversion.storage import PipelineError, read_json, write_json
 
 REPOSITORY = Path(__file__).resolve().parents[3]
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
@@ -353,6 +357,35 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual(sources["steps"][0], read_json(RECIPE / "recipe.json")["steps"][0])
         self.assertEqual(sources["environment"], read_json(RECIPE / "recipe.json")["environment"])
 
+    def test_the_runner_fingerprints_the_environment_that_runs_the_export_step(self):
+        recipe = self.load(layers="6", functions="main")
+        command = expand(recipe["steps"][1]["command"], {**recipe["variables"], "out": "/stage", "prepare": "/prepared"})
+        self.assertEqual(recipe["python"], command[0])
+
+    def test_a_change_in_the_environment_of_the_export_step_is_not_reused(self):
+        sources = read_json(RECIPE / "recipe-fp16.json")
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            environment = root / "converter"
+            venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
+            worker = root / "worker.py"
+            worker.write_text("import pathlib, sys\n(pathlib.Path(sys.argv[1]) / 'export.json').write_text('{\"passed\": true}')\n")
+            write_json(root / "recipe.json", {
+                "version": 1, "name": "converter_environment", "python": sources["python"],
+                "variables": {"converter": str(environment / "bin/python")},
+                "steps": [{"id": "export", "role": "export", "command": [sources["steps"][1]["command"][0], str(worker), "$out"],
+                           "inputs": [str(worker)], "outputs": ["export.json"],
+                           "checks": [{"file": "export.json", "key": ["passed"], "equals": True}]}]})
+
+            def statuses():
+                with contextlib.redirect_stdout(io.StringIO()):
+                    report = read_json(run(load_recipe(root / "recipe.json", {}, root), root / "work"))
+                return [stage["status"] for stage in report["stages"]]
+
+            self.assertEqual(statuses(), ["executed"])
+            self.assertEqual(statuses(), ["reused"])
+            (next((environment / "lib").glob("python*/site-packages")) / "changed.py").write_text("")
+            self.assertEqual(statuses(), ["executed"])
 
 
 if __name__ == "__main__":
