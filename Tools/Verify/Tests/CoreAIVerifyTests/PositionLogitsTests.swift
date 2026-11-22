@@ -85,6 +85,38 @@ import Testing
         #expect(PositionLogits.pieces(0..<0, size: 4096).isEmpty)
     }
 
+    @Test(
+        "The prefix call lengths from the engine become consecutive ranges from position 0, and the previous chunk lengths give the previous pieces"
+    )
+    func prefixLengthsBecomeConsecutiveRanges() {
+        #expect(PositionLogits.pieces(from: 0, lengths: [96, 4]) == [0..<96, 96..<100])
+        #expect(PositionLogits.pieces(from: 0, lengths: [96, 7, 7, 2]) == [0..<96, 96..<103, 103..<110, 110..<112])
+        #expect(PositionLogits.pieces(from: 0, lengths: []).isEmpty)
+        for start in 0...300 {
+            for size in [1, 8, 256, 4096] {
+                let previous = PositionLogits.pieces(0..<start, size: size)
+                #expect(PositionLogits.pieces(from: 0, lengths: previous.map(\.count)) == previous)
+            }
+        }
+    }
+
+    @Test(
+        "The prefix goes through main when the call shape rule splits it differently from the prefill chunks, and keeps the prefill function otherwise",
+        arguments: [
+            (0, [], 4096, true, nil), (100, [96, 4], 4096, true, "main"), (112, [96, 7, 7, 2], 4096, true, "main"),
+            (100, [100], 4096, true, "prefill"), (96, [96], 4096, true, "prefill"),
+            (113, [113], 4096, true, "prefill"), (300, [256, 44], 256, true, "prefill"),
+            (100, [100], 4096, false, "main"), (100, [96, 4], 4096, false, "main"),
+        ] as [(Int, [Int], Int, Bool, String?)])
+    func prefixFunctionFollowsTheSplit(
+        start: Int, lengths: [Int], chunkSize: Int, hasPrefillFunction: Bool, expected: String?
+    ) {
+        #expect(
+            PositionLogits.prefixFunction(
+                start: start, lengths: lengths, chunkSize: chunkSize, hasPrefillFunction: hasPrefillFunction)
+                == expected)
+    }
+
     @Test("A chunk length near the largest integer is cut to the remaining positions without overflow")
     func cutsALargeChunkToTheRemainingPositions() {
         #expect(PositionLogits.pieces(1..<10, size: .max) == [1..<10])
