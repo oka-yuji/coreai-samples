@@ -351,6 +351,24 @@ class ConditionTests(unittest.TestCase):
             verify.assert_not_called()
             original_model.assert_not_called()
 
+    def test_a_context_run_refuses_an_existing_output_before_it_reads_the_contract(self):
+        with tempfile.TemporaryDirectory() as folder:
+            broken = Path(folder) / "broken.json"
+            broken.write_text("{")
+            outputs = {"file": lambda path: path.write_text("earlier"), "folder": lambda path: path.mkdir(),
+                       "dangling link": lambda path: path.symlink_to(Path(folder) / "missing")}
+            for label, make in outputs.items():
+                output = Path(folder) / label.replace(" ", "-")
+                make(output)
+                seen = lambda: (os.readlink(output) if output.is_symlink() else None,
+                                output.read_bytes() if output.is_file() else None)
+                before = seen()
+                with self.subTest(output=label), mock.patch.object(layers, "load_contract", wraps=layers.load_contract) as load, \
+                        self.assertRaises(FileExistsError):
+                    layers.context(broken, Path(folder) / "snapshot", 6, output)
+                load.assert_not_called()
+                self.assertEqual(seen(), before)
+
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
 class ContextReferenceTests(unittest.TestCase):

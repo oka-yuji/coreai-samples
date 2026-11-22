@@ -321,15 +321,22 @@ class CompareTests(unittest.TestCase):
     def test_an_existing_output_is_refused_before_anything_is_read(self):
         target = self.folder / "target"
         target.write_text("target")
+        broken = self.folder / "broken.json"
+        broken.write_text("{")
         for label, make in {"file": lambda path: path.write_text("x"), "folder": lambda path: path.mkdir(),
                             "dangling link": lambda path: path.symlink_to(self.folder / "missing"),
                             "link": lambda path: path.symlink_to(target)}.items():
             output = self.folder / label.replace(" ", "-")
             make(output)
-            with self.subTest(output=label), mock.patch.object(native, "read_once") as read:
+            before = (os.readlink(output) if output.is_symlink() else None, output.read_bytes() if output.is_file() else None)
+            with self.subTest(output=label), mock.patch.object(native, "read_once") as read, \
+                    mock.patch.object(native, "load_contract", wraps=native.load_contract) as load:
                 with self.assertRaises(FileExistsError):
-                    native.compare(self.export, self.reference, self.verifier, output, self.contract)
+                    native.compare(self.export, self.reference, self.verifier, output, broken)
                 read.assert_not_called()
+                load.assert_not_called()
+            self.assertEqual((os.readlink(output) if output.is_symlink() else None,
+                              output.read_bytes() if output.is_file() else None), before)
 
     def test_the_command_writes_the_result_and_exits_with_one_unless_it_passes(self):
         result = {"passed": False, "problems": [], "conditions": [{"name": "tail", "passed": False, "max_abs_logit": None}]}

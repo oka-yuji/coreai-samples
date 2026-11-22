@@ -211,8 +211,10 @@ def condition(name, source, length, start, chunk, config, arrays, bundle, main_h
 
 
 def compare(export_folder, reference_folder, verifier, output, contract_path=CONTRACT):
-    output.mkdir(parents=True)
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(f"The comparison must be written to a new folder: {output}")
     contract = load_contract(contract_path)
+    output.mkdir(parents=True)
     problems = []
     try:
         reference, reference_hash, arrays, found = load_reference(reference_folder, contract, contract_path)

@@ -210,6 +210,26 @@ class StartTests(unittest.TestCase):
                 self.assertEqual((os.readlink(output) if output.is_symlink() else None,
                                   output.read_bytes() if output.is_file() else None), before)
 
+    def test_an_existing_output_is_refused_before_the_contract_is_read(self):
+        broken = self.folder / "broken.json"
+        broken.write_text("{")
+        outputs = {"file": lambda path: path.write_text("earlier"), "folder": lambda path: path.mkdir(),
+                   "dangling link": lambda path: path.symlink_to(self.folder / "missing")}
+        for label, make in outputs.items():
+            output = self.folder / f"broken-{label.replace(' ', '-')}"
+            make(output)
+            before = (os.readlink(output) if output.is_symlink() else None, output.read_bytes() if output.is_file() else None)
+            argv = arguments(self.folder, output)
+            argv[argv.index("--model") + 1] = str(broken)
+            with self.subTest(output=label), mock.patch.object(export, "load_contract", wraps=export.load_contract) as load:
+                with self.assertRaises(FileExistsError) as raised:
+                    self.main(argv)
+                load.assert_not_called()
+                for call in raised.exception.calls:
+                    call.assert_not_called()
+            self.assertEqual((os.readlink(output) if output.is_symlink() else None,
+                              output.read_bytes() if output.is_file() else None), before)
+
     def test_first_layers_that_do_not_end_with_a_full_attention_layer_are_refused_before_the_output_is_made(self):
         for layers in ("0", "5", "7", "61", "-6"):
             output = self.folder / f"layers-{layers}"
