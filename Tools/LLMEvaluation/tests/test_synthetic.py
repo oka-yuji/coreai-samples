@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 import random
 import re
-import unicodedata
 import unittest
 
+from Tools.LLMEvaluation import scoring
 from Tools.LLMEvaluation.items import FILES, ROOT, digest, item, load, read_json
 from Tools.LLMEvaluation.synthetic.generate import generate
 from Tools.LLMEvaluation.synthetic.solve import fields, solve_extract, solve_format, solve_long
@@ -20,48 +20,16 @@ def made(name, index, records=None):
     return generate(CATEGORIES[name], index, SEED, PROMPTS, VOCABULARY, records)
 
 
-def spec_final_integer(output):
-    text = unicodedata.normalize("NFKC", output)
-    marker = CONTRACT["scorers"]["final_integer"]["marker"]
-    if marker not in text:
-        return None
-    found = re.match(r"\s*(-?\d+)", text[text.rindex(marker) + len(marker):])
-    return int(found.group(1)) if found else None
+def final_integer(output):
+    return scoring.score({"scorer": {"kind": "final_integer"}, "answer": None}, output)["parsed"]
 
 
-def spec_first_object(output):
-    def pairs(items):
-        keys = [key for key, _ in items]
-        if len(keys) != len(set(keys)):
-            raise KeyError("duplicate key")
-        return dict(items)
-
-    decoder = json.JSONDecoder(object_pairs_hook=pairs)
-    for start in [index for index, character in enumerate(output) if character == "{"]:
-        try:
-            value, _ = decoder.raw_decode(output, start)
-        except json.JSONDecodeError:
-            continue
-        return value
-    return None
+def json_exact(output, answer):
+    return scoring.score({"scorer": {"kind": "json_exact"}, "answer": answer}, output)["correct"]
 
 
-def spec_json_exact(output, answer):
-    try:
-        value = spec_first_object(output)
-    except KeyError:
-        return False
-    return value is not None and json.dumps(value, sort_keys=True, ensure_ascii=False) == json.dumps(
-        answer, sort_keys=True, ensure_ascii=False)
-
-
-def spec_format(output, rules):
-    lines = [line.strip() for line in output.strip().splitlines() if line.strip()]
-    if len(lines) != rules["items"] or not all(line.startswith(rules["bullet"]) for line in lines):
-        return False
-    texts = [line[len(rules["bullet"]):].strip() for line in lines]
-    return (all(len(text) <= rules["max_chars"] and text.endswith(tuple(rules["endings"])) for text in texts)
-            and all(any(word in text for text in texts) for word in rules["required"]))
+def format_rules(output, rules):
+    return scoring.score({"scorer": rules, "answer": None}, output)["correct"]
 
 
 def records_of(content):
@@ -158,42 +126,42 @@ class ScoringSpecificationExamples(unittest.TestCase):
     def test_final_integer_examples(self):
         answer = made("synth-long-4k", 3, 260)["answer"]
         marker = CONTRACT["scorers"]["final_integer"]["marker"]
-        self.assertEqual(spec_final_integer(f"{marker} {answer}"), answer)
-        self.assertEqual(spec_final_integer(EXAMPLES["final_integer"]["full_width_marker"] + str(answer)), answer)
-        self.assertEqual(spec_final_integer(f"{marker} 1\n{marker} {answer}"), answer)
-        self.assertNotEqual(spec_final_integer(f"{marker} {answer + 1}"), answer)
-        self.assertIsNone(spec_final_integer(str(answer)))
+        self.assertEqual(final_integer(f"{marker} {answer}"), answer)
+        self.assertEqual(final_integer(EXAMPLES["final_integer"]["full_width_marker"] + str(answer)), answer)
+        self.assertEqual(final_integer(f"{marker} 1\n{marker} {answer}"), answer)
+        self.assertNotEqual(final_integer(f"{marker} {answer + 1}"), answer)
+        self.assertIsNone(final_integer(str(answer)))
 
     def test_well_formed_but_wrong_json_is_incorrect(self):
         extract = made("synth-extract", 0)
         answer = extract["answer"]
-        self.assertTrue(spec_json_exact(json.dumps(answer, ensure_ascii=False, indent=2), answer))
-        self.assertTrue(spec_json_exact("```json\n" + json.dumps(answer, ensure_ascii=False) + "\n```", answer))
+        self.assertTrue(json_exact(json.dumps(answer, ensure_ascii=False, indent=2), answer))
+        self.assertTrue(json_exact("```json\n" + json.dumps(answer, ensure_ascii=False) + "\n```", answer))
         root, rows = next(iter(answer.items()))
         wrong = json.loads(json.dumps(answer))
         first = wrong[root][0]
         key = next(key for key, value in first.items() if isinstance(value, str))
         first[key] = first[key] + "X"
-        self.assertFalse(spec_json_exact(json.dumps(wrong, ensure_ascii=False), answer))
+        self.assertFalse(json_exact(json.dumps(wrong, ensure_ascii=False), answer))
         extra = json.loads(json.dumps(answer))
         extra["extra"] = []
-        self.assertFalse(spec_json_exact(json.dumps(extra, ensure_ascii=False), answer))
-        self.assertFalse(spec_json_exact(json.dumps({root: rows[::-1]}, ensure_ascii=False), answer))
+        self.assertFalse(json_exact(json.dumps(extra, ensure_ascii=False), answer))
+        self.assertFalse(json_exact(json.dumps({root: rows[::-1]}, ensure_ascii=False), answer))
         text = json.dumps(answer, ensure_ascii=False)
-        self.assertFalse(spec_json_exact(text[:-1] + f', "{root}": []' + "}", answer))
+        self.assertFalse(json_exact(text[:-1] + f', "{root}": []' + "}", answer))
         quantity = made("synth-extract", 2)
         self.assertEqual(quantity["template"], "orders")
         typed = json.dumps(quantity["answer"], ensure_ascii=False)
         number = re.search(r": (\d+)", typed)
         swapped = typed[:number.start(1)] + f'"{number.group(1)}"' + typed[number.end(1):]
-        self.assertFalse(spec_json_exact(swapped, quantity["answer"]))
+        self.assertFalse(json_exact(swapped, quantity["answer"]))
 
     def test_format_examples(self):
         examples = EXAMPLES["format"]
-        self.assertTrue(spec_format(examples["correct"], examples["rules"]))
+        self.assertTrue(format_rules(examples["correct"], examples["rules"]))
         for name, output in examples["incorrect"].items():
             with self.subTest(name):
-                self.assertFalse(spec_format(output, examples["rules"]))
+                self.assertFalse(format_rules(output, examples["rules"]))
         generated = made("synth-format", 1)
         self.assertEqual(solve_format(generated["content"], PROMPTS), generated["scorer"])
 

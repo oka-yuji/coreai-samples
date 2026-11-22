@@ -56,6 +56,21 @@ def build(arguments):
     return 0
 
 
+def score(arguments):
+    from Tools.LLMEvaluation import scoring
+
+    bundle = items.load()
+    found = checks.problems(bundle)
+    if found:
+        for problem in found:
+            print(f"FAIL: {problem}")
+        return 1
+    tokenizer, pinned = scoring.pinned(arguments.tokenizer, bundle["contract"])
+    print(json.dumps(scoring.score_runs(bundle, arguments.items, arguments.run, arguments.output, tokenizer, pinned),
+                     indent=2, sort_keys=True))
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(prog="python3 -m Tools.LLMEvaluation")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -68,8 +83,13 @@ def main():
     built = commands.add_parser("build")
     built.add_argument("--datasets", type=Path, required=True)
     built.add_argument("--output", type=Path, required=True)
+    scored = commands.add_parser("score")
+    scored.add_argument("--items", type=Path, required=True)
+    scored.add_argument("--run", type=Path, nargs="+", required=True)
+    scored.add_argument("--tokenizer", type=Path, required=True)
+    scored.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
-    return {"validate": validate, "select": select, "build": build}[arguments.command](arguments)
+    return {"validate": validate, "select": select, "build": build, "score": score}[arguments.command](arguments)
 
 
 if __name__ == "__main__":
