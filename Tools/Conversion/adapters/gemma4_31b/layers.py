@@ -185,6 +185,10 @@ def differences(first, second):
             "non_finite": dict(zip(IMPLEMENTATIONS, non_finite))}
 
 
+def same_file(first, second):
+    return first.exists() and second.exists() and first.samefile(second)
+
+
 def below(value, limit):
     return value is not None and (value < limit if isinstance(limit, float) else value <= limit)
 
@@ -202,15 +206,18 @@ def compare(original, model_class, contract_path=CONTRACT):
                  if (record.get("model") or {}).get("contract_sha256") != sha256(contract_path)]
     problems += [f"the runs differ in {key}" for key in ("model", "layers", "layer_types")
                  if records[0].get(key) != records[1].get(key)]
+    if same_file(*(folder / "record.json" for folder in folders)):
+        problems.append("both runs read the same record.json")
     results = {}
     for name, criteria in CRITERIA.items():
         ids = tokens(name, contract["config"])
         entries = [(record.get("inputs") or {}).get(name) or {} for record in records]
-        found, arrays = [], []
-        for kind, folder, entry in zip(IMPLEMENTATIONS, folders, entries):
+        paths = [folder / f"{name}.npy" for folder in folders]
+        found = [f"{name}: both runs read the same logits file"] if same_file(*paths) else []
+        arrays = []
+        for kind, path, entry in zip(IMPLEMENTATIONS, paths, entries):
             if (entry.get("positions"), entry.get("tokens_sha256")) != (len(ids), digest(ids)):
                 found.append(f"{name}: the {kind} run did not read the {name} input")
-            path = folder / f"{name}.npy"
             if not recorded(path, entry.get("logits")):
                 found.append(f"{name}: the {kind} logits differ from the size and SHA-256 in their record")
                 continue

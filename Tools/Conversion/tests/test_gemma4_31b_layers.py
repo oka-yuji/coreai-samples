@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -228,6 +229,26 @@ class CompareTests(unittest.TestCase):
         with self.subTest(case="missing logits"):
             (run / "class/long.npy").unlink()
             self.assertFalse(self.compare(run)["passed"])
+
+    def test_runs_that_read_the_same_file_never_pass_and_copies_are_not_stopped_by_that_check(self):
+        for label, link in {"symbolic-link": os.symlink, "hard-link": os.link}.items():
+            with self.subTest(link=label):
+                run = self.pair(label)
+                (run / "class/long.npy").unlink()
+                link(run / "original/long.npy", run / "class/long.npy")
+                result = self.compare(run)
+                self.assertFalse(result["passed"])
+                self.assertIn("long: both runs read the same logits file", result["problems"])
+        with self.subTest(link="record"):
+            run = self.pair("record")
+            (run / "class/record.json").unlink()
+            os.link(run / "original/record.json", run / "class/record.json")
+            self.assertIn("both runs read the same record.json", self.compare(run)["problems"])
+        with self.subTest(link="copy"):
+            run = self.pair("copy")
+            shutil.copyfile(run / "original/long.npy", run / "class/long.npy")
+            result = self.compare(run)
+            self.assertTrue(result["passed"], result["problems"])
 
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
