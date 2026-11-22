@@ -140,54 +140,35 @@ cache key. The published record is [docs/validation/gemma4-31b](../../../../docs
 
 ### Converter environment
 
-`local setup --recipe gemma4_31b` also prepares `.local/conversion/upstream-gemma4-31b/coreai-models`. When the
-folder is missing, it clones Apple's public converter and checks out `upstream_revision` of `model.json`. An
-existing checkout is used only when its origin is the public repository, its HEAD is that revision and no tracked
-file is edited; otherwise setup stops without changing it. Setup then installs the frozen lock of the checkout into
-`<checkout>/.venv` (`uv sync --frozen --no-dev --package coreai-models --python 3.11`) and checks the checkout
-again. It builds no Swift runner. The lock of this revision installs coreai-core 1.0.0b3, coreai-torch 0.4.3,
-coreai-opt 0.4.0, torch 2.9.0 and transformers 5.12.1. The reference environment above stays separate and keeps
-transformers 5.16.1.
+`local setup --recipe gemma4_31b` also prepares `.local/conversion/upstream-gemma4-31b/coreai-models`: a checkout of
+Apple's public converter at `upstream_revision` of `model.json`, with the frozen lock of that checkout installed in
+its `.venv`. An existing checkout is used only when it is a clean checkout of that revision; otherwise setup stops
+without changing it. This converter environment is separate from the reference environment of the steps above.
 
 ### Model class
 
-`adapters/gemma4_31b/model.py` defines `Gemma4ForCausalLM`, a subclass of the converter's `BaseForCausalLM` for
-the text model. It imports the converter, so it runs only in the converter environment.
+`adapters/gemma4_31b/model.py` defines `Gemma4ForCausalLM`, a subclass of the converter's `BaseForCausalLM`. It
+imports the converter, so it runs only in the converter environment.
 
 - `main` takes `input_ids` [1, n] and `position_ids` [1, P + n] (the positions of the P cached tokens followed by
-  those of the n new ones) and returns `logits` [1, n, vocabulary] after the soft cap `tanh(x / 30) · 30`.
-  `prefill` (prefill mode) takes the same inputs and returns nothing.
-- The states are four growing caches whose only dynamic dimension is the sequence (index 3), written by the
-  converter's `KVCache.update_and_fetch`: `keyCache` and `valueCache` [full-attention layers, 1, 4, ?, 512] and
-  `slidingKeyCache` and `slidingValueCache` [sliding-window layers, 1, 16, ?, 256] (the `forward` arguments
-  `k_cache`, `v_cache`, `sliding_k_cache` and `sliding_v_cache`). The first N layers follow the pattern: 1 and 5
-  layers for 6, 5 and 25 for 30, 10 and 50 for 60.
-- Sliding-window layers cut the prefix that `update_and_fetch` returns to its last `L = sym_min(seq, window − 1 + n)`
-  positions and mask it with the boolean `0 ≤ q − k < window`, where `q` and `k` are values of `position_ids` (the
-  last n and the last L). They call the composite SDPA with `is_causal=False` and scale 1.0. Full-attention layers
-  call it with `is_causal=True` over the whole prefix. The class builds no position or mask from an `arange` of a
-  dynamic length (both come from `position_ids`), and it does not use the composite `window_size`.
-- The rest of the graph: the embedding times the BF16 rounding of √hidden (73.5 for 5376), RMSNorm with the weight
-  `w`, `q_norm` and `k_norm` before RoPE, `v_norm` without a weight (in full-attention layers on the K projection
-  before `k_norm`), the proportional RoPE through `DecomposedRoPE` in full-attention layers and the composite RoPE
-  in sliding-window layers, `layer_scalar` on the whole stream after the second residual, the final norm and the
-  head shared with the embedding.
-- `num_layers` keeps the first N layers: `from_hf_memory_efficient(snapshot, num_layers=N,
-  hf_config_attr="text_config", hf_state_dict_prefix="model.language_model.")` reads them layer by layer without
-  changes to the converter.
-- The configuration is read from the flat fields of transformers 5.12.1 (`head_dim`, `global_head_dim`,
-  `num_key_value_heads` and `num_global_key_value_heads`). A missing field stops; there is no fallback
-  (transformers 5.16.1 keeps the head dimensions per layer).
-- These configurations stop with `ValueError` in `_get_reauthored_config`, which the converter calls before it
-  reads any weight: per-layer inputs, shared key and value layers, a mixture of experts, `attention_k_eq_v` false,
-  attention bias, `use_bidirectional_attention` `"all"`, untied embeddings, another activation than
-  `gelu_pytorch_tanh`, another RoPE type in either kind of layer, a scaled full-attention RoPE and another layer
-  type.
+  those of the n new ones) and returns `logits` [1, n, vocabulary]; `prefill` takes the same inputs and returns
+  nothing.
+- The states are `keyCache` and `valueCache` [full-attention layers, 1, 4, ?, 512] and `slidingKeyCache` and
+  `slidingValueCache` [sliding-window layers, 1, 16, ?, 256] (the `forward` arguments `k_cache`, `v_cache`,
+  `sliding_k_cache` and `sliding_v_cache`); the sequence is their only dynamic dimension.
+- Sliding-window layers cut the cached keys and values to the last positions that the window can reach and mask
+  them with the values of `position_ids`. No position or mask comes from an `arange` of a dynamic length, and the
+  composite SDPA's `window_size` is not used.
+- `from_hf_memory_efficient(..., num_layers=N, hf_config_attr="text_config",
+  hf_state_dict_prefix="model.language_model.")` reads the first N layers; their states follow the pattern of five
+  sliding-window layers and one full-attention layer.
+- A configuration that the class does not cover stops with `ValueError` before any weight is read (`text_config` in
+  `model.py`).
 
 ### FP32 logits of the first layers
 
-`adapters/gemma4_31b/layers.py` writes the logits of the first N layers for two fixed inputs with either
-implementation, and compares two such runs.
+`adapters/gemma4_31b/layers.py` writes the FP32 logits of the first N layers of either implementation for two fixed
+inputs, `short` and `long`, and compares two such runs:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
@@ -200,42 +181,17 @@ implementation, and compares two such runs.
   --original <new folder>/original --model-class <new folder>/class --output <new folder>/comparison.json
 ~~~
 
-- `run` loads model weights: start it under the shared machine lock, which it does not take itself (six layers
-  hold 4,338,096,902 values, 17.4 GB in FP32). It refuses an existing output folder. Right before loading it checks
-  the snapshot with `verify_inputs` of the reference step (the size and SHA-256 of every file to load, and exactly
-  the pinned files). Both implementations round every checkpoint tensor to FP16 and compute in FP32 on the CPU,
-  with the BF16 rounding of √hidden as the embedding multiplier.
-  - `original` (reference environment) is the Transformers `Gemma4ForCausalLM` with eager attention, built for the
-    first N layers of `config.json`. It loads exactly those layers, the embedding and the final norm under
-    `model.language_model.` and stops when a key is missing or left over. Its multiplier buffer is set to the BF16
-    rounding that the distributed BF16 model computes with (73.5, where FP32 would use √5376 = 73.32).
-  - `class` (converter environment) is the model class read with `from_hf_memory_efficient(..., target_dtype=float16,
-    num_layers=N)` and converted to FP32. It first requires that `coreai_models` is imported from a checkout that
-    passes the setup check for `upstream_revision`.
-- Inputs: `short` has 26 tokens and `long` 1,400 (more than the window of 1,024): BOS followed by IDs from BOS + 1
-  to the vocabulary size, drawn by Python's `random.Random` with the seeds 0 and 1. `original` reads each input in
-  one call without a cache. `class` reads the first `sliding_window` tokens in one call and the rest in chunks of
-  1, 2, 4 and 8 tokens in turn, with states sized to the input, so the calls after position 1,024 cut the window.
-- Output: `short.npy` and `long.npy` (float32 [positions, vocabulary], the logits after the soft cap; row j is the
-  output at position j) and, written last, `record.json`: the implementation, the layer count and types, the model
-  ID, revision and contract SHA-256 with the hashes verified before loading, the weight handling, the multiplier,
-  the package versions (and the converter revision for `class`), per input the positions, the SHA-256 of the token
-  list (canonical JSON), the calls and the size, SHA-256, dtype, shape and non-finite count of the logits file, the
-  times, the peak resident memory and the kernel lifetime footprint peak. A run that stops writes no `record.json`.
-- `compare` refuses an existing output file. It passes only when the first run is `original` and the second
-  `class` (a run compared with itself fails), both used this contract with the same layers, each read the fixed
-  input (positions and token SHA-256), every logits file has the size and SHA-256 of its record and is float32
-  [positions, vocabulary], no compared value is NaN or infinite, and the criteria hold. The criteria were fixed from
-  the measurement of #665 before this check ran: for `short` the largest absolute logit difference is below 1e-3;
-  for `long` it is below 5e-3, the largest absolute difference of the softmax probabilities is below 1e-6 and no
-  position has another `argmax`. The differences are computed in float64 over blocks of 256 rows.
+`run` loads the weights: start it under the shared machine lock, which it does not take itself. It writes
+`short.npy`, `long.npy` and, last, `record.json` into a new folder. `compare` passes only for a run of the original
+implementation and a run of the model class on the same inputs whose differences stay below the criteria: for
+`short` a largest absolute logit difference below 1e-3, and for `long` a largest absolute logit difference below
+5e-3, a largest probability difference below 1e-6 and no position with another `argmax`.
 
 ### Tests
 
-The tests of the model class import the converter and live in `Tools/Conversion/tests/export_gemma4_31b_model.py`.
-The default pattern of `unittest discover` (`test*.py`) does not collect them, so other environments neither run
-nor report them. Run them in the converter environment, and the remaining tests of this recipe in both
-environments:
+The tests of the model class are in `Tools/Conversion/tests/export_gemma4_31b_model.py`. The default pattern of
+`unittest discover` (`test*.py`) does not collect them; run them in the converter environment, where
+`test_gemma4_31b_layers.py` also runs, and run every `test_gemma4_31b_*.py` in the reference environment:
 
 ~~~sh
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
@@ -245,19 +201,6 @@ environments:
 .local/conversion/gemma4_31b/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
   -p 'test_gemma4_31b_*.py' -v
 ~~~
-
-They build a synthetic Gemma 4 text model (five sliding-window layers and one full-attention layer, twice; window
-8; hidden size 48; `attention_k_eq_v`; soft cap 30; random weights) and compare the model class with the original
-implementation of the converter environment (Transformers 5.12.1, eager, FP32, CPU) on 61 tokens read in one call,
-one token at a time, in chunks of 2, 4 and 8, and as a prefill of 20 tokens followed by one token at a time; every
-reading stays below a largest logit difference of 1e-3. The same comparison detects a window one position wider
-or narrower, unmasked later positions in the window or in the full-attention layers, a window slice one position
-shorter and the positions of the new tokens shifted by one. They also check the state shapes for 1 to 12 layers,
-that each state keeps one dynamic dimension in the graph of `torch.export` (no Core AI conversion), the unsupported
-configurations, and `run` of both implementations on a synthetic snapshot followed by `compare`, which reports no
-problem and logit differences below 1e-3 (the test does not apply the probability criterion of `long`, which is
-meant for the vocabulary of 262,144 tokens). `test_gemma4_31b_layers.py` covers the original implementation and
-`compare` without the converter.
 
 ## Terms
 
