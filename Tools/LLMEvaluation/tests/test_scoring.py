@@ -472,6 +472,26 @@ class ScoreRunTests(unittest.TestCase):
         self.assertEqual((checks["malformed"], checks["duplicate"]), ([1, 2, "ja-choice-0001"], ["ja-choice-0001"]))
         self.assertEqual((scores["ja-choice-0001"]["state"], scores["ja-choice-0001"]["correct"]), ("scored", True))
 
+    def test_summaries_are_standard_ascii_json_with_unencodable_ids_and_constants(self):
+        surrogate, other = chr(0xD800), chr(0xDFFF)
+        rows = [record(key, values) for key, values in self.outputs.items()]
+        rows += [{key: value for key, value in record(surrogate, [7]).items() if key != "top2"}, record(other, [7])]
+        folder = self.root / "surrogate"
+        folder.mkdir()
+        (folder / "outputs.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        (folder / "run.json").write_text('{"role": "candidate", "note": NaN}', encoding="utf-8")
+        _, output = self.scored([folder])
+
+        def strict(name):
+            raise ValueError(name)
+
+        summary = json.loads((output / "surrogate" / "summary.json").read_text(encoding="ascii"), parse_constant=strict)
+        for line in (output / "surrogate" / "scores.jsonl").read_text(encoding="ascii").splitlines():
+            json.loads(line, parse_constant=strict)
+        self.assertEqual((summary["checks"]["malformed"], summary["checks"]["not_in_set"]),
+                         ([surrogate], [surrogate, other]))
+        self.assertEqual(summary["run"], {"role": "candidate", "note": "NaN"})
+
     def test_runs_are_scored_together_into_a_new_folder(self):
         first = self.run_folder("one", [record(key, ids) for key, ids in self.outputs.items()])
         second = self.run_folder("two", [record(key, []) for key in self.outputs])

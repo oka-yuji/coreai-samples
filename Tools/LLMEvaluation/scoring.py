@@ -270,7 +270,7 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
             (output / name / "scores.jsonl").write_text(
                 "".join(json.dumps(standard({**row, **({"f1": float(row["f1"])} if "f1" in row else {})}),
                                    allow_nan=False) + "\n" for row in rows), encoding="utf-8")
-            (output / name / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
+            (output / name / "summary.json").write_text(json.dumps(standard(summary), indent=2, allow_nan=False) + "\n",
                                                         encoding="utf-8")
     except BaseException:
         shutil.rmtree(output, ignore_errors=True)
