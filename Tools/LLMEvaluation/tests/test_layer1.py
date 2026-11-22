@@ -402,6 +402,20 @@ class RefusalTests(Folder):
         state["progress"] = None
         self.refused(state, "progress.json", error=FileNotFoundError)
 
+    def test_an_output_record_with_a_repeated_key_writes_nothing_even_when_its_last_value_is_right(self):
+        inputs, run = save(fixture(), tempfile.mkdtemp(dir=self.root))
+        rows = (run / "outputs.jsonl").read_bytes().split(b"\n")
+        number = next(index for index, row in enumerate(rows) if b'"id": "free-ja-0001"' in row)
+        rows[number] = b'{"input_sha256": "' + b"1" * 64 + b'", ' + rows[number][1:]
+        data = b"\n".join(rows)
+        (run / "outputs.jsonl").write_bytes(data)
+        progress = json.loads((run / "progress.json").read_text())
+        (run / "progress.json").write_text(json.dumps({**progress, "sha256": hashlib.sha256(data).hexdigest()}))
+        with self.assertRaises(ValueError) as caught:
+            layer1.write(BUNDLE, inputs, run, self.root / "forced")
+        self.assertIn(f"malformed [{number + 1}]", str(caught.exception))
+        self.assertFalse(os.path.lexists(self.root / "forced"))
+
     def test_a_long_context_input_whose_length_differs_from_the_set_writes_nothing(self):
         state = fixture()
         source = by_id(state["inputs"], "long-ja-4k-0001")

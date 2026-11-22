@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 
 from Tools.LLMEvaluation.items import FILES, canonical
-from Tools.LLMEvaluation.scoring import generated, nonstandard, partition, read_records, record_checks
+from Tools.LLMEvaluation.scoring import generated, nonstandard, partition, record_checks
 
 SET, ROLE = "primary", "reference"
 
@@ -18,6 +18,17 @@ def strict(data):
         return dict(entries)
 
     return json.loads(data, object_pairs_hook=pairs, parse_constant=nonstandard)
+
+
+def strict_records(data):
+    found = []
+    for number, line in enumerate(data.split(b"\n"), 1):
+        if line.strip():
+            try:
+                found.append((number, strict(line)))
+            except (ValueError, RecursionError):
+                found.append((number, None))
+    return found
 
 
 def tokens_sha256(ids):
@@ -150,7 +161,7 @@ def write(bundle, inputs, run, output):
     found = differing(strict((run / "progress.json").read_bytes()), confirmed)
     if found:
         raise ValueError(f"progress.json does not confirm these output records of this finished run: {', '.join(found)}")
-    good, broken = partition(read_records(outputs), math.inf)
+    good, broken = partition(strict_records(outputs), math.inf)
     found = {key: value for key, value in record_checks(bundle["sets"][SET]["items"], good, broken, set()).items()
              if value}
     if found:
