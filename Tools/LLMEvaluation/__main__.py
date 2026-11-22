@@ -81,8 +81,8 @@ def compare(arguments):
             print(f"FAIL: {problem}")
         return 1
     print(json.dumps(comparison.compare_runs(bundle, arguments.items, arguments.baseline, arguments.candidate,
-                                             arguments.scores, arguments.output, arguments.rerun_scores,
-                                             arguments.layer1, arguments.substitute_reason), indent=2))
+                                             arguments.scores, arguments.output, arguments.layer1,
+                                             arguments.substitute_reason), indent=2))
     return 0
 
 
@@ -106,7 +106,6 @@ def main():
     compared = commands.add_parser("compare")
     for name in ("--baseline", "--candidate", "--scores", "--items", "--output"):
         compared.add_argument(name, type=Path, required=True)
-    compared.add_argument("--rerun-scores", type=Path)
     compared.add_argument("--layer1", type=Path)
     compared.add_argument("--substitute-reason")
     arguments = parser.parse_args()

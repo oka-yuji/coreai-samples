@@ -107,7 +107,7 @@ Its `summary.json`, also standard ASCII JSON, holds:
 
 ## Comparison
 
-`compare` compares the scored baseline and candidate of one pair and writes the verdict of contract §7 with the required report items of §7.4. It uses only the standard library, needs no tokenizer, and does not score again: it reads what `score` wrote, the run records and the output records.
+`compare` compares the scored baseline and candidate of one pair and writes the verdict of contract §7 with the required report items of §7.4. It uses only the standard library, needs no tokenizer, and does not score again: it reads what `score` wrote, the run records and the output records. It does not give the correct-to-incorrect and incorrect-to-correct counts of contract §7.4 for a rerun of the same assets with another call shape.
 
 ```sh
 python3 -m Tools.LLMEvaluation compare \
@@ -123,7 +123,6 @@ python3 -m Tools.LLMEvaluation compare \
 | `--scores` | The output folder of the one `score` call that scored both runs; `compare` reads its folders named after the two run folders |
 | `--items` | The `build` file that was scored; its SHA-256 must be `items.sha256` of both summaries |
 | `--output` | A new folder |
-| `--rerun-scores` | Optional: the folder that `score` wrote for a rerun of the candidate's assets with another call shape, holding its `summary.json` and `scores.jsonl` |
 | `--layer1` | Optional: the layer 1 result file; the record keeps its file name and SHA-256 |
 | `--substitute-reason` | The reason why `fp16` could not be run, required to use `reference` as the baseline of `w8` or `w4` |
 
@@ -134,12 +133,11 @@ python3 -m Tools.LLMEvaluation compare \
 - the ids of `--items` are not exactly those of one frozen set, an id repeats, or an item's category or `token_count` differs from the set file;
 - the `scores.jsonl` of a run does not have exactly one row per item of `--items` with its category and scorer kind;
 - the files are not those that were scored, and the pair has to be scored again: `--items` has another SHA-256 than `items.sha256` of either summary, the `outputs.jsonl` of a run folder has another SHA-256 than `outputs.sha256` of its summary, its `run.json` differs from the `run` copied into the summary, or the summary has no `outputs` because an earlier `score` wrote it;
-- the rerun scoring is not that of a rerun of the candidate's assets with only another call shape (contract §7.4): it does not have exactly one row per item of `--items`, it differs from the candidate scoring in `contract`, `items`, `tokenizer` or `scorer`, the run record copied into either scoring lacks `asset`, `inputs`, `implementation`, `call_shape`, `set` or `role` (a `null` counts as lacking), the two run records differ in `asset`, `inputs`, `implementation`, `set` or `role`, or they have the same `call_shape`; or the rerun scoring is not complete, as the baseline and the candidate have to be: one of its six `checks` lists is not empty, its run record is unfinished by the rule of `run_unfinished`, or an item of a scored category has `correct` `null`, as an item without an output has. The message names each of these that holds;
 - the roles in the two `run.json` files are not a pair of `contract.json` (`reference` → `fp16`, `fp16` → `w8`, `fp16` → `w4`). `reference` → `w8` and `reference` → `w4` are accepted only with `--substitute-reason`, and `--substitute-reason` is refused for the other pairs.
 
 `compare` reads `--items`, each `outputs.jsonl` and `run.json` and the `--layer1` file once, so every hash it checks or records and the content it judges come from the same bytes. Each run uses its first well-formed record of each id, read with the record checks of `score`; malformed records reach the verdict only through the `malformed` check of the scoring. When the output cannot be completed, `compare` removes the output folder that it made. It prints the verdict, the number of ids of each reason, the numbers of critical failures, regressions and improvements, and the categories that could not be evaluated.
 
-The output folder gets `verdict.json`, standard ASCII JSON, and `summary.md`, an English summary with the verdict, the reasons, a table per category, the regression and improvement ids, the changed items, the critical failures, the categories that could not be evaluated, the upper bounds, the baseline quality, the code scoring counts, the rerun counts, the layer 1 reference and the claim. Neither file holds output text or public data text. `summary.md` is UTF-8, and a character that UTF-8 cannot encode, such as a lone surrogate that a JSON escape in an id can carry, is written as a backslash escape.
+The output folder gets `verdict.json`, standard ASCII JSON, and `summary.md`, an English summary with the verdict, the reasons, a table per category, the regression and improvement ids, the changed items, the critical failures, the categories that could not be evaluated, the upper bounds, the baseline quality, the code scoring counts, the layer 1 reference and the claim. Neither file holds output text or public data text. `summary.md` is UTF-8, and a character that UTF-8 cannot encode, such as a lone surrogate that a JSON escape in an id can carry, is written as a backslash escape.
 
 The verdict is the first label of the precedence in `contract.json` whose condition holds: `incomplete` when any reason below holds, `critical_failure` when any critical failure was found, `regression_found` when any item regressed, and `no_regression_found` otherwise. Improvements never offset a regression, and a regression at a near tie counts as any other.
 
@@ -175,11 +173,10 @@ A critical failure is judged for each item with a candidate record: `non_finite_
 | `upper_bounds` | For each `upper_bound` category of `contract.json` in the set with no regression, 1 − 0.05^(1/N) with N its item count |
 | `baseline_quality` | `empty_output`, `control_token` and `repetition`: the ids of the baseline outputs that are empty, hold a control token or hold a repetition, in set order |
 | `code` | `baseline` and `candidate`, the `code` of each summary, and `scorer`, that of the baseline summary; each is `null` when the summary has none |
-| `rerun` | `correct_to_incorrect` and `incorrect_to_correct` from the candidate scores to the rerun scores, or `null`; never used for the verdict |
 | `layer1` | `file` and `sha256` of `--layer1`, or `null` |
 | `claim` | For `no_regression_found` only, `layer2.claim` of `contract.json`, followed by `; not evaluated: ` and the `not_evaluable` categories joined by `, ` when there are any; otherwise `null` |
 | `contract` | The contract version and the SHA-256 of `contract.json` |
-| `runs` | `baseline` and `candidate`: the two `run.json` records; with `--rerun-scores`, also `rerun`: the run record copied into the rerun scoring |
+| `runs` | `baseline` and `candidate`: the two `run.json` records |
 | `substitute_reason` | The text of `--substitute-reason`, or `null`; a blank text counts as none |
 
 ## Data

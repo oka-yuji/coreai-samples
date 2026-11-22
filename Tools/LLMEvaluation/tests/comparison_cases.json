@@ -166,7 +166,6 @@
      {"id": "long-ja-4k-0002", "input_sha256": "in-long-ja-4k-0002", "input_tokens": 4000, "output_ids": [1022, 2022, 3022], "stop": "stop_token", "stop_token": 106, "top2": [[1022, 0.75, 7, 0.125], [2022, 0.5, 8, 0.25], [3022, 0.625, 9, 0.125], [106, 0.75, 10, 0.125]], "non_finite": 0}
     ]
    },
-   "rerun": null,
    "layer1": null
   },
   "expected": {
@@ -189,7 +188,6 @@
    "upper_bounds": {"ja-choice": 0.2384041903808527, "ja-reading": 0.7763932022500211, "code-gen-mbpp": 0.7763932022500211, "extract-ja": 0.7763932022500211},
    "baseline_quality": {"empty_output": [], "control_token": [], "repetition": []},
    "code": {"baseline": {"timeouts": 0, "rerun_passed": 0}, "candidate": {"timeouts": 0, "rerun_passed": 0}, "scorer": {"commit": "s0", "python": "3.11.9"}},
-   "rerun": null,
    "layer1": null,
    "claim": "no regression was detected on this evaluation set; not evaluated: code-gen-mbpp, extract-ja, ja-reading, long-ja-4k, synth-format"
   }
@@ -882,16 +880,6 @@
     ["set", ["categories", "ja-choice", "candidate_correct"], 9],
     ["set", ["not_evaluable"], ["code-gen-mbpp", "extract-ja", "ja-choice", "ja-reading", "long-ja-4k", "synth-format"]],
     ["set", ["claim"], "no regression was detected on this evaluation set; not evaluated: code-gen-mbpp, extract-ja, ja-choice, ja-reading, long-ja-4k, synth-format"]
-   ]
-  },
-  {
-   "name": "rerun_counts",
-   "about": "A rerun of the candidate with another call shape reports swaps and does not change the verdict.",
-   "input": [
-    ["set", ["rerun"], {"scores": [{"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit", "correct": false, "state": "scored"}, {"id": "ja-choice-0011", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"}, {"id": "ja-reading-0001", "category": "ja-reading", "kind": "reading_exact", "correct": false, "state": "scored"}, {"id": "ja-reading-0002", "category": "ja-reading", "kind": "reading_exact", "correct": true, "state": "scored"}]}]
-   ],
-   "expected": [
-    ["set", ["rerun"], {"correct_to_incorrect": 2, "incorrect_to_correct": 1}]
    ]
   },
   {

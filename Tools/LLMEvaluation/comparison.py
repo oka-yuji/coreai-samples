@@ -12,8 +12,6 @@ REASONS = ("hash_mismatch", "run_unfinished", "missing_output", "malformed_recor
 CHECKS = {"missing_output": "missing", "not_in_set": "not_in_set", "duplicate_id": "duplicate",
           "top2_differs": "top2_differs"}
 SIDES = ("baseline", "candidate")
-SAME_RUN = ("asset", "inputs", "implementation", "set", "role")
-RECORD_CHECKS = ("missing", "not_in_set", "duplicate", "top2_differs", "item_hash_differs", "malformed")
 
 
 def repeated(ids, rule):
@@ -123,12 +121,6 @@ def compare(document, layer2):
     verdict = next(label for label in layer2["precedence"] if present[label])
     weak = sorted(name for name, value in categories.items()
                   if value["kind"] != "unscored" and value["baseline_correct"] < layer2["min_baseline_correct"])
-    rerun = document.get("rerun")
-    if rerun is not None:
-        again = [(rows["candidate"][row["id"]]["correct"], row["correct"]) for row in rerun["scores"]
-                 if row["id"] in rows["candidate"]]
-        rerun = {"correct_to_incorrect": sum(old is True and new is False for old, new in again),
-                 "incorrect_to_correct": sum(old is False and new is True for old, new in again)}
     return {
         "verdict": verdict, "incomplete": incomplete, "critical_failures": failures,
         "regressions": sorted(regressions), "improvements": sorted(improvements),
@@ -139,7 +131,7 @@ def compare(document, layer2):
         "baseline_quality": quality,
         "code": {"baseline": summaries[0].get("code"), "candidate": summaries[1].get("code"),
                  "scorer": summaries[0].get("scorer")},
-        "rerun": rerun, "layer1": document.get("layer1"),
+        "layer1": document.get("layer1"),
         "claim": (layer2["claim"] + ("; not evaluated: " + ", ".join(weak) if weak else "")
                   if verdict == "no_regression_found" else None),
         "contract": contract, "runs": {side: runs[side]["run"] for side in SIDES},
@@ -175,17 +167,12 @@ def item_rows(bundle, path):
          **({"token_count": item["token_count"]} if "token_count" in item else {})} for item in built]
 
 
-def scoring_of(scored, rows):
-    summary, found = read_json(scored / "summary.json"), lines((scored / "scores.jsonl").read_bytes())
-    if sorted((row["id"], row["category"], row["kind"]) for row in found) != rows:
-        raise ValueError(f"The scores in {scored.name} are not one row per item of the items file")
-    return summary, found
-
-
 def run_files(folder, scores, rows, items_sha256):
     folder = Path(folder).resolve()
     scored = Path(scores) / folder.name
-    summary, found = scoring_of(scored, rows)
+    summary, found = read_json(scored / "summary.json"), lines((scored / "scores.jsonl").read_bytes())
+    if sorted((row["id"], row["category"], row["kind"]) for row in found) != rows:
+        raise ValueError(f"The scores in {scored.name} are not one row per item of the items file")
     data, run = (folder / "outputs.jsonl").read_bytes(), read_json(folder / "run.json")
     recorded = summary.get("outputs", {}).get("sha256")
     differs = [text for text, failed in (
@@ -201,38 +188,12 @@ def run_files(folder, scores, rows, items_sha256):
             "outputs": partition(read_records(data), summary["tokenizer"]["vocabulary"])[0]}
 
 
-def rerun_scoring(folder, rows, candidate):
-    summary, found = scoring_of(Path(folder), rows)
-    runs = {"rerun": summary.get("run") or {}, "candidate": candidate.get("run") or {}}
-    problems = [f"{key} differs" for key in ("contract", "items", "tokenizer", "scorer")
-                if summary.get(key) != candidate.get(key)]
-    problems += [f"the {side} run record has no {key}" for side, run in runs.items()
-                 for key in (*SAME_RUN, "call_shape") if run.get(key) is None]
-    problems += [f"run.{key} differs" for key in SAME_RUN
-                 if None not in (runs["rerun"].get(key), runs["candidate"].get(key))
-                 and runs["rerun"][key] != runs["candidate"][key]]
-    shapes = [runs[side].get("call_shape") for side in runs]
-    if shapes[0] is not None and shapes[0] == shapes[1]:
-        problems.append("run.call_shape is the same")
-    problems += [f"checks.{name} is not empty" for name in RECORD_CHECKS
-                 if (summary.get("checks") or {}).get(name) != []]
-    if unfinished(runs["rerun"]):
-        problems.append("the rerun run record is unfinished")
-    unscored = sum(row["kind"] != "unscored" and row["correct"] is None for row in found)
-    if unscored:
-        problems.append(f"{unscored} items of scored categories have no correct value")
-    if problems:
-        raise ValueError(f"The rerun scoring in {Path(folder).name} cannot be used as a rerun of the candidate's "
-                         f"assets, inputs and implementation with another call shape: {'; '.join(problems)}")
-    return summary.get("run"), found
-
-
 def listed(values):
     return ", ".join(f"`{value}`" for value in values) or "none"
 
 
 def summary(record):
-    runs, layer1, rerun, bounds = record["runs"], record["layer1"], record["rerun"], record["upper_bounds"]
+    runs, layer1, bounds = record["runs"], record["layer1"], record["upper_bounds"]
     table = ["| Category | Kind | Items | Baseline correct | Candidate correct | Regressions | Improvements "
              "| Upper bound |", "|---|---|---|---|---|---|---|---|"]
     table += [f"| `{name}` | `{value['kind']}` | {value['items']} | {value['baseline_correct']} | "
@@ -262,17 +223,13 @@ def summary(record):
         "", "## Changed items", "", *(changed if record["changed"] else ["None."]),
         "", "## Baseline quality", "",
         *[f"- `{kind}`: {listed(names)}" for kind, names in record["baseline_quality"].items()],
-        "", "## Code scoring and rerun", "",
+        "", "## Code scoring", "",
         *[f"- `{name}`: `{json.dumps(value, sort_keys=True)}`" for name, value in record["code"].items()],
-        "- Rerun with another call shape: " + (f"{rerun['correct_to_incorrect']} correct to incorrect, "
-                                               f"{rerun['incorrect_to_correct']} incorrect to correct"
-                                               if rerun else "not given"),
     ]
     return "\n".join(text) + "\n"
 
 
-def compare_runs(bundle, items_path, baseline, candidate, scores, output, rerun=None, layer1=None,
-                 substitute_reason=None):
+def compare_runs(bundle, items_path, baseline, candidate, scores, output, layer1=None, substitute_reason=None):
     output = Path(output)
     if output.exists():
         raise FileExistsError(f"Output must be a new folder: {output}")
@@ -283,16 +240,11 @@ def compare_runs(bundle, items_path, baseline, candidate, scores, output, rerun=
     keys = sorted((row["id"], row["category"], row["kind"]) for row in rows)
     runs = {"baseline": run_files(baseline, scores, keys, items_sha256),
             "candidate": run_files(candidate, scores, keys, items_sha256)}
-    again = rerun_scoring(rerun, keys, runs["candidate"]["summary"]) if rerun else None
     document = {"set": name, "items": rows, **runs,
                 "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
-                "rerun": {"scores": again[1]} if again else None,
                 "layer1": {"file": Path(layer1).name, "sha256": sha256(layer1)} if layer1 else None}
     checked_pair(bundle["contract"], runs["baseline"]["run"].get("role"), runs["candidate"]["run"].get("role"), reason)
-    record = compare(document, bundle["contract"]["layer2"])
-    if again:
-        record["runs"]["rerun"] = again[0]
-    record = standard({**record, "substitute_reason": reason})
+    record = standard({**compare(document, bundle["contract"]["layer2"]), "substitute_reason": reason})
     output.mkdir(parents=True)
     try:
         (output / "verdict.json").write_text(json.dumps(record, indent=2, allow_nan=False) + "\n", encoding="utf-8")

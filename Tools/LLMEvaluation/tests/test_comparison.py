@@ -16,8 +16,6 @@ CONTRACT = BUNDLE["contract"]
 LAYER2 = CONTRACT["layer2"]
 CATEGORIES = {category["id"]: category for category in CONTRACT["categories"]}
 VOCABULARY = 300000
-RUN = {"asset": {"main_hash": "a"}, "inputs": {"sha256": "i"}, "implementation": {"commit": "c"},
-       "call_shape": {"prefill_chunk": 1}}
 
 
 def step(node, part):
@@ -73,8 +71,8 @@ def score_row(document, side, item_id):
 class ComparisonTableTests(unittest.TestCase):
     def test_the_table_belongs_to_this_contract(self):
         self.assertEqual(TABLE["contract"], CONTRACT["version"])
-        self.assertEqual(len(TABLE["cases"]), 57)
-        self.assertEqual(len({case["name"] for case in TABLE["cases"]}), 57)
+        self.assertEqual(len(TABLE["cases"]), 56)
+        self.assertEqual(len({case["name"] for case in TABLE["cases"]}), 56)
         self.assertEqual(list(comparison.REASONS), TABLE["reasons"])
 
     def test_every_case_gives_the_record_in_the_table(self):
@@ -165,11 +163,11 @@ class CompareRunTests(unittest.TestCase):
         self.items_path = self.folder / "primary.jsonl"
         write_lines(self.items_path, self.items)
 
-    def run_folder(self, name, role, answer=8, **fields):
+    def run_folder(self, name, role, answer=8):
         folder = self.folder / name
         folder.mkdir(parents=True)
         contract = {"version": CONTRACT["version"], "sha256": self.bundle["hashes"]["contract.json"]}
-        (folder / "run.json").write_text(json.dumps({"contract": contract, "set": "primary", "role": role, **fields}),
+        (folder / "run.json").write_text(json.dumps({"contract": contract, "set": "primary", "role": role}),
                                          encoding="utf-8")
         records = [{"id": item["id"], "input_sha256": "0" * 64, "input_tokens": item.get("token_count", 1),
                     "output_ids": [7] if item["category"] == "free-ja" else [answer], "stop": "stop_token",
@@ -294,33 +292,6 @@ class CompareRunTests(unittest.TestCase):
                     self.compared(baseline, candidate, scores, name=f"{case}/verdict")
                 self.assertFalse((self.folder / case / "verdict").exists())
 
-    def test_a_rerun_that_is_not_complete_is_rejected(self):
-        done = {**RUN, "inputs": {"sha256": "i", "count": 2}, "items": 2, "finished": "t"}
-        for case in ("missing_output", "not_in_set", "unfinished", "unscored_row"):
-            with self.subTest(case):
-                baseline = self.run_folder(f"{case}/base", "reference")
-                candidate = self.run_folder(f"{case}/cand", "fp16", **done)
-                fields = {**done, "call_shape": {"prefill_chunk": 8}}
-                if case == "unfinished":
-                    del fields["finished"]
-                rerun = self.run_folder(f"{case}/again", "fp16", answer=9, **fields)
-                path = rerun / "outputs.jsonl"
-                records = path.read_text(encoding="utf-8").splitlines(keepends=True)
-                if case == "missing_output":
-                    path.write_text(records[0], encoding="utf-8")
-                elif case == "not_in_set":
-                    stray = {**json.loads(records[0]), "id": "free-ja-9999"}
-                    path.write_text("".join(records) + json.dumps(stray) + "\n", encoding="utf-8")
-                scores = self.scored(baseline, candidate, rerun, name=f"{case}/scores")
-                if case == "unscored_row":
-                    path = scores / "again" / "scores.jsonl"
-                    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-                    write_lines(path, [{**row, "correct": None, "state": "pending_code"}
-                                       if row["kind"] != "unscored" else row for row in rows])
-                with self.assertRaises(ValueError):
-                    self.compared(baseline, candidate, scores, name=f"{case}/verdict", rerun=scores / "again")
-                self.assertFalse((self.folder / case / "verdict").exists())
-
     def test_scores_that_are_not_of_the_items_are_rejected(self):
         baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
         scores = self.scored(baseline, candidate)
@@ -357,42 +328,6 @@ class CompareRunTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 self.compared(baseline, candidate, scores)
         self.assertFalse((self.folder / "verdict").exists())
-
-    def test_the_rerun_counts_swaps_against_the_candidate_scores(self):
-        baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16", **RUN)
-        rerun = self.run_folder("again", "fp16", answer=9, **{**RUN, "call_shape": {"prefill_chunk": 8}})
-        scores = self.scored(baseline, candidate, rerun)
-        self.compared(baseline, candidate, scores, rerun=scores / "again")
-        record = items.read_json(self.folder / "verdict" / "verdict.json")
-        self.assertEqual(record["rerun"], {"correct_to_incorrect": 1, "incorrect_to_correct": 0})
-        self.assertEqual(record["runs"]["rerun"], items.read_json(rerun / "run.json"))
-        self.assertEqual(record["verdict"], "no_regression_found")
-
-    def test_a_rerun_scoring_of_other_conditions_is_rejected(self):
-        changes = {"duplicate": {}, "items": {}, "asset": {"asset": {"main_hash": "b"}},
-                   "inputs": {"inputs": {"sha256": "j"}}, "implementation": {"implementation": {"commit": "d"}},
-                   "set": {"set": "reserve"}, "role": {"role": "w8"}, "call_shape": {"call_shape": RUN["call_shape"]}}
-        for case in (*changes, "no_asset"):
-            with self.subTest(case):
-                fields = {key: value for key, value in RUN.items() if case != "no_asset" or key != "asset"}
-                baseline = self.run_folder(f"{case}/base", "reference")
-                candidate = self.run_folder(f"{case}/cand", "fp16", **fields)
-                change = dict(changes.get(case, {}))
-                rerun = self.run_folder(f"{case}/again", change.pop("role", "fp16"), answer=9,
-                                        **{**fields, "call_shape": {"prefill_chunk": 8}, **change})
-                scores = self.scored(baseline, candidate, rerun, name=f"{case}/scores")
-                if case == "duplicate":
-                    path = scores / "again" / "scores.jsonl"
-                    text = path.read_text(encoding="utf-8")
-                    path.write_text(text + text.splitlines(keepends=True)[1], encoding="utf-8")
-                elif case == "items":
-                    path = scores / "again" / "summary.json"
-                    summary = items.read_json(path)
-                    path.write_text(json.dumps({**summary, "items": {**summary["items"], "sha256": "0" * 64}}),
-                                    encoding="utf-8")
-                with self.assertRaises(ValueError):
-                    self.compared(baseline, candidate, scores, name=f"{case}/verdict", rerun=scores / "again")
-                self.assertFalse((self.folder / case / "verdict").exists())
 
 
 if __name__ == "__main__":
