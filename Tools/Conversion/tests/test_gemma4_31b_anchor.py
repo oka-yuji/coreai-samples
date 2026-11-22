@@ -478,6 +478,7 @@ class CompareTests(unittest.TestCase):
         case = {"id": "case", "kind": "chat", "input_tokens": 3, "saved_positions": 3, "first_scoring_row": 2,
                 "scoring_positions": 0}
         self.assertEqual(anchor_compare.groups([], 4), [])
+        self.assertEqual([anchor_compare.band(tokens) for tokens in (0, 1, 2048, 16897)], ["other", "1-512", "513-2048", "other"])
         self.assertEqual([(group["scope"], group["rows"]) for group in anchor_compare.groups([(case, rows)], 4)], [("all", 3)])
 
     def test_inputs_that_are_the_same_file_never_pass(self):
