@@ -185,6 +185,63 @@ run folder, and start a new run folder instead.
 The published record of the primary-set run is
 [docs/validation/gemma4-31b/baseline-20261122.md](../../../../docs/validation/gemma4-31b/baseline-20261122.md).
 
+## Layer 1 comparison
+
+`layer1_compare` judges layer 1 of the quality contract (§4, #697). It compares the logits that two implementations give
+for the forced input of `python3 -m Tools.LLMEvaluation forced`
+([Layer 1 forced input](../../../LLMEvaluation/README.md#layer-1-forced-input)) under the limits of `layer1` in
+`Tools/LLMEvaluation/contract.json`: no non-finite value, a probability error of at most 0.03 at every position, a mean
+of the per-position maximum of at most 0.01 in each input-length band and no top-1 mismatch outside a near tie. It loads
+no model; the runs that write the logits of the two sides are separate. Run it from the repository root with the
+reference environment:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_compare \
+  --forced <forced folder> --baseline <logits folder> --candidate <logits folder> --output <new folder>
+~~~
+
+Each side is one folder with `logits.json` and one array file per item:
+
+| `logits.json` field | Value |
+|---|---|
+| `schema` | `gemma4-31b-layer1-logits/1` |
+| `role` | A role of contract §2, for example `anchor` for the baseline and `fp16` for the candidate |
+| `weights` | A description of the weights |
+| `forced_sha256` | The SHA-256 of the `forced.jsonl` that was read |
+| `items` | One entry per item with `id`, `file` (a file name in the folder), `dtype` (`float16` or `float32`), `shape` (`[rows, vocabulary]`), `sha256` (of the file) and `tokens_sha256` (of the tokens that were read) |
+
+An array file holds the logits of the scored rows of one item, little-endian and row-major, without a header: row i is
+the output at position `start` + i of the forced record, over the vocabulary of `model.json`. The `--output` file that
+`coreai-verify logits` writes, when its `--tokens` file holds the `tokens` of a forced record and `--start` is its
+`start`, is such a file with `dtype` `float16`, and the `tokens_sha256` and `shape` that it prints are those of the
+entry. Other fields of `logits.json` are not read.
+
+The output folder gets `layer1.json`:
+
+| Field | Value |
+|---|---|
+| `passed` | `true` only with no problem and every check passed |
+| `problems` | The findings about the records, followed by those of each item prefixed by its id |
+| `contract`, `limits` | The version and SHA-256 of `contract.json`, and the limits read from its `layer1` |
+| `forced` | The SHA-256 of `forced.jsonl` and of `forced.json` |
+| `baseline`, `candidate` | The `role`, `weights` and SHA-256 of `logits.json` of each side |
+| `vocabulary` | The vocabulary of `model.json` |
+| `checks` | Per limit (`non_finite_values`, `max_probability_error`, `band_mean_max_probability_error`, `significant_top1_mismatches`) its value and `passed` |
+| `bands` | Per band of `layer1.bands`, by the input token count of the items: the items, the compared items, the positions, `mean_max_probability_error`, `max_probability_error`, the report-only values and `state` |
+| `overall` | The same values over all compared positions |
+| `items` | Per item its band, `input_tokens`, `rows`, `problems`, the non-finite values of both sides, `max_probability_error`, `top1_matches`, `near_tie_mismatches` and `significant_mismatches` |
+
+The probability error and the near ties are those of `compare` in `Tools/Conversion/adapters/verify_llm.py`. A band
+`state` is `not_evaluated` without items, which does not count for `passed`; `passed` when every item of the band was
+compared and its mean is within the limit; and `failed` otherwise. The report-only values, which decide nothing, are
+`kl_mean`, `kl_p99` and `kl_max` (the KL divergence from the baseline to the candidate at each position),
+`max_abs_logit_difference`, `top1_agreement` and `near_tie_count`. A finding about the logits of one item fails that
+item and the comparison, and the other items are still compared. The command refuses an existing output, also a link,
+before it reads the records; once it has made the folder, it writes `layer1.json` on every path, and a minimal failed
+record when the full record cannot be written. The exit code is 0 only when the comparison passed. `VerdictTests`,
+`CorrespondenceTests` and `BoundaryTests` in `Tools/Conversion/tests/test_gemma4_31b_layer1_compare.py` fix these
+rules. `python3 -m Tools.LLMEvaluation compare --layer1 <layer1.json>` names the record in a paired comparison.
+
 ## FP32 anchor and FP16 diagnostics
 
 Six more heavy steps (#662) read the `reference` artifacts and run under the same shared lock, one process each. Each
