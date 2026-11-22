@@ -1,4 +1,5 @@
 import ArgumentParser
+import CryptoKit
 import Foundation
 import Testing
 
@@ -30,88 +31,11 @@ func runRecord(
         load: .init(cached: true, specializeS: 0, loadS: 1.5))
 }
 
-func writtenLine(_ fields: String, tokens: String = #""input_tokens":2"#) -> String {
-    #"{"id":"item-2","input_sha256":"\#(tokensDigest([2, 2]))",\#(tokens),\#(fields)}"#
-}
-
-let stoppedFields =
-    #""output_ids":[1],"stop":"stop_token","stop_token":3,"top2":[[1,0.5,2,0.25],[3,0.75,0,0.125]],"non_finite":0"#
-let stoppedLine = writtenLine(stoppedFields)
-let limitedLine = writtenLine(#""output_ids":[1,2],"stop":"limit","top2":[[1,0.5,0,0.5],[2,1,1,0]],"non_finite":0"#)
-let erroredLine = writtenLine(
-    #""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"error":"EngineError: unloaded","non_finite":2"#)
-
-func atSecondLine(_ problem: String) -> String { "outputs.jsonl line 2 (id item-2) \(problem)." }
-
-let badTokens = atSecondLine("has an input_tokens that is not the token count of its input record")
-let badOutputs = atSecondLine("has output_ids that are not token IDs below 4")
-let badStopToken = atSecondLine("stops on stop_token without a token ID below 4 in stop_token")
-let badTop2 = atSecondLine(
-    "has a top2 entry that is not two different token IDs below 4 with probabilities from 0 to 1, the first at least the second"
-)
-let badFirsts = atSecondLine("has top2 first IDs that differ from the generated tokens")
-
-let malformedLines: [(String, String)] = [
-    (
-        #"{"id":"item-2","input_sha256":"00","input_tokens":2,"# + stoppedFields + "}",
-        atSecondLine("has an input_sha256 that differs from its input record")
-    ),
-    (writtenLine(stoppedFields, tokens: #""input_tokens":0"#), badTokens),
-    (writtenLine(stoppedFields, tokens: #""input_tokens":2.0"#), badTokens),
-    (
-        writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"non_finite":-1"#),
-        atSecondLine("has no non_finite count of zero or more")
-    ),
-    (writtenLine(#""output_ids":[4],"stop":"limit","top2":[[4,0.5,2,0.25]],"non_finite":0"#), badOutputs),
-    (writtenLine(#""output_ids":[1.0],"stop":"limit","top2":[[1,0.5,2,0.25]],"non_finite":0"#), badOutputs),
-    (
-        writtenLine(#""output_ids":[1],"stop":"stop_token","top2":[[1,0.5,2,0.25],[3,0.75,0,0.125]],"non_finite":0"#),
-        badStopToken
-    ),
-    (writtenLine(#""output_ids":[1],"stop":"stop_token","top2":[[1,0.5,2,0.25]],"non_finite":0"#), badStopToken),
-    (
-        writtenLine(
-            #""output_ids":[1],"stop":"stop_token","stop_token":7,"top2":[[1,0.5,2,0.25],[7,0.75,0,0.125]],"non_finite":0"#
-        ), badStopToken
-    ),
-    (
-        writtenLine(
-            #""output_ids":[1,2],"stop":"limit","stop_token":3,"top2":[[1,0.5,0,0.5],[2,1,1,0]],"non_finite":0"#),
-        atSecondLine("stops on limit but has stop_token")
-    ),
-    (
-        writtenLine(#""output_ids":[1],"stop":"eos","top2":[[1,0.5,2,0.25]],"non_finite":0"#),
-        atSecondLine("has a stop that is neither stop_token nor limit")
-    ),
-    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,9,0.25]],"non_finite":0"#), badTop2),
-    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,1,0.25]],"non_finite":0"#), badTop2),
-    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,1.5,2,0.25]],"non_finite":0"#), badTop2),
-    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,-0.25]],"non_finite":0"#), badTop2),
-    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.25,2,0.5]],"non_finite":0"#), badTop2),
-    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2]],"non_finite":0"#), badTop2),
-    (writtenLine(#""output_ids":[1],"stop":"limit","top2":[[true,0.5,2,0.25]],"non_finite":0"#), badTop2),
-    (
-        writtenLine(#""output_ids":[1],"stop":"stop_token","stop_token":3,"top2":[[1,0.5,2,0.25]],"non_finite":0"#),
-        badFirsts
-    ),
-    (
-        writtenLine(
-            #""output_ids":[1],"stop":"stop_token","stop_token":3,"top2":[[2,0.5,1,0.25],[3,0.75,0,0.125]],"non_finite":0"#
-        ), badFirsts
-    ),
-    (
-        writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"error":null,"non_finite":2"#),
-        atSecondLine("has an error that is not a string")
-    ),
-    (
-        writtenLine(#""output_ids":[1],"stop":"limit","top2":[[1,0.5,2,0.25]],"non_finite":2"#),
-        atSecondLine("has non-finite logits without an error")
-    ),
-    ("[1]", "outputs.jsonl line 2 is not a JSON object."),
-]
+let emptyProgress = #"{"lines":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}"#
 
 @Suite(.timeLimit(.minutes(1))) struct EvaluationRunTests {
     private let stopAtOnce = ScriptedLogits.Item(rows: [[0, 0, 0, 1]])
+    private let stepThenStop = ScriptedLogits.Item(rows: [[0, 1, 0, 0], [0, 0, 0, 1]])
 
     private func items(_ count: Int) -> [EvaluationInput] {
         (1...count).map { evaluationInput("item-\($0)", Array(repeating: Int32($0), count: $0)) }
@@ -188,10 +112,12 @@ let malformedLines: [(String, String)] = [
     }
 
     @Test(
-        "A folder left by a start that stopped before writing run.json starts a new run when it is empty or holds only an empty outputs.jsonl, and is rejected otherwise",
+        "A folder left by a start that stopped before writing run.json starts a new run when it is empty or holds only an empty outputs.jsonl and a progress.json of no lines, and is rejected otherwise",
         arguments: [
-            ([String: String](), true), (["outputs.jsonl": ""], true), (["outputs.jsonl": "{}\n"], false),
+            ([String: String](), true), (["outputs.jsonl": ""], true),
+            (["outputs.jsonl": "", "progress.json": emptyProgress], true), (["outputs.jsonl": "{}\n"], false),
             (["notes.txt": ""], false), (["outputs.jsonl": "", "notes.txt": ""], false),
+            (["outputs.jsonl": "", "progress.json": "{}"], false), (["progress.json": emptyProgress], false),
         ])
     func startsInAnUnstartedFolder(files: [String: String], starts: Bool) async throws {
         let base = try temporaryFolder()
@@ -216,27 +142,112 @@ let malformedLines: [(String, String)] = [
         }
     }
 
-    @Test("A last line cut before its newline is dropped and its item is generated again")
-    func dropsCutLastLine() async throws {
+    private func fullRun(_ folder: URL, _ scripts: [ScriptedLogits.Item], _ inputs: [EvaluationInput]) async throws
+        -> Data
+    {
+        _ = try await Evaluation.run(
+            inputs, in: folder, record: runRecord(count: inputs.count), source: ScriptedLogits(scripts), stopTokens: [3]
+        )
+        return try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
+    }
+
+    @Test(
+        "A run stopped by its limit or by cancellation records each written item in progress.json, resumes after it and ends with the outputs.jsonl of a run without a stop",
+        arguments: [("limit", 2), ("cancel", 0), ("cancel", 2)])
+    func resumedRunMatchesAFullRun(stop: String, written: Int) async throws {
+        let base = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let expected = try await fullRun(base.appending(path: "full"), failingScripts, failingItems)
+        let folder = base.appending(path: "run")
+        let scripts = Array(failingScripts.prefix(written))
+        if stop == "cancel" {
+            let source = ScriptedLogits(scripts + [ScriptedLogits.Item(rows: [], cancelsAtPrefill: true)])
+            await #expect(throws: CancellationError.self) {
+                try await Evaluation.run(
+                    failingItems, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
+            }
+        } else {
+            _ = try await Evaluation.run(
+                failingItems, limit: written, in: folder, record: runRecord(count: 4), source: ScriptedLogits(scripts),
+                stopTokens: [3])
+        }
+        let outputs = try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
+        let progress = try JSONDecoder().decode(
+            WrittenLines.self, from: Data(contentsOf: folder.appending(path: "progress.json")))
+        #expect(progress == WrittenLines(lines: written, sha256: hex(Data(SHA256.hash(data: outputs)))))
+        let source = ScriptedLogits(Array(failingScripts.dropFirst(written)))
+        _ = try await Evaluation.run(
+            failingItems, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
+        #expect(source.calls.filter { $0.hasPrefix("prefill") }.count == failingItems.count - written)
+        #expect(try Data(contentsOf: folder.appending(path: "outputs.jsonl")) == expected)
+    }
+
+    @Test(
+        "A complete line after the recorded ones, left when a run stopped before updating progress.json, and a line cut by an interrupted write are dropped and their items run again",
+        arguments: [true, false])
+    func dropsLinesAfterTheRecordedOnes(complete: Bool) async throws {
+        let base = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let inputs = items(3)
+        let expected = try await fullRun(
+            base.appending(path: "full"), [stepThenStop, stepThenStop, stepThenStop], inputs)
+        let folder = base.appending(path: "run")
+        _ = try await Evaluation.run(
+            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: ScriptedLogits([stepThenStop]),
+            stopTokens: [3])
+        let outputs = folder.appending(path: "outputs.jsonl")
+        let second = Data(expected.split(separator: UInt8(ascii: "\n"))[1]) + Data("\n".utf8)
+        try (Data(contentsOf: outputs) + (complete ? second : second.prefix(20))).write(to: outputs)
+        let source = ScriptedLogits([stepThenStop, stepThenStop])
+        _ = try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
+        #expect(source.calls.filter { $0.hasPrefix("prefill") } == ["prefill 2 true", "prefill 3 true"])
+        #expect(try Data(contentsOf: outputs) == expected)
+    }
+
+    @Test(
+        "Recorded lines changed by a byte, removed or reordered, and a progress.json removed or changed, stop the resumed run without generating",
+        arguments: [
+            "trailing comma", "another stop token", "stop set to limit", "shorter output_ids", "line removed",
+            "lines swapped", "progress.json removed", "another sha256",
+        ])
+    func rejectsChangedOutputs(_ change: String) async throws {
         let base = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: base) }
         let folder = base.appending(path: "run")
         let inputs = items(3)
-        _ = try await Evaluation.run(
-            inputs, limit: 2, in: folder, record: runRecord(count: 3),
-            source: ScriptedLogits([stopAtOnce, stopAtOnce]), stopTokens: [3])
+        let written = try await fullRun(folder, [stepThenStop, stepThenStop, stepThenStop], inputs)
+        var lines = String(decoding: written, as: UTF8.self).split(separator: "\n").map(String.init)
+        var message =
+            "The first 3 lines of outputs.jsonl differ from progress.json; they were changed outside this command."
+        switch change {
+        case "trailing comma": lines[0] = lines[0].replacing(#""output_ids":[1]"#, with: #""output_ids":[1,]"#)
+        case "another stop token": lines[0] = lines[0].replacing(#""stop_token":3"#, with: #""stop_token":2"#)
+        case "stop set to limit": lines[0] = lines[0].replacing(#""stop":"stop_token""#, with: #""stop":"limit""#)
+        case "shorter output_ids": lines[0] = lines[0].replacing(#""output_ids":[1]"#, with: #""output_ids":[]"#)
+        case "line removed":
+            lines.remove(at: 1)
+            message =
+                "outputs.jsonl has 2 complete lines, fewer than the 3 that progress.json records; it was changed outside this command."
+        case "lines swapped": lines.swapAt(0, 1)
+        case "progress.json removed":
+            try FileManager.default.removeItem(at: folder.appending(path: "progress.json"))
+            message = "outputs.jsonl has lines, but progress.json is missing; they were changed outside this command."
+        default: try Evaluation.write(WrittenLines(lines: 3, sha256: String(repeating: "0", count: 64)), in: folder)
+        }
+        let changed = Data(lines.map { $0 + "\n" }.joined().utf8)
         let outputs = folder.appending(path: "outputs.jsonl")
-        let written = try Data(contentsOf: outputs)
-        try written.dropLast(5).write(to: outputs)
-        let source = ScriptedLogits([stopAtOnce, stopAtOnce])
-        _ = try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
-        #expect(source.calls.filter { $0.hasPrefix("prefill") } == ["prefill 2 true", "prefill 3 true"])
-        #expect(try outputLines(folder).map { $0["id"] as? String } == inputs.map(\.id))
-        #expect(try Data(contentsOf: outputs).last == UInt8(ascii: "\n"))
+        try changed.write(to: outputs)
+        let source = ScriptedLogits([stepThenStop])
+        let error = await #expect(throws: ValidationError.self) {
+            try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
+        }
+        #expect(error?.message == message)
+        #expect(source.calls.isEmpty)
+        #expect(try Data(contentsOf: outputs) == changed)
     }
 
     @Test(
-        "A run folder with an output record whose id is not in the input records or appears twice is rejected",
+        "Recorded lines with an id that is not in the input records or an id twice stop the resumed run",
         arguments: [false, true])
     func rejectsUnknownOrRepeatedIDs(repeated: Bool) async throws {
         let base = try temporaryFolder()
@@ -250,54 +261,19 @@ let malformedLines: [(String, String)] = [
         let written = try Data(contentsOf: outputs)
         let stranger =
             try JSONEncoder.records.encode(OutputRecord(id: "other", inputSha256: "", inputTokens: 1)) + Data("\n".utf8)
-        try (written + (repeated ? written : stranger)).write(to: outputs)
-        let source = ScriptedLogits([stopAtOnce, stopAtOnce])
-        await #expect(throws: ValidationError.self) {
-            try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
-        }
-        #expect(source.calls.isEmpty)
-    }
-
-    private func runWithWrittenLine(_ line: String) async throws -> (URL, Data, [EvaluationInput]) {
-        let base = try temporaryFolder()
-        let folder = base.appending(path: "run")
-        let inputs = items(3)
-        _ = try await Evaluation.run(
-            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: ScriptedLogits([stopAtOnce]),
-            stopTokens: [3])
-        let outputs = folder.appending(path: "outputs.jsonl")
-        let written = try Data(contentsOf: outputs) + Data((line + "\n").utf8)
-        try written.write(to: outputs)
-        return (base, written, inputs)
-    }
-
-    @Test(
-        "Written lines of an item that stopped on a stop token, ended at the limit or ended with an error are taken as done",
-        arguments: [stoppedLine, limitedLine, erroredLine])
-    func acceptsWrittenLines(_ line: String) async throws {
-        let (base, _, inputs) = try await runWithWrittenLine(line)
-        defer { try? FileManager.default.removeItem(at: base) }
-        let source = ScriptedLogits([stopAtOnce])
-        let run = try await Evaluation.run(
-            inputs, in: base.appending(path: "run"), record: runRecord(count: 3), source: source, stopTokens: [3])
-        #expect(source.calls == ["reset", "prefill 3 true"])
-        #expect(run.items == 3)
-    }
-
-    @Test(
-        "A written line that the scorer would not take as a well-formed record whose top-2 first IDs are the generated tokens, or that breaks a relation this command keeps, stops the resumed run without generating",
-        arguments: malformedLines)
-    func rejectsMalformedWrittenLines(line: String, message: String) async throws {
-        let (base, written, inputs) = try await runWithWrittenLine(line)
-        defer { try? FileManager.default.removeItem(at: base) }
-        let folder = base.appending(path: "run")
+        let changed = written + (repeated ? written : stranger)
+        try changed.write(to: outputs)
+        try Evaluation.write(WrittenLines(lines: 2, sha256: hex(Data(SHA256.hash(data: changed)))), in: folder)
         let source = ScriptedLogits([stopAtOnce, stopAtOnce])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: runRecord(count: 3), source: source, stopTokens: [3])
         }
-        #expect(error?.message == message)
+        #expect(
+            error?.message
+                == (repeated
+                    ? "outputs.jsonl line 2 (id item-1) repeats an id."
+                    : "outputs.jsonl line 2 (id other) has no id of the input records."))
         #expect(source.calls.isEmpty)
-        #expect(try Data(contentsOf: folder.appending(path: "outputs.jsonl")) == written)
     }
 
     @Test("Once the time limit has passed, the run ends after the item in progress and records its finish")

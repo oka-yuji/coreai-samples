@@ -12,6 +12,7 @@ final class ScriptedLogits: LogitsSource, Sendable {
         var rows: [[Float16]]
         var failsAtPrefill = false
         var failsAtStep: Int?
+        var cancelsAtPrefill = false
     }
 
     private struct State {
@@ -22,7 +23,6 @@ final class ScriptedLogits: LogitsSource, Sendable {
     }
 
     private let state: Mutex<State>
-    let vocabSize = 4
 
     init(_ items: [Item]) {
         state = Mutex(State(items: items))
@@ -39,6 +39,7 @@ final class ScriptedLogits: LogitsSource, Sendable {
             state.calls.append("prefill \(input.count) \(usePrefillFunction)")
             state.current = state.items.removeFirst()
             state.position = 0
+            if state.current.cancelsAtPrefill { throw CancellationError() }
             if state.current.failsAtPrefill { throw ScriptedFailure() }
         }
     }

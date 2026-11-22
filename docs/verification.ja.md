@@ -144,7 +144,7 @@ swift build -c release
 | `--contract` | 契約の `contract.json`。その `version` と SHA-256 を実行の記録に書き、`generation.eos_token_id` を停止 token にします。`--role` は、その `roles` の鍵のどれかにします。 |
 | `--set`、`--role` | 実行の記録に書く集合の名前(例: `primary`)と役割(例: `fp16`)。 |
 | `--commit` | 実行の記録に書くリポジトリの commit。コマンドは git を呼びません。 |
-| `--output` | 既にあるフォルダの中の新しい実行のフォルダか、再開する同じ実行のフォルダ。`run.json` の無い既存のフォルダは、空か、空の `outputs.jsonl` だけのとき(`run.json` を書く前に止まった開始が残す形)に限り、新しい実行として始めます。それ以外の `run.json` の無いフォルダは断ります。 |
+| `--output` | 既にあるフォルダの中の新しい実行のフォルダか、再開する同じ実行のフォルダ。`run.json` の無い既存のフォルダは、空か、空の `outputs.jsonl` だけ(0 行の `progress.json` があってもよい)のとき(`run.json` を書く前に止まった開始が残す形)に限り、新しい実行として始めます。それ以外の `run.json` の無いフォルダは断ります。 |
 | `--max-minutes` | 任意。コマンドを始めてからこの分数が過ぎたら、いまの item を書いたところで正常に終わります。そのため、残りの item があれば 1 件は必ず流れます。 |
 | `--limit` | 任意。入力の記録の先頭から N 件だけ流します(確認用)。 |
 
@@ -152,11 +152,12 @@ swift build -c release
 
 item ごとに、エンジンを空にし、入力を `prefill` で読み(バンドルに `prefill` 関数があればそれで読む)、各 step で最後の位置の logits(float16、語彙の全体)を読みます。logits に非有限値がある step で、その item を終えます。そうでなければ、logits の大きい順に 2 つの token を `top2` に足し(同じ値なら小さい ID が先)、その確率は、最大の logit を引いてから倍精度で取った語彙の全体の温度 1 の softmax の値にします。順位は logits で決めるので、1 位から大きく離れた 2 位は、確率が 0 に丸まっても 2 位のままです。その 1 位が生成する token です。停止 token なら、`stop` を `stop_token` にして item を終えます。それ以外は `output_ids` に足し、`max_new_tokens` に達したら `stop` を `limit` にして終え、達していなければ `step` でその token を読みます。停止 token と、上限に達した最後の token は読みません。
 
-実行のフォルダには 2 つのファイルを置きます。
+実行のフォルダには 3 つのファイルを置きます。
 
 | ファイル | 内容 |
 |---|---|
 | `outputs.jsonl` | item ごとの出力の記録。1 行に 1 件の JSON のオブジェクトで、item を終えるごとに追記してディスクへ同期します |
+| `progress.json` | このコマンドが `outputs.jsonl` に書いた行の数 `lines` と、それらの行の改行を含むバイト列の SHA-256 `sha256`。行を追記して同期した後に、atomic に置き換えるので、`outputs.jsonl` に無い行を記録することはありません |
 | `run.json` | 実行の記録。実行の始めと終わりに書きます |
 
 | 出力の記録の項目 | 値 |
@@ -181,7 +182,7 @@ item ごとに、エンジンを空にし、入力を `prefill` で読み(バン
 | `started`、`finished` | 実行を最初に始めた時刻と、最後に終えた時刻。実行の途中と、誤りで止まった後は `finished` が無い |
 | `load` | 最初の回のエンジンの読み込みの `cached`、`specialize_s`、`load_s` |
 
-`--output` に `run.json` があるときは、同じ実行のものでなければなりません。`contract`、`set`、`role`、`asset.main_hash`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。`outputs.jsonl` の最後の行が改行で終わっていなければ(書いている途中で止まった跡)、その行を消し、その item を流し直します。改行で終わる各行は、`Tools/LLMEvaluation` の `score` が形の正しい記録として受け付け、`top2` の 1 位の ID が生成した token と一致する記録で(token ID は `language.vocab_size` 未満)、このコマンドが書く記録の関係も保っていなければなりません。すなわち、`input_sha256` と `input_tokens` が同じ `id` の入力の記録の値と同じ、`non_finite` が 0 以上、`output_ids` が token ID の配列、`stop` は `stop_token`(`stop_token` に停止 token の ID がある)か `limit`(`stop_token` が無い)、`top2` は生成した token ごとに(停止 token も数える)1 件で、1 位の ID がその token、2 つの ID が互いに違い、確率は 0 以上 1 以下で 1 位が 2 位以上、`error` は無いか文字列で、`non_finite` が 0 より大きければある、です。整数は、採点の道具と同じく、小数点や指数を付けずに書いたものだけを整数として数えます。これらのどれかを外れる行、入力の記録に無い `id` の行、`id` が重なる行があれば、行番号と `id` を示して、生成する前に止まります(その行を消したり、流し直したりはしません)。記録のある item は流し直しません(誤りで終わった item も)。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
+`--output` に `run.json` があるときは、同じ実行のものでなければなりません。`contract`、`set`、`role`、`asset.main_hash`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。次に、`outputs.jsonl` の先頭が、このコマンドが書いたバイト列のままであることを確かめます。先頭から `lines` 行の、改行を含むバイト列の SHA-256 が、`progress.json` の `sha256` と同じでなければなりません。改行で終わる行が足りない、SHA-256 が違う、`outputs.jsonl` が空でないのに `progress.json` が無い、のどれかなら、ファイルがこのコマンドの外で変えられたものとして、生成する前に止まります。記録した行より後ろのバイト(書いている途中で切れた行や、`progress.json` を更新する前に止まった行)は消し、その item を流し直します。記録した行の item は流し直しません(誤りで終わった item も)。その中に、入力の記録に無い `id` か、2 回出てくる `id` があれば止まります。この検査が守るのは、実行のフォルダの事故による破損と取り違えです。`outputs.jsonl` と `progress.json` の両方を意図して書き換える操作は対象外で、記録した行の意味も検査し直しません(生成の試験が受け持ちます)。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
 
 標準出力には item ごとに 1 行の JSON を出します。`record` が `evaluate` で、`id`、`input_tokens`、`output_tokens`、`stop`(`stop_token`、`limit`、item に誤りがあれば `error`)、`seconds` を持ちます。文は出しません。取り消しと、入力の記録・契約・バンドル・実行のフォルダを読めないときは、item の誤りにせず、コマンドを止めます。
 
