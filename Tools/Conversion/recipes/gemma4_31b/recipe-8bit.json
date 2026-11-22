@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "name": "gemma4_31b_8bit",
+  "description": "Export the first layers of the pinned Gemma 4 31B snapshot to a dynamic-shape Core AI bundle for macOS with 8-bit Linear weights and inspect the asset.",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/gemma4_31b",
+    "shared": "$repo/Tools/Conversion/adapters/jev27b",
+    "converter": "$upstream/.venv/bin/python",
+    "context": "16896"
+  },
+  "python": "$converter",
+  "environment": {
+    "HF_HOME": "$hf_cache",
+    "HF_HUB_CACHE": "$hf_cache/hub",
+    "HF_HUB_OFFLINE": "1",
+    "HF_HUB_DISABLE_TELEMETRY": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.gemma4_31b.prepare",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--setup", "$setup_record",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/prepare.py",
+        "$shared/prepare.py",
+        "$shared/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/pyproject.toml",
+        "$recipe_dir/uv.lock",
+        "$setup_record",
+        "${snapshot}.integrity.json",
+        "$snapshot/*",
+        "$snapshot/.gitattributes",
+        "$snapshot/.eval_results/*"
+      ],
+      "outputs": ["ready.json"],
+      "checks": [{"file": "ready.json", "key": ["ready"], "equals": true}],
+      "cache": false,
+      "timeout_s": 1800
+    },
+    {
+      "id": "export",
+      "role": "export",
+      "depends": ["prepare"],
+      "command": [
+        "$converter", "-m", "Tools.Conversion.adapters.gemma4_31b.export",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--upstream", "$upstream",
+        "--layers", "$layers",
+        "--functions", "$functions",
+        "--context", "$context",
+        "--precision", "8bit",
+        "--compression", "$recipe_dir/compression-8bit.yaml",
+        "--output", "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/export.py",
+        "$adapters/model.py",
+        "$adapters/layers.py",
+        "$adapters/anchor.py",
+        "$adapters/compare.py",
+        "$adapters/prepare.py",
+        "$adapters/reference.py",
+        "$shared/monitor.py",
+        "$shared/prepare.py",
+        "$shared/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/compression-8bit.yaml",
+        "$snapshot/*",
+        "$upstream/python/src",
+        "$upstream/uv.lock"
+      ],
+      "outputs": ["export"],
+      "checks": [{"file": "export/export.json", "key": ["passed"], "equals": true}],
+      "heavy": true,
+      "timeout_s": 7200
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import importlib.metadata
 import itertools
 import json
@@ -20,6 +21,8 @@ SCHEMA = "gemma4-31b-layer-logits/1"
 COMPARISON = "gemma4-31b-layer-comparison/1"
 CONTEXT_SCHEMA = "gemma4-31b-context-logits/1"
 PREFIX = "model.language_model."
+SLIDING, FULL = "sliding_attention", "full_attention"
+QUANTIZED = "quantized.safetensors"
 LAYER = re.compile(r"layers\.(\d+)\.")
 IMPLEMENTATIONS = ("original", "class")
 INPUTS = {"short": (26, 0), "long": (1400, 1)}
@@ -175,6 +178,12 @@ def run(implementation, contract_path, snapshot, layers, output):
                          "lifetime_peak_footprint_bytes": footprint()[1]}}
     write_json(output / "record.json", record)
     return record
+
+
+def tensor_sha256(tensor):
+    import torch
+
+    return hashlib.sha256(tensor.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()).hexdigest()
 
 
 def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):

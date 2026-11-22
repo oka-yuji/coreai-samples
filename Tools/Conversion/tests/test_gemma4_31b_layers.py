@@ -40,10 +40,10 @@ TEXT = {"model_type": "gemma4_text", "hidden_size": 48, "intermediate_size": 96,
         "bos_token_id": 2, "pad_token_id": 0, "eos_token_id": 1}
 
 
-def write_contract(folder, files):
+def write_contract(folder, files, text=TEXT):
     contract = read_json(RECIPE / "model.json")
-    config = {key: TEXT.get(key) for key in contract["config"]}
-    config.update(layer_pattern=TEXT["layer_types"][:6], eos_token_id=[TEXT["eos_token_id"]])
+    config = {key: text.get(key) for key in contract["config"]}
+    config.update(layer_pattern=text["layer_types"][:6], eos_token_id=[text["eos_token_id"]])
     tokenizer = {"policy": "keep-distributed", "files": {name: files[name]["sha256"] for name in TOKENIZER_FILES}}
     contract.update(files=files, config=config, tokenizer=tokenizer)
     path = Path(folder) / "model.json"
@@ -51,9 +51,9 @@ def write_contract(folder, files):
     return path
 
 
-def original(seed=0):
+def original(seed=0, text=TEXT):
     torch.manual_seed(seed)
-    config = Gemma4TextConfig(**TEXT)
+    config = Gemma4TextConfig(**text)
     config._attn_implementation = "eager"
     model = modeling_gemma4.Gemma4ForCausalLM(config).eval()
     with torch.no_grad():
@@ -66,16 +66,17 @@ def original(seed=0):
     return model
 
 
-def write_snapshot(folder):
+def write_snapshot(folder, **changes):
     from safetensors.torch import save_file
 
+    text = {**TEXT, **changes}
     snapshot = Path(folder) / "snapshot"
     snapshot.mkdir()
     state = {"model.language_model." + name.removeprefix("model."): tensor.to(torch.bfloat16).contiguous()
-             for name, tensor in original().state_dict().items() if name != "lm_head.weight"}
+             for name, tensor in original(text=text).state_dict().items() if name != "lm_head.weight"}
     save_file(state, str(snapshot / SHARD))
     documents = {"config.json": {"model_type": "gemma4", "architectures": ["Gemma4ForConditionalGeneration"],
-                                 "text_config": TEXT},
+                                 "text_config": text},
                  "model.safetensors.index.json": {"metadata": {}, "weight_map": dict.fromkeys(state, SHARD)},
                  "generation_config.json": {"bos_token_id": TEXT["bos_token_id"]}, "tokenizer.json": {"model": {}},
                  "tokenizer_config.json": {"bos_token": "<bos>"}}
@@ -83,7 +84,7 @@ def write_snapshot(folder):
         write_json(snapshot / name, value)
     (snapshot / "chat_template.jinja").write_text("{{ bos_token }}")
     files = {path.name: {"bytes": path.stat().st_size, "sha256": sha256(path)} for path in sorted(snapshot.iterdir())}
-    return snapshot, write_contract(folder, files)
+    return snapshot, write_contract(folder, files, text)
 
 
 def write_run(folder, implementation, contract, arrays):
