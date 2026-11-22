@@ -263,13 +263,13 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
     }
 
     @Test(
-        "Lines changed by a byte, removed, reordered, added without an announcement or other than the announced one, an older progress.json, another run's files and a missing progress.json stop the resumed run without generating or removing anything",
+        "Lines changed by a byte, removed, reordered, added without an announcement or other than the announced one, an older progress.json, files or run.json of another run, even one with the same conditions, and a missing progress.json stop the resumed run without generating or removing anything",
         arguments: [
             "trailing comma", "another stop token", "stop set to limit", "shorter output_ids", "line removed",
             "lines swapped", "another sha256", "an older progress.json", "a line that was not announced",
             "a line other than the announced one", "another run's files",
             "files of another run with the same conditions", "run.json of another run with the same conditions",
-            "an earlier pair of outputs.jsonl and progress.json", "progress.json removed",
+            "progress.json removed",
         ])
     func rejectsChangedOutputs(_ change: String) async throws {
         let base = try temporaryFolder()
@@ -340,12 +340,6 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
             try FileManager.default.copyItem(
                 at: other.appending(path: "run.json"), to: folder.appending(path: "run.json"))
             message = "progress.json belongs to another run; the run folder was changed outside this command."
-        case "an earlier pair of outputs.jsonl and progress.json":
-            lines.removeLast()
-            try Evaluation.write(
-                EvaluationCheckpoint(lines: 2, sha256: digest(original[0] + original[1]), run: identity), in: folder)
-            message =
-                "outputs.jsonl has 2 complete lines, fewer than the 3 finished items that run.json records; the run folder was changed outside this command."
         default:
             try FileManager.default.removeItem(at: folder.appending(path: "progress.json"))
             message = "progress.json is missing; the run folder was changed outside this command."
@@ -368,6 +362,40 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
         #expect(try Data(contentsOf: outputs) == changed)
         #expect((try? Data(contentsOf: folder.appending(path: "progress.json"))) == progress)
         #expect(try Data(contentsOf: folder.appending(path: "run.json")) == runFile)
+    }
+
+    @Test(
+        "A run folder that finished four items, with outputs.jsonl and progress.json put back together to the pair written at two items, stops the resumed run without generating or removing anything"
+    )
+    func rejectsAnEarlierPairOfTheSameRun() async throws {
+        let base = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: base) }
+        let folder = base.appending(path: "run")
+        let inputs = items(4)
+        _ = try await Evaluation.run(
+            inputs, limit: 2, in: folder, record: runRecord(count: 4),
+            source: FakeEvaluationLogitsSource([stepThenStop, stepThenStop]), stopTokens: [3])
+        let pair = ["outputs.jsonl", "progress.json"]
+        let earlier = try pair.map { try Data(contentsOf: folder.appending(path: $0)) }
+        _ = try await Evaluation.run(
+            inputs, in: folder, record: runRecord(count: 4),
+            source: FakeEvaluationLogitsSource([stepThenStop, stepThenStop]), stopTokens: [3])
+        #expect(try storedRun(folder).items == 4)
+        for (name, data) in zip(pair, earlier) {
+            try data.write(to: folder.appending(path: name))
+        }
+        let names = pair + ["run.json"]
+        let before = try names.map { try Data(contentsOf: folder.appending(path: $0)) }
+        let source = FakeEvaluationLogitsSource([stepThenStop, stepThenStop])
+        let error = await #expect(throws: ValidationError.self) {
+            try await Evaluation.run(inputs, in: folder, record: runRecord(count: 4), source: source, stopTokens: [3])
+        }
+        #expect(
+            error?.message
+                == "outputs.jsonl has 2 complete lines, fewer than the 4 finished items that run.json records; the run folder was changed outside this command."
+        )
+        #expect(source.calls.isEmpty)
+        #expect(try names.map { try Data(contentsOf: folder.appending(path: $0)) } == before)
     }
 
     @Test(
