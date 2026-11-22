@@ -347,7 +347,7 @@ actor Runtime {
             let prefilled = core.engine.stats.prefillTokens - before
             let readEnd = clock.now
             probe?.read(until: readEnd, prefilledTokens: prefilled, prepareSeconds: core.engine.stats.prepareSeconds)
-            if prefilled > 0 { reloadState.finishedRead() }
+            if prefilled > 0, !Task.isCancelled { reloadState.finishedRead() }
 
             var output = Output(
                 channel: channel,

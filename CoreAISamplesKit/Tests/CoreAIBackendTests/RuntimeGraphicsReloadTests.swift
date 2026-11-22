@@ -135,4 +135,25 @@ struct RuntimeGraphicsReloadTests {
         #expect(reloads == [false, false, true])
         #expect(fixture.control.loads == 2)
     }
+
+    @Test(
+        "A request cancelled while its read still returns normally is not the finished read that the baseline waits for"
+    )
+    func cancelledReturningReadTakesNoBaseline() async throws {
+        let fixture = try await ReloadTestModel.make(policy: Self.graphicsOnly)
+        defer { try? FileManager.default.removeItem(at: fixture.folder) }
+        fixture.control.state.withLock {
+            $0.graphics = 1_000
+            $0.readIgnoresCancellation = true
+        }
+        try await failRead(fixture, "cancellation")
+        #expect(await !fixture.model.processedTokens().isEmpty)
+        let session = LanguageModelSession(model: fixture.model)
+        var reloads: [Bool] = []
+        for graphics: UInt64 in [1_000, 1_100, 1_200] {
+            reloads.append(try await turn(fixture, session, graphics: graphics) != nil)
+        }
+        #expect(reloads == [false, false, true])
+        #expect(fixture.control.loads == 2)
+    }
 }
