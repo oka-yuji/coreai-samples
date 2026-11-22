@@ -1,0 +1,1885 @@
+{
+  "schema": "gemma4-31b-fp16-summary/2",
+  "scope": "FP16 export of the first layers with the outputs for speculation, the comparison of its logits with the FP32 reference and of the model class with the original implementation; not a quality evaluation.",
+  "reference": {
+    "implementation": "original",
+    "layers": 6,
+    "layer_types": {
+      "full_attention": 1,
+      "sliding_attention": 5
+    },
+    "model": {
+      "id": "google/gemma-4-31B-it",
+      "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+      "contract_sha256": "8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531",
+      "weights_sha256": {
+        "model-00001-of-00002.safetensors": "eeef8791537bc04f110967c513149e037d2a9ae97d49add7291ebfa62806bbfa",
+        "model-00002-of-00002.safetensors": "018912220f559f7025d60333e0996183cd538aa77ad6f4988a89ce47be681f10"
+      }
+    },
+    "embed_scale": 73.5,
+    "chunk": 1024,
+    "versions": {
+      "numpy": "2.4.6",
+      "safetensors": "0.8.0",
+      "torch": "2.15.0",
+      "transformers": "5.16.1"
+    },
+    "inputs": {
+      "context": {
+        "positions": 16896,
+        "tokens_sha256": "73d46e7359d93e9d7d66e2bd690764021320ee4801bde538e5d9e76f407309b5",
+        "rows": 1428,
+        "calls": 17,
+        "seconds": 45.14522904250771,
+        "logits": {
+          "bytes": 1497366656,
+          "sha256": "ce11ee05e5e96aad801851daf11b5d77efe4d834bc1b96b5444f403b8f741cf2",
+          "dtype": "float32",
+          "shape": [
+            1428,
+            262144
+          ],
+          "non_finite": 0
+        }
+      },
+      "short": {
+        "positions": 26,
+        "tokens_sha256": "3067fb987b33e81073d6facfd4ffe128ce8a9bbc03405c97f592a6041d5818af",
+        "rows": 26,
+        "calls": 1,
+        "seconds": 0.22968699969351292,
+        "logits": {
+          "bytes": 27263104,
+          "sha256": "1c53a288eb504624454d9ee25e35fc1f981816efa072b6866342ced50ef03c74",
+          "dtype": "float32",
+          "shape": [
+            26,
+            262144
+          ],
+          "non_finite": 0
+        }
+      }
+    },
+    "timing": {
+      "input_hash_s": 24.027063083834946,
+      "load_s": 2.202410583384335,
+      "total_s": 72.27681370917708
+    },
+    "memory": {
+      "lifetime_peak_footprint_bytes": 55569719088,
+      "max_rss_bytes": 55599693824
+    }
+  },
+  "model_class": {
+    "passed": true,
+    "problems": 0,
+    "layers": 6,
+    "tap_layers": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "ratio_limit": 0.001,
+    "records_sha256": [
+      "a69c4ef758688f79bb7f66de361e255ff739fd20f3ad81c05b4395bbfc9836ae",
+      "86c291908830b4f552d286ccd376a2b007c8e7a3c7005da61f6d958b1bc00aa7"
+    ],
+    "inputs": {
+      "long": {
+        "criteria": {
+          "max_abs_logit": 0.005,
+          "max_probability_error": 1e-06,
+          "top1_mismatches": 0
+        },
+        "rows": 1400,
+        "max_abs_logit": 0.0017805099487304688,
+        "max_probability_error": 1.9040593126029527e-09,
+        "top1_mismatches": 0,
+        "hidden_states": {
+          "largest_ratio": 5.153359595731001e-06,
+          "passed": true
+        },
+        "tap_hidden_states": {
+          "1": {
+            "largest_ratio": 4.449364812724212e-06,
+            "passed": true
+          },
+          "2": {
+            "largest_ratio": 5.51637416037296e-06,
+            "passed": true
+          },
+          "3": {
+            "largest_ratio": 4.866571084045326e-06,
+            "passed": true
+          },
+          "4": {
+            "largest_ratio": 4.033521973686558e-06,
+            "passed": true
+          },
+          "5": {
+            "largest_ratio": 3.6293038904405538e-06,
+            "passed": true
+          }
+        },
+        "checks": {
+          "hidden_states": true,
+          "max_abs_logit": true,
+          "max_probability_error": true,
+          "tap_hidden_states": true,
+          "top1_mismatches": true
+        }
+      },
+      "short": {
+        "criteria": {
+          "max_abs_logit": 0.001
+        },
+        "rows": 26,
+        "max_abs_logit": 0.0008029937744140625,
+        "max_probability_error": 7.77519726016858e-10,
+        "top1_mismatches": 0,
+        "hidden_states": {
+          "largest_ratio": 1.7355465693928867e-06,
+          "passed": true
+        },
+        "tap_hidden_states": {
+          "1": {
+            "largest_ratio": 6.064049705802628e-07,
+            "passed": true
+          },
+          "2": {
+            "largest_ratio": 1.854270088212926e-06,
+            "passed": true
+          },
+          "3": {
+            "largest_ratio": 1.459265728130185e-06,
+            "passed": true
+          },
+          "4": {
+            "largest_ratio": 1.0124147926400144e-06,
+            "passed": true
+          },
+          "5": {
+            "largest_ratio": 9.117466705797483e-07,
+            "passed": true
+          }
+        },
+        "checks": {
+          "hidden_states": true,
+          "max_abs_logit": true,
+          "tap_hidden_states": true
+        }
+      }
+    }
+  },
+  "assets": [
+    {
+      "pipeline": {
+        "schema": "coreai-conversion-summary/1",
+        "status": "completed",
+        "verification": "not_configured",
+        "scope": "Fixed-input conversion check; not model production qualification.",
+        "stages": [
+          {
+            "index": 0,
+            "role": "prepare",
+            "status": "executed",
+            "prepare_s": 22.48086858447641,
+            "execute_s": 26.849115333519876,
+            "total_s": 74.22707195952535
+          },
+          {
+            "index": 1,
+            "role": "export",
+            "status": "executed",
+            "prepare_s": 23.18722916767001,
+            "execute_s": 71.84166095778346,
+            "total_s": 123.39089945796877
+          }
+        ],
+        "elapsed_s": 201.28749066684395
+      },
+      "export": {
+        "passed": true,
+        "checks": {
+          "asset": true,
+          "free_disk": true
+        },
+        "problems": 0,
+        "model": {
+          "id": "google/gemma-4-31B-it",
+          "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+          "contract_sha256": "8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531",
+          "weights_sha256": {
+            "model-00001-of-00002.safetensors": "eeef8791537bc04f110967c513149e037d2a9ae97d49add7291ebfa62806bbfa",
+            "model-00002-of-00002.safetensors": "018912220f559f7025d60333e0996183cd538aa77ad6f4988a89ce47be681f10"
+          }
+        },
+        "layers": 6,
+        "layer_types": {
+          "full_attention": 1,
+          "sliding_attention": 5
+        },
+        "functions": [
+          "main",
+          "prefill"
+        ],
+        "context": 16896,
+        "precision": "float16",
+        "upstream_revision": "c8e00c01800ba6ad324707007f7af358efc980a4",
+        "versions": {
+          "coreai-core": "1.0.0b3",
+          "coreai-models": "0.1.0",
+          "coreai-opt": "0.4.0",
+          "coreai-torch": "0.4.3",
+          "safetensors": "0.7.0",
+          "torch": "2.9.0",
+          "transformers": "5.12.1"
+        },
+        "weights": {
+          "tensors": 85,
+          "elements": 4338096902,
+          "elements_by_dtype": {
+            "torch.float16": 4338096902
+          },
+          "quantized_layouts": 0
+        },
+        "asset": {
+          "functions": {
+            "main": {
+              "inputs": {
+                "input_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                },
+                "position_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                }
+              },
+              "outputs": {
+                "hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    5376
+                  ]
+                },
+                "logits": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    262144
+                  ]
+                },
+                "tap_hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    26880
+                  ]
+                }
+              },
+              "states": {
+                "keyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                },
+                "slidingKeyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "slidingValueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "valueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                }
+              }
+            },
+            "prefill": {
+              "inputs": {
+                "input_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                },
+                "position_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                }
+              },
+              "outputs": {
+                "tap_hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    26880
+                  ]
+                }
+              },
+              "states": {
+                "keyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                },
+                "slidingKeyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "slidingValueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "valueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                }
+              }
+            }
+          },
+          "output_order": {
+            "main": [
+              "logits",
+              "hidden_states",
+              "tap_hidden_states"
+            ],
+            "prefill": [
+              "tap_hidden_states"
+            ]
+          },
+          "storage_types": {
+            "Float16": 4338096906,
+            "Float32": 386,
+            "Int32": 148,
+            "UInt32": 29,
+            "UInt64": 1
+          },
+          "float16_minus_weights": 4
+        },
+        "tokenizer": {
+          "chat_template.jinja": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4",
+          "tokenizer.json": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f",
+          "tokenizer_config.json": "9f4fec4b1dc6ecddf8f4a92e9caea5971c0e67d81309f3f9066a2bee8c362633"
+        },
+        "metadata": {
+          "name": "gemma4_31b_l6_fp16_main_prefill",
+          "vocab_size": 262144,
+          "max_context_length": 16896,
+          "hf_model_id": "google/gemma-4-31B-it",
+          "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+          "compression": null,
+          "tap_layers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "tap_convention": "layers-passed:before-final-norm:ascending"
+        },
+        "bundle": {
+          "name": "gemma4_31b_l6_fp16_main_prefill",
+          "main_hash": "8a242c80a12e3d4c81180de930f6bc6ea8ccc0ec60b4a0b1d356e1a0a6ee6600",
+          "bytes": 8708470336,
+          "files": {
+            "gemma4_31b_l6_fp16_main_prefill.aimodel/main.hash": {
+              "bytes": 32,
+              "sha256": "c11777215d80af8f547d0b650d8b3ce78f527e4a0326d0b2c1bb03d138f1501c"
+            },
+            "gemma4_31b_l6_fp16_main_prefill.aimodel/main.mlirb": {
+              "bytes": 8676278120,
+              "sha256": "8a242c80a12e3d4c81180de930f6bc6ea8ccc0ec60b4a0b1d356e1a0a6ee6600"
+            },
+            "gemma4_31b_l6_fp16_main_prefill.aimodel/metadata.json": {
+              "bytes": 105,
+              "sha256": "0d09970f7661074742f691a9b096816299580bd0f0089cb2f46ad61c03098a43"
+            },
+            "metadata.json": {
+              "bytes": 688,
+              "sha256": "2880bd41120191cd0d799168408e69c441a5ff810dd9a5fe1f6e1ebfb00cfd77"
+            },
+            "tokenizer/chat_template.jinja": {
+              "bytes": 18683,
+              "sha256": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4"
+            },
+            "tokenizer/tokenizer.json": {
+              "bytes": 32169626,
+              "sha256": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f"
+            },
+            "tokenizer/tokenizer_config.json": {
+              "bytes": 3082,
+              "sha256": "9f4fec4b1dc6ecddf8f4a92e9caea5971c0e67d81309f3f9066a2bee8c362633"
+            }
+          }
+        },
+        "disk": {
+          "estimated_write_bytes": 17352387608,
+          "free_before_bytes": 410009542656,
+          "lowest_free_bytes": 392635736064,
+          "margin_bytes": 64424509440,
+          "required_free_bytes": 81776897048,
+          "weight_bytes": 8676193804
+        },
+        "timing": {
+          "bundle_hash_s": 3.2865205835551023,
+          "convert_s": 33.156034583225846,
+          "input_hash_s": 23.254264833405614,
+          "inspect_s": 0.026122665964066982,
+          "load_s": 2.8806719165295362,
+          "save_s": 5.971759625710547,
+          "total_s": 69.17833195813
+        },
+        "resources": {
+          "max_rss_bytes": 23299063808,
+          "lifetime_peak_footprint_bytes": 9480206184,
+          "swap": {
+            "first_bytes": 13938783683,
+            "increase_bytes": 0,
+            "limit_increase_bytes": 2000000000,
+            "peak_bytes": 13938783683
+          },
+          "monitor": {
+            "samples": 14,
+            "interval_s": 5,
+            "aborts": 0,
+            "failed": false,
+            "unreadable_samples": 0,
+            "peak_rss_bytes": 20447625216,
+            "lowest_free_percent": 91
+          }
+        }
+      },
+      "comparison": {
+        "passed": true,
+        "problems": 0,
+        "criteria": {
+          "max_abs_logit": 2.0,
+          "near_tie": 0.01
+        },
+        "known_call": {
+          "ends": [
+            97,
+            112
+          ],
+          "shortest": 8
+        },
+        "verifier_sha256": "30f71fd399b860d0080751dfeaf8172cf2414bf1837e0e5f7131aab24d328f85",
+        "main_hash": "8a242c80a12e3d4c81180de930f6bc6ea8ccc0ec60b4a0b1d356e1a0a6ee6600",
+        "conditions": [
+          {
+            "name": "short-c1",
+            "input": "short",
+            "tokens": 26,
+            "start": 0,
+            "chunk": 1,
+            "rows": 26,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4581027030944824,
+            "top1_mismatches": {
+              "near_tie": 25,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 14.968769749626517,
+            "output": {
+              "bytes": 13631488,
+              "sha256": "78113a2ba0747c1a0fbff4f1c9f38777e9978290d36c049a4f4ff227657e6315"
+            },
+            "verifier": {
+              "cached": false,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 26,
+              "non_finite_count": 0,
+              "load_s": 14.086387083,
+              "prefix_s": 1.5792e-05,
+              "scoring_s": 0.7551380830000001,
+              "specialize_s": 10.666441875
+            }
+          },
+          {
+            "name": "short-c26",
+            "input": "short",
+            "tokens": 26,
+            "start": 0,
+            "chunk": 26,
+            "rows": 26,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4798908233642578,
+            "top1_mismatches": {
+              "near_tie": 25,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 3.6206975001841784,
+            "output": {
+              "bytes": 13631488,
+              "sha256": "33fd4bf9da2fa49734bbf7286e84d3038e83d88be0a0aa4104b3b7fabb5e80d6"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 1,
+              "non_finite_count": 0,
+              "load_s": 3.355800333,
+              "prefix_s": 5.834e-06,
+              "scoring_s": 0.140667958,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c1",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 1,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9888534545898438,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 35.23880695737898,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "01ab3286f50c0d180fbfb0ca01e357c2cf2583a41f8065b404a029912aa78d7f"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 1300,
+              "non_finite_count": 0,
+              "load_s": 3.324176,
+              "prefix_s": 5.166e-06,
+              "scoring_s": 31.790780334,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c2",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 2,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9286415576934814,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 20.259084791876376,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "003f305dd620ec09826cd5bc395131d0a20bb0c2e2eee8e63c404a9003b7871c"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 650,
+              "non_finite_count": 0,
+              "load_s": 3.818186458,
+              "prefix_s": 5.5420000000000005e-06,
+              "scoring_s": 16.290866541,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c4",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 4,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.8551206588745117,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 11.514813707210124,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "b7835b8b0ddb64a336d01ffb332c9d7d9b1847a2a71f0d1b130a94dc274aba98"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 325,
+              "non_finite_count": 0,
+              "load_s": 3.407171416,
+              "prefix_s": 5.667e-06,
+              "scoring_s": 7.980113292,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c8",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 8,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.8612391948699951,
+            "top1_mismatches": {
+              "near_tie": 1250,
+              "outside": 0
+            },
+            "known": {
+              "rows": 16,
+              "max_abs_logit": 4.266499042510986
+            },
+            "seconds": 8.515820084139705,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "4b1228d168e8de5cdce52bf23384f2d84f48ca9dc698295fb4a645fcdec2c1ad"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 163,
+              "non_finite_count": 0,
+              "load_s": 3.362553042,
+              "prefix_s": 1.0375000000000001e-05,
+              "scoring_s": 5.026903833,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "prefix-c1",
+            "input": "context",
+            "tokens": 1300,
+            "start": 1000,
+            "chunk": 1,
+            "rows": 300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.8358063697814941,
+            "top1_mismatches": {
+              "near_tie": 294,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 11.43115191720426,
+            "output": {
+              "bytes": 157286400,
+              "sha256": "0438673efe78409a0d20a5c59c2d4b0b337ae51176c5ebc89e5a0ae0d4da4508"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 1,
+              "main_calls": 300,
+              "non_finite_count": 0,
+              "load_s": 3.345081833,
+              "prefix_s": 0.414009875,
+              "scoring_s": 7.5214412500000005,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-2048",
+            "input": "context",
+            "tokens": 2056,
+            "start": 2040,
+            "chunk": 4,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4372234344482422,
+            "top1_mismatches": {
+              "near_tie": 15,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 4.495081625878811,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "3eaae7f04c9e6f37d13a5d6e318fd204e6d184c570b2ad48305f6eb0d930acc0"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 1,
+              "main_calls": 4,
+              "non_finite_count": 0,
+              "load_s": 3.358706292,
+              "prefix_s": 0.8197169580000001,
+              "scoring_s": 0.18279050000000002,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-4096",
+            "input": "context",
+            "tokens": 4104,
+            "start": 4088,
+            "chunk": 8,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5345573425292969,
+            "top1_mismatches": {
+              "near_tie": 14,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 5.632359040901065,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "d07006f2b0475b41d75aa6a92c04a114b4a02f336af538bc41e69442cc8e78ec"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 1,
+              "main_calls": 2,
+              "non_finite_count": 0,
+              "load_s": 3.5184055,
+              "prefix_s": 1.802915875,
+              "scoring_s": 0.169906,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-8192",
+            "input": "context",
+            "tokens": 8200,
+            "start": 8184,
+            "chunk": 2,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.45887136459350586,
+            "top1_mismatches": {
+              "near_tie": 16,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 7.5365855833515525,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "b29b8fa368d7b4340857aa07a78e34cc9dfdd57a05efe496a37883de6220994a"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 2,
+              "main_calls": 8,
+              "non_finite_count": 0,
+              "load_s": 3.369310417,
+              "prefix_s": 3.68169225,
+              "scoring_s": 0.350116458,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-16384",
+            "input": "context",
+            "tokens": 16392,
+            "start": 16376,
+            "chunk": 4,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5671958923339844,
+            "top1_mismatches": {
+              "near_tie": 15,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 12.62786812428385,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "a543c9576aa10114783b17150a3bcf3b5cb4a8409245c1a9f44c7f4d5a8fc9e2"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 4,
+              "main_calls": 4,
+              "non_finite_count": 0,
+              "load_s": 3.356943709,
+              "prefix_s": 8.81584525,
+              "scoring_s": 0.299069666,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "tail",
+            "input": "context",
+            "tokens": 16896,
+            "start": 16832,
+            "chunk": 1,
+            "rows": 64,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4663839340209961,
+            "top1_mismatches": {
+              "near_tie": 61,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 14.903212582692504,
+            "output": {
+              "bytes": 33554432,
+              "sha256": "eb941313cacd3499c8c0a8375280b3b9e814fada6065346ef19153f359d48fcf"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 5,
+              "main_calls": 64,
+              "non_finite_count": 0,
+              "load_s": 3.36472275,
+              "prefix_s": 9.713825458,
+              "scoring_s": 1.6780984170000002,
+              "specialize_s": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "pipeline": {
+        "schema": "coreai-conversion-summary/1",
+        "status": "completed",
+        "verification": "not_configured",
+        "scope": "Fixed-input conversion check; not model production qualification.",
+        "stages": [
+          {
+            "index": 0,
+            "role": "prepare",
+            "status": "executed",
+            "prepare_s": 22.739047249779105,
+            "execute_s": 25.899635625071824,
+            "total_s": 72.2567882919684
+          },
+          {
+            "index": 1,
+            "role": "export",
+            "status": "executed",
+            "prepare_s": 21.91736437473446,
+            "execute_s": 53.53968391660601,
+            "total_s": 104.01144437491894
+          }
+        ],
+        "elapsed_s": 177.92783104162663
+      },
+      "export": {
+        "passed": true,
+        "checks": {
+          "asset": true,
+          "free_disk": true
+        },
+        "problems": 0,
+        "model": {
+          "id": "google/gemma-4-31B-it",
+          "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+          "contract_sha256": "8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531",
+          "weights_sha256": {
+            "model-00001-of-00002.safetensors": "eeef8791537bc04f110967c513149e037d2a9ae97d49add7291ebfa62806bbfa",
+            "model-00002-of-00002.safetensors": "018912220f559f7025d60333e0996183cd538aa77ad6f4988a89ce47be681f10"
+          }
+        },
+        "layers": 6,
+        "layer_types": {
+          "full_attention": 1,
+          "sliding_attention": 5
+        },
+        "functions": [
+          "main"
+        ],
+        "context": 16896,
+        "precision": "float16",
+        "upstream_revision": "c8e00c01800ba6ad324707007f7af358efc980a4",
+        "versions": {
+          "coreai-core": "1.0.0b3",
+          "coreai-models": "0.1.0",
+          "coreai-opt": "0.4.0",
+          "coreai-torch": "0.4.3",
+          "safetensors": "0.7.0",
+          "torch": "2.9.0",
+          "transformers": "5.12.1"
+        },
+        "weights": {
+          "tensors": 85,
+          "elements": 4338096902,
+          "elements_by_dtype": {
+            "torch.float16": 4338096902
+          },
+          "quantized_layouts": 0
+        },
+        "asset": {
+          "functions": {
+            "main": {
+              "inputs": {
+                "input_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                },
+                "position_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                }
+              },
+              "outputs": {
+                "hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    5376
+                  ]
+                },
+                "logits": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    262144
+                  ]
+                },
+                "tap_hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    26880
+                  ]
+                }
+              },
+              "states": {
+                "keyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                },
+                "slidingKeyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "slidingValueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "valueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                }
+              }
+            }
+          },
+          "output_order": {
+            "main": [
+              "logits",
+              "hidden_states",
+              "tap_hidden_states"
+            ]
+          },
+          "storage_types": {
+            "Float16": 4338096906,
+            "Float32": 386,
+            "Int32": 148,
+            "UInt32": 29,
+            "UInt64": 1
+          },
+          "float16_minus_weights": 4
+        },
+        "tokenizer": {
+          "chat_template.jinja": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4",
+          "tokenizer.json": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f",
+          "tokenizer_config.json": "9f4fec4b1dc6ecddf8f4a92e9caea5971c0e67d81309f3f9066a2bee8c362633"
+        },
+        "metadata": {
+          "name": "gemma4_31b_l6_fp16_main",
+          "vocab_size": 262144,
+          "max_context_length": 16896,
+          "hf_model_id": "google/gemma-4-31B-it",
+          "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+          "compression": null,
+          "tap_layers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "tap_convention": "layers-passed:before-final-norm:ascending"
+        },
+        "bundle": {
+          "name": "gemma4_31b_l6_fp16_main",
+          "main_hash": "aca31adaf9bd963754624734df916b93a7883b15d5915790d98b64d12ab3d31e",
+          "bytes": 8708440768,
+          "files": {
+            "gemma4_31b_l6_fp16_main.aimodel/main.hash": {
+              "bytes": 32,
+              "sha256": "ca9bcc1894b713c3707a43063ddbf3f26d8e22d5ca47c8ef51e1198fc6ff9251"
+            },
+            "gemma4_31b_l6_fp16_main.aimodel/main.mlirb": {
+              "bytes": 8676248568,
+              "sha256": "aca31adaf9bd963754624734df916b93a7883b15d5915790d98b64d12ab3d31e"
+            },
+            "gemma4_31b_l6_fp16_main.aimodel/metadata.json": {
+              "bytes": 105,
+              "sha256": "671d560eaf054c0538df7fb50ca7012b98de0b028a0f29b4695c816f5a1284fe"
+            },
+            "metadata.json": {
+              "bytes": 672,
+              "sha256": "74f41f9888f65c4671aed2e329ba653fdac7d2250dce55720874365c758aec29"
+            },
+            "tokenizer/chat_template.jinja": {
+              "bytes": 18683,
+              "sha256": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4"
+            },
+            "tokenizer/tokenizer.json": {
+              "bytes": 32169626,
+              "sha256": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f"
+            },
+            "tokenizer/tokenizer_config.json": {
+              "bytes": 3082,
+              "sha256": "9f4fec4b1dc6ecddf8f4a92e9caea5971c0e67d81309f3f9066a2bee8c362633"
+            }
+          }
+        },
+        "disk": {
+          "estimated_write_bytes": 17352387608,
+          "free_before_bytes": 391824592896,
+          "lowest_free_bytes": 374457257984,
+          "margin_bytes": 64424509440,
+          "required_free_bytes": 81776897048,
+          "weight_bytes": 8676193804
+        },
+        "timing": {
+          "bundle_hash_s": 3.0929252076894045,
+          "convert_s": 16.9109802916646,
+          "input_hash_s": 22.376561583019793,
+          "inspect_s": 0.035371958278119564,
+          "load_s": 2.627515332773328,
+          "save_s": 5.416527291759849,
+          "total_s": 51.05120775010437
+        },
+        "resources": {
+          "max_rss_bytes": 23251877888,
+          "lifetime_peak_footprint_bytes": 14486668640,
+          "swap": {
+            "first_bytes": 13938783683,
+            "increase_bytes": 0,
+            "limit_increase_bytes": 2000000000,
+            "peak_bytes": 13938783683
+          },
+          "monitor": {
+            "samples": 11,
+            "interval_s": 5,
+            "aborts": 0,
+            "failed": false,
+            "unreadable_samples": 0,
+            "peak_rss_bytes": 23251828736,
+            "lowest_free_percent": 91
+          }
+        }
+      },
+      "comparison": {
+        "passed": true,
+        "problems": 0,
+        "criteria": {
+          "max_abs_logit": 2.0,
+          "near_tie": 0.01
+        },
+        "known_call": {
+          "ends": [
+            97,
+            112
+          ],
+          "shortest": 8
+        },
+        "verifier_sha256": "30f71fd399b860d0080751dfeaf8172cf2414bf1837e0e5f7131aab24d328f85",
+        "main_hash": "aca31adaf9bd963754624734df916b93a7883b15d5915790d98b64d12ab3d31e",
+        "conditions": [
+          {
+            "name": "short-c1",
+            "input": "short",
+            "tokens": 26,
+            "start": 0,
+            "chunk": 1,
+            "rows": 26,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4581027030944824,
+            "top1_mismatches": {
+              "near_tie": 25,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 10.006741332821548,
+            "output": {
+              "bytes": 13631488,
+              "sha256": "78113a2ba0747c1a0fbff4f1c9f38777e9978290d36c049a4f4ff227657e6315"
+            },
+            "verifier": {
+              "cached": false,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 26,
+              "non_finite_count": 0,
+              "load_s": 7.926867917,
+              "prefix_s": 1.4458000000000001e-05,
+              "scoring_s": 1.980000833,
+              "specialize_s": 6.696022583
+            }
+          },
+          {
+            "name": "short-c26",
+            "input": "short",
+            "tokens": 26,
+            "start": 0,
+            "chunk": 26,
+            "rows": 26,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4798908233642578,
+            "top1_mismatches": {
+              "near_tie": 25,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 2.7149612503126264,
+            "output": {
+              "bytes": 13631488,
+              "sha256": "33fd4bf9da2fa49734bbf7286e84d3038e83d88be0a0aa4104b3b7fabb5e80d6"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 1,
+              "non_finite_count": 0,
+              "load_s": 1.256818708,
+              "prefix_s": 3.958e-06,
+              "scoring_s": 1.3577185840000001,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c1",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 1,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9888534545898438,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 33.90835049934685,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "01ab3286f50c0d180fbfb0ca01e357c2cf2583a41f8065b404a029912aa78d7f"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 1300,
+              "non_finite_count": 0,
+              "load_s": 1.239742167,
+              "prefix_s": 4.458e-06,
+              "scoring_s": 32.5659705,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c2",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 2,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9286415576934814,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 18.848204917274415,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "003f305dd620ec09826cd5bc395131d0a20bb0c2e2eee8e63c404a9003b7871c"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 650,
+              "non_finite_count": 0,
+              "load_s": 1.365929875,
+              "prefix_s": 5.458e-06,
+              "scoring_s": 17.366758375,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c4",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 4,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.8551206588745117,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 10.201354458928108,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "b7835b8b0ddb64a336d01ffb332c9d7d9b1847a2a71f0d1b130a94dc274aba98"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 325,
+              "non_finite_count": 0,
+              "load_s": 1.293266417,
+              "prefix_s": 3.4160000000000004e-06,
+              "scoring_s": 8.802428625,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c8",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 8,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.8612391948699951,
+            "top1_mismatches": {
+              "near_tie": 1250,
+              "outside": 0
+            },
+            "known": {
+              "rows": 16,
+              "max_abs_logit": 4.266499042510986
+            },
+            "seconds": 7.687483999878168,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "4b1228d168e8de5cdce52bf23384f2d84f48ca9dc698295fb4a645fcdec2c1ad"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 163,
+              "non_finite_count": 0,
+              "load_s": 1.304990375,
+              "prefix_s": 4.417e-06,
+              "scoring_s": 6.272292166,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "prefix-c1",
+            "input": "context",
+            "tokens": 1300,
+            "start": 1000,
+            "chunk": 1,
+            "rows": 300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.8358063697814941,
+            "top1_mismatches": {
+              "near_tie": 294,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 10.714422833174467,
+            "output": {
+              "bytes": 157286400,
+              "sha256": "0438673efe78409a0d20a5c59c2d4b0b337ae51176c5ebc89e5a0ae0d4da4508"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "main",
+              "prefix_calls": 1,
+              "main_calls": 300,
+              "non_finite_count": 0,
+              "load_s": 1.294238625,
+              "prefix_s": 1.975827125,
+              "scoring_s": 7.33375575,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-2048",
+            "input": "context",
+            "tokens": 2056,
+            "start": 2040,
+            "chunk": 4,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4372234344482422,
+            "top1_mismatches": {
+              "near_tie": 15,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 4.186984917148948,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "3eaae7f04c9e6f37d13a5d6e318fd204e6d184c570b2ad48305f6eb0d930acc0"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "main",
+              "prefix_calls": 1,
+              "main_calls": 4,
+              "non_finite_count": 0,
+              "load_s": 1.285245041,
+              "prefix_s": 2.673427917,
+              "scoring_s": 0.12096095800000001,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-4096",
+            "input": "context",
+            "tokens": 4104,
+            "start": 4088,
+            "chunk": 8,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5345573425292969,
+            "top1_mismatches": {
+              "near_tie": 14,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 5.872199582867324,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "d07006f2b0475b41d75aa6a92c04a114b4a02f336af538bc41e69442cc8e78ec"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "main",
+              "prefix_calls": 1,
+              "main_calls": 2,
+              "non_finite_count": 0,
+              "load_s": 1.288780459,
+              "prefix_s": 4.346239916,
+              "scoring_s": 0.11562258400000001,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-8192",
+            "input": "context",
+            "tokens": 8200,
+            "start": 8184,
+            "chunk": 2,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.45887136459350586,
+            "top1_mismatches": {
+              "near_tie": 16,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 9.786647208966315,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "b29b8fa368d7b4340857aa07a78e34cc9dfdd57a05efe496a37883de6220994a"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "main",
+              "prefix_calls": 2,
+              "main_calls": 8,
+              "non_finite_count": 0,
+              "load_s": 1.35327675,
+              "prefix_s": 8.013216458,
+              "scoring_s": 0.300325958,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-16384",
+            "input": "context",
+            "tokens": 16392,
+            "start": 16376,
+            "chunk": 4,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5671958923339844,
+            "top1_mismatches": {
+              "near_tie": 15,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 17.971043375320733,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "a543c9576aa10114783b17150a3bcf3b5cb4a8409245c1a9f44c7f4d5a8fc9e2"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "main",
+              "prefix_calls": 4,
+              "main_calls": 4,
+              "non_finite_count": 0,
+              "load_s": 1.3136073750000001,
+              "prefix_s": 16.259620333,
+              "scoring_s": 0.261736417,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "tail",
+            "input": "context",
+            "tokens": 16896,
+            "start": 16832,
+            "chunk": 1,
+            "rows": 64,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.4663839340209961,
+            "top1_mismatches": {
+              "near_tie": 61,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 21.308590291067958,
+            "output": {
+              "bytes": 33554432,
+              "sha256": "eb941313cacd3499c8c0a8375280b3b9e814fada6065346ef19153f359d48fcf"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "main",
+              "prefix_calls": 5,
+              "main_calls": 64,
+              "non_finite_count": 0,
+              "load_s": 1.515673709,
+              "prefix_s": 17.924970791,
+              "scoring_s": 1.734066584,
+              "specialize_s": 0
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
