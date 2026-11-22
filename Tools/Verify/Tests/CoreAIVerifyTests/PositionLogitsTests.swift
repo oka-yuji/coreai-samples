@@ -123,19 +123,26 @@ import Testing
         return (folder, folder.appending(path: "logits.f16").path(percentEncoded: false))
     }
 
-    @Test("The rows go to a partial file in the same folder, which takes the output name only after the writer returns")
+    private func names(_ folder: URL) throws -> Set<String> {
+        Set(try FileManager.default.contentsOfDirectory(atPath: folder.path(percentEncoded: false)))
+    }
+
+    @Test(
+        "The rows go to a new partial file with a unique name in the same folder, and only the output remains after the writer returns"
+    )
     func outputTakesItsNameWhenComplete() async throws {
         let (folder, output) = try outputPath()
         defer { try? FileManager.default.removeItem(at: folder) }
         let value = try await PositionLogits.writeFile(at: output) { partial in
-            #expect(partial.path(percentEncoded: false) == output + ".partial")
-            #expect(!FileManager.default.fileExists(atPath: output))
+            let name = partial.lastPathComponent
+            #expect(name.hasPrefix("logits.f16.") && name.hasSuffix(".partial") && name != "logits.f16.partial")
+            #expect(try names(folder) == [name])
             try Data([1, 2, 3]).write(to: partial)
             return 7
         }
         #expect(value == 7)
         #expect(try Data(contentsOf: URL(filePath: output)) == Data([1, 2, 3]))
-        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+        #expect(try names(folder) == ["logits.f16"])
     }
 
     @Test("An existing output is refused before anything is written, and it is left unchanged")
@@ -148,23 +155,46 @@ import Testing
         }
         #expect(error?.message == "The output file already exists: \(output)")
         #expect(try Data(contentsOf: URL(filePath: output)) == Data([9]))
-        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+        #expect(try names(folder) == ["logits.f16"])
     }
 
-    @Test("A partial file left by an interrupted run is overwritten, and the output is created")
-    func leftoverPartialIsOverwritten() async throws {
+    @Test("Partial files of other runs and unrelated files with a partial suffix are neither overwritten nor removed")
+    func otherPartialFilesAreKept() async throws {
         let (folder, output) = try outputPath()
         defer { try? FileManager.default.removeItem(at: folder) }
-        try Data([7, 7, 7, 7]).write(to: URL(filePath: output + ".partial"))
+        let others = ["logits.f16.partial", "logits.f16.0123.partial", "tokens.json.partial"]
+        for (index, name) in others.enumerated() {
+            try Data([UInt8(index + 10)]).write(to: folder.appending(path: name))
+        }
         try await PositionLogits.writeFile(at: output) { partial in
-            #expect(try Data(contentsOf: partial).isEmpty)
+            #expect(!others.contains(partial.lastPathComponent))
             try Data([5]).write(to: partial)
         }
         #expect(try Data(contentsOf: URL(filePath: output)) == Data([5]))
-        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+        for (index, name) in others.enumerated() {
+            #expect(try Data(contentsOf: folder.appending(path: name)) == Data([UInt8(index + 10)]))
+        }
+        #expect(try names(folder) == Set(others + ["logits.f16"]))
     }
 
-    @Test("A failing writer leaves neither the output nor the partial file")
+    @Test(
+        "An output that another run creates before this one finishes is kept, and this run fails and removes its partial file"
+    )
+    func outputCreatedMeanwhileIsKept() async throws {
+        let (folder, output) = try outputPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let error = await #expect(throws: ValidationError.self) {
+            try await PositionLogits.writeFile(at: output) { partial in
+                try Data([1, 2]).write(to: partial)
+                try Data([8]).write(to: URL(filePath: output))
+            }
+        }
+        #expect(error?.message == "The output file already exists: \(output)")
+        #expect(try Data(contentsOf: URL(filePath: output)) == Data([8]))
+        #expect(try names(folder) == ["logits.f16"])
+    }
+
+    @Test("A failing writer leaves neither the output nor its partial file")
     func failingWriterLeavesNothing() async throws {
         let (folder, output) = try outputPath()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -174,8 +204,7 @@ import Testing
                 throw CancellationError()
             }
         }
-        #expect(!FileManager.default.fileExists(atPath: output))
-        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+        #expect(try names(folder).isEmpty)
     }
 
     @Test("A chunk length near the largest integer is cut to the remaining positions without overflow")

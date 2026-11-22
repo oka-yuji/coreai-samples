@@ -26,7 +26,7 @@ struct PositionLogits: AsyncParsableCommand {
 
     @Option(
         help:
-            "Output file of little-endian float16 logits shaped [positions, vocab]. It must not exist yet. The rows are written to the same path with .partial appended, which is renamed when the last row is written."
+            "Output file of little-endian float16 logits shaped [positions, vocab]. It must not exist yet. The rows are written to a new file next to it, named with a unique ID and .partial, which takes the output name when the last row is written."
     )
     var output: String
 
@@ -73,11 +73,15 @@ struct PositionLogits: AsyncParsableCommand {
         guard !FileManager.default.fileExists(atPath: path) else {
             throw ValidationError("The output file already exists: \(path)")
         }
-        let partial = URL(filePath: path + ".partial")
-        try Data().write(to: partial)
+        let partial = URL(filePath: "\(path).\(UUID().uuidString).partial")
+        try Data().write(to: partial, options: .withoutOverwriting)
         do {
             let result = try await body(partial)
-            try FileManager.default.moveItem(at: partial, to: URL(filePath: path))
+            guard renamex_np(partial.path(percentEncoded: false), path, UInt32(RENAME_EXCL)) == 0 else {
+                let code = errno
+                if code == EEXIST { throw ValidationError("The output file already exists: \(path)") }
+                throw POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO)
+            }
             return result
         } catch {
             try? FileManager.default.removeItem(at: partial)
