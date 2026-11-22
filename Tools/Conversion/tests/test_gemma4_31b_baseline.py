@@ -352,8 +352,9 @@ class SessionTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 self.run_main(folder, failing="session.json")
             run = read_json(Path(folder) / "run/run.json")
+            lines = complete_lines((Path(folder) / "run/outputs.jsonl").read_bytes())
             self.assertFalse((Path(folder) / "log/session.json").exists())
-        self.assertEqual((run["items"], "finished" in run), (2, False))
+        self.assertEqual((run["items"], "finished" in run, len(lines)), (0, False, 2))
 
 
 class RunFolderTests(unittest.TestCase):
