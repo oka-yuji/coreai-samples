@@ -551,11 +551,160 @@ holds for both.
 | Its `export.json` | `1f3c7c4bc2ebe2f0471c60dd0231f29b9d489114539625264778360a25bfdb28` |
 | Its `comparison.json` | `8093eaeedc8b7a2fd418fa0ba0d80b80fc5c432e054b7fe1039dc8f60ed031df` |
 
+The summary of this section was made with the tools of commit f6a3990e; the current tools read only the records with
+the outputs for speculation ([Outputs for speculation in the first six layers](#outputs-for-speculation-in-the-first-six-layers-695)).
+
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 reference record.json> \
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   > docs/validation/gemma4-31b/fp16-first-layers-20261122.json
+~~~
+
+## Outputs for speculation in the first six layers (#695)
+
+This section copies the numbers of the FP16 export of the first six layers with the two outputs that the drafters of
+speculative decoding read (#695): `hidden_states` [1, n, 5376], the output of the final norm, from `main`, and
+`tap_hidden_states` [1, n, 26880], the outputs after layers 1 to 5 joined in ascending order, from `main` and
+`prefill` ([Model class](../../../Tools/Conversion/recipes/gemma4_31b/README.md#model-class)). It also copies the
+comparison of these outputs of the model class with the original implementation in FP32, and the comparison of the
+logits that the own engine reads from the two assets with the FP32 reference by the twelve conditions of
+[FP16 export of the first six layers](#fp16-export-of-the-first-six-layers). The own engine reads the logits only; the
+values of the two outputs in the assets are not compared here.
+[`taps-first-layers-20261123.json`](taps-first-layers-20261123.json) holds the states, numbers, hashes, versions and
+fixed names of the records, from `fp16_summary`, which made the checks of the section above, made the comparison of
+the model class itself from the folders of the two runs of `layers.py run`, and checked that the two runs, the FP32
+reference and each export are of the same contract and that the runs are of the layers and tap layers of each export.
+It has no local paths, commands or environment variables; the records, bundles and arrays stay in the local work
+directory.
+
+### Conditions
+
+- The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power). Every
+  model job held the shared machine lock, and none started while another model process ran. The export with `main`
+  only waited 132 s until the lock was free and no other model process ran; the times below are records, not
+  measurements.
+- Commit f1390476 with no local changes for every model job. The converter and reference environments are those of
+  the section above. `coreai-verify` was built in release from ddba9d51, whose Swift sources are those of f1390476.
+- Runs (2026-11-23 JST, pipeline run IDs in UTC): the FP32 reference (`layers.py context`) from 05:10:42; `layers.py
+  run` of the original implementation from 05:14:05 and of the model class from 05:16:47; the exports
+  `20261122T202000-cacdae94` (`main` and `prefill`) from 05:20:00 and `20261122T202743-f7ff6a59` (`main` only) from
+  05:27:43, each with the `prepare` step of the recipe (the `export` step ran in both, not reused); the comparisons
+  from 05:32:49 and from 05:37:49.
+- Tap layers `1,2,3,4,5`. Inputs: fixed-seed token IDs of the recipe's FP32 tools, not text: `short` (26 tokens) and
+  `long` (1,400 tokens) for the model class, `short` and `context` (16,896 tokens) for the own engine.
+
+### Model class and original implementation
+
+`layers.py run` used the weights rounded to float16 and FP32 compute on the CPU. The original implementation read each
+input in one call; the model class read `short` in one call and `long` in 102 calls (1,024 tokens, then calls of 1,
+2, 4 and 8 tokens with its caches). The comparison passed. For `hidden_states` and each tap layer, the table gives the
+largest ratio over the positions of the largest absolute difference at a position to the largest absolute value of
+the original implementation at that position (the criterion: below 1e-3 at every position), and then the logit
+differences, whose criteria are those of [FP32 outputs of the first
+layers](../../../Tools/Conversion/recipes/gemma4_31b/README.md#fp32-outputs-of-the-first-layers).
+
+| Input | Rows | `hidden_states` | Tap 1 | Tap 2 | Tap 3 | Tap 4 | Tap 5 | Largest absolute logit difference | Largest probability difference | Top-1 changes |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `short` | 26 | 1.74e-6 | 6.06e-7 | 1.85e-6 | 1.46e-6 | 1.01e-6 | 9.12e-7 | 8.03e-4 | 7.78e-10 | 0 |
+| `long` | 1,400 | 5.15e-6 | 4.45e-6 | 5.52e-6 | 4.87e-6 | 4.03e-6 | 3.63e-6 | 1.78e-3 | 1.90e-9 | 0 |
+
+The run of the original implementation took 32.0 s (23.8 s to hash the files to load, 2.2 s to load, 0.23 s for
+`short` and 4.49 s for `long`), that of the model class 53.3 s (23.1 s, 3.4 s, 0.24 s and 25.6 s). Peak resident
+memory 26,334,330,880 B and 28,226,437,120 B, kernel lifetime footprint peak 24,628,283,440 B and 28,170,605,184 B.
+All arrays are finite.
+
+### Exports
+
+| | `main` and `prefill` | `main` only |
+|---|---:|---:|
+| Pipeline | 201.3 s | 177.9 s |
+| `prepare` step | 26.8 s | 25.9 s |
+| `export` step | 71.8 s | 53.5 s |
+| Export tool | 69.18 s | 51.05 s |
+| Hashing the files to load | 23.25 s | 22.38 s |
+| Loading the model class in FP16 | 2.88 s | 2.63 s |
+| Tracing and converting the functions | 33.16 s | 16.91 s |
+| Saving the asset | 5.97 s | 5.42 s |
+| Hashing the bundle | 3.29 s | 3.09 s |
+| Peak resident memory | 23,299,063,808 B | 23,251,877,888 B |
+| Kernel lifetime footprint peak | 9,480,206,184 B | 14,486,668,640 B |
+| Swap increase (limit 2,000,000,000 B) | 0 B | 0 B |
+| Free disk required at the start | 81,776,897,048 B | 81,776,897,048 B |
+| Lowest free disk during the run (limit 64,424,509,440 B) | 392,635,736,064 B | 374,457,257,984 B |
+| `main.mlirb` | 8,676,278,120 B | 8,676,248,568 B |
+| `main.hash`, the SHA-256 of `main.mlirb` | `8a242c80a12e3d4c81180de930f6bc6ea8ccc0ec60b4a0b1d356e1a0a6ee6600` | `aca31adaf9bd963754624734df916b93a7883b15d5915790d98b64d12ab3d31e` |
+| Bundle | 8,708,470,336 B | 8,708,440,768 B |
+
+Both assets passed the inspection. `main` returns `logits` float16 [1, ?, 262144], `hidden_states` float16
+[1, ?, 5376] and `tap_hidden_states` float16 [1, ?, 26880] in this order, and `prefill` returns `tap_hidden_states`
+float16 [1, ?, 26880]; the inputs, the states, the PyTorch model (85 parameters and buffers, 4,338,096,902 float16
+elements) and the storage counts of the asset (Float16 4,338,096,906, Float32 386, Int32 148, UInt32 29 and UInt64 1)
+are those of the section above. `metadata.json` also has `tap_layers` [1, 2, 3, 4, 5] and `tap_convention`
+`layers-passed:before-final-norm:ascending`. Against the exports of the section above, whose `main` returned `logits`
+only, `main.mlirb` is 285 B and 199 B larger.
+
+### FP32 reference
+
+`layers.py context` took 72.3 s (24.0 s to hash, 2.2 s to load, 0.23 s for `short` and 45.1 s for `context`). Its
+`short.npy` and `context.npy` have the SHA-256 of the FP32 reference of the section above. Peak resident memory
+55,599,693,824 B, kernel lifetime footprint peak 55,569,719,088 B.
+
+### Comparison
+
+Both assets passed all twelve conditions. Each of the 24 logits files is byte-identical to the file of the same
+condition from the asset with the same functions in the section above, so the largest differences, the top-1 changes
+and the rows of the known call shape are those of its table. The tokens before `--start` went through the `prefill`
+function on the asset with `prefill` and through `main` on the other, with the calls of the section above.
+
+| Condition | Seconds (`main` and `prefill` / `main` only) | In the section above |
+|---|---:|---:|
+| `short-c1` | 15.0 / 10.0 | 15.4 / 11.1 |
+| `short-c26` | 3.6 / 2.7 | 3.9 / 2.8 |
+| `window-c1` | 35.2 / 33.9 | 36.6 / 33.6 |
+| `window-c2` | 20.3 / 18.8 | 20.7 / 18.6 |
+| `window-c4` | 11.5 / 10.2 | 12.4 / 10.2 |
+| `window-c8` | 8.5 / 7.7 | 8.8 / 7.7 |
+| `prefix-c1` | 11.4 / 10.7 | 12.2 / 10.7 |
+| `capacity-2048` | 4.5 / 4.2 | 4.7 / 4.2 |
+| `capacity-4096` | 5.6 / 5.9 | 5.7 / 5.8 |
+| `capacity-8192` | 7.5 / 9.8 | 7.7 / 9.9 |
+| `capacity-16384` | 12.6 / 18.0 | 11.9 / 18.1 |
+| `tail` | 14.9 / 21.3 | 14.6 / 20.4 |
+
+The first condition of each asset specialized the asset (10.7 s and 6.7 s); the others used the specialization cache.
+The caches took 21,660,884 KiB (`resources.bin` 22,163,497,512 B) and 16,962,064 KiB (`resources.bin`
+17,352,106,248 B) and were removed after the comparisons.
+
+### Limits
+
+- Six of the 60 layers with the tap layers 1 to 5, FP16 only, one machine, one OS build and one software environment.
+  The export of all 60 layers with the tap layers 1, 17, 29, 47 and 59 and the 8-bit assets are later steps.
+- The own engine binds the first output of `main` as the logits and reads no other output, so the values of
+  `hidden_states` and `tap_hidden_states` in the assets are not compared with FP32 here; reading them is a later step.
+- The comparison of the model class is of PyTorch in FP32 on the CPU, not of the FP16 assets.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| `record.json` of the original implementation (`layers.py run`) | `a69c4ef758688f79bb7f66de361e255ff739fd20f3ad81c05b4395bbfc9836ae` |
+| `record.json` of the model class (`layers.py run`) | `86c291908830b4f552d286ccd376a2b007c8e7a3c7005da61f6d958b1bc00aa7` |
+| FP32 reference `record.json` | `43b6313b217c9c2f203d6e10285a6d1c76fa0776bb1a332bc1c07d185bea0d5c` |
+| Report of the export with `main` and `prefill` | `acdada5938138cf345dac594b537ea0379db0a6e0c0faf4cad7ff2388ab0f663` |
+| Its `export.json` | `e67ff01f72625b6118972c81c9889b60f3e4ee59d471cc558aa36078fb680353` |
+| Its `comparison.json` | `36d35e55236551aad99fd3fb11c555fed869a1b6577320ef652788db85a6cf41` |
+| Report of the export with `main` only | `3fb0c924217a1e8c1abe606be65be275f22a1f20745f862754112c5caa6095da` |
+| Its `export.json` | `6298528a39ff87d1c2fc2024c2ce161d761d90d9db0950e3f7d16a5efd70a807` |
+| Its `comparison.json` | `a18abf9350bd420ccc5a9ac2e7c06669531964530b7d52c07cab043d9f2e5999` |
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.fp16_summary \
+  --reference <FP32 reference record.json> \
+  --original <folder of the run of the original implementation> --model-class <folder of the run of the model class> \
+  --report <report.json> --export <export.json> --comparison <comparison.json> \
+  --report <report.json> --export <export.json> --comparison <comparison.json> \
+  > docs/validation/gemma4-31b/taps-first-layers-20261123.json
 ~~~
 
 ## 8-bit export of the first six layers

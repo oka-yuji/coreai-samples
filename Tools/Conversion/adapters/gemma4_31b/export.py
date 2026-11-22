@@ -12,16 +12,17 @@ import shutil
 import struct
 import sys
 import time
-from types import SimpleNamespace
 
 from ...storage import PipelineError, file_hash, write_json
 from ..pinned import sha256
-from .layers import FULL, PREFIX, QUANTIZED, SLIDING, check_layers, tensor_sha256
+from .layers import FULL, OUTPUTS, PREFIX, QUANTIZED, SLIDING, check_layers, check_taps, tensor_sha256
 from .prepare import TOKENIZER_FILES, load_contract
 from .reference import SWAP_INCREASE_LIMIT_BYTES, footprint, supervise, verify_inputs
 
-SCHEMA = "gemma4-31b-export/1"
+SCHEMA = "gemma4-31b-export/2"
 FUNCTIONS = {"main": ("main",), "main,prefill": ("main", "prefill")}
+RETURNS = {"main": OUTPUTS, "prefill": OUTPUTS[2:]}
+TAP_CONVENTION = "layers-passed:before-final-norm:ascending"
 PRECISIONS = {"fp16": "float16", "8bit": "8bit"}
 WRITES = {"fp16": 4, "8bit": 7}
 INPUTS = ("input_ids", "position_ids")
@@ -54,21 +55,22 @@ def name_of(layers, functions, precision):
     return f"gemma4_31b_l{layers}_{precision}_{'_'.join(functions)}"
 
 
-def metadata(contract, name, context, compression):
+def metadata(contract, name, context, compression, taps):
     return {"metadata_version": "0.2", "kind": "llm", "name": name, "assets": {"main": f"{name}.aimodel"},
             "language": {"tokenizer": contract["model_id"], "vocab_size": contract["config"]["vocab_size"],
                          "max_context_length": context, "embedded_tokenizer": True, "function_map": {"main": ["main"]}},
             "source": {"model_definition": "torch", "hf_model_id": contract["model_id"], "revision": contract["revision"]},
-            "compression": compression}
+            "compression": compression, "tap_layers": list(taps), "tap_convention": TAP_CONVENTION}
 
 
 def quantized_names(kinds):
     return {f"model.layers.{index}.{part}.weight" for index, kind in enumerate(kinds) for part in LINEAR[kind]}
 
 
-def dequantizations(names, kinds, functions):
+def dequantizations(names, kinds, functions, taps):
     last = len(kinds) - 1
-    unused = {f"model.layers.{last}.{part}.weight" for part in LINEAR[kinds[-1]] if part not in CACHED}
+    unused = set() if len(kinds) in taps else {f"model.layers.{last}.{part}.weight" for part in LINEAR[kinds[-1]]
+                                                if part not in CACHED}
     return len(names) + (len(set(names) - unused) if "prefill" in functions else 0)
 
 
@@ -81,13 +83,14 @@ def normalized(config):
     return json.loads(json.dumps(config, default=str))
 
 
-def expected_functions(config, kinds, functions):
+def expected_functions(config, kinds, functions, taps):
     full = [kinds.count("full_attention"), 1, config["num_global_key_value_heads"], None, config["global_head_dim"]]
     sliding = [kinds.count("sliding_attention"), 1, config["num_key_value_heads"], None, config["head_dim"]]
     shapes = dict(zip(STATES, (full, full, sliding, sliding)))
+    widths = {"logits": config["vocab_size"], "hidden_states": config["hidden_size"],
+              "tap_hidden_states": config["hidden_size"] * len(taps)}
     return {name: {"inputs": {item: {"dtype": "int32", "shape": [1, None]} for item in INPUTS},
-                   "outputs": {"logits": {"dtype": "float16", "shape": [1, None, config["vocab_size"]]}}
-                   if name == "main" else {},
+                   "outputs": {item: {"dtype": "float16", "shape": [1, None, widths[item]]} for item in RETURNS[name]},
                    "states": {item: {"dtype": "float16", "shape": list(shape)} for item, shape in shapes.items()}}
             for name in functions}
 
@@ -119,7 +122,7 @@ def float16_problems(record):
     return problems
 
 
-def quantization_problems(record, kinds, functions):
+def quantization_problems(record, kinds, functions, taps):
     problems, quantized = [], record["quantized"]
     if tuple(functions) != FUNCTIONS["main,prefill"]:
         problems.append(f"an 8-bit asset has the functions main and prefill, not {list(functions)}")
@@ -139,16 +142,16 @@ def quantization_problems(record, kinds, functions):
         problems.append(f"the converter logged {SKIPPED!r} {quantized['skipped']} times")
     if not quantized["warnings_enabled"]:
         problems.append("the warnings of the quantizer were not enabled, so skipped weights could not be counted")
-    expected = dequantizations(quantized_names(kinds), kinds, functions)
+    expected = dequantizations(quantized_names(kinds), kinds, functions, taps)
     if record["asset"]["dequantizations"] != expected:
         problems.append(f"the asset dequantizes {record['asset']['dequantizations']} times, not {expected}: one for each "
                         "quantized weight that each function reads")
     return problems
 
 
-def check_asset(record, contract, kinds, functions, context, precision):
+def check_asset(record, contract, kinds, functions, context, taps, precision):
     eight_bit = precision == "8bit"
-    problems = quantization_problems(record, kinds, functions) if eight_bit else float16_problems(record)
+    problems = quantization_problems(record, kinds, functions, taps) if eight_bit else float16_problems(record)
     storage, expected = record["asset"]["storage_types"], float32_elements(contract["config"])
     stored = ("Float16", "UInt8") if eight_bit else ("Float16",)
     other = sorted(set(storage) - {*stored, *CONSTANT_TYPES})
@@ -158,16 +161,19 @@ def check_asset(record, contract, kinds, functions, context, precision):
     if storage.get("Float32", 0) != expected:
         problems.append(f"Float32 holds {storage.get('Float32', 0)} elements, not the {expected} of the two RoPE tables "
                         "and the two constants")
-    found, expected = record["asset"]["functions"], expected_functions(contract["config"], kinds, functions)
+    found, expected = record["asset"]["functions"], expected_functions(contract["config"], kinds, functions, taps)
     if set(found) != set(expected):
         problems.append(f"the asset has the functions {sorted(found)}, not {sorted(expected)}")
     for name in sorted(set(found) & set(expected)):
         problems += [f"{name} {kind}: {shown(found[name][kind])}, not {shown(expected[name][kind])}"
                      for kind in ("inputs", "outputs", "states") if found[name][kind] != expected[name][kind]]
+    order = {name: list(RETURNS[name]) for name in functions}
+    if record["asset"]["output_order"] != order:
+        problems.append(f"the functions return {shown(record['asset']['output_order'])}, not {shown(order)}")
     if record["tokenizer"] != contract["tokenizer"]["files"]:
         problems.append(f"the tokenizer files {shown(record['tokenizer'])} differ from the distributed files")
     compression = "8bit" if eight_bit else None
-    if record["metadata"] != metadata(contract, name_of(len(kinds), functions, precision), context, compression):
+    if record["metadata"] != metadata(contract, name_of(len(kinds), functions, precision), context, compression, taps):
         problems.append(f"metadata.json differs from the contract and the arguments: {shown(record['metadata'])}")
     return problems
 
@@ -278,8 +284,41 @@ def inspect_asset(path):
                ("states", summary.function_states))
     return {"functions": {name: {kind: {item: described(text) for item, text in getter(name)} for kind, getter in getters}
                           for name in summary.function_names},
+            "output_order": {name: [item for item, _ in summary.function_outputs(name)] for name in summary.function_names},
             "storage_types": {kind: int(count) for kind, count in summary.storage_types},
             "dequantizations": int(dict(summary.operation_distribution).get(DEQUANTIZE, 0))}
+
+
+def staged(model, context, functions):
+    import coreai_torch
+    from coreai_models.export.externalize import EXTERNALIZE_SPECS
+    from coreai_models.export.macos import _build_reference_inputs
+    from coreai_models.export.mlir_ops import register_custom_torch_lowering, remove_functionalization
+    import torch
+
+    inputs, shapes = _build_reference_inputs(model, model.config, torch.float16, context)
+
+    def traced(prefill):
+        def export_fn(module, pass_inputs_as_kwargs=True):
+            module.set_prefill_mode(prefill)
+            with torch.no_grad():
+                program = torch.export.export(module, args=() if pass_inputs_as_kwargs else tuple(inputs.values()),
+                                              kwargs=inputs if pass_inputs_as_kwargs else None, dynamic_shapes=shapes)
+            program = program.run_decompositions(coreai_torch.get_decomp_table())
+            remove_functionalization(program)
+            return program
+        return export_fn
+
+    converter = coreai_torch.TorchConverter(mode=coreai_torch.TorchConverter.Mode.RELEASE)
+    for name in functions:
+        converter.add_pytorch_module(model, export_fn=traced(name == "prefill"), externalize_modules=EXTERNALIZE_SPECS,
+                                     input_names=model.export_input_names()["main"], output_names=RETURNS[name],
+                                     state_names=model.export_state_names()["main"], entrypoint_name=name)
+    register_custom_torch_lowering(converter)
+    try:
+        return converter.to_coreai()
+    finally:
+        model.set_prefill_mode(False)
 
 
 def bundle_files(folder):
@@ -295,9 +334,8 @@ def bundle_files(folder):
     return files, contents
 
 
-def run(args, contract, kinds, functions, disk):
+def run(args, contract, kinds, functions, taps, disk):
     import coreai_models
-    from coreai_models.export.macos import export_macos_model
     from coreai_models.export.metadata import build_aimodel_metadata
     import torch
 
@@ -318,7 +356,7 @@ def run(args, contract, kinds, functions, disk):
             model = Gemma4ForCausalLM.from_hf_memory_efficient(
                 str(args.snapshot), max_context_length=args.context, target_dtype=torch.float16, mmap_path=str(work),
                 num_layers=args.layers, hf_config_attr="text_config", hf_state_dict_prefix=PREFIX).eval()
-            model.exports_prefill_graph = "prefill" in functions
+            model.tap_layers = taps
             loaded = weights(model)
             marks.append(("load_s", time.perf_counter()))
             if eight_bit:
@@ -331,9 +369,7 @@ def run(args, contract, kinds, functions, disk):
                 quantized = {"layers": entries, "warnings_enabled": enabled, "file": file_hash(args.output / QUANTIZED),
                              "tensors": digests}
                 marks.append(("tensors_s", time.perf_counter()))
-            settings = SimpleNamespace(max_context_length=args.context, compute_precision="float16",
-                                       include_debug_info=False, dynamic_max_batch_size=None)
-            program = export_macos_model(model, model.config, settings)
+            program = staged(model, args.context, functions)
             del model
             marks.append(("convert_s", time.perf_counter()))
         bundle.mkdir()
@@ -344,7 +380,7 @@ def run(args, contract, kinds, functions, disk):
             if folder.exists():
                 shutil.rmtree(folder)
     marks.append(("save_s", time.perf_counter()))
-    write_json(bundle / "metadata.json", metadata(contract, name, args.context, "8bit" if eight_bit else None))
+    write_json(bundle / "metadata.json", metadata(contract, name, args.context, "8bit" if eight_bit else None, taps))
     (bundle / "tokenizer").mkdir()
     for item in TOKENIZER_FILES:
         shutil.copyfile(args.snapshot / item, bundle / "tokenizer" / item)
@@ -370,7 +406,7 @@ def run(args, contract, kinds, functions, disk):
               "bundle": {"folder": INCOMPLETE, "name": name, "main_hash": contents[f"{name}.aimodel/main.hash"].hex(),
                          "files": files, "bytes": sum(entry["bytes"] for entry in files.values())},
               "disk": disk, "timing": {label: end - start for (_, start), (label, end) in zip(marks, marks[1:])}}
-    record["problems"] = check_asset(record, contract, kinds, functions, args.context, args.precision)
+    record["problems"] = check_asset(record, contract, kinds, functions, args.context, taps, args.precision)
     return record
 
 
@@ -401,6 +437,8 @@ def main():
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--layers", type=int, required=True)
     parser.add_argument("--functions", choices=tuple(FUNCTIONS), required=True)
+    parser.add_argument("--taps", required=True, help="Ascending distinct counts of layers whose outputs "
+                                                      "tap_hidden_states joins, separated by commas.")
     parser.add_argument("--context", type=int, required=True)
     parser.add_argument("--precision", choices=tuple(PRECISIONS), required=True)
     parser.add_argument("--compression", type=Path)
@@ -413,15 +451,16 @@ def main():
         raise FileExistsError(f"The export must be written to a new folder: {args.output}")
     contract = load_contract(args.model)
     kinds = check_layers(contract["config"], args.layers)
+    taps = check_taps(args.taps, args.layers)
     args.output.mkdir(parents=True)
     try:
-        return begin(args, contract, kinds)
+        return begin(args, contract, kinds, taps)
     except Exception as error:
         write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "error": type(error).__name__})
         raise
 
 
-def begin(args, contract, kinds):
+def begin(args, contract, kinds, taps):
     elements = weight_elements(args.snapshot, args.layers)
     free, required = shutil.disk_usage(args.output).free, required_bytes(elements, args.precision)
     if free < required:
@@ -430,7 +469,7 @@ def begin(args, contract, kinds):
     disk = {"weight_bytes": 2 * elements, "estimated_write_bytes": WRITES[args.precision] * elements,
             "margin_bytes": MARGIN_BYTES, "required_free_bytes": required, "free_before_bytes": free}
     functions = FUNCTIONS[args.functions]
-    return supervise(args.output, SCHEMA, lambda: run(args, contract, kinds, functions, disk),
+    return supervise(args.output, SCHEMA, lambda: run(args, contract, kinds, functions, taps, disk),
                      lambda record, observed, started: conclude(args.output, record, observed, started))
 
 

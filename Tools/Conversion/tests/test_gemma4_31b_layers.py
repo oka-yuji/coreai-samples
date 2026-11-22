@@ -87,19 +87,23 @@ def write_snapshot(folder, **changes):
     return snapshot, write_contract(folder, files, text)
 
 
-def write_run(folder, implementation, contract, arrays):
+TAPS = (1, 2, 3, 4, 5)
+
+
+def write_run(folder, implementation, contract, arrays, taps=TAPS):
     folder.mkdir(parents=True)
     pinned = load_contract(contract)
     inputs = {}
-    for name, array in arrays.items():
-        np.save(folder / f"{name}.npy", array)
+    for name, outputs in arrays.items():
         ids = layers.tokens(name, pinned["config"])
-        inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids),
-                        "logits": layers.file_record(folder / f"{name}.npy")}
+        inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids)}
+        for output, array in outputs.items():
+            np.save(folder / f"{name}.{output}.npy", array)
+            inputs[name][output] = layers.file_record(folder / f"{name}.{output}.npy")
     model = {"id": pinned["model_id"], "revision": pinned["revision"], "contract_sha256": sha256(contract),
              "verified_before_loading": pinned["files"]}
-    write_json(folder / "record.json", {"implementation": implementation, "layers": 6, "inputs": inputs,
-                                        "layer_types": TEXT["layer_types"][:6], "model": model})
+    write_json(folder / "record.json", {"implementation": implementation, "layers": 6, "tap_layers": list(taps),
+                                        "inputs": inputs, "layer_types": TEXT["layer_types"][:6], "model": model})
 
 
 def edit_record(folder, change):
@@ -110,15 +114,19 @@ def edit_record(folder, change):
 
 def set_row(name, row, values):
     def change(arrays):
-        arrays[name][row] = -10.0
-        arrays[name][row, :len(values)] = values
+        arrays[name]["logits"][row] = -10.0
+        arrays[name]["logits"][row, :len(values)] = values
     return change
 
 
-def add(name, row, column, value):
+def add(name, row, column, value, output="logits"):
     def change(arrays):
-        arrays[name][row, column] += value
+        arrays[name][output][row, column] += value
     return change
+
+
+def copied(arrays):
+    return {name: {output: array.copy() for output, array in outputs.items()} for name, outputs in arrays.items()}
 
 
 def state(path):
@@ -152,7 +160,36 @@ class InputTests(unittest.TestCase):
                         output = Path(folder) / f"{implementation}-{count}"
                         with self.subTest(implementation=implementation, layers=count):
                             with self.assertRaisesRegex(ValueError, "must end with a full-attention layer"):
-                                layers.run(implementation, contract, Path(folder) / "snapshot", count, output)
+                                layers.run(implementation, contract, Path(folder) / "snapshot", count, "1", output)
+                            self.assertFalse(output.exists())
+            verify.assert_not_called()
+            original_model.assert_not_called()
+            class_model.assert_not_called()
+
+    def test_tap_layers_are_ascending_distinct_counts_from_one_to_the_layer_count(self):
+        self.assertEqual(layers.check_taps("1,2,3,4,5", 6), (1, 2, 3, 4, 5))
+        self.assertEqual(layers.check_taps("6", 6), (6,))
+        self.assertEqual(layers.check_taps("1,17,29,47,59", 60), (1, 17, 29, 47, 59))
+        for text in ("0,1", "1,7", "7", "2,1", "1,1", "", ",", "1,,2", "1,", "01", " 1", "1 ", "+1", "-1", "1.5", "1_0",
+                     "a", "1;2", "١"):
+            with self.subTest(taps=text), self.assertRaisesRegex(ValueError, "tap layers"):
+                layers.check_taps(text, 6)
+        for value in (None, 1, [1, 2], (1, 2)):
+            with self.subTest(taps=value), self.assertRaisesRegex(ValueError, "tap layers"):
+                layers.check_taps(value, 6)
+
+    def test_a_run_refuses_tap_layers_out_of_range_out_of_order_or_repeated_before_writing_or_loading(self):
+        with tempfile.TemporaryDirectory() as folder:
+            contract = write_contract(folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
+            with mock.patch.object(layers, "verify_inputs") as verify, \
+                    mock.patch.object(layers, "original_model") as original_model, \
+                    mock.patch.object(layers, "class_model") as class_model:
+                for implementation in layers.IMPLEMENTATIONS:
+                    for taps in ("0,1", "1,7", "3,2", "2,2", ""):
+                        output = Path(folder) / f"{implementation}-{taps or 'none'}"
+                        with self.subTest(implementation=implementation, taps=taps):
+                            with self.assertRaisesRegex(ValueError, "tap layers"):
+                                layers.run(implementation, contract, Path(folder) / "snapshot", 6, taps, output)
                             self.assertFalse(output.exists())
             verify.assert_not_called()
             original_model.assert_not_called()
@@ -166,14 +203,16 @@ class CompareTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.folder)
         self.contract = write_contract(self.folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
         generator = np.random.default_rng(0)
-        self.arrays = {name: generator.normal(size=(length, TEXT["vocab_size"])).astype(np.float32)
-                       for name, (length, _) in layers.INPUTS.items()}
+        widths = {"logits": TEXT["vocab_size"], "hidden_states": TEXT["hidden_size"],
+                  "tap_hidden_states": TEXT["hidden_size"] * len(TAPS)}
+        self.arrays = {name: {output: generator.normal(size=(length, width)).astype(np.float32)
+                              for output, width in widths.items()} for name, (length, _) in layers.INPUTS.items()}
 
     def pair(self, label, both=None, model_class=None):
-        arrays = {name: array.copy() for name, array in self.arrays.items()}
+        arrays = copied(self.arrays)
         if both:
             both(arrays)
-        changed = {name: array.copy() for name, array in arrays.items()}
+        changed = copied(arrays)
         if model_class:
             model_class(changed)
         write_run(self.folder / label / "original", "original", self.contract, arrays)
@@ -187,6 +226,12 @@ class CompareTests(unittest.TestCase):
         result = self.compare(self.pair("same"))
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual([result["inputs"][name]["max_abs_logit"] for name in ("short", "long")], [0.0, 0.0])
+        self.assertEqual((result["layers"], result["tap_layers"], result["ratio_limit"], result["contract_sha256"]),
+                         (6, list(TAPS), 1e-3, sha256(self.contract)))
+        for name in layers.INPUTS:
+            outputs = result["inputs"][name]["outputs"]
+            self.assertEqual(outputs["hidden_states"], {"largest_ratio": 0.0, "passed": True})
+            self.assertEqual(outputs["tap_hidden_states"], {str(tap): {"largest_ratio": 0.0, "passed": True} for tap in TAPS})
         above = np.nextafter(np.float32(2), np.float32(3))
         cases = {"short logit": (None, add("short", 3, 4, 0.002), "short", {"max_abs_logit"}),
                  "long logit": (set_row("long", 3, [30.0]), add("long", 3, 5, 0.006), "long", {"max_abs_logit"}),
@@ -204,14 +249,14 @@ class CompareTests(unittest.TestCase):
 
     def test_runs_that_must_not_pass(self):
         def nan(arrays):
-            arrays["long"][5, 6] = np.nan
+            arrays["long"]["logits"][5, 6] = np.nan
 
         def infinity(arrays):
-            arrays["short"][1, 2] = np.inf
+            arrays["short"]["logits"][1, 2] = np.inf
 
         cases = {"the same NaN in both runs": (nan, None), "the same infinity in both runs": (infinity, None),
-                 "a missing row": (None, lambda arrays: arrays.update(long=arrays["long"][:-1])),
-                 "another vocabulary": (None, lambda arrays: arrays.update(short=np.zeros((26, 302), np.float32)))}
+                 "a missing row": (None, lambda arrays: arrays["long"].update(logits=arrays["long"]["logits"][:-1])),
+                 "another vocabulary": (None, lambda arrays: arrays["short"].update(logits=np.zeros((26, 302), np.float32)))}
         for label, (both, model_class) in cases.items():
             with self.subTest(case=label):
                 result = self.compare(self.pair(label.replace(" ", "-"), both, model_class))
@@ -231,12 +276,14 @@ class CompareTests(unittest.TestCase):
         run = self.pair("files")
         with self.subTest(case="a run compared with itself"):
             self.assertFalse(layers.compare(run / "original", run / "original", self.contract)["passed"])
-        with self.subTest(case="logits changed after the record"):
-            np.save(run / "class/long.npy", self.arrays["long"] + 1)
-            self.assertFalse(self.compare(run)["passed"])
-        with self.subTest(case="missing logits"):
-            (run / "class/long.npy").unlink()
-            self.assertFalse(self.compare(run)["passed"])
+        for output in layers.OUTPUTS:
+            run = self.pair(f"files-{output}")
+            with self.subTest(case=f"{output} changed after the record"):
+                np.save(run / f"class/long.{output}.npy", self.arrays["long"][output] + 1)
+                self.assertFalse(self.compare(run)["passed"])
+            with self.subTest(case=f"missing {output}"):
+                (run / f"class/long.{output}.npy").unlink()
+                self.assertFalse(self.compare(run)["passed"])
 
     def test_records_that_both_lack_or_share_a_layer_count_layer_types_or_model_off_the_contract_never_pass(self):
         kinds = TEXT["layer_types"]
@@ -276,7 +323,7 @@ class CompareTests(unittest.TestCase):
             before = state(output)
             with self.subTest(output=label):
                 with mock.patch.object(layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
-                    layers.run("original", self.contract, self.folder / "snapshot", 6, output)
+                    layers.run("original", self.contract, self.folder / "snapshot", 6, "1", output)
                 verify.assert_not_called()
                 self.assertEqual(state(output), before)
 
@@ -295,14 +342,15 @@ class CompareTests(unittest.TestCase):
                 self.assertEqual(code, 0 if result["passed"] else 1)
 
     def test_runs_that_read_the_same_file_never_pass_and_copies_are_not_stopped_by_that_check(self):
-        for label, link in {"symbolic-link": os.symlink, "hard-link": os.link}.items():
-            with self.subTest(link=label):
-                run = self.pair(label)
-                (run / "class/long.npy").unlink()
-                link(run / "original/long.npy", run / "class/long.npy")
-                result = self.compare(run)
-                self.assertFalse(result["passed"])
-                self.assertIn("long: both runs read the same logits file", result["problems"])
+        for output in layers.OUTPUTS:
+            for label, link in {"symbolic-link": os.symlink, "hard-link": os.link}.items():
+                with self.subTest(link=label, output=output):
+                    run = self.pair(f"{label}-{output}")
+                    (run / f"class/long.{output}.npy").unlink()
+                    link(run / f"original/long.{output}.npy", run / f"class/long.{output}.npy")
+                    result = self.compare(run)
+                    self.assertFalse(result["passed"])
+                    self.assertIn(f"long: both runs read the same {output} file", result["problems"])
         with self.subTest(link="record"):
             run = self.pair("record")
             (run / "class/record.json").unlink()
@@ -310,9 +358,91 @@ class CompareTests(unittest.TestCase):
             self.assertIn("both runs read the same record.json", self.compare(run)["problems"])
         with self.subTest(link="copy"):
             run = self.pair("copy")
-            shutil.copyfile(run / "original/long.npy", run / "class/long.npy")
+            for output in layers.OUTPUTS:
+                shutil.copyfile(run / f"original/long.{output}.npy", run / f"class/long.{output}.npy")
             result = self.compare(run)
             self.assertTrue(result["passed"], result["problems"])
+
+    def test_hidden_states_and_each_tap_layer_pass_only_below_a_thousandth_of_the_largest_reference_value_per_position(self):
+        width = TEXT["hidden_size"]
+
+        def peak(name, output, row, column, value, rest):
+            def change(arrays):
+                arrays[name][output][row] = rest
+                arrays[name][output][row, column] = value
+            return change
+
+        hidden, tap3 = peak("long", "hidden_states", 7, 0, 10.0, 1.0), peak("long", "tap_hidden_states", 9, 2 * width, 10.0, 1.0)
+        small = peak("short", "hidden_states", 4, 3, 0.1, 0.05)
+        cases = {"hidden states just below": (hidden, add("long", 7, 5, 0.0099, "hidden_states"), "long", set()),
+                 "hidden states just above": (hidden, add("long", 7, 5, 0.0101, "hidden_states"), "long",
+                                              {"hidden_states"}),
+                 "a tap layer just above": (tap3, add("long", 9, 2 * width + 1, 0.0101, "tap_hidden_states"), "long",
+                                            {"tap_hidden_states"}),
+                 "a position with small values": (small, add("short", 4, 0, 0.000101, "hidden_states"), "short",
+                                                  {"hidden_states"}),
+                 "a difference equal to the limit": (peak("long", "hidden_states", 11, 0, 1000.0, 0.0),
+                                                     add("long", 11, 1, 1.0, "hidden_states"), "long", {"hidden_states"}),
+                 "a reference position of zeros": (peak("short", "tap_hidden_states", 2, 0, 0.0, 0.0), None, "short",
+                                                   {"tap_hidden_states"})}
+        for label, (both, model_class, name, failing) in cases.items():
+            with self.subTest(case=label):
+                result = self.compare(self.pair(label.replace(" ", "-"), both, model_class))
+                self.assertEqual(result["problems"], [])
+                self.assertEqual(result["passed"], not failing)
+                checks = result["inputs"][name]["checks"]
+                self.assertEqual({key for key, passed in checks.items() if not passed}, failing)
+        result = self.compare(self.pair("tap-3", tap3, add("long", 9, 2 * width + 1, 0.0101, "tap_hidden_states")))
+        taps = result["inputs"]["long"]["outputs"]["tap_hidden_states"]
+        self.assertEqual({tap for tap, entry in taps.items() if not entry["passed"]}, {"3"})
+        self.assertGreaterEqual(taps["3"]["largest_ratio"], 1e-3)
+
+    def test_the_result_names_the_contract_and_the_layers_only_when_both_runs_agree_with_the_contract_and_each_other(self):
+        edits = {"another contract": (lambda record: record["model"].update(contract_sha256="0" * 64), "contract_sha256"),
+                 "another model": (lambda record: record["model"].update(id="other/model"), "contract_sha256"),
+                 "another layer count": (lambda record: record.update(layers=12, layer_types=TEXT["layer_types"]), "layers")}
+        for label, (edit, key) in edits.items():
+            run = self.pair(label.replace(" ", "-"))
+            edit_record(run / "class", edit)
+            result = self.compare(run)
+            with self.subTest(case=label):
+                self.assertIsNone(result[key])
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
+
+    def test_non_finite_hidden_states_or_tap_layers_never_pass(self):
+        for output in ("hidden_states", "tap_hidden_states"):
+            def nan(arrays, output=output):
+                arrays["short"][output][3, 1] = np.nan
+
+            with self.subTest(output=output):
+                result = self.compare(self.pair(f"nan-{output}", nan))
+                self.assertFalse(result["passed"])
+                self.assertFalse(result["inputs"]["short"]["checks"][output])
+
+    def test_runs_without_the_same_valid_tap_layers_or_with_arrays_of_another_width_never_pass(self):
+        edits = {"no tap layers": lambda record: record.pop("tap_layers"),
+                 "four tap layers": lambda record: record.update(tap_layers=[1, 2, 3, 4]),
+                 "a tap layer zero": lambda record: record.update(tap_layers=[0, 1, 2, 3, 4]),
+                 "a tap layer beyond the layers": lambda record: record.update(tap_layers=[1, 2, 3, 4, 7]),
+                 "descending tap layers": lambda record: record.update(tap_layers=[5, 4, 3, 2, 1]),
+                 "a repeated tap layer": lambda record: record.update(tap_layers=[1, 1, 2, 3, 4]),
+                 "a boolean tap layer": lambda record: record.update(tap_layers=[True, 2, 3, 4, 5]),
+                 "tap layers as text": lambda record: record.update(tap_layers="1,2,3,4,5")}
+        for label, edit in edits.items():
+            for both in (False, True):
+                with self.subTest(case=label, both=both):
+                    run = self.pair(f"{label.replace(' ', '-')}-{both}")
+                    for kind in layers.IMPLEMENTATIONS if both else ("class",):
+                        edit_record(run / kind, edit)
+                    result = self.compare(run)
+                    self.assertFalse(result["passed"])
+                    self.assertTrue(result["problems"])
+        run = self.pair("narrow", None, lambda arrays: arrays["long"].update(
+            tap_hidden_states=arrays["long"]["tap_hidden_states"][:, :-TEXT["hidden_size"]]))
+        result = self.compare(run)
+        self.assertFalse(result["passed"])
+        self.assertTrue(result["problems"])
 
 
 CONDITIONS = [("short-c1", "short", 26, 0, 1), ("short-c26", "short", 26, 0, 26),
@@ -441,18 +571,30 @@ class OriginalRunTests(unittest.TestCase):
             reference = original()
             reference.load_state_dict({name: tensor.to(torch.bfloat16).to(torch.float16).float()
                                        for name, tensor in reference.state_dict().items()})
-            record = layers.run("original", contract, snapshot, 12, Path(folder) / "all")
+            taps = (1, 6, 7, 12)
+            record = layers.run("original", contract, snapshot, 12, "1,6,7,12", Path(folder) / "all")
+            self.assertEqual(record["tap_layers"], list(taps))
             for name in layers.INPUTS:
                 ids = layers.tokens(name, config)
+                last = []
+                hook = reference.model.layers[-1].register_forward_hook(lambda module, args, output: last.append(output))
                 with torch.no_grad():
-                    expected = reference(torch.tensor([ids]), use_cache=False).logits[0].numpy()
+                    output = reference(torch.tensor([ids]), use_cache=False, output_hidden_states=True)
+                hook.remove()
+                columns = [*output.hidden_states[:-1], last[0]]
+                expected = {"logits": output.logits[0], "hidden_states": output.hidden_states[-1][0],
+                            "tap_hidden_states": torch.cat([columns[tap][0] for tap in taps], dim=-1)}
                 with self.subTest(input=name):
-                    np.testing.assert_array_equal(np.load(Path(folder) / "all" / f"{name}.npy"), expected)
-                    self.assertEqual(record["inputs"][name]["logits"]["shape"], [len(ids), TEXT["vocab_size"]])
+                    for key, value in expected.items():
+                        np.testing.assert_array_equal(np.load(Path(folder) / "all" / f"{name}.{key}.npy"), value.numpy())
+                        self.assertEqual(record["inputs"][name][key]["shape"], list(value.shape))
+                    self.assertEqual(record["inputs"][name]["tap_hidden_states"]["shape"],
+                                     [len(ids), TEXT["hidden_size"] * len(taps)])
                     self.assertEqual(record["inputs"][name]["tokens_sha256"], digest(ids))
+                    self.assertFalse(np.array_equal(expected["hidden_states"].numpy(), last[0][0].numpy()))
             self.assertEqual(record["embed_scale"], 6.9375)
-            first = layers.run("original", contract, snapshot, 6, Path(folder) / "first")
-            self.assertEqual(first["layer_types"], TEXT["layer_types"][:6])
+            first = layers.run("original", contract, snapshot, 6, "1,2,3,4,5", Path(folder) / "first")
+            self.assertEqual((first["layer_types"], first["tap_layers"]), (TEXT["layer_types"][:6], [1, 2, 3, 4, 5]))
             self.assertEqual(read_json(Path(folder) / "first/record.json"), first)
 
     def test_a_run_refuses_an_existing_output_or_a_changed_checkpoint_before_loading(self):
@@ -464,10 +606,10 @@ class OriginalRunTests(unittest.TestCase):
             data[-1] ^= 1
             with mock.patch.object(layers, "original_model") as load:
                 with self.assertRaises(FileExistsError):
-                    layers.run("original", contract, snapshot, 6, Path(folder) / "used")
+                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "used")
                 shard.write_bytes(data)
                 with self.assertRaises(ValueError):
-                    layers.run("original", contract, snapshot, 6, Path(folder) / "changed")
+                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed")
             load.assert_not_called()
             self.assertEqual(list((Path(folder) / "changed").iterdir()), [])
 

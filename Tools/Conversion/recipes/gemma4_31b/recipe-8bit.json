@@ -60,6 +60,7 @@
         "--upstream", "$upstream",
         "--layers", "$layers",
         "--functions", "$functions",
+        "--taps", "$taps",
         "--context", "$context",
         "--precision", "8bit",
         "--compression", "$recipe_dir/compression-8bit.yaml",

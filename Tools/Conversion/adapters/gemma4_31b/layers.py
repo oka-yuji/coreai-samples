@@ -18,14 +18,17 @@ from .compare import BLOCK_ROWS, CONTRACT, recorded
 from .prepare import load_contract
 from .reference import LOADED_FILES, file_record, footprint, verify_inputs
 
-SCHEMA = "gemma4-31b-layer-logits/1"
-COMPARISON = "gemma4-31b-layer-comparison/1"
+SCHEMA = "gemma4-31b-layer-outputs/1"
+COMPARISON = "gemma4-31b-layer-comparison/2"
 CONTEXT_SCHEMA = "gemma4-31b-context-logits/1"
 PREFIX = "model.language_model."
 SLIDING, FULL = "sliding_attention", "full_attention"
 QUANTIZED = "quantized.safetensors"
 PARTS = ("quantized_data", "scale", "minval")
 LAYER = re.compile(r"layers\.(\d+)\.")
+TAP_LIST = re.compile(r"[1-9][0-9]*(,[1-9][0-9]*)*")
+OUTPUTS = ("logits", "hidden_states", "tap_hidden_states")
+RATIO = 1e-3
 IMPLEMENTATIONS = ("original", "class")
 INPUTS = {"short": (26, 0), "long": (1400, 1)}
 CONTEXT = {"context": (16896, 2)}
@@ -52,6 +55,17 @@ def check_layers(config, layers):
     if type(layers) is not int or not 1 <= layers <= len(kinds) or kinds[layers - 1] != "full_attention":
         raise ValueError(f"The first {layers} layers must end with a full-attention layer")
     return kinds[:layers]
+
+
+def check_taps(text, layers):
+    taps = tuple(map(int, text.split(","))) if isinstance(text, str) and TAP_LIST.fullmatch(text) else ()
+    if not taps or type(layers) is not int or list(taps) != sorted(set(taps)) or taps[-1] > layers:
+        raise ValueError(f"The tap layers must be ascending distinct layer counts from 1 to {layers}: {text!r}")
+    return taps
+
+
+def joined(taps):
+    return ",".join(map(str, taps)) if type(taps) is list and all(type(tap) is int for tap in taps) else None
 
 
 def tokens(name, config):
@@ -117,7 +131,7 @@ def original_model(snapshot, layers):
     return model.eval(), float(model.model.embed_tokens.embed_scale), list(config.layer_types)
 
 
-def class_model(snapshot, layers, contract):
+def class_model(snapshot, layers, taps, contract):
     import coreai_models
     import torch
 
@@ -127,28 +141,37 @@ def class_model(snapshot, layers, contract):
     check_checkout(Path(coreai_models.__file__).resolve().parents[3], contract["upstream_revision"])
     model = Gemma4ForCausalLM.from_hf_memory_efficient(str(snapshot), target_dtype=torch.float16, num_layers=layers,
                                                       hf_config_attr="text_config", hf_state_dict_prefix=PREFIX)
+    model.tap_layers = taps
     return model.float().eval(), model.embed_scale, list(model.config.layer_types)
 
 
-def logits(model, implementation, ids, bounds):
-    import numpy as np
+def outputs(model, implementation, ids, bounds, taps):
     import torch
 
     with torch.no_grad():
         if implementation == "original":
-            output = model(input_ids=torch.tensor([ids]), position_ids=torch.arange(len(ids)).unsqueeze(0),
-                           use_cache=False)
-            return output.logits[0].float().numpy()
-        states = model.states(len(ids))
-        return np.concatenate([model(torch.tensor([ids[start:end]], dtype=torch.int32),
-                                     torch.arange(end, dtype=torch.int32).unsqueeze(0), *states)[0].numpy()
-                               for start, end in bounds])
+            last = []
+            hook = model.model.layers[-1].register_forward_hook(lambda module, args, output: last.append(output))
+            try:
+                output = model(input_ids=torch.tensor([ids]), position_ids=torch.arange(len(ids)).unsqueeze(0),
+                               use_cache=False, output_hidden_states=True)
+            finally:
+                hook.remove()
+            columns = [*output.hidden_states[:-1], last[0]]
+            found = (output.logits, output.hidden_states[-1], torch.cat([columns[tap] for tap in taps], dim=-1))
+        else:
+            states = model.states(len(ids))
+            parts = [model(torch.tensor([ids[start:end]], dtype=torch.int32),
+                           torch.arange(end, dtype=torch.int32).unsqueeze(0), *states) for start, end in bounds]
+            found = [torch.cat([part[index] for part in parts], dim=1) for index in range(len(OUTPUTS))]
+    return {name: tensor[0].float().numpy() for name, tensor in zip(OUTPUTS, found)}
 
 
-def run(implementation, contract_path, snapshot, layers, output):
+def run(implementation, contract_path, snapshot, layers, taps, output):
     contract = load_contract(contract_path)
     config = contract["config"]
     check_layers(config, layers)
+    taps = check_taps(taps, layers)
     import numpy as np
 
     output.mkdir(parents=True)
@@ -156,22 +179,24 @@ def run(implementation, contract_path, snapshot, layers, output):
     verified = verify_inputs(snapshot, contract)
     hashed = time.perf_counter()
     model, scale, layer_types = (original_model(snapshot, layers) if implementation == "original"
-                                 else class_model(snapshot, layers, contract))
+                                 else class_model(snapshot, layers, taps, contract))
     loaded = time.perf_counter()
     inputs = {}
     for name in INPUTS:
         ids = tokens(name, config)
         bounds = [[0, len(ids)]] if implementation == "original" else calls(len(ids), config["sliding_window"])
         begin = time.perf_counter()
-        array = logits(model, implementation, ids, bounds)
-        path = output / f"{name}.npy"
-        np.save(path, array)
+        arrays = outputs(model, implementation, ids, bounds, taps)
         inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids), "calls": bounds,
-                        "seconds": time.perf_counter() - begin,
-                        "logits": {**file_record(path), "dtype": str(array.dtype), "shape": list(array.shape),
-                                   "non_finite": int(array.size - np.isfinite(array).sum())}}
+                        "seconds": time.perf_counter() - begin}
+        for key, array in arrays.items():
+            path = output / f"{name}.{key}.npy"
+            np.save(path, array)
+            inputs[name][key] = {**file_record(path), "dtype": str(array.dtype), "shape": list(array.shape),
+                                 "non_finite": int(array.size - np.isfinite(array).sum())}
     packages = PACKAGES + (CONVERTER if implementation == "class" else ())
     record = {"schema": SCHEMA, "implementation": implementation, "layers": layers, "layer_types": layer_types,
+              "tap_layers": list(taps),
               "model": {"id": contract["model_id"], "revision": contract["revision"],
                         "contract_sha256": sha256(contract_path), "verified_before_loading": verified},
               "weights": WEIGHTS, "embed_scale": scale,
@@ -383,11 +408,21 @@ def below(value, limit):
     return value is not None and (value < limit if isinstance(limit, float) else value <= limit)
 
 
+def ratios(model_class, original):
+    import numpy as np
+
+    x, y = (np.asarray(array, dtype=np.float64) for array in (model_class, original))
+    difference, scale = np.abs(x - y).max(axis=-1), np.abs(y).max(axis=-1)
+    usable = bool(np.isfinite(x).all() and np.isfinite(y).all() and (scale > 0).all())
+    return {"largest_ratio": float((difference / scale).max()) if usable else None,
+            "passed": usable and bool((difference < RATIO * scale).all())}
+
+
 def compare(original, model_class, contract_path=CONTRACT):
     import numpy as np
 
     contract = load_contract(contract_path)
-    vocabulary = contract["config"]["vocab_size"]
+    config = contract["config"]
     folders = [Path(original), Path(model_class)]
     records = [read_json(folder / "record.json") for folder in folders]
     model = {"id": contract["model_id"], "revision": contract["revision"], "contract_sha256": sha256(contract_path),
@@ -395,54 +430,72 @@ def compare(original, model_class, contract_path=CONTRACT):
                                          if name in LOADED_FILES or name.endswith(".safetensors")}}
     problems = [f"the {kind} run holds a record of the {record.get('implementation')} implementation"
                 for kind, record in zip(IMPLEMENTATIONS, records) if record.get("implementation") != kind]
+    recorded_taps = []
     for kind, record in zip(IMPLEMENTATIONS, records):
         if record.get("model") != model:
             problems.append(f"the {kind} run recorded another model or contract")
         try:
-            if record.get("layer_types") != check_layers(contract["config"], record.get("layers")):
+            if record.get("layer_types") != check_layers(config, record.get("layers")):
                 problems.append(f"the {kind} run recorded layer types that differ from the contract")
+            recorded_taps.append(check_taps(joined(record.get("tap_layers")), record.get("layers")))
         except ValueError as error:
             problems.append(f"the {kind} run: {error}")
-    problems += [f"the runs differ in {key}" for key in ("model", "layers", "layer_types")
+    problems += [f"the runs differ in {key}" for key in ("model", "layers", "layer_types", "tap_layers")
                  if records[0].get(key) != records[1].get(key)]
+    taps = recorded_taps[0] if len(recorded_taps) == 2 and recorded_taps[0] == recorded_taps[1] else ()
     if same_file(*(folder / "record.json" for folder in folders)):
         problems.append("both runs read the same record.json")
+    hidden = config["hidden_size"]
+    widths = {"logits": config["vocab_size"], "hidden_states": hidden, "tap_hidden_states": hidden * len(taps)}
     results = {}
     for name, criteria in CRITERIA.items():
-        ids = tokens(name, contract["config"])
+        ids = tokens(name, config)
         entries = [(record.get("inputs") or {}).get(name) or {} for record in records]
-        paths = [folder / f"{name}.npy" for folder in folders]
-        found = [f"{name}: both runs read the same logits file"] if same_file(*paths) else []
-        arrays = []
-        for kind, path, entry in zip(IMPLEMENTATIONS, paths, entries):
-            if (entry.get("positions"), entry.get("tokens_sha256")) != (len(ids), digest(ids)):
-                found.append(f"{name}: the {kind} run did not read the {name} input")
-            if not recorded(path, entry.get("logits")):
-                found.append(f"{name}: the {kind} logits differ from the size and SHA-256 in their record")
-                continue
-            array = np.load(path, mmap_mode="r")
-            if array.dtype != np.float32 or array.shape != (len(ids), vocabulary):
-                found.append(f"{name}: the {kind} logits are {array.dtype} {list(array.shape)}, "
-                             f"not float32 {[len(ids), vocabulary]}")
-            arrays.append(array)
-        metrics = {} if found else differences(*arrays)
+        found = [f"{name}: the {kind} run did not read the {name} input" for kind, entry in zip(IMPLEMENTATIONS, entries)
+                 if (entry.get("positions"), entry.get("tokens_sha256")) != (len(ids), digest(ids))]
+        arrays = {}
+        for output, width in widths.items():
+            paths = [folder / f"{name}.{output}.npy" for folder in folders]
+            if same_file(*paths):
+                found.append(f"{name}: both runs read the same {output} file")
+            for kind, path, entry in zip(IMPLEMENTATIONS, paths, entries):
+                if not recorded(path, entry.get(output)):
+                    found.append(f"{name}: the {kind} {output} differ from the size and SHA-256 in their record")
+                    continue
+                array = np.load(path, mmap_mode="r")
+                if array.dtype != np.float32 or array.shape != (len(ids), width) or not width:
+                    found.append(f"{name}: the {kind} {output} are {array.dtype} {list(array.shape)}, "
+                                 f"not float32 {[len(ids), width]}")
+                arrays.setdefault(output, []).append(array)
+        metrics, compared = ({}, {}) if found else (differences(*arrays["logits"]), {
+            "hidden_states": ratios(arrays["hidden_states"][1], arrays["hidden_states"][0]),
+            "tap_hidden_states": {str(tap): ratios(*(array[:, index * hidden:(index + 1) * hidden]
+                                                     for array in reversed(arrays["tap_hidden_states"])))
+                                  for index, tap in enumerate(taps)}})
         if any((metrics.get("non_finite") or {}).values()):
             found.append(f"{name}: non-finite logits {metrics['non_finite']}")
         checks = {key: not found and below(metrics.get(key), limit) for key, limit in criteria.items()}
-        results[name] = {"criteria": criteria, **metrics, "checks": checks}
+        checks.update(hidden_states=not found and compared["hidden_states"]["passed"],
+                      tap_hidden_states=not found and all(entry["passed"] for entry in compared["tap_hidden_states"].values()))
+        results[name] = {"criteria": criteria, **metrics, "outputs": compared, "checks": checks}
         problems += found
     return {"schema": COMPARISON, "problems": problems,
             "passed": not problems and all(all(result["checks"].values()) for result in results.values()),
+            "contract_sha256": model["contract_sha256"] if all(record.get("model") == model for record in records) else None,
+            "layers": records[0].get("layers") if taps and records[0].get("layers") == records[1].get("layers") else None,
+            "tap_layers": list(taps) or None, "ratio_limit": RATIO,
             "records_sha256": [sha256(folder / "record.json") for folder in folders], "inputs": results}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Logits of the first layers of Gemma 4 31B in float32 and their "
-                                                 "comparison between the original implementation and the model class.")
+    parser = argparse.ArgumentParser(description="Logits, final hidden states and tap hidden states of the first layers "
+                                                 "of Gemma 4 31B in float32 and their comparison between the original "
+                                                 "implementation and the model class.")
     commands = parser.add_subparsers(dest="command", required=True)
     runner = commands.add_parser("run")
     runner.add_argument("--implementation", choices=IMPLEMENTATIONS, required=True)
     runner.add_argument("--layers", type=int, required=True)
+    runner.add_argument("--taps", required=True, help="Ascending distinct counts of layers, separated by commas.")
     for name in ("model", "snapshot", "output"):
         runner.add_argument(f"--{name}", type=Path, required=True)
     checker = commands.add_parser("compare")
@@ -459,7 +512,8 @@ def main():
     contexts.add_argument("--export", type=Path)
     args = parser.parse_args()
     if args.command in ("run", "context"):
-        record = (run(args.implementation, args.model, args.snapshot, args.layers, args.output) if args.command == "run"
+        record = (run(args.implementation, args.model, args.snapshot, args.layers, args.taps, args.output)
+                  if args.command == "run"
                   else context(args.model, args.snapshot, args.layers, args.output, args.weights, args.export))
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
               record["memory"], flush=True)
