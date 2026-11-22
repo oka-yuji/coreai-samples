@@ -14,6 +14,8 @@ CONTRACT = BUNDLE["contract"]
 LAYER2 = CONTRACT["layer2"]
 CATEGORIES = {category["id"]: category for category in CONTRACT["categories"]}
 VOCABULARY = 300000
+RUN = {"asset": {"main_hash": "a"}, "inputs": {"sha256": "i"}, "implementation": {"commit": "c"},
+       "call_shape": {"prefill_chunk": 1}}
 
 
 def step(node, part):
@@ -300,8 +302,8 @@ class CompareRunTests(unittest.TestCase):
         self.assertFalse((self.folder / "verdict").exists())
 
     def test_the_rerun_counts_swaps_against_the_candidate_scores(self):
-        baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16")
-        rerun = self.run_folder("again", "fp16", answer=9)
+        baseline, candidate = self.run_folder("base", "reference"), self.run_folder("cand", "fp16", **RUN)
+        rerun = self.run_folder("again", "fp16", answer=9, **{**RUN, "call_shape": {"prefill_chunk": 8}})
         scores = self.scored(baseline, candidate, rerun)
         self.compared(baseline, candidate, scores, rerun=scores / "again")
         record = items.read_json(self.folder / "verdict" / "verdict.json")
@@ -310,12 +312,17 @@ class CompareRunTests(unittest.TestCase):
         self.assertEqual(record["verdict"], "no_regression_found")
 
     def test_a_rerun_scoring_of_other_conditions_is_rejected(self):
-        for case in ("duplicate", "items", "asset"):
+        changes = {"duplicate": {}, "items": {}, "asset": {"asset": {"main_hash": "b"}},
+                   "inputs": {"inputs": {"sha256": "j"}}, "implementation": {"implementation": {"commit": "d"}},
+                   "set": {"set": "reserve"}, "role": {"role": "w8"}, "call_shape": {"call_shape": RUN["call_shape"]}}
+        for case in (*changes, "no_asset"):
             with self.subTest(case):
+                fields = {key: value for key, value in RUN.items() if case != "no_asset" or key != "asset"}
                 baseline = self.run_folder(f"{case}/base", "reference")
-                candidate = self.run_folder(f"{case}/cand", "fp16", asset={"main_hash": "a"})
-                rerun = self.run_folder(f"{case}/again", "fp16", answer=9,
-                                        asset={"main_hash": "b" if case == "asset" else "a"})
+                candidate = self.run_folder(f"{case}/cand", "fp16", **fields)
+                change = dict(changes.get(case, {}))
+                rerun = self.run_folder(f"{case}/again", change.pop("role", "fp16"), answer=9,
+                                        **{**fields, "call_shape": {"prefill_chunk": 8}, **change})
                 scores = self.scored(baseline, candidate, rerun, name=f"{case}/scores")
                 if case == "duplicate":
                     path = scores / "again" / "scores.jsonl"

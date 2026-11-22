@@ -12,6 +12,7 @@ REASONS = ("hash_mismatch", "run_unfinished", "missing_output", "malformed_recor
 CHECKS = {"missing_output": "missing", "not_in_set": "not_in_set", "duplicate_id": "duplicate",
           "top2_differs": "top2_differs"}
 SIDES = ("baseline", "candidate")
+SAME_RUN = ("asset", "inputs", "implementation", "set", "role")
 
 
 def repeated(ids, rule):
@@ -201,11 +202,20 @@ def run_files(folder, scores, rows, items_sha256):
 
 def rerun_scoring(folder, rows, candidate):
     summary, found = scoring_of(Path(folder), rows)
-    differs = [key for key in ("contract", "items", "tokenizer", "scorer") if summary.get(key) != candidate.get(key)]
-    differs += ["run.asset"] * (summary.get("run", {}).get("asset") != candidate.get("run", {}).get("asset"))
-    if differs:
-        raise ValueError(f"The rerun scoring in {Path(folder).name} differs from the candidate scoring in "
-                         f"{', '.join(differs)}")
+    runs = {"rerun": summary.get("run") or {}, "candidate": candidate.get("run") or {}}
+    problems = [f"{key} differs" for key in ("contract", "items", "tokenizer", "scorer")
+                if summary.get(key) != candidate.get(key)]
+    problems += [f"the {side} run record has no {key}" for side, run in runs.items()
+                 for key in (*SAME_RUN, "call_shape") if run.get(key) is None]
+    problems += [f"run.{key} differs" for key in SAME_RUN
+                 if None not in (runs["rerun"].get(key), runs["candidate"].get(key))
+                 and runs["rerun"][key] != runs["candidate"][key]]
+    shapes = [runs[side].get("call_shape") for side in runs]
+    if shapes[0] is not None and shapes[0] == shapes[1]:
+        problems.append("run.call_shape is the same")
+    if problems:
+        raise ValueError(f"The rerun scoring in {Path(folder).name} is not a rerun of the candidate's assets, inputs "
+                         f"and implementation with another call shape: {'; '.join(problems)}")
     return summary.get("run"), found
 
 
