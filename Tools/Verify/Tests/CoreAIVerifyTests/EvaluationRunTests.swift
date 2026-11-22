@@ -576,4 +576,15 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
         #expect(encoded == expected)
         #expect(!implementation.osVersion.isEmpty && !implementation.osBuild.isEmpty)
     }
+
+    @Test("The run digest of a run record with fixed values is a fixed SHA-256")
+    func runDigestIsFixed() throws {
+        let fixed = runRecord(count: 4)
+        let record = EvaluationRun(
+            id: fixed.id, contract: fixed.contract, set: fixed.set, role: fixed.role, asset: fixed.asset,
+            implementation: .init(commit: "c0ffee", osVersion: "27.0.0", osBuild: "26A428"), callShape: fixed.callShape,
+            inputs: fixed.inputs, items: 0, started: fixed.started, load: fixed.load)
+        let digest = try record.identityDigest()
+        #expect(digest == "db643feeacc5d86342ac65a0b8e13a17998cb8f57aa97b311694618c5f686233")
+    }
 }
