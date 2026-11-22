@@ -28,9 +28,10 @@ def drive():
         units = json.load(handle)
     module = types.ModuleType("program")
     sys.modules[module.__name__] = module
+    run, build, write, namespace = exec, compile, os.write, module.__dict__
     for name, source in units:
-        exec(compile(source, name, "exec", dont_inherit=True), module.__dict__)
-    os.write(result_fd, marker)
+        run(build(source, name, "exec", dont_inherit=True), namespace)
+    write(result_fd, marker)
 
 
 drive()

@@ -117,6 +117,15 @@ class FailureTests(unittest.TestCase):
         self.assertEqual(ran("import sys\n\nfor _ in range(200):\n    print('x' * 100000)\n"
                              "    print('x' * 100000, file=sys.stderr)\n"), PASSED)
 
+    def test_a_program_that_replaces_what_the_driver_uses_still_runs_to_the_end(self):
+        cases = {"os.write": "import os\n\nos.write = lambda descriptor, data: 0\n",
+                 "os.write through another module": "import shutil\n\nshutil.os.write = None\n",
+                 "os.write through sys.modules": "import sys\n\nsys.modules['os'].write = None\n",
+                 "exec and compile in builtins": "import builtins\n\nbuiltins.exec = None\nbuiltins.compile = None\n"}
+        for name, code in cases.items():
+            with self.subTest(name):
+                self.assertEqual(ran(code), PASSED)
+
 
 class TimeLimitTests(unittest.TestCase):
     def test_a_program_over_the_limit_is_ended_and_runs_once_more_leaving_no_process_or_folder(self):
