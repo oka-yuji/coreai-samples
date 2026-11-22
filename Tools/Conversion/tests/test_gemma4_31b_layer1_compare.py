@@ -15,7 +15,7 @@ try:
 except ImportError:
     np = None
 
-from Tools.Conversion.adapters.gemma4_31b import layer1_compare
+from Tools.Conversion.adapters.gemma4_31b import baseline, layer1_compare
 from Tools.Conversion.storage import read_json, write_json
 from Tools.LLMEvaluation import layer1
 from Tools.LLMEvaluation.tests.test_layer1 import BUNDLE, fixture, save
@@ -42,6 +42,19 @@ def entry(result, name):
 
 def passed_checks(result):
     return {name: result["checks"][name]["passed"] for name in CHECKS}
+
+
+class RunIdentityTests(unittest.TestCase):
+    def test_the_forced_input_binds_a_run_as_the_baseline_tool_records_it_in_progress_json(self):
+        run = {"id": "c3febd49", "contract": {"version": "G31-QC-v1", "sha256": "a" * 64}, "set": "primary",
+               "role": "reference", "asset": {"weights": {"model.safetensors": "b" * 64}}, "inputs": {"count": 2, "sha256": "c" * 64},
+               "implementation": {"tool": "baseline", "commit": "d" * 40, "environment": {"python": "3.11.9", "os": "\u00e9"}},
+               "call_shape": {"prefill_chunk": 1024}, "order": {"last": ["long-ja-4k"]}, "items": 2,
+               "started": "2026-11-22T07:14:47Z", "finished": "2026-11-22T15:40:04Z"}
+        self.assertEqual(layer1.run_identity(run), baseline.identity(run))
+        self.assertEqual(layer1.run_identity({key: value for key, value in run.items() if key not in baseline.SESSION[1:]}),
+                         baseline.identity(run))
+        self.assertNotEqual(layer1.run_identity({**run, "id": "other"}), baseline.identity(run))
 
 
 @unittest.skipIf(np is None, "NumPy is required for the comparison")

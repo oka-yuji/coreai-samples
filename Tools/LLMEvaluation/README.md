@@ -201,7 +201,7 @@ python3 -m Tools.LLMEvaluation forced \
 | Option | Value |
 |---|---|
 | `--inputs` | The folder with `inputs.jsonl` and `inputs.json` of `Tools.Conversion.adapters.gemma4_31b.inputs` |
-| `--run` | The run folder of `Tools.Conversion.adapters.gemma4_31b.baseline`, with `run.json` and `outputs.jsonl` |
+| `--run` | The finished run folder of `Tools.Conversion.adapters.gemma4_31b.baseline`, with `run.json`, `progress.json` and `outputs.jsonl` |
 | `--output` | A new folder |
 
 The items follow `layer1.items` of `contract.json`: per category of `sets/primary.json`, the first items in ascending id order, as many as `per_category` or, for a member of `families`, its count. For an item with P input tokens and the generated tokens G (`output_ids`, followed by `stop_token` when the run stopped on one), R = min(`layer1.positions.max_per_item`, len(G)) rows are scored, and row i is the output at position P − 1 + i, which predicts G[i].

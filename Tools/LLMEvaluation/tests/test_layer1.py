@@ -28,6 +28,11 @@ def digest(ids):
     return hashlib.sha256(",".join(map(str, ids)).encode("utf-8")).hexdigest()
 
 
+def identity(run):
+    value = {key: item for key, item in run.items() if key not in ("items", "started", "finished")}
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
 def generation(output_ids, stop=STOP):
     output_ids = list(output_ids)
     record = {"output_ids": output_ids, "non_finite": 0, "top2": [[token, 0.75, token + 1, 0.125] for token in output_ids]}
@@ -47,7 +52,7 @@ def fixture():
                         **generation(range(5000 + number % 11, 5001 + number % 11 + number % 3))})
     run = {"contract": dict(IDENTITY), "set": "primary", "role": "reference", "items": len(ENTRIES), "id": "run-1",
            "started": "2026-11-22T00:00:00Z", "finished": "2026-11-22T01:00:00Z"}
-    return {"inputs": inputs, "outputs": outputs, "run": run, "summary": {}}
+    return {"inputs": inputs, "outputs": outputs, "run": run, "summary": {}, "progress": {}}
 
 
 def by_id(records, name):
@@ -74,8 +79,12 @@ def save(state, folder):
     (inputs / "inputs.jsonl").write_bytes(data)
     files = {"count": len(state["inputs"]), "sha256": hashlib.sha256(data).hexdigest()}
     (inputs / "inputs.json").write_text(json.dumps({"contract": IDENTITY, **files, **state["summary"]}))
-    (run / "run.json").write_text(json.dumps({"inputs": files, **state["run"]}))
-    (run / "outputs.jsonl").write_bytes(lines(state["outputs"]))
+    stored, outputs = {"inputs": files, **state["run"]}, lines(state["outputs"])
+    (run / "run.json").write_text(json.dumps(stored))
+    (run / "outputs.jsonl").write_bytes(outputs)
+    if state["progress"] is not None:
+        (run / "progress.json").write_text(json.dumps({"lines": len(state["inputs"]), "run": identity(stored),
+                                                       "sha256": hashlib.sha256(outputs).hexdigest(), **state["progress"]}))
     return inputs, run
 
 
@@ -268,12 +277,12 @@ class ForcedRecordTests(Folder):
 
 
 class RefusalTests(Folder):
-    def refused(self, state, text, after=None, bundle=BUNDLE):
+    def refused(self, state, text, after=None, bundle=BUNDLE, error=ValueError):
         inputs, run = save(state, tempfile.mkdtemp(dir=self.root))
         if after is not None:
             after(inputs, run)
         output = self.root / "forced"
-        with self.assertRaises(ValueError) as caught:
+        with self.assertRaises(error) as caught:
             layer1.write(bundle, inputs, run, output)
         self.assertIn(text, str(caught.exception))
         self.assertFalse(os.path.lexists(output))
@@ -364,6 +373,34 @@ class RefusalTests(Folder):
                 state = fixture()
                 change(state)
                 self.refused(state, text)
+
+    def test_output_records_replaced_after_the_run_finished_write_nothing(self):
+        def replaced(inputs, run):
+            state = fixture()
+            generate(state, "ja-reading-0002", [21, 22, 23])
+            (run / "outputs.jsonl").write_bytes(lines(state["outputs"]))
+
+        self.refused(fixture(), "progress.json does not confirm these output records of this finished run: sha256",
+                     replaced)
+
+    def test_a_missing_or_unconfirmed_progress_record_writes_nothing(self):
+        def other_run(state):
+            state["progress"]["run"] = identity({"inputs": {}, **state["run"], "id": "run-2"})
+
+        cases = (("a line in writing", lambda state: state["progress"].update(next_sha256="0" * 64), "next_sha256"),
+                 ("fewer lines", lambda state: state["progress"].update(lines=len(ENTRIES) - 1), "lines"),
+                 ("a float line count", lambda state: state["progress"].update(lines=float(len(ENTRIES))), "lines"),
+                 ("another run", other_run, ": run"),
+                 ("other bytes", lambda state: state["progress"].update(sha256="0" * 64), "sha256"))
+        for name, change, text in cases:
+            with self.subTest(name):
+                state = fixture()
+                change(state)
+                self.refused(state, f"progress.json does not confirm these output records of this finished run{text}"
+                             if text == ": run" else text)
+        state = fixture()
+        state["progress"] = None
+        self.refused(state, "progress.json", error=FileNotFoundError)
 
     def test_a_long_context_input_whose_length_differs_from_the_set_writes_nothing(self):
         state = fixture()

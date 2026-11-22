@@ -46,6 +46,17 @@ def same(value, expected):
     return canonical(value) == canonical(expected)
 
 
+def differing(value, expected):
+    if not isinstance(value, dict):
+        return sorted(expected)
+    return sorted(key for key in set(value) | set(expected) if not same(value.get(key), expected.get(key)))
+
+
+def run_identity(run):
+    value = {key: item for key, item in run.items() if key not in ("items", "started", "finished")}
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
 def token_ids(value):
     return isinstance(value, list) and bool(value) and all(type(token) is int and token >= 0 for token in value)
 
@@ -135,6 +146,10 @@ def write(bundle, inputs, run, output):
     known = by_id(data, "inputs.jsonl")
     files = {"count": len(known), "sha256": hashlib.sha256(data).hexdigest()}
     identity = checked_sources(bundle, summary, stored, known, files)
+    confirmed = {"lines": files["count"], "run": run_identity(stored), "sha256": hashlib.sha256(outputs).hexdigest()}
+    found = differing(strict((run / "progress.json").read_bytes()), confirmed)
+    if found:
+        raise ValueError(f"progress.json does not confirm these output records of this finished run: {', '.join(found)}")
     good, broken = partition(read_records(outputs), math.inf)
     found = {key: value for key, value in record_checks(bundle["sets"][SET]["items"], good, broken, set()).items()
              if value}
