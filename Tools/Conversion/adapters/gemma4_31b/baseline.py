@@ -303,10 +303,10 @@ def main():
         record = {"schema": SCHEMA, "run": run["id"], "checks": {}, "loading": loading, "resources": {"cases": rows},
                   "items": {"before": before, "after": run["items"], "count": len(inputs)}, "timing": timing}
         finalize(record, observed, memory(device))
-        if record["passed"]:
-            finish(args.output, run, final)
         record["timing"]["total_s"] = time.perf_counter() - started
         write_json(args.log / "session.json", record)
+        if record["passed"]:
+            finish(args.output, run, final)
         print(json.dumps({"record": "session", "items": run["items"], "count": len(inputs),
                           "complete": run["items"] == len(inputs), "passed": record["passed"]}, sort_keys=True), flush=True)
         return 0 if record["passed"] else 1

@@ -6,6 +6,7 @@ import json
 import math
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -22,7 +23,7 @@ try:
 except ImportError:
     torch = transformers = None
 
-from Tools.Conversion.adapters.gemma4_31b import baseline
+from Tools.Conversion.adapters.gemma4_31b import baseline, reference
 from Tools.Conversion.adapters.gemma4_31b.inputs import line, tokens_sha256
 from Tools.Conversion.storage import read_json, write_json
 from Tools.LLMEvaluation import scoring
@@ -43,6 +44,13 @@ MODEL = {"model_id": "google/gemma-4-31B-it", "revision": "a" * 40,
                    "model-00001-of-00002.safetensors": {"bytes": 2, "sha256": "e" * 64},
                    "model-00002-of-00002.safetensors": {"bytes": 3, "sha256": "f" * 64}}}
 VERSIONS = {"python": "3.11.9", "packages": {"torch": "2.15.0"}, "os_build": "26A428", "platform": "macOS"}
+MEMORY = {"max_rss_bytes": 10, "footprint_bytes": 5, "lifetime_peak_footprint_bytes": 12,
+          "mps_driver_allocated_bytes": 8, "mps_current_allocated_bytes": 7}
+OBSERVED = {"samples": 3, "interval_s": 5, "aborts": 0, "failure": None, "unreadable_samples": 0,
+            "first": {"swap_used_bytes": 5}, "peak": {"swap_used_bytes": 5, "rss_bytes": 11},
+            "lowest": {"free_percent": 40, "free_bytes": {}}}
+RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
+CONTRACT = Path(__file__).resolve().parents[2] / "LLMEvaluation/contract.json"
 
 
 def item(identifier, ids, limit=8):
@@ -283,6 +291,69 @@ class InputRecordTests(unittest.TestCase):
             with self.subTest(label=label), self.assertRaises(ValueError):
                 baseline.read_inputs(text, 128)
         self.assertEqual(baseline.read_inputs(line(good), 128), [good])
+
+
+class ReadyMonitor:
+    def __init__(self, path, volumes, patterns, on_abort):
+        self.ready = SimpleNamespace(wait=lambda timeout: True)
+
+    def start(self):
+        pass
+
+    def finish(self):
+        return copy.deepcopy(OBSERVED)
+
+
+@unittest.skipIf(torch is None, "PyTorch is required for the command")
+class SessionTests(unittest.TestCase):
+    def run_main(self, folder, failing=None):
+        folder = Path(folder)
+        (folder / "prepare").mkdir()
+        write_json(folder / "prepare/ready.json",
+                   {"ready": True, "contract_sha256": digest((RECIPE / "model.json").read_bytes())})
+        (folder / "inputs.jsonl").write_bytes(b"".join(map(line, inputs_of(2))))
+        argv = ["baseline", "--model", str(RECIPE / "model.json"), "--snapshot", str(folder), "--prepare",
+                str(folder / "prepare"), "--contract", str(CONTRACT), "--inputs", str(folder / "inputs.jsonl"), "--commit",
+                "c0ffee", "--output", str(folder / "run"), "--log", str(folder / "log")]
+        loading = {"info": {}, "parameter_dtypes": ["torch.bfloat16"], "parameter_devices": ["mps:0"], "training": False,
+                   "after_load": dict(MEMORY)}
+
+        def writing(path, value):
+            if Path(path).name == failing:
+                raise OSError("No space left on device")
+            return write_json(path, value)
+
+        def made(model, entry, stops, device):
+            record, info = produce([])(entry)
+            return record, {**info, **MEMORY}
+
+        patches = [mock.patch.object(sys, "argv", argv), mock.patch.object(reference, "ReferenceMonitor", ReadyMonitor),
+                   mock.patch.object(baseline, "environment", return_value=VERSIONS),
+                   mock.patch.object(baseline, "verify_inputs"),
+                   mock.patch.object(baseline, "load_model", return_value=(SimpleNamespace(eval=lambda: None), {})),
+                   mock.patch.object(baseline, "loading_record", return_value=loading),
+                   mock.patch.object(baseline, "memory", return_value=dict(MEMORY)),
+                   mock.patch.object(baseline, "generate", side_effect=made),
+                   mock.patch.object(baseline, "write_json", side_effect=writing)]
+        with contextlib.ExitStack() as stack:
+            for patch in patches:
+                stack.enter_context(patch)
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            return baseline.main()
+
+    def test_a_session_writes_its_record_and_then_the_finish_of_the_run(self):
+        with tempfile.TemporaryDirectory() as folder:
+            code = self.run_main(folder)
+            run, session_record = read_json(Path(folder) / "run/run.json"), read_json(Path(folder) / "log/session.json")
+        self.assertEqual((code, run["items"], "finished" in run, session_record["passed"]), (0, 2, True, True))
+
+    def test_a_session_record_that_cannot_be_written_leaves_the_run_without_its_finish(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(OSError):
+                self.run_main(folder, failing="session.json")
+            run = read_json(Path(folder) / "run/run.json")
+            self.assertFalse((Path(folder) / "log/session.json").exists())
+        self.assertEqual((run["items"], "finished" in run), (2, False))
 
 
 class RunFolderTests(unittest.TestCase):
