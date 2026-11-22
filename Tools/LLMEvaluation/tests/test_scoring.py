@@ -205,6 +205,9 @@ class RecordCheckTests(unittest.TestCase):
             "top2 entry with a string probability": {**good, "top2": [[7, "0.75", 0, 0.25]] + good["top2"][1:]},
             "top2 probability infinite": {**good, "top2": [[7, float("inf"), 0, 0.25]] + good["top2"][1:]},
             "top2 probability not a number": {**good, "top2": [[7, 0.75, 0, float("nan")]] + good["top2"][1:]},
+            "top2 first id past the vocabulary": {**good, "top2": [[VOCABULARY, 0.75, 0, 0.25]] + good["top2"][1:]},
+            "top2 second id past the vocabulary": {**good, "top2": [[7, 0.75, VOCABULARY, 0.25]] + good["top2"][1:]},
+            "top2 second id negative": {**good, "top2": [[7, 0.75, -1, 0.25]] + good["top2"][1:]},
             "error of another type": {**good, "error": None},
         })
         for name, broken in cases.items():

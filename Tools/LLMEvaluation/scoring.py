@@ -137,7 +137,7 @@ def well_formed(record, vocabulary):
         return integer(value) and 0 <= value < vocabulary
 
     def entry(value):
-        return (isinstance(value, list) and len(value) == 4 and integer(value[0]) and integer(value[2])
+        return (isinstance(value, list) and len(value) == 4 and token(value[0]) and token(value[2])
                 and all(integer(part) or (isinstance(part, float) and math.isfinite(part)) for part in value[1::2]))
 
     return (isinstance(record.get("id"), str) and isinstance(record.get("input_sha256"), str)
