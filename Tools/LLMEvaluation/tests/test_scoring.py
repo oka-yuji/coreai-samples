@@ -26,6 +26,12 @@ def committed_items(category, count):
     return [items.item(CATEGORIES[category], entry, None, BUNDLE) for entry in entries]
 
 
+def bundle_with(primary, reserve=()):
+    entries = {entry["id"]: entry for name in ("primary", "reserve") for entry in BUNDLE["sets"][name]["items"]}
+    return {**BUNDLE, "sets": {"primary": {"items": [entries[key] for key in primary]},
+                               "reserve": {"items": [entries[key] for key in reserve]}}}
+
+
 def record(item_id, ids, stop=True):
     generated = ids + ([STOP] if stop else [])
     value = {"id": item_id, "input_sha256": "0" * 64, "input_tokens": 1, "output_ids": ids,
@@ -274,6 +280,7 @@ class ScoreRunTests(unittest.TestCase):
                         "extract-ja-0002": [5]}
         self.items_path = self.root / "primary.jsonl"
         write_lines(self.items_path, self.items)
+        self.bundle = bundle_with([item["id"] for item in self.items])
 
     def tearDown(self):
         self.folder.cleanup()
@@ -286,7 +293,7 @@ class ScoreRunTests(unittest.TestCase):
         return folder
 
     def scored(self, runs, output="scores"):
-        result = scoring.score_runs(BUNDLE, self.items_path, runs, self.root / output, self.tokenizer, "f" * 64)
+        result = scoring.score_runs(self.bundle, self.items_path, runs, self.root / output, self.tokenizer, "f" * 64)
         return result, self.root / output
 
     def test_the_scored_text_is_the_decoded_output_ids_without_special_tokens(self):
@@ -313,7 +320,8 @@ class ScoreRunTests(unittest.TestCase):
         summary = items.read_json(output / "baseline" / "summary.json")
         self.assertEqual(summary["contract"], {"version": CONTRACT["version"],
                                                "sha256": BUNDLE["hashes"]["contract.json"]})
-        self.assertEqual(summary["items"], {"file": "primary.jsonl", "sha256": items.sha256(self.items_path)})
+        self.assertEqual(summary["items"], {"file": "primary.jsonl", "sha256": items.sha256(self.items_path),
+                                            "set": "primary"})
         self.assertEqual(summary["tokenizer"], {"sha256": "f" * 64, "vocabulary": VOCABULARY})
         self.assertEqual(summary["run"], {"role": "reference", "set": "primary"})
         self.assertEqual(summary["checks"], {"missing": ["synth-long-4k-0001"], "not_in_set": ["ja-choice-9999"],
@@ -361,6 +369,7 @@ class ScoreRunTests(unittest.TestCase):
         item = {"id": "synth-extract-0001", "category": "synth-extract", "scorer": {"kind": "json_exact"},
                 "answer": {"x": 1}}
         write_lines(self.items_path, [item])
+        self.bundle = bundle_with([item["id"]])
         self.tokenizer = Pieces(['{"x": [1e400, -1e400]}'])
         _, output = self.scored([self.run_folder("overflow", [record(item["id"], [0])])])
 
@@ -387,6 +396,28 @@ class ScoreRunTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.scored([Path("/")], output="root")
         self.assertFalse((self.root / "root").exists())
+
+    def test_items_that_are_not_exactly_one_frozen_set_are_rejected(self):
+        run = self.run_folder("run", [record(key, values) for key, values in self.outputs.items()])
+        ids = [item["id"] for item in self.items]
+        cases = {"one missing": (bundle_with(ids + ["ja-choice-0002"]), "1 missing, 0 extra"),
+                 "one extra": (bundle_with(ids[1:]), "0 missing, 1 extra"),
+                 "two sets": (bundle_with(ids[1:], ids[:1]), "0 missing, 1 extra")}
+        for name, (bundle, counts) in cases.items():
+            with self.subTest(name):
+                self.bundle = bundle
+                with self.assertRaisesRegex(ValueError, f"not the primary set: {counts}"):
+                    self.scored([run], output=f"out-{name}")
+                self.assertFalse((self.root / f"out-{name}").exists())
+
+    def test_the_summary_names_the_frozen_set_of_the_items(self):
+        ids = [item["id"] for item in self.items]
+        rows = [record(key, values) for key, values in self.outputs.items()]
+        for name, bundle in (("primary", bundle_with(ids)), ("reserve", bundle_with([], ids))):
+            with self.subTest(name):
+                self.bundle = bundle
+                _, output = self.scored([self.run_folder(f"run-{name}", rows)], output=f"out-{name}")
+                self.assertEqual(items.read_json(output / f"run-{name}" / "summary.json")["items"]["set"], name)
 
     def test_runs_are_scored_together_into_a_new_folder(self):
         first = self.run_folder("one", [record(key, ids) for key, ids in self.outputs.items()])

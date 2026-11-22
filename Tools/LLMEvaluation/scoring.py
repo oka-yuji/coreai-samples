@@ -217,6 +217,15 @@ def standard(row):
     return json.loads(json.dumps(row), parse_constant=str)
 
 
+def frozen_set(bundle, ids):
+    sets = {name: {entry["id"] for entry in bundle["sets"][name]["items"]} for name in SETS}
+    name = max(SETS, key=lambda key: len(sets[key] & ids))
+    if sets[name] != ids:
+        raise ValueError(f"The items are not the {name} set: {len(sets[name] - ids)} missing, "
+                         f"{len(ids - sets[name])} extra")
+    return name
+
+
 def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
     output, runs = Path(output), [Path(run).resolve() for run in runs]
     if output.exists():
@@ -228,6 +237,7 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
     items = lines(Path(items_path).read_bytes())
     if len({item["id"] for item in items}) != len(items):
         raise ValueError("Duplicate item ids in the items file")
+    frozen = frozen_set(bundle, {item["id"] for item in items})
     hashes, results = committed(bundle), {}
     vocabulary = tokenizer.get_vocab_size(with_added_tokens=True)
     for run in runs:
@@ -243,7 +253,7 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
                 for item in items]
         results[run.name] = rows, {
             "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
-            "items": {"file": Path(items_path).name, "sha256": sha256(items_path)},
+            "items": {"file": Path(items_path).name, "sha256": sha256(items_path), "set": frozen},
             "tokenizer": {"sha256": tokenizer_sha256, "vocabulary": vocabulary}, "run": read_json(run / "run.json"),
             "checks": record_checks(items, good, broken, hashes), "categories": summarize(rows)}
     output.mkdir(parents=True)
