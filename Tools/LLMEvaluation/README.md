@@ -1,6 +1,6 @@
 # Gemma 4 31B quality evaluation
 
-The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, and scores output records with every rule except code (issue #668). Running models, code scoring, paired comparison and reports belong to later child issues.
+The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, scores output records with every rule except code (issue #668), and compares the scored baseline and candidate of a pair to give the verdict of §7 and its report (issue #671). Running models and code scoring belong to other child issues.
 
 | File | Contents |
 |---|---|
@@ -9,7 +9,8 @@ The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-cont
 | `prompts.json` | All prompt wording, the synthetic templates and the `free-ja` instructions |
 | `synthetic/` | Synthetic task generators, the independent solvers that read only the rendered text, and the self-authored vocabulary |
 | `scoring.py` | The scoring rules of §6.7 except code, the record checks and `score` |
-| `tests/` | Unit tests, the scoring specification examples (`examples.json`) and the expected scoring results derived by hand from §6.7 (`scoring_cases.json`) |
+| `comparison.py` | The paired comparison and the verdicts of §7, the report and `compare` |
+| `tests/` | Unit tests, the scoring specification examples (`examples.json`), the expected scoring results derived by hand from §6.7 (`scoring_cases.json`) and the expected comparison results derived by hand from §7 (`comparison_cases.json`) |
 
 ## Commands
 
@@ -95,7 +96,7 @@ The first JSON object starts at the first `{` from which a standard JSON object 
 
 Its `summary.json`, also standard ASCII JSON, holds:
 
-- `contract` (the version and the SHA-256 of `contract.json`), `items` (the file name and SHA-256 of `--items`, and `set`, the name of the frozen set it holds), `tokenizer` (its SHA-256 and `vocabulary`, its size with the added tokens) and `run` (the copy of `run.json`).
+- `contract` (the version and the SHA-256 of `contract.json`), `items` (the file name and SHA-256 of `--items`, and `set`, the name of the frozen set it holds), `tokenizer` (its SHA-256 and `vocabulary`, its size with the added tokens), `run` (the copy of `run.json`) and `outputs` (`sha256`, the SHA-256 of the `outputs.jsonl` bytes that were scored). `score` reads `--items` and each `outputs.jsonl` once and takes both the content and the SHA-256 from the same bytes.
 - `checks`: facts about the records. The checks give no verdict, and every item with a well-formed record is scored.
   - `malformed`: every record that does not have the form of contract §5.1, in file order: a line that is not a standard JSON object (a line with `NaN`, `Infinity` or `-Infinity` is not), or a missing field or a value of another type. `id` and `input_sha256` are strings, `input_tokens` an integer of at least 1, `non_finite` an integer of at least 0, `output_ids` a list of token ids, `stop` either `stop_token` or `limit`, `stop_token` a token id when `stop` is `stop_token`, `top2` a list of `[token id, probability, token id, probability]` with two different token ids and probabilities that are numbers from 0 to 1, the first at least the second (`true` and `false` are not numbers, and a number such as `1e400`, which reads as infinite, is out of range), and `error`, when present, a string. A token id is an integer from 0 to below `vocabulary`. A record is listed by its id when the id is a string, and otherwise by its line number.
   - The other checks are sorted lists of ids. `missing`, `not_in_set` and `duplicate` count every record with a string id, well-formed or malformed; a record without one counts for none. `missing`: an item that no record names. `not_in_set`: a record whose id is not an item. `duplicate`: an id with more than one record; only the first well-formed record of an id is scored. `item_hash_differs`: an item whose `item_sha256` differs from `sets/*.json`.
@@ -103,6 +104,72 @@ Its `summary.json`, also standard ASCII JSON, holds:
 - `categories`: per category, `kind`, `items`, `correct`, `unscored` (items whose `correct` is `null`) and `states` (the count of each state). `entity_sets` adds the sums `tp`, `fp` and `fn` and `micro_f1` = 2·tp ÷ (2·tp + fp + fn); `reading_exact` adds `mean_f1`, the mean character F1. Either is `null` when its denominator is 0.
 
 `score` prints, for each run, the counts per category and the number of ids in each check.
+
+## Comparison
+
+`compare` compares the scored baseline and candidate of one pair and writes the verdict of contract §7 with the report items of §7.4, except the correct-to-incorrect and incorrect-to-correct counts for a rerun of the same assets with another call shape, which it does not give. It needs no tokenizer and uses only the standard library. The exact rules are those of contract §7 and the expected results in `tests/comparison_cases.json`.
+
+```sh
+python3 -m Tools.LLMEvaluation compare \
+  --baseline path/to/baseline-run --candidate path/to/candidate-run \
+  --scores .local/conversion/gemma4_31b/evaluation/new-scores \
+  --items .local/conversion/gemma4_31b/evaluation/new-build/primary.jsonl \
+  --output .local/conversion/gemma4_31b/evaluation/new-verdict
+```
+
+| Option | Value |
+|---|---|
+| `--baseline`, `--candidate` | Required. The run folders, each with `run.json` and `outputs.jsonl` |
+| `--scores` | Required. The output folder of the `score` call that scored both runs |
+| `--items` | Required. The `build` file that was scored |
+| `--output` | Required. A new folder |
+| `--layer1` | Optional. The layer 1 result file, referenced in the record by its name and SHA-256 |
+| `--substitute-reason` | Optional. Why `fp16` could not be run; required to use `reference` as the baseline of `w8` or `w4` and refused for the other pairs; a blank text counts as none |
+
+The roles in the two `run.json` files must be a pair of `contract.json`. `compare` stops with an error, without writing anything and without a verdict, when the checks of `validate` fail; an input file is missing or cannot be read; the items file does not list exactly the items of one frozen set, with their categories and long-context token counts; a scoring is not one row per item with the item's category and scorer kind; the SHA-256 that a scoring recorded for the items file or for `outputs.jsonl` is absent or differs from the file given, or its copy of `run.json` differs from the one given; the output folder exists; or the roles are not a pair. What the scoring recorded about the records and the items, such as an item hash that differs from the set, does not stop `compare`; it gives a reason of `incomplete`.
+
+The output folder gets `verdict.json`, the verdict record, and `summary.md`, an English summary of it. Neither holds output text or public data text.
+
+The verdict is the first of `incomplete`, `critical_failure`, `regression_found` and `no_regression_found` whose condition holds. Improvements never offset a regression, and a regression at a near tie counts as any other.
+
+The reasons of `incomplete`, in the order in which the record lists them:
+
+| Reason | Meaning |
+|---|---|
+| `hash_mismatch` | A run or a scoring was made under another contract or for another set, the two scorings differ in their items file, tokenizer or scorer, or an item hash differs from the set |
+| `run_unfinished` | A run record that has item counts shows that the run did not finish |
+| `missing_output` | An item has no record in a run |
+| `malformed_record` | A record does not have the form of contract §5.1 |
+| `not_in_set` | A record has an id that is not an item of the set |
+| `duplicate_id` | An id has more than one record in a run |
+| `input_differs` | The baseline and candidate records of an item have different input token ids |
+| `token_count_differs` | The input token count of a long-context item differs from the set |
+| `baseline_error` | A baseline record ended with a runtime error |
+| `top2_differs` | The first ids of the `top2` of a record differ from its generated tokens |
+| `unscored_item` | An item of a scored category was not scored |
+| `score_inconsistent` | The correctness of an item differs although its baseline and candidate `output_ids` are equal |
+
+The critical failures are `runtime_error` and `non_finite_logits` of a candidate record, and `empty_output`, `control_token` and `repetition` when the candidate output has the property and the baseline output of the same item does not.
+
+`verdict.json` holds:
+
+| Field | Value |
+|---|---|
+| `verdict` | The label |
+| `incomplete` | The reasons that hold, each with its ids |
+| `critical_failures` | Each critical failure, as an item id and a kind |
+| `regressions`, `improvements` | The ids of the items of scored categories that went from correct to incorrect, or from incorrect to correct |
+| `changed` | For each of those items, the first output position where the two runs differ and the baseline top-2 probability gap there |
+| `categories` | Per category, the item count, the correct counts of both runs and the regression and improvement counts |
+| `not_evaluable` | The scored categories whose baseline has fewer than `min_baseline_correct` correct items |
+| `upper_bounds` | The one-sided 95% upper bound of the regression rate for each `upper_bound` category with no regression |
+| `baseline_quality` | The baseline outputs that are empty, hold a control token or hold a repetition |
+| `code` | The code scoring counts of both summaries and the scorer |
+| `layer1` | The `--layer1` reference, or `null` |
+| `claim` | For `no_regression_found` only, the claim of contract §7.5, naming the categories that could not be evaluated; otherwise `null` |
+| `contract` | The contract version and the SHA-256 of `contract.json` |
+| `runs` | The two run records |
+| `substitute_reason` | The text of `--substitute-reason`, or `null` |
 
 ## Data
 

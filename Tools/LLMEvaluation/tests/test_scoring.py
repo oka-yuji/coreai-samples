@@ -345,6 +345,7 @@ class ScoreRunTests(unittest.TestCase):
                                             "set": "primary"})
         self.assertEqual(summary["tokenizer"], {"sha256": "f" * 64, "vocabulary": VOCABULARY})
         self.assertEqual(summary["run"], {"role": "reference", "set": "primary"})
+        self.assertEqual(summary["outputs"], {"sha256": items.sha256(run / "outputs.jsonl")})
         self.assertEqual(summary["checks"], {"missing": ["synth-long-4k-0001"], "not_in_set": ["ja-choice-9999"],
                                              "duplicate": ["ja-reading-0001"], "top2_differs": [],
                                              "item_hash_differs": sorted(item["id"] for item in self.items[1:]),
