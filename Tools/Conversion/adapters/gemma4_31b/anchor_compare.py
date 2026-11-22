@@ -21,6 +21,18 @@ FILES = {"tokens": "json", "logits": "npy"}
 REFERENCE_DTYPE = {"weights": "bfloat16", "compute": "bfloat16", "logits_saved": "float32"}
 UNKNOWN = "the stage, weights, compute or embedding scale is not a known definition"
 FIELDS = {reference.SCHEMA: ("id", "kind", "max_new_tokens"), anchor.SCHEMA: ("id", "kind"), anchor.LAYERS_SCHEMA: ("id",)}
+SHAPE = "the record does not have the shape of a BF16, anchor, half or layers record"
+FILE = {"bytes": int, "sha256": str}
+CASE = {"id": str, "kind": str, "input_tokens": int, "output_tokens": int, "saved_positions": int, "first_scoring_row": int,
+        "scoring_positions": int, "files": {"tokens": FILE, "logits": FILE}}
+SOURCE = {"reference_sha256": str}
+RECORDS = {reference.SCHEMA: {"dtype": dict, "device": str, "model": dict, "fixtures_sha256": str, "passed": bool,
+                              "cases": [{**CASE, "max_new_tokens": int}]},
+           anchor.SCHEMA: {"stage": str, "compute": dict, "device": str, "model": dict, "source": SOURCE, "passed": bool,
+                           "cases": [CASE]},
+           anchor.LAYERS_SCHEMA: {"stage": str, "device": str, "model": dict, "source": SOURCE, "passed": bool,
+                                  "cases": [{"id": str}]}}
+TOKENS = {"input_tokens": [int], "output_tokens": [int]}
 
 
 def rounded(value, dtype):
@@ -48,6 +60,25 @@ def expectations():
             "scales": {dtype: rounded(config["hidden_size"] ** 0.5, dtype) for dtype in ("bfloat16", "float32", "float16")}}
 
 
+def conforms(value, pattern):
+    if isinstance(pattern, tuple):
+        return any(conforms(value, option) for option in pattern)
+    if pattern is None:
+        return value is None
+    if isinstance(pattern, list):
+        return isinstance(value, list) and all(conforms(item, pattern[0]) for item in value)
+    if isinstance(pattern, dict) and list(pattern) == [str]:
+        return isinstance(value, dict) and all(conforms(item, pattern[str]) for item in value.values())
+    if isinstance(pattern, dict):
+        return isinstance(value, dict) and all(key in value and conforms(value[key], item) for key, item in pattern.items())
+    return type(value) is pattern
+
+
+def shaped(record):
+    return isinstance(record, dict) and type(record.get("schema")) is str and record["schema"] in RECORDS \
+        and conforms(record, RECORDS[record["schema"]])
+
+
 def definition(stage, expected, weights=None, scale=None):
     scales = expected["scales"]
     if stage == "anchor":
@@ -61,66 +92,64 @@ def definition(stage, expected, weights=None, scale=None):
 
 
 def provenance(record, expected):
-    problems = [] if record.get("model") == expected["model"] else ["the model differs from the contract"]
-    fields, cases = FIELDS.get(record.get("schema")), record.get("cases")
-    if fields is None or not isinstance(cases, list) or not all(isinstance(case, dict) for case in cases) \
-            or [{key: case.get(key) for key in fields} for case in cases] \
+    fields = FIELDS[record["schema"]]
+    problems = [] if record["model"] == expected["model"] else ["the model differs from the contract"]
+    if [{key: case[key] for key in fields} for case in record["cases"]] \
             != [{key: case[key] for key in fields} for case in expected["cases"]]:
         problems.append("the cases differ from the fixtures")
-    if record.get("schema") == reference.SCHEMA and record.get("fixtures_sha256") != expected["fixtures_sha256"]:
+    if record["schema"] == reference.SCHEMA and record["fixtures_sha256"] != expected["fixtures_sha256"]:
         problems.append("the fixtures differ from the fixture file")
     return problems
 
 
 def identity(record, expected):
-    if record.get("schema") == reference.SCHEMA:
-        found = definition("reference", expected) if record.get("dtype") == REFERENCE_DTYPE else None
+    if record["schema"] == reference.SCHEMA:
+        found = definition("reference", expected) if record["dtype"] == REFERENCE_DTYPE else None
     else:
         known = [definition("anchor", expected, weights, scale) for weights in ("bfloat16", "float16")
                  for scale in expected["scales"]] + [definition("half", expected)]
-        found = next((item for item in known if record.get("schema") == anchor.SCHEMA and record.get("stage") == item["stage"]
-                      and record.get("compute") == {key: value for key, value in item.items() if key != "stage"}), None)
-    known = found is not None and record.get("device") == expected["device"]
+        found = next((item for item in known if record["schema"] == anchor.SCHEMA and record["stage"] == item["stage"]
+                      and record["compute"] == {key: value for key, value in item.items() if key != "stage"}), None)
+    known = found is not None and record["device"] == expected["device"]
     return found, ([] if known else [UNKNOWN]) + provenance(record, expected)
 
 
 def named_reference(record, other, other_sha256):
-    if record.get("schema") == reference.SCHEMA:
+    if record["schema"] == reference.SCHEMA:
         return []
-    found = record.get("source")
-    wanted = {"reference_sha256": other_sha256} if other.get("schema") == reference.SCHEMA else other.get("source")
-    valid = isinstance(found, dict) and list(found) == ["reference_sha256"] and isinstance(found["reference_sha256"], str) \
-        and HEX[64].fullmatch(found["reference_sha256"]) is not None
+    found = record["source"]
+    wanted = {"reference_sha256": other_sha256} if other["schema"] == reference.SCHEMA else other["source"]
+    valid = list(found) == ["reference_sha256"] and HEX[64].fullmatch(found["reference_sha256"]) is not None
     return [] if valid and found == wanted else ["the forced inputs do not come from the same BF16 reference record"]
 
 
 def load_case(folder, case, vocabulary):
     import numpy as np
 
-    name = case.get("id")
-    if not isinstance(name, str) or not reference.CASE_ID.fullmatch(name):
+    name = case["id"]
+    if not reference.CASE_ID.fullmatch(name):
         return None, None, ["unexpected case ID"]
     data, problems = {}, []
     for kind, suffix in FILES.items():
-        entry = (case.get("files") or {}).get(kind) or {}
+        entry = case["files"][kind]
         try:
             data[kind] = (Path(folder) / "cases" / f"{name}.{kind}.{suffix}").read_bytes()
         except OSError:
             data[kind] = None
-        if data[kind] is None or len(data[kind]) != entry.get("bytes") \
-                or hashlib.sha256(data[kind]).hexdigest() != entry.get("sha256"):
+        if data[kind] is None or len(data[kind]) != entry["bytes"] or hashlib.sha256(data[kind]).hexdigest() != entry["sha256"]:
             problems.append(f"{name}: the {kind} file differs from the size and SHA-256 in its record")
     if problems:
         return None, None, problems
     try:
         tokens = parse(data["tokens"])
         logits = np.load(io.BytesIO(data["logits"]), allow_pickle=False)
-        inputs, outputs = len(tokens["input_tokens"]), len(tokens["output_tokens"])
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, EOFError):
         return None, None, [f"{name}: unreadable case files"]
-    saved = case.get("saved_positions")
-    if (case.get("input_tokens"), case.get("output_tokens"), saved, case.get("first_scoring_row"),
-            case.get("scoring_positions")) != (inputs, outputs, inputs + outputs, inputs - 1, outputs):
+    if not conforms(tokens, TOKENS):
+        return None, None, [f"{name}: unreadable case files"]
+    inputs, outputs, saved = len(tokens["input_tokens"]), len(tokens["output_tokens"]), case["saved_positions"]
+    if (case["input_tokens"], case["output_tokens"], saved, case["first_scoring_row"],
+            case["scoring_positions"]) != (inputs, outputs, inputs + outputs, inputs - 1, outputs):
         problems.append(f"{name}: the token counts or positions differ from its record")
     if logits.dtype != np.float32:
         problems.append(f"{name}: logits dtype {logits.dtype}")
@@ -205,7 +234,7 @@ def groups(compared, window):
 def compare_case(first, second, vocabulary):
     import numpy as np
 
-    name = first[1].get("id")
+    name = first[1]["id"]
     (left, a, left_problems), (right, b, right_problems) = (load_case(folder, case, vocabulary)
                                                             for folder, case in (first, second))
     result = {"id": name, "problems": left_problems + right_problems, "non_finite": {"baseline": 0, "candidate": 0},
@@ -234,15 +263,19 @@ def compare(baseline, candidate, expected=None):
     expected = expected or expectations()
     paths = [Path(folder) / "reference.json" for folder in (baseline, candidate)]
     (first, first_sha256, _), (second, second_sha256, _) = (read(path) for path in paths)
-    identities, problems = {}, []
-    for label, record in (("baseline", first), ("candidate", second)):
-        identities[label], issues = identity(record, expected)
-        problems += [f"{label}: {issue}" for issue in issues]
-        if record.get("passed") is not True:
-            problems.append(f"{label}: the record did not pass")
-    for label, record, other, other_sha256 in (("baseline", first, second, second_sha256),
-                                               ("candidate", second, first, first_sha256)):
-        problems += [f"{label}: {issue}" for issue in named_reference(record, other, other_sha256)]
+    sides = {"baseline": first, "candidate": second}
+    valid = {label: shaped(record) for label, record in sides.items()}
+    identities, problems = dict.fromkeys(sides), [f"{label}: {SHAPE}" for label in sides if not valid[label]]
+    for label, record in sides.items():
+        if valid[label]:
+            identities[label], issues = identity(record, expected)
+            problems += [f"{label}: {issue}" for issue in issues]
+            if record["passed"] is not True:
+                problems.append(f"{label}: the record did not pass")
+    if all(valid.values()):
+        for label, record, other, other_sha256 in (("baseline", first, second, second_sha256),
+                                                   ("candidate", second, first, first_sha256)):
+            problems += [f"{label}: {issue}" for issue in named_reference(record, other, other_sha256)]
     if first_sha256 == second_sha256:
         problems.append("both artifacts are the same run")
     if paths[0].samefile(paths[1]):

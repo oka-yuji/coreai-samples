@@ -194,7 +194,9 @@ Compare two of these records (or one of them and the `reference` record) with th
 ~~~
 
 It reads each `reference.json`, token file and logits file once and uses the same bytes for the SHA-256 and the
-values. Each record is checked on its own against values computed from `model.json` and `fixtures.json`, not only
+values. A record must first have the shape of a BF16, `anchor`, `half` or `layers` record (the type of every entry that
+the comparison reads, the cases and their files included); a record of another shape gets that one problem and no
+further check. Each record is checked on its own against values computed from `model.json` and `fixtures.json`, not only
 against the other record: the model entries (ID, revision, the SHA-256 of `model.json`, the shard SHA-256 and the files
 verified before loading) must equal the contract, the cases must be the twelve cases of `fixtures.json` in order with
 their IDs and kinds (the BF16 reference also with their `max_new_tokens`, and with the SHA-256 of `fixtures.json` in
@@ -230,7 +232,8 @@ the checks of the comparison and matches the definition of its step in `recipe.j
 and `--embed-scale` of its command); the `layers` record has the contract model and the fixture case IDs in order;
 every record of the six steps names, as `source`, exactly the SHA-256 of the report's `reference.json`; no two steps
 hold the same record, no comparison is given twice and every comparison lists the SHA-256 of two records of that
-report:
+report. It also stops when the report, a manifest, a record or a comparison does not have the shape of the entries
+that it reads:
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.anchor_summary --report <report.json> \

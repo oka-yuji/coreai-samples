@@ -7,7 +7,7 @@ import sys
 from ... import summary as pipeline
 from ...storage import PipelineError
 from .anchor import LAYERS_SCHEMA, read
-from .anchor_compare import RECIPE, SCHEMA as NUMERICS_SCHEMA, definition, expectations, identity, provenance
+from .anchor_compare import RECIPE, SCHEMA as NUMERICS_SCHEMA, conforms, definition, expectations, identity, provenance, shaped
 from .summary import HEX, count, flag, matched, optional, peak, word
 
 SUMMARY_SCHEMA = "gemma4-31b-anchor-summary/1"
@@ -17,6 +17,39 @@ MODULE = "Tools.Conversion.adapters.gemma4_31b.anchor"
 METRICS = ("max_probability_error_max", "max_probability_error_mean", "max_abs_logit_difference")
 SIGNED = ("kl_mean", "kl_p99", "kl_max")
 COUNTS = ("rows", "top1_matches", "near_tie_mismatches", "other_mismatches")
+NUMBER = (int, float)
+ANY = (str, int, float, bool, None, dict, list)
+REPORT = {"version": int, "status": str, "verification": str, "run_id": str,
+          "stages": [{"id": str, "role": str, "status": str}]}
+STAGE = {"status": str, "origin": str, "artifacts": str}
+MANIFEST = {"version": int, "status": str, "run_id": str, "stage": str, "outputs": {"artifacts": {"tree": {str: dict}}}}
+ROW = {str: (int, float, None)}
+COMMON = {"checks": {str: bool}, "timing": {str: NUMBER},
+          "loading": {"class": str, "attn_implementation": str, "parameters": int, "parameter_dtypes": [str],
+                      "parameter_devices": [str], "info": {str: list}, "embed_scale": NUMBER, "after_load": ROW},
+          "resources": {"cases": [ROW], "final": ROW, "swap": {str: (int, None)},
+                        "monitor": {"samples": int, "aborts": int, "failure": ANY, "unreadable_samples": int,
+                                    "peak": {"rss_bytes": int}, "lowest": {"free_percent": (int, None)}}}}
+LOGITS = {"cases": [{"non_finite": int, "seconds": NUMBER}]}
+RANGES = {"ranges": [{"point": str, "layer": (int, None), "max_abs": (int, float, None), "case": (str, None),
+                      "above_float16_max": int, "above_half_float16_max": int}]}
+CAST = {"cast": {**{key: int for key in ("tensors", "elements", "changed", "underflow", "non_finite", "above_float16_max")},
+                 "max_abs_error": NUMBER}}
+LAYERS = {"layers": int, "layer_types": [str], "limit": NUMBER, "attention_rows": int,
+          "cases": [{"positions": int, "max_abs_difference": (int, float, None), "non_finite": {str: int}}]}
+METRIC = {**{key: int for key in COUNTS}, **{key: NUMBER for key in METRICS + SIGNED}}
+COMPARISON = {"schema": str, "records_sha256": [str], "passed": bool, "problems": list, "vocabulary": int, "window": int,
+              "near_tie_margin": NUMBER,
+              "cases": [{"id": str, "problems": list, "non_finite": {str: int}, "all": (METRIC, None), "scoring": (METRIC, None),
+                         "mismatches": [{"row": int, "scoring": bool, "near_tie": bool, "probability_gap": NUMBER}]}],
+              "groups": [{"kind": str, "band": str, "scope": str, "cases": [str], **METRIC}]}
+WINDOW = {"first_row": int, "last_row": int}
+
+
+def checked(value, *patterns):
+    if not all(conforms(value, pattern) for pattern in patterns):
+        raise PipelineError("A local record does not have the expected shape")
+    return value
 
 
 def signed(value):
@@ -37,30 +70,31 @@ def definitions(expected):
 
 
 def records(report):
-    stages = {stage.get("id"): stage for stage in report.get("stages", [])}
+    stages = {stage["id"]: stage for stage in checked(report, REPORT)["stages"]}
     expected = expectations()
     wanted, loaded = definitions(expected), {}
     for name, file in (("reference", "reference.json"), *STAGES.items()):
-        stage = stages.get(name) or {}
-        if not stage.get("artifacts") or stage.get("status") not in ("executed", "reused") or (
-                name != "reference" and (stage["status"] != "executed" or stage.get("origin") != report.get("run_id"))):
+        stage = stages.get(name)
+        if not conforms(stage, STAGE) or stage["status"] not in ("executed", "reused") or (
+                name != "reference" and (stage["status"] != "executed" or stage["origin"] != report["run_id"])):
             raise PipelineError("Each diagnostic stage must have been executed by the given run")
         folder = Path(stage["artifacts"])
         record, digest, size = read(folder / file)
-        manifest = read(folder.parent / "manifest.json")[0]
-        if not isinstance(manifest, dict) or (manifest.get("version"), manifest.get("status"), manifest.get("run_id"),
-                                              manifest.get("stage")) != (1, "completed", stage["origin"], name) \
-                or manifest["outputs"]["artifacts"]["tree"][file] != {"bytes": size, "sha256": digest}:
+        manifest = checked(read(folder.parent / "manifest.json")[0], MANIFEST)
+        if (manifest["version"], manifest["status"], manifest["run_id"],
+                manifest["stage"]) != (1, "completed", stage["origin"], name) \
+                or manifest["outputs"]["artifacts"]["tree"].get(file) != {"bytes": size, "sha256": digest}:
             raise PipelineError(f"The {name} record is not the output that the run of its stage recorded")
-        if name != "reference" and record.get("source") != {"reference_sha256": loaded["reference"]["sha256"]}:
-            raise PipelineError(f"The {name} record was not computed from the reference record of the report")
+        if not shaped(record):
+            raise PipelineError(f"The {name} record does not have the shape of a known record")
         if name == "layers":
-            matches = record.get("schema") == LAYERS_SCHEMA and record.get("stage") == "layers" \
-                and not provenance(record, expected)
+            matches = record["schema"] == LAYERS_SCHEMA and record["stage"] == "layers" and not provenance(record, expected)
         else:
             matches = identity(record, expected) == (wanted[name], [])
         if not matches:
             raise PipelineError(f"The {name} record does not match its definition, the contract or the fixtures")
+        if name != "reference" and record["source"] != {"reference_sha256": loaded["reference"]["sha256"]}:
+            raise PipelineError(f"The {name} record was not computed from the reference record of the report")
         loaded[name] = {"stage": stage, "record": record, "sha256": digest}
     return loaded
 
@@ -89,7 +123,7 @@ def loading(record):
 
 
 def common(entry, name):
-    record = entry["record"]
+    record = checked(entry["record"], COMMON)
     return {"stage": word(name), "record_sha256": matched(entry["sha256"], HEX[64]), "passed": flag(record["passed"]),
             "checks": {word(key): flag(value) for key, value in record["checks"].items()},
             "source_reference_sha256": matched(record["source"]["reference_sha256"], HEX[64]),
@@ -100,6 +134,8 @@ def common(entry, name):
 def logits_record(entry, name):
     record = entry["record"]
     compute = record["compute"]
+    checked(record, LOGITS, *([RANGES] if record["stage"] == "anchor" else []),
+            *([CAST] if record["stage"] == "anchor" and compute["weights"] == "float16" else []))
     result = {**common(entry, name),
               "compute": {"weights": word(compute["weights"]), "compute": word(compute["compute"]),
                           "embed_scale": signed(compute["embed_scale"]),
@@ -124,7 +160,7 @@ def logits_record(entry, name):
 
 
 def layers_record(entry):
-    record = entry["record"]
+    record = checked(entry["record"], LAYERS)
     return {**common(entry, "layers"), "layers": count(record["layers"]),
             "layer_types": [word(value) for value in record["layer_types"]], "limit": pipeline.number(record["limit"]),
             "attention_rows": count(record["attention_rows"]),
@@ -142,11 +178,12 @@ def metrics(values):
 
 
 def comparison(data, names):
-    if data.get("schema") != NUMERICS_SCHEMA:
-        raise PipelineError(f"Expected a {NUMERICS_SCHEMA} comparison")
-    hashes = data.get("records_sha256")
-    if not isinstance(hashes, list) or len(hashes) != 2:
-        raise PipelineError("Expected the SHA-256 of two records")
+    hashes = checked(data, COMPARISON)["records_sha256"]
+    if data["schema"] != NUMERICS_SCHEMA or len(hashes) != 2 or not all(digest in names for digest in hashes):
+        raise PipelineError(f"Expected a {NUMERICS_SCHEMA} comparison of two records of the report")
+    for group in data["groups"]:
+        if group["scope"] == "window":
+            checked(group, WINDOW)
     return {"baseline": names[hashes[0]], "candidate": names[hashes[1]], "passed": flag(data["passed"]),
             "problems": len(data["problems"]), "vocabulary": count(data["vocabulary"]), "window": count(data["window"]),
             "near_tie_margin": pipeline.number(data["near_tie_margin"]),

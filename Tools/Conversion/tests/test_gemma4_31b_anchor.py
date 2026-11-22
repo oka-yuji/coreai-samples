@@ -324,7 +324,7 @@ class CompareTests(unittest.TestCase):
     def test_records_that_agree_with_each_other_but_not_with_the_contract_never_pass(self):
         clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
         anchor_record = ANCHOR_RECORD
-        changes = {"no model": (lambda data: data.pop("model"), ["case"], "the model differs from the contract"),
+        changes = {"no model": (lambda data: data.pop("model"), ["case"], anchor_compare.SHAPE),
                    "another revision": (lambda data: data["model"].update(revision="0" * 40), ["case"],
                                         "the model differs from the contract"),
                    "a case missing in both": (lambda data: None, ["case", "other"], "the cases differ from the fixtures"),
@@ -337,11 +337,12 @@ class CompareTests(unittest.TestCase):
                                                           "the cases differ from the fixtures"),
                    "other fixtures in both": (lambda data: data.update(fixtures_sha256="0" * 64), ["case"],
                                               "the fixtures differ from the fixture file"),
-                   "no dtype in a reference record": (lambda data: data.pop("dtype"), ["case"], anchor_compare.UNKNOWN),
+                   "no dtype in a reference record": (lambda data: data.pop("dtype"), ["case"], anchor_compare.SHAPE),
+                   "another dtype in a reference record": (lambda data: data.update(dtype={}), ["case"], anchor_compare.UNKNOWN),
                    "another device": (lambda data: data.update(device="cpu"), ["case"], anchor_compare.UNKNOWN),
                    "an unknown embedding scale": (lambda data: data.update(
                        anchor_record, compute={**anchor_record["compute"], "embed_scale": 73.4}), ["case"], anchor_compare.UNKNOWN),
-                   "no compute": (lambda data: data.update(schema=anchor.SCHEMA, stage="anchor"), ["case"], anchor_compare.UNKNOWN),
+                   "no compute": (lambda data: data.update(schema=anchor.SCHEMA, stage="anchor"), ["case"], anchor_compare.SHAPE),
                    "a stage inside compute": (lambda data: data.update(
                        anchor_record, stage="other", compute={**anchor_record["compute"], "stage": "anchor"}), ["case"],
                        anchor_compare.UNKNOWN),
@@ -377,14 +378,47 @@ class CompareTests(unittest.TestCase):
                     result = anchor_compare.compare(a, b, expected([("case", "chat")]))
                     self.assertEqual([problem for problem in result["problems"] if problem.endswith(message)],
                                      [] if source.parent == b else [f"baseline: {message}"])
-            for label, sources in {"other BF16 records": ("c" * 64, "d" * 64), "no BF16 record": (None, None)}.items():
+            for label, sources in {"other BF16 records": ("c" * 64, "d" * 64), "a name that is not a SHA-256": ("x", "x")}.items():
                 for side, value in zip((c, d), sources):
-                    edit(side, lambda data: data.update(ANCHOR_RECORD, source=None if value is None else {"reference_sha256": value}))
+                    edit(side, lambda data: data.update(ANCHOR_RECORD, source={"reference_sha256": value}))
                 with self.subTest(label=label):
                     result = anchor_compare.compare(c, d, expected([("case", "chat")]))
                     self.assertFalse(result["passed"])
                     self.assertEqual([problem for problem in result["problems"] if problem.endswith(message)],
                                      [f"baseline: {message}", f"candidate: {message}"])
+
+    def test_a_record_of_another_shape_gives_a_failed_result_with_the_reason(self):
+        clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
+        variants = {"a list instead of a record": lambda data: [],
+                    "the schema as a list": lambda data: {**data, "schema": [reference.SCHEMA]},
+                    "the schema as an object": lambda data: {**data, "schema": {"name": reference.SCHEMA}},
+                    "the schema as a number": lambda data: {**data, "schema": 1},
+                    "the model as a list": lambda data: {**data, "model": []},
+                    "the cases as an object": lambda data: {**data, "cases": {}},
+                    "a case as a list": lambda data: {**data, "cases": [[]]},
+                    "the files of a case as a list": lambda data: {**data, "cases": [{**data["cases"][0], "files": []}]},
+                    "a token count as text": lambda data: {**data, "cases": [{**data["cases"][0], "input_tokens": "2"}]},
+                    "passed as text": lambda data: {**data, "passed": "yes"},
+                    "the compute of an anchor record as a list": lambda data: {**data, **ANCHOR_RECORD, "compute": []},
+                    "the source of an anchor record as text": lambda data: {**data, **ANCHOR_RECORD, "source": "text"}}
+        for label, change in variants.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))
+                (b / "reference.json").write_text(json.dumps(change(json.loads((b / "reference.json").read_text()))))
+                result = anchor_compare.compare(a, b, expected([("case", "chat")]))
+                self.assertFalse(result["passed"])
+                self.assertIn(f"candidate: {anchor_compare.SHAPE}", result["problems"])
+                self.assertEqual((result["identities"]["candidate"], result["cases"], result["groups"]), (None, [], []))
+                json.dumps(result, allow_nan=False)
+        with tempfile.TemporaryDirectory() as folder:
+            a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))
+            edit(b, lambda data: data.update(schema=[reference.SCHEMA]))
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", ["compare", "--baseline", str(a), "--candidate", str(b)]), \
+                    contextlib.redirect_stdout(output):
+                code = anchor_compare.main()
+        self.assertEqual(code, 1)
+        self.assertIn(f"candidate: {anchor_compare.SHAPE}", json.loads(output.getvalue())["problems"])
 
     def test_inputs_that_are_the_same_file_never_pass(self):
         clean = [("case", "chat", [2, 3], [4, 1], rows(4))]
@@ -585,9 +619,12 @@ class SupervisedTests(unittest.TestCase):
             contract.assert_not_called()
 
 
+FILES = {"tokens": {"bytes": 1, "sha256": "b" * 64}, "logits": {"bytes": 1, "sha256": "b" * 64}}
+COUNTS = {"input_tokens": 2, "output_tokens": 1, "saved_positions": 3, "first_scoring_row": 1, "scoring_positions": 1}
+
+
 def stage_record(name, digest, **changes):
-    case = {"kind": "chat", "input_tokens": 2, "output_tokens": 1, "saved_positions": 3, "first_scoring_row": 1,
-            "scoring_positions": 1, "non_finite": 0, "seconds": 0.5, "files": {"logits": {"sha256": "b" * 64}}}
+    case = {"kind": "chat", **COUNTS, "non_finite": 0, "seconds": 0.5, "files": copy.deepcopy(FILES)}
     record = {"schema": anchor.LAYERS_SCHEMA if name == "layers" else anchor.SCHEMA, "passed": True,
               "checks": {"finite": True}, "source": {"reference_sha256": digest}, "device": "mps",
               "model": copy.deepcopy(EXPECTED["model"]),
@@ -632,7 +669,7 @@ def write_summary_run(folder, run="run", reused=(), changes=None):
 
     digest = place("reference", "reference.json", {
         "schema": reference.SCHEMA, "passed": True, "dtype": anchor_compare.REFERENCE_DTYPE, "device": "mps",
-        "model": EXPECTED["model"], "cases": copy.deepcopy(EXPECTED["cases"]),
+        "model": EXPECTED["model"], "cases": [{**case, **COUNTS, "files": copy.deepcopy(FILES)} for case in EXPECTED["cases"]],
         "fixtures_sha256": EXPECTED["fixtures_sha256"]}, "earlier")
     for name, file in anchor_summary.STAGES.items():
         place(name, file, stage_record(name, digest, **(changes or {}).get(name, {})), "earlier" if name in reused else run)
@@ -661,10 +698,11 @@ class SummaryTests(unittest.TestCase):
             path.write_text(json.dumps(data))
             paths.append(path)
         argv = ["summary", "--report", str(report), *(item for path in paths for item in ("--comparison", str(path)))]
-        output = io.StringIO()
-        with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), \
-                contextlib.redirect_stderr(io.StringIO()):
-            return anchor_summary.main(), output.getvalue()
+        output, errors = io.StringIO(), io.StringIO()
+        with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+            code = anchor_summary.main()
+        self.errors = errors.getvalue()
+        return code, output.getvalue()
 
     def hashes(self, report, *names):
         data = json.loads(report.read_text())
@@ -752,12 +790,57 @@ class SummaryTests(unittest.TestCase):
         for name, change in (("anchor", lambda record: record.pop("ranges")), ("anchor_w16", lambda record: record.update(cast=None))):
             record = stage_record(name, "a" * 64)
             change(record)
-            with self.subTest(name=name), self.assertRaises((KeyError, TypeError)):
+            with self.subTest(name=name), self.assertRaises(PipelineError):
                 anchor_summary.logits_record({"record": record, "sha256": "c" * 64}, name)
         data = comparison_record(["a" * 64, "b" * 64])
         data["groups"][0].update(scope="window")
-        with self.assertRaises(KeyError):
+        with self.assertRaises(PipelineError):
             anchor_summary.comparison(data, {"a" * 64: "anchor", "b" * 64: "reference"})
+
+    def test_inputs_of_another_shape_stop_with_a_pipeline_error(self):
+        def report_change(folder, change):
+            path = folder / "report.json"
+            path.write_text(json.dumps(change(json.loads(path.read_text()))))
+
+        def stage(folder, name, **changes):
+            report_change(folder, lambda data: {**data, "stages": [{**item, **changes} if item["id"] == name else item
+                                                                   for item in data["stages"]]})
+
+        def manifest(folder, name, change):
+            path = folder / name / "manifest.json"
+            path.write_text(json.dumps(change(json.loads(path.read_text()))))
+
+        files = {"a report that is a list": lambda folder: (folder / "report.json").write_text("[]"),
+                 "stages as an object": lambda folder: report_change(folder, lambda data: {**data, "stages": {}}),
+                 "a stage that is text": lambda folder: report_change(folder, lambda data: {**data, "stages": ["anchor"]}),
+                 "artifacts as a number": lambda folder: stage(folder, "anchor", artifacts=1),
+                 "an origin as a list": lambda folder: stage(folder, "reference", origin=["earlier"]),
+                 "a manifest that is a list": lambda folder: manifest(folder, "anchor", lambda data: []),
+                 "manifest outputs as a list": lambda folder: manifest(folder, "anchor", lambda data: {**data, "outputs": []}),
+                 "a manifest entry as text": lambda folder: manifest(folder, "anchor", lambda data: {
+                     **data, "outputs": {"artifacts": {"tree": {"reference.json": "x"}}}})}
+        records = {"a record schema as a list": {"anchor": {"schema": [anchor.SCHEMA]}},
+                   "compute as a list": {"anchor": {"compute": []}}, "cases as an object": {"half": {"cases": {}}},
+                   "the model as a list": {"layers": {"model": []}}, "the source as text": {"anchor": {"source": "text"}},
+                   "checks as a list": {"anchor": {"checks": []}}, "timing as a list": {"half": {"timing": [1.0]}},
+                   "layer types as text": {"layers": {"layer_types": "sliding"}},
+                   "ranges as an object": {"anchor": {"ranges": {}}}, "a cast as a list": {"anchor_w16": {"cast": []}}}
+        comparisons = {"a comparison that is a list": lambda hashes: [],
+                       "comparison cases as an object": lambda hashes: {**comparison_record(hashes), "cases": {}},
+                       "a group as text": lambda hashes: {**comparison_record(hashes), "groups": ["chat"]},
+                       "a comparison of three records": lambda hashes: comparison_record([*hashes, hashes[0]]),
+                       "a comparison of a record outside the report": lambda hashes: comparison_record(["a" * 64, hashes[1]])}
+        variants = {**{label: (change, None, None) for label, change in files.items()},
+                    **{label: (None, changes, None) for label, changes in records.items()},
+                    **{label: (None, None, change) for label, change in comparisons.items()}}
+        for label, (change, changes, data) in variants.items():
+            with tempfile.TemporaryDirectory() as folder, self.subTest(label=label):
+                report = write_summary_run(folder, changes=changes)
+                hashes = self.hashes(report, "anchor", "reference")
+                if change:
+                    change(report.parent)
+                code, output = self.summarize(report, [data(hashes) if data else comparison_record(hashes)])
+                self.assertEqual((code, output, self.errors), (1, "", "Cannot summarize local records (PipelineError).\n"))
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         for change in (lambda r: r["cases"][0].update(kind="free text"), lambda r: r["compute"].update(weights="a/b"),
