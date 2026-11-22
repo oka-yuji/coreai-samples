@@ -2,6 +2,7 @@ import argparse
 import importlib.metadata
 import itertools
 import json
+import os
 from pathlib import Path
 import random
 import re
@@ -194,7 +195,7 @@ def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):
 
 
 def context(contract_path, snapshot, layers, output):
-    if output.exists() or output.is_symlink():
+    if os.path.lexists(output):
         raise FileExistsError(f"The reference must be written to a new folder: {output}")
     contract = load_contract(contract_path)
     config = contract["config"]

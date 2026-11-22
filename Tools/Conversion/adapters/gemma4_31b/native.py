@@ -242,7 +242,7 @@ def measured(entry, config, arrays, facts, verifier, output):
 
 
 def compare(export_folder, reference_folder, verifier, output, contract_path=CONTRACT):
-    if output.exists() or output.is_symlink():
+    if os.path.lexists(output):
         raise FileExistsError(f"The comparison must be written to a new folder: {output}")
     contract = load_contract(contract_path)
     output.mkdir(parents=True)

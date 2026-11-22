@@ -448,6 +448,22 @@ class CompareTests(unittest.TestCase):
             self.assertEqual((os.readlink(output) if output.is_symlink() else None,
                               output.read_bytes() if output.is_file() else None), before)
 
+    @unittest.skipIf(os.geteuid() == 0, "root searches a folder without permission")
+    def test_a_link_into_a_folder_without_search_permission_is_refused_before_anything_is_read(self):
+        closed, output, broken = self.folder / "closed", self.folder / "closed-link", self.folder / "broken.json"
+        closed.mkdir()
+        output.symlink_to(closed / "inner")
+        broken.write_text("{")
+        closed.chmod(0)
+        self.addCleanup(closed.chmod, 0o700)
+        with mock.patch.object(native, "read_once") as read, \
+                mock.patch.object(native, "load_contract", wraps=native.load_contract) as load, \
+                self.assertRaises(FileExistsError):
+            native.compare(self.export, self.reference, self.verifier, output, broken)
+        read.assert_not_called()
+        load.assert_not_called()
+        self.assertEqual(os.readlink(output), str(closed / "inner"))
+
     def test_the_command_writes_the_result_and_exits_with_one_unless_it_passes(self):
         result = {"passed": False, "problems": [], "conditions": [{"name": "tail", "passed": False, "max_abs_logit": None}]}
         arguments = ["native", "--export", "e", "--reference", "r", "--verifier", "v", "--output", "o"]

@@ -258,6 +258,24 @@ class StartTests(unittest.TestCase):
             self.assertEqual((os.readlink(output) if output.is_symlink() else None,
                               output.read_bytes() if output.is_file() else None), before)
 
+    @unittest.skipIf(os.geteuid() == 0, "root searches a folder without permission")
+    def test_a_link_into_a_folder_without_search_permission_is_refused_before_the_contract_is_read(self):
+        closed, output, broken = self.folder / "closed", self.folder / "closed-link", self.folder / "broken.json"
+        closed.mkdir()
+        output.symlink_to(closed / "inner")
+        broken.write_text("{")
+        closed.chmod(0)
+        self.addCleanup(closed.chmod, 0o700)
+        argv = arguments(self.folder, output)
+        argv[argv.index("--model") + 1] = str(broken)
+        with mock.patch.object(export, "load_contract", wraps=export.load_contract) as load, \
+                self.assertRaises(FileExistsError) as raised:
+            self.main(argv)
+        load.assert_not_called()
+        for call in raised.exception.calls:
+            call.assert_not_called()
+        self.assertEqual(os.readlink(output), str(closed / "inner"))
+
     def test_first_layers_that_do_not_end_with_a_full_attention_layer_are_refused_before_the_output_is_made(self):
         for layers in ("0", "5", "7", "61", "-6"):
             output = self.folder / f"layers-{layers}"

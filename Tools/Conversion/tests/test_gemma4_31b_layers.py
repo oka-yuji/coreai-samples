@@ -369,6 +369,23 @@ class ConditionTests(unittest.TestCase):
                 load.assert_not_called()
                 self.assertEqual(seen(), before)
 
+    @unittest.skipIf(os.geteuid() == 0, "root searches a folder without permission")
+    def test_a_context_run_refuses_a_link_into_a_folder_without_search_permission_before_it_reads_the_contract(self):
+        with tempfile.TemporaryDirectory() as folder:
+            closed, output, broken = Path(folder) / "closed", Path(folder) / "closed-link", Path(folder) / "broken.json"
+            closed.mkdir()
+            output.symlink_to(closed / "inner")
+            broken.write_text("{")
+            closed.chmod(0)
+            try:
+                with mock.patch.object(layers, "load_contract", wraps=layers.load_contract) as load, \
+                        self.assertRaises(FileExistsError):
+                    layers.context(broken, Path(folder) / "snapshot", 6, output)
+                load.assert_not_called()
+            finally:
+                closed.chmod(0o700)
+            self.assertEqual(os.readlink(output), str(closed / "inner"))
+
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
 class ContextReferenceTests(unittest.TestCase):

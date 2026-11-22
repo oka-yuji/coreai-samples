@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import os
 from pathlib import Path
 import re
 import resource
@@ -233,7 +234,7 @@ def main():
     parser.add_argument("--functions", choices=tuple(FUNCTIONS), required=True)
     parser.add_argument("--context", type=int, required=True)
     args = parser.parse_args()
-    if args.output.exists() or args.output.is_symlink():
+    if os.path.lexists(args.output):
         raise FileExistsError(f"The export must be written to a new folder: {args.output}")
     contract = load_contract(args.model)
     kinds = check_layers(contract["config"], args.layers)
