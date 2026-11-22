@@ -36,7 +36,8 @@ def export_record():
             "model": MODEL, "layers": 6, "layer_types": KINDS, "functions": ["main"], "context": 16896, "precision": "float16",
             "compression_config": None, "upstream_revision": "1" * 40, "versions": {"coreai-core": "1.0.0b3"},
             "weights": {"tensors": 85, "elements": 9, "elements_by_dtype": {"torch.float16": 9}, "quantized_layouts": 0},
-            "asset": {"functions": {"main": function}, "storage_types": {"Float16": 13, "Int32": 2}},
+            "asset": {"functions": {"main": function}, "storage_types": {"Float16": 13, "Int32": 2},
+                      "float16_minus_weights": -12},
             "tokenizer": {"tokenizer.json": "2" * 64},
             "metadata": {"name": "gemma4_31b_l6_fp16_main", "language": {"vocab_size": 262144, "max_context_length": 16896},
                          "source": {"hf_model_id": "google/gemma-4-31B-it", "revision": "a" * 40}, "compression": None},
@@ -118,6 +119,7 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual([entry["verifier"]["prefix_function"] for entry in asset["comparison"]["conditions"]],
                          [None, "prefill"])
         self.assertEqual(result["reference"]["inputs"]["context"]["rows"], 26)
+        self.assertEqual(asset["export"]["asset"]["float16_minus_weights"], -12)
         self.assertEqual(asset["pipeline"]["stages"][1]["role"], "export")
 
     def test_free_text_in_a_shareable_field_is_rejected(self):

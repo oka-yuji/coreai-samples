@@ -7,6 +7,7 @@ import sys
 from ... import summary as pipeline
 from ...storage import PipelineError
 from .anchor import read
+from .anchor_summary import signed
 from .export import SCHEMA as EXPORT_SCHEMA
 from .layers import CONTEXT_SCHEMA
 from .native import SCHEMA as COMPARISON_SCHEMA
@@ -84,7 +85,8 @@ def exported(record):
                         "elements_by_dtype": numbers(record["weights"]["elements_by_dtype"], True),
                         "quantized_layouts": count(record["weights"]["quantized_layouts"])},
             "asset": {"functions": layout(record["asset"]["functions"]),
-                      "storage_types": numbers(record["asset"]["storage_types"], True)},
+                      "storage_types": numbers(record["asset"]["storage_types"], True),
+                      "float16_minus_weights": signed(record["asset"]["float16_minus_weights"])},
             "tokenizer": {word(name): matched(value, HEX[64]) for name, value in record["tokenizer"].items()},
             "metadata": {"name": word(metadata["name"]), "vocab_size": count(metadata["language"]["vocab_size"]),
                          "max_context_length": count(metadata["language"]["max_context_length"]),

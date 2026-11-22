@@ -59,6 +59,10 @@ def described(text):
     return {"dtype": match[1].lower(), "shape": [None if size == "?" else int(size) for size in match[2].split(TIMES)]}
 
 
+def float32_elements(config):
+    return config["global_head_dim"] // 2 + config["head_dim"] // 2 + 2
+
+
 def shown(value):
     return json.dumps(value, sort_keys=True)
 
@@ -69,12 +73,16 @@ def check_asset(record, contract, kinds, functions, context):
         problems.append("the export was given a compression config")
     if record["weights"]["quantized_layouts"]:
         problems.append(f"the PyTorch model holds {record['weights']['quantized_layouts']} quantized weights")
-    storage, elements = record["asset"]["storage_types"], record["weights"]["elements"]
+    if set(record["weights"]["elements_by_dtype"]) != {"torch.float16"}:
+        problems.append(f"the PyTorch model holds {shown(record['weights']['elements_by_dtype'])} elements; every "
+                        "parameter and buffer must be float16")
+    storage, expected = record["asset"]["storage_types"], float32_elements(contract["config"])
     other = sorted(set(storage) - {"Float16", *CONSTANT_TYPES})
     if other:
         problems.append(f"the asset stores {other}; only Float16 weights and {list(CONSTANT_TYPES)} constants may remain")
-    if storage.get("Float16", 0) < elements:
-        problems.append(f"Float16 holds {storage.get('Float16', 0)} elements, fewer than the {elements} of the weights")
+    if storage.get("Float32", 0) != expected:
+        problems.append(f"Float32 holds {storage.get('Float32', 0)} elements, not the {expected} of the two RoPE tables "
+                        "and the two constants")
     found, expected = record["asset"]["functions"], expected_functions(contract["config"], kinds, functions)
     if set(found) != set(expected):
         problems.append(f"the asset has the functions {sorted(found)}, not {sorted(expected)}")
@@ -177,6 +185,7 @@ def run(args, contract, kinds, functions, disk):
     for item in TOKENIZER_FILES:
         shutil.copyfile(args.snapshot / item, bundle / "tokenizer" / item)
     asset = inspect_asset(bundle / f"{name}.aimodel")
+    asset["float16_minus_weights"] = asset["storage_types"].get("Float16", 0) - loaded["elements"]
     marks.append(("inspect_s", time.perf_counter()))
     files, contents = bundle_files(bundle)
     marks.append(("bundle_hash_s", time.perf_counter()))

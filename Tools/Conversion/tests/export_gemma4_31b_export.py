@@ -11,7 +11,7 @@ from safetensors import safe_open
 from Tools.Conversion.adapters.gemma4_31b import export
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import read_json
-from Tools.Conversion.tests.test_gemma4_31b_layers import SHARD, write_snapshot
+from Tools.Conversion.tests.test_gemma4_31b_layers import SHARD, TEXT, write_snapshot
 
 LAYER = re.compile(r"model\.language_model\.layers\.(\d+)\.")
 
@@ -43,7 +43,9 @@ class ExportTests(unittest.TestCase):
                     self.assertEqual(record["weights"], {"tensors": record["weights"]["tensors"], "elements": elements,
                                                          "elements_by_dtype": {"torch.float16": elements},
                                                          "quantized_layouts": 0})
-                    self.assertGreaterEqual(record["asset"]["storage_types"]["Float16"], elements)
+                    storage = record["asset"]["storage_types"]
+                    self.assertEqual(storage["Float32"], TEXT["global_head_dim"] // 2 + TEXT["head_dim"] // 2 + 2)
+                    self.assertEqual(record["asset"]["float16_minus_weights"], storage["Float16"] - elements)
                     bundle = output / export.BUNDLE
                     files = {path.relative_to(bundle).as_posix(): {"bytes": path.stat().st_size, "sha256": sha256(path)}
                              for path in sorted(bundle.rglob("*")) if path.is_file()}

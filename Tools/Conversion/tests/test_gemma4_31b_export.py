@@ -39,7 +39,8 @@ LAYOUT = {"main": function({"logits": {"dtype": "float16", "shape": [1, None, 26
 
 
 def inspected(functions=BOTH):
-    return {"compression_config": None, "weights": {"elements": ELEMENTS, "quantized_layouts": 0},
+    return {"compression_config": None,
+            "weights": {"elements": ELEMENTS, "elements_by_dtype": {"torch.float16": ELEMENTS}, "quantized_layouts": 0},
             "asset": {"functions": {name: copy.deepcopy(LAYOUT[name]) for name in functions},
                       "storage_types": dict(STORAGE)},
             "tokenizer": dict(CONTRACT["tokenizer"]["files"]),
@@ -111,6 +112,29 @@ class AssetTests(unittest.TestCase):
             with self.subTest(case=label):
                 self.assertTrue(problems(storage(types)))
         self.assertEqual(problems(storage({**STORAGE, "Float16": ELEMENTS})), [])
+
+    def test_float32_must_hold_exactly_the_two_rope_tables_and_the_two_constants(self):
+        measured = {(256, 512): 386, (16, 32): 26, (24, 32): 30, (16, 64): 42, (8, 48): 30}
+        self.assertEqual({dims: export.float32_elements({"head_dim": dims[0], "global_head_dim": dims[1]})
+                          for dims in measured}, measured)
+        cases = {"a one-element buffer left in float32": {**STORAGE, "Float32": 387},
+                 "one element less": {**STORAGE, "Float32": 385},
+                 "no float32": {name: count for name, count in STORAGE.items() if name != "Float32"}}
+        for label, types in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(problems(storage(types)))
+
+    def test_a_parameter_or_buffer_of_the_pytorch_model_that_is_not_float16_fails(self):
+        cases = {"a float32 buffer such as layer_scalar": {"torch.float16": ELEMENTS - 1, "torch.float32": 1},
+                 "bfloat16 weights": {"torch.bfloat16": ELEMENTS}, "no tensor": {}}
+        for label, dtypes in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(problems(lambda record: record["weights"].update(elements_by_dtype=dtypes)))
+
+    def test_float16_tensors_that_the_export_folded_pass_when_float32_holds_the_expected_elements(self):
+        for shortfall in (12, 8_703):
+            with self.subTest(shortfall=shortfall):
+                self.assertEqual(problems(storage({**STORAGE, "Float16": ELEMENTS - shortfall})), [])
 
     def test_an_asset_whose_states_do_not_have_exactly_one_dynamic_dimension_fails(self):
         cases = {"two dynamic dimensions": state("keyCache", [1, 1, 4, None, None]),
