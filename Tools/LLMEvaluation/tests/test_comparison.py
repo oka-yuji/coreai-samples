@@ -71,8 +71,8 @@ def score_row(document, side, item_id):
 class ComparisonTableTests(unittest.TestCase):
     def test_the_table_belongs_to_this_contract(self):
         self.assertEqual(TABLE["contract"], CONTRACT["version"])
-        self.assertEqual(len(TABLE["cases"]), 56)
-        self.assertEqual(len({case["name"] for case in TABLE["cases"]}), 56)
+        self.assertEqual(len(TABLE["cases"]), 57)
+        self.assertEqual(len({case["name"] for case in TABLE["cases"]}), 57)
         self.assertEqual(list(comparison.REASONS), TABLE["reasons"])
 
     def test_every_case_gives_the_record_in_the_table(self):

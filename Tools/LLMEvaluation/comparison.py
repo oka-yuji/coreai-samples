@@ -113,7 +113,7 @@ def compare(document, layer2):
         if before and after and before["output_ids"] == after["output_ids"]:
             inconsistent.append(name)
         changed.append({"id": name, "position": position, "baseline_gap": gap(before, position)})
-    found["score_inconsistent"] = inconsistent
+    found["score_inconsistent"] = sorted(inconsistent)
 
     incomplete = [{"reason": reason, "ids": found[reason]} for reason in REASONS if found[reason] or held.get(reason)]
     present = {"incomplete": incomplete, "critical_failure": failures, "regression_found": regressions,

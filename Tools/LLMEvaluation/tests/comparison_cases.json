@@ -556,6 +556,27 @@
    ]
   },
   {
+   "name": "same_outputs_scored_differently_in_two_items",
+   "about": "The ids of score_inconsistent are sorted, not in item order.",
+   "input": [
+    ["set", ["candidate", "scores", {"id": "ja-choice-0001"}, "correct"], false],
+    ["set", ["candidate", "scores", {"id": "extract-ja-0001"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "score_inconsistent", "ids": ["extract-ja-0001", "ja-choice-0001"]}]],
+    ["set", ["regressions"], ["extract-ja-0001", "ja-choice-0001"]],
+    ["set", ["changed"], [{"id": "extract-ja-0001", "position": null, "baseline_gap": null}, {"id": "ja-choice-0001", "position": null, "baseline_gap": null}]],
+    ["set", ["categories", "extract-ja", "candidate_correct"], 1],
+    ["set", ["categories", "extract-ja", "regressions"], 1],
+    ["set", ["categories", "ja-choice", "candidate_correct"], 9],
+    ["set", ["categories", "ja-choice", "regressions"], 1],
+    ["delete", ["upper_bounds", "extract-ja"]],
+    ["delete", ["upper_bounds", "ja-choice"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
    "name": "same_output_ids_stopped_differently",
    "about": "Equal output_ids with different correctness cannot be trusted, even when one run stopped on a stop token and the other at its limit.",
    "input": [
