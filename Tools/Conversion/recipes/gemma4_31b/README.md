@@ -215,6 +215,9 @@ changed; files of a run with other conditions; files of another run with the sam
 than `items`. They do not detect `outputs.jsonl` and `progress.json` put back together to an earlier point of the same
 session, which cannot be told from an interruption at that point, nor deliberate changes to all three files.
 
+The published record of the primary-set run is
+[docs/validation/gemma4-31b/baseline-20261122.md](../../../../docs/validation/gemma4-31b/baseline-20261122.md).
+
 ## Terms
 
 Gemma 4 31B is distributed under Apache-2.0. The weights stay outside Git.
