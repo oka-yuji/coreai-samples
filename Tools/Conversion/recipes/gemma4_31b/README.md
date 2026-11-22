@@ -4,16 +4,18 @@ This recipe pins [google/gemma-4-31B-it](https://huggingface.co/google/gemma-4-3
 `842da3794eaa0b77d5f08bae87a17459d91ff475` and records the outputs of the original Transformers
 implementation with the distributed BF16 weights, BF16 compute and MPS for twelve self-written diagnostic
 inputs. Later steps (an FP32 reference, the Core AI comparison and quality checks) read these outputs. It
-does not convert the model, and the diagnostic inputs are not a quality evaluation set.
+does not convert the model, and the diagnostic inputs are not a quality evaluation set. It also defines the
+converter environment and a model class for a macOS export with dynamic shapes, with a tool that compares the
+first layers of that class with the original implementation in FP32 ([Converter environment and model
+class](#converter-environment-and-model-class)). Nothing is exported to Core AI yet.
 
 - `model.json`: the contract. It pins the size and SHA-256 of all twelve files of the revision, the main
   text configuration values (60 layers as five sliding-window layers followed by one full-attention layer,
   hidden size 5376, MLP width 21504, vocabulary 262144, window 1024, 16 and 4 key/value heads, head
   dimensions 256 and 512, shared keys and values in the full-attention layers, final logit soft cap 30,
   tied embeddings, BOS 2 and stop tokens 1, 106 and 50), the distributed tokenizer files, the reference
-  precision and the upstream converter revision `c8e00c01800ba6ad324707007f7af358efc980a4` (recorded only;
-  no converter checkout or environment is created). A snapshot that differs fails; the contract is not
-  adjusted to the files.
+  precision and the upstream converter revision `c8e00c01800ba6ad324707007f7af358efc980a4` of the converter
+  environment. A snapshot that differs fails; the contract is not adjusted to the files.
 - `fixtures.json`: the twelve diagnostic cases (Japanese and English conversations, code, JSON extraction,
   a long Japanese input built from numbered paragraphs, a one-word turn and a raw continuation). All text
   is self-written.
@@ -40,9 +42,10 @@ python3 -m Tools.Conversion.local run --recipe gemma4_31b --refresh
 ~~~
 
 Setup checks the integrity record against the contract, then under the shared machine lock creates
-`.local/conversion/gemma4_31b/.venv` from this folder's lock, `.local/conversion/gemma4_31b/setup.json` and
-`.local/conversion/gemma4_31b.paths.json`. `--snapshot` selects another folder. The run uses
-`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and a Hugging Face home under `.local/conversion/gemma4_31b/hf-cache`.
+`.local/conversion/gemma4_31b/.venv` from this folder's lock, the converter environment (below),
+`.local/conversion/gemma4_31b/setup.json` and `.local/conversion/gemma4_31b.paths.json`. `--snapshot` selects
+another folder. The run uses `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and a Hugging Face home under
+`.local/conversion/gemma4_31b/hf-cache`.
 
 ## Steps
 
@@ -132,6 +135,74 @@ given with it (the report's artifacts folder of that step holds the file), no re
 twice, and the comparison lists the SHA-256 of the two `reference.json` files, in the same order (the printed
 record keeps them). It lives beside the steps because every `Tools/Conversion/*.py` file is part of each step's
 cache key. The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md).
+
+## Converter environment and model class
+
+### Converter environment
+
+`local setup --recipe gemma4_31b` also prepares `.local/conversion/upstream-gemma4-31b/coreai-models`: a checkout of
+Apple's public converter at `upstream_revision` of `model.json`, with the frozen lock of that checkout installed in
+its `.venv`. An existing checkout is used only when it is a clean checkout of that revision; otherwise setup stops
+without changing it. This converter environment is separate from the reference environment of the steps above.
+
+### Model class
+
+`adapters/gemma4_31b/model.py` defines `Gemma4ForCausalLM`, a subclass of the converter's `BaseForCausalLM`. It
+imports the converter, so it runs only in the converter environment.
+
+- `main` takes `input_ids` [1, n] and `position_ids` [1, P + n] (the positions of the P cached tokens followed by
+  those of the n new ones) and returns `logits` [1, n, vocabulary]; `prefill` takes the same inputs and returns
+  nothing.
+- The states are `keyCache` and `valueCache` [full-attention layers, 1, 4, ?, 512] and `slidingKeyCache` and
+  `slidingValueCache` [sliding-window layers, 1, 16, ?, 256] (the `forward` arguments `k_cache`, `v_cache`,
+  `sliding_k_cache` and `sliding_v_cache`); the sequence is their only dynamic dimension.
+- Sliding-window layers cut the cached keys and values to the last positions that the window can reach and mask
+  them with the values of `position_ids`. No position or mask comes from an `arange` of a dynamic length, and the
+  composite SDPA's `window_size` is not used.
+- `from_hf_memory_efficient(..., num_layers=N, hf_config_attr="text_config",
+  hf_state_dict_prefix="model.language_model.")` reads the first N layers; their states follow the pattern of five
+  sliding-window layers and one full-attention layer.
+- A configuration that the class does not cover stops with `ValueError` before any weight is read (`text_config` in
+  `model.py`).
+
+### FP32 logits of the first layers
+
+`adapters/gemma4_31b/layers.py` writes the FP32 logits of the first N layers of either implementation for two fixed
+inputs, `short` and `long`, and compares two such runs:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
+  --implementation original --layers 6 --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/original
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers \
+  run --implementation class --layers 6 --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/class
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers compare \
+  --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
+~~~
+
+`run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
+layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and refuses any other before it creates
+the folder or reads a weight. It writes `short.npy`, `long.npy` and, last, `record.json` into a new folder.
+`compare` passes only for a run of the original implementation and a run of the model class on the same inputs
+whose differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for
+`long` a largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position
+with another `argmax`.
+
+### Tests
+
+The tests of the model class are in `Tools/Conversion/tests/export_gemma4_31b_model.py`. The default pattern of
+`unittest discover` (`test*.py`) does not collect them; run them in the converter environment, where
+`test_gemma4_31b_layers.py` also runs, and run every `test_gemma4_31b_*.py` in the reference environment:
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
+  -p 'export_*.py' -v
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
+  -p 'test_gemma4_31b_layers.py' -v
+.local/conversion/gemma4_31b/.venv/bin/python -m unittest discover -s Tools/Conversion/tests \
+  -p 'test_gemma4_31b_*.py' -v
+~~~
 
 ## Terms
 
