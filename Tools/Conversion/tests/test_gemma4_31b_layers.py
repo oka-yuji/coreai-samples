@@ -1,3 +1,5 @@
+import io
+import json
 import os
 from pathlib import Path
 import shutil
@@ -120,20 +122,6 @@ def add(name, row, column, value):
 
 def state(path):
     return (os.readlink(path) if path.is_symlink() else None), (path.read_bytes() if path.exists() else None)
-
-
-class FullDisk:
-    def __init__(self, path, mode):
-        self.handle = open(path, mode)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *details):
-        self.handle.close()
-
-    def write(self, data):
-        raise OSError("disk full")
 
 
 class InputTests(unittest.TestCase):
@@ -275,52 +263,35 @@ class CompareTests(unittest.TestCase):
             with self.subTest(layers=value), self.assertRaisesRegex(ValueError, "must end with a full-attention layer"):
                 layers.check_layers(full_first, value)
 
-    def main(self, output, comparison):
-        arguments = ["layers", "compare", "--original", "a", "--model-class", "b", "--output", str(output)]
-        with mock.patch("sys.argv", arguments), mock.patch.object(layers, "compare", comparison):
-            return layers.main()
-
-    def test_an_existing_output_or_symbolic_link_is_refused_before_anything_is_read_and_stays_as_it_was(self):
+    def test_a_run_refuses_an_existing_file_or_symbolic_link_as_its_output_before_reading_and_leaves_it(self):
         target = self.folder / "target"
         target.write_text("target")
         outputs = {"file": lambda path: path.write_text("earlier"),
                    "dangling link": lambda path: path.symlink_to(self.folder / "missing"),
                    "link": lambda path: path.symlink_to(target)}
-        for command in ("run", "compare"):
-            for label, make in outputs.items():
-                output = self.folder / f"{command}-{label.replace(' ', '-')}"
-                make(output)
-                before, comparison = state(output), mock.Mock(return_value={"passed": True, "inputs": {}})
-                with self.subTest(command=command, output=label):
-                    with mock.patch.object(layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
-                        if command == "run":
-                            layers.run("original", self.contract, self.folder / "snapshot", 6, output)
-                        else:
-                            self.main(output, comparison)
-                    verify.assert_not_called()
-                    comparison.assert_not_called()
-                    self.assertEqual(state(output), before)
+        for label, make in outputs.items():
+            output = self.folder / label.replace(" ", "-")
+            make(output)
+            before = state(output)
+            with self.subTest(output=label):
+                with mock.patch.object(layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
+                    layers.run("original", self.contract, self.folder / "snapshot", 6, output)
+                verify.assert_not_called()
+                self.assertEqual(state(output), before)
 
-    def test_the_comparison_is_written_only_into_a_new_file_that_it_creates_in_the_format_of_write_json(self):
-        result = self.compare(self.pair("written"))
-        output = self.folder / "comparison.json"
-
-        def another_run(*arguments):
-            output.write_text("another run")
-            return result
-
-        with self.assertRaises(FileExistsError):
-            self.main(output, mock.Mock(side_effect=another_run))
-        self.assertEqual(output.read_text(), "another run")
-        expected, written = self.folder / "expected.json", self.folder / "new/comparison.json"
-        write_json(expected, result)
-        self.assertEqual(self.main(written, mock.Mock(return_value=result)), 0)
-        self.assertEqual(written.read_bytes(), expected.read_bytes())
-        self.assertEqual(read_json(written), result)
-        failed = self.folder / "failed.json"
-        with mock.patch.object(layers, "open", FullDisk, create=True), self.assertRaisesRegex(OSError, "disk full"):
-            self.main(failed, mock.Mock(return_value=result))
-        self.assertFalse(failed.exists() or failed.is_symlink())
+    def test_compare_writes_only_its_result_as_json_to_standard_output_and_exits_with_one_unless_it_passes(self):
+        for label, model_class in {"passing": None, "failing": add("short", 3, 4, 0.002)}.items():
+            run = self.pair(label, model_class=model_class)
+            result = self.compare(run)
+            arguments = ["layers", "compare", "--original", str(run / "original"), "--model-class", str(run / "class")]
+            with self.subTest(run=label):
+                with mock.patch("sys.argv", arguments), mock.patch.object(layers, "compare", return_value=result), \
+                        mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
+                    code = layers.main()
+                self.assertEqual(result["passed"], label == "passing")
+                self.assertEqual(json.loads(printed.getvalue()), result)
+                self.assertEqual(printed.getvalue(), json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + "\n")
+                self.assertEqual(code, 0 if result["passed"] else 1)
 
     def test_runs_that_read_the_same_file_never_pass_and_copies_are_not_stopped_by_that_check(self):
         for label, link in {"symbolic-link": os.symlink, "hard-link": os.link}.items():

@@ -2,7 +2,6 @@ import argparse
 import importlib.metadata
 import itertools
 import json
-import os
 from pathlib import Path
 import random
 import re
@@ -259,7 +258,7 @@ def main():
     for name in ("model", "snapshot", "output"):
         runner.add_argument(f"--{name}", type=Path, required=True)
     checker = commands.add_parser("compare")
-    for name in ("original", "model-class", "output"):
+    for name in ("original", "model-class"):
         checker.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "run":
@@ -267,22 +266,8 @@ def main():
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
               record["memory"], flush=True)
         return 0
-    if args.output.exists() or args.output.is_symlink():
-        raise FileExistsError("The comparison must be written to a new file")
     result = compare(args.original, args.model_class)
-    data = json.dumps(result, indent=2, sort_keys=True, allow_nan=False).encode() + b"\n"
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    handle = open(args.output, "xb")
-    try:
-        with handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-    except BaseException:
-        args.output.unlink()
-        raise
-    print(f"passed={result['passed']} problems={len(result['problems'])}",
-          {name: {key: entry.get(key) for key in entry["criteria"]} for name, entry in result["inputs"].items()})
+    print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False), flush=True)
     return 0 if result["passed"] else 1
 
 

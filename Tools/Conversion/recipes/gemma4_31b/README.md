@@ -178,7 +178,7 @@ inputs, `short` and `long`, and compares two such runs:
   run --implementation class --layers 6 --model Tools/Conversion/recipes/gemma4_31b/model.json \
   --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/class
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers compare \
-  --original <new folder>/original --model-class <new folder>/class --output <new folder>/comparison.json
+  --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
 ~~~
 
 `run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
