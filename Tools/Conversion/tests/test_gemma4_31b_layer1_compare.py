@@ -342,6 +342,27 @@ class CorrespondenceTests(Comparison):
         self.forced_sha256 = summary["forced"]["sha256"]
         return copied
 
+    def test_a_forced_summary_whose_counts_differ_from_its_records_fails(self):
+        def bands(summary):
+            summary["bands"]["1-512"] -= 1
+            summary["bands"]["513-2048"] += 1
+
+        cases = (("bands", bands), ("categories", lambda summary: summary["categories"].update({"free-ja": 7})),
+                 ("count", lambda summary: summary["forced"].update(count=summary["forced"]["count"] - 1)),
+                 ("a float count", lambda summary: summary["forced"].update(count=float(summary["forced"]["count"]))),
+                 ("set", lambda summary: summary.update(set="reserve")))
+        for name, change in cases:
+            with self.subTest(name):
+                self.fresh()
+                copied = self.folder / "forced"
+                shutil.copytree(self.forced, copied)
+                summary = read_json(copied / "forced.json")
+                change(summary)
+                write_json(copied / "forced.json", summary)
+                result = self.compared(forced=copied)
+                self.failed(result, "forced.json is not the summary of forced.jsonl for the layer 1 items of this contract")
+                self.assertEqual(len(result["problems"]), 1)
+
     def test_a_forced_record_moved_to_another_band_with_its_hashes_rebuilt_fails_its_item(self):
         def moved(records):
             records[0]["input_tokens"] = 3000

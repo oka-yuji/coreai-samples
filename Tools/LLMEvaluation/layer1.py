@@ -53,6 +53,17 @@ def chosen(bundle):
             for entry in sorted(group, key=lambda entry: entry["id"])[:counts.get(name, rule["per_category"])]]
 
 
+def tallies(bundle, rows, content):
+    rule, categories = bundle["contract"]["layer1"], {}
+    for entry in chosen(bundle):
+        categories[entry["category"]] = categories.get(entry["category"], 0) + 1
+    return {"forced": {"count": len(rows), "sha256": hashlib.sha256(content).hexdigest()},
+            "bands": {label(low, high): sum(type(row.get("input_tokens")) is int
+                                            and band(rule["bands"], row["input_tokens"]) == label(low, high) for row in rows)
+                      for low, high in rule["bands"]},
+            "categories": categories}
+
+
 def same(value, expected):
     return canonical(value) == canonical(expected)
 
@@ -168,12 +179,11 @@ def write(bundle, inputs, run, output):
         raise ValueError("The output records fail the record checks: "
                          + "; ".join(f"{key} {value[:5]}" for key, value in found.items()))
     rule, produced, selection = bundle["contract"]["layer1"], {value["id"]: value for value in good}, chosen(bundle)
-    rows, problems, categories = [], [], {}
+    rows, problems = [], []
     for entry in selection:
         made, wrong = forced_record(entry, known[entry["id"]], produced[entry["id"]], rule)
         problems += [f"{entry['id']}: {text}" for text in wrong]
         rows += [made] if made else []
-        categories[entry["category"]] = categories.get(entry["category"], 0) + 1
     problems += [f"{row['id']}: the written record is inconsistent: {text}" for row in rows
                  for text in inconsistencies(row, rule)]
     if problems:
@@ -181,10 +191,7 @@ def write(bundle, inputs, run, output):
     content = "".join(canonical(row) + "\n" for row in rows).encode("utf-8")
     result = {"contract": identity, "set": SET, "inputs": files,
               "run": {"id": stored["id"], "outputs_sha256": hashlib.sha256(outputs).hexdigest()},
-              "forced": {"count": len(rows), "sha256": hashlib.sha256(content).hexdigest()},
-              "bands": {label(low, high): sum(band(rule["bands"], row["input_tokens"]) == label(low, high) for row in rows)
-                        for low, high in rule["bands"]},
-              "categories": categories}
+              **tallies(bundle, rows, content)}
     output.mkdir(parents=True)
     try:
         (output / "forced.jsonl").write_bytes(content)

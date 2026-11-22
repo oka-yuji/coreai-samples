@@ -8,7 +8,7 @@ import sys
 
 from Tools.LLMEvaluation import checks, items
 from Tools.LLMEvaluation.items import FILES
-from Tools.LLMEvaluation.layer1 import SET, band, chosen, inconsistencies, label
+from Tools.LLMEvaluation.layer1 import SET, band, chosen, inconsistencies, label, same, tallies
 from ...storage import write_json
 from ..verify_llm import compare as judged, probabilities
 from .anchor import parse, read
@@ -38,14 +38,10 @@ def validated(record, table):
     return {key: record[key] for key in table if key not in malformed}, malformed
 
 
-def forced_input(folder, expected, identity, rule, problems):
-    data = (folder / "forced.jsonl").read_bytes()
+def forced_input(folder, bundle, expected, identity, problems):
+    rule, data = bundle["contract"]["layer1"], (folder / "forced.jsonl").read_bytes()
     summary, summary_sha256, _ = read(folder / "forced.json")
-    summary, digest = summary if isinstance(summary, dict) else {}, hashlib.sha256(data).hexdigest()
-    counted, malformed = validated(summary.get("forced"), {"count": "count", "sha256": "text"})
-    if malformed or summary.get("contract") != identity or summary.get("set") != SET \
-            or counted != {"count": len(expected), "sha256": digest}:
-        problems.append("forced.json is not the summary of forced.jsonl for the layer 1 items of this contract")
+    summary = summary if isinstance(summary, dict) else {}
     records, lines = {}, data.split(b"\n")
     for number, line in enumerate(lines[:-1] if lines[-1] == b"" else lines, 1):
         try:
@@ -62,7 +58,11 @@ def forced_input(folder, expected, identity, rule, problems):
             problems.append(f"forced.jsonl holds {name}, which is not a layer 1 item")
         else:
             records[name] = record, inconsistencies(record, rule)
-    return {"sha256": digest, "summary_sha256": summary_sha256}, records
+    if summary.get("contract") != identity or summary.get("set") != SET or not all(
+            same(summary.get(key), value) for key, value in tallies(bundle, [record for record, _ in records.values()],
+                                                                    data).items()):
+        problems.append("forced.json is not the summary of forced.jsonl for the layer 1 items of this contract")
+    return {"sha256": hashlib.sha256(data).hexdigest(), "summary_sha256": summary_sha256}, records
 
 
 def side(name, folder, digest, roles, expected, problems):
@@ -210,7 +210,7 @@ def measured(bundle, vocabulary, forced, folders):
     contract, problems = bundle["contract"], []
     rule, expected = contract["layer1"], [entry["id"] for entry in chosen(bundle)]
     identity = {"version": contract["version"], "sha256": bundle["hashes"][FILES["contract"]]}
-    hashes, records = forced_input(forced, expected, identity, rule, problems)
+    hashes, records = forced_input(forced, bundle, expected, identity, problems)
     sides = {name: side(name, folders[name], hashes["sha256"], contract["roles"], expected, problems) for name in SIDES}
     if all(sides[name]["sha256"] for name in SIDES) and (
             os.path.samefile(folders["baseline"], folders["candidate"])
