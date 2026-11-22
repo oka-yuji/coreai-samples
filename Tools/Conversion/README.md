@@ -269,3 +269,11 @@ assembles the bundle and compares the Core AI output with the quantized referenc
 evaluate the quality of the model. Set it up with `--recipe jev27b`. Its plan and run pass the
 `coreai-verify` executable with `--set verify=...`, which `local plan|run` does not do; use the
 commands in its README.
+
+The [Gemma 4 31B recipe](recipes/gemma4_31b/README.md) pins `google/gemma-4-31B-it` and records the
+outputs of the original Transformers implementation with BF16 weights, BF16 compute and MPS for twelve
+diagnostic inputs: the greedy tokens and the logits of every position of the forced input (the input followed
+by the greedy output; the scored positions are part of them), for the FP32 reference and the
+Core AI comparison that follow. Its `prepare` step hashes every pinned file again, and its heavy `reference`
+step stops when swap grows by more than 2,000,000,000 B. Set it up with `--recipe gemma4_31b`; `local plan|run`
+use its bindings. It does not convert the model or evaluate its quality.
