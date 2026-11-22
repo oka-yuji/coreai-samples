@@ -557,3 +557,172 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 r
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   > docs/validation/gemma4-31b/fp16-first-layers-20261122.json
 ~~~
+
+## 8-bit export of the first six layers
+
+This section copies the numbers of the 8-bit export of the first six layers (five sliding-window layers and one
+full-attention layer) of the
+[`recipe-8bit.json`](../../../Tools/Conversion/recipes/gemma4_31b/README.md#8-bit-export-of-the-first-layers) recipe to a
+dynamic-shape Core AI bundle for macOS with the functions `main` and `prefill`, of the comparison of the logits that the
+own engine reads from it (`coreai-verify logits`) with an FP32 reference restored from the same quantized weights, and
+of the effect of the quantization: how far that reference is from the FP32 reference with float16-rounded weights
+(#681). Six layers do not make a usable model: the record shows that the quantized export, the asset and the reads of
+the engine are right for these layers, not the quality of the model or of the quantization.
+[`8bit-first-layers-20261122.json`](8bit-first-layers-20261122.json) holds the states, numbers, hashes, versions and
+fixed names of the records, from `fp16_summary`, which checked that the pipeline report is the run whose stage manifest
+recorded its `export.json`, that the comparison was made from that `export.json` and the restored reference record, and
+that the effect was computed from that reference record. The hashes of the quantized tensors are those of the tensors
+that the export passed to the converter (`quantized.safetensors`), because the asset summary does not list the tensors
+of the asset; the asset itself is checked through its storage counts and through the logits of the engine. The summary
+has no local paths, commands or environment variables; the records, the bundle, the quantized tensors and the logits
+stay in the local work directory.
+
+### Conditions
+
+- The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power, battery
+  100 % at the start of every job). Every model job held the shared machine lock, and none started while another model
+  process ran. Another session took the lock between the jobs; the times below are records, not measurements.
+- Commit 6abb7325 with no local changes for every run; the tools last changed in 40e8b546, and 6abb7325 changed only
+  the recipe README. Converter `apple/coreai-models` `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core
+  1.0.0b3, coreai-models 0.1.0, coreai-opt 0.4.0, coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors
+  0.7.0. Reference: transformers 5.16.1, torch 2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` was built in
+  release from the Swift sources of the same commit.
+- Runs (2026-11-23 JST, the pipeline run ID in UTC): the export `20261122T202427-3f57ef7e` from 05:24:25 with the
+  `prepare` step of the recipe (the `export` step ran, not reused); the restored reference (`layers.py context --weights
+  8bit`) from 05:30:40; the reference with float16-rounded weights (`--weights float16`) from 05:35:39; the comparison
+  from 05:40:41, and `effect` after it.
+- Inputs: `short` (26 tokens) and `context` (16,896 tokens), the fixed-seed token IDs of the FP16 record above.
+
+### Export
+
+| | `main` and `prefill` |
+|---|---:|
+| Pipeline | 195.5 s |
+| `prepare` step | 25.6 s |
+| `export` step | 73.6 s |
+| Export tool | 71.02 s |
+| Hashing the files to load | 21.96 s |
+| Loading the model class in FP16 | 2.51 s |
+| `quantize_for_export` | 2.54 s |
+| Writing `quantized.safetensors` and hashing it | 3.10 s |
+| `export_macos_model` | 33.16 s |
+| Saving the asset | 4.89 s |
+| Hashing the bundle | 2.26 s |
+| Peak resident memory | 20,348,649,472 B |
+| Kernel lifetime footprint peak | 11,580,817,800 B |
+| Swap increase (limit 2,000,000,000 B) | 0 B |
+| Free disk required at the start | 94,791,187,754 B |
+| Lowest free disk during the run (limit 64,424,509,440 B) | 379,880,468,480 B |
+| `main.mlirb` | 6,113,705,831 B |
+| `main.hash`, the SHA-256 of `main.mlirb` | `1f95f44f26e30ab608191ae73217a4924c515729aeaa6970a4561ac245a99374` |
+| Bundle | 6,145,897,927 B |
+| `quantized.safetensors` | 3,294,771,912 B |
+| Its SHA-256 | `5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833` |
+
+The asset passed the inspection. The export was given the fixed config. It quantized 41 weights, the seven Linear
+weights of each sliding-window layer and the six of the full-attention layer, each as uint8 data with float16 scales and
+float16 minimums in blocks of [1, 32], and no other tensor, and the converter logged no `Skipping quantization.`. The
+PyTorch model then held 1,592,466,182 float16 and 2,928,672,768 uint8 elements in 208 parameters and buffers, and no
+other type; `quantized.safetensors` holds the 123 data, scale and minimum tensors. The asset stores UInt8 2,930,049,024
+elements (1,376,256 more than the uint8 elements of the PyTorch model, the difference of the six-layer 8-bit asset of
+#665) and Float16 1,592,466,186 (4 more), both within the 11,010,048 elements of the smallest quantized weight, and the
+constants Float32 386, Int32 148, UInt32 29 and UInt64 1 (those of the FP16 assets), and no other type. `main.mlirb` is
+0.705 times the FP16 one with `main` and `prefill`. The functions, inputs, outputs and states are those of that FP16
+asset, the three tokenizer files are the distributed files, and `metadata.json` has `compression` `8bit`, vocabulary
+262,144, context limit 16,896, `source.hf_model_id` `google/gemma-4-31B-it` and `source.revision`
+`842da3794eaa0b77d5f08bae87a17459d91ff475`. The free disk check counts seven bytes per weight element
+(30,366,678,314 B) plus 60 GiB.
+
+### FP32 references
+
+| | Restored from the quantized weights | float16-rounded weights |
+|---|---:|---:|
+| Total | 71.1 s | 70.7 s |
+| Hashing the files to load | 21.87 s | 23.53 s |
+| Loading the original implementation (and restoring the 41 weights) | 4.21 s | 2.59 s |
+| `context` in 17 calls of up to 1,024 tokens | 44.2 s | 43.7 s |
+| Peak resident memory | 55,494,541,312 B | 55,566,401,536 B |
+| Kernel lifetime footprint peak | 55,463,075,584 B | 55,536,426,800 B |
+
+Before it made its folder, the restored reference checked `quantized.safetensors` against the size and SHA-256 in the
+`export.json` of the export; it then checked the 123 tensors against their SHA-256 there and restored the 41 weights
+(that check of the file is not in the times above). Both references kept 26 rows of `short` and 1,428 rows of
+`context`, all finite.
+
+### Comparison
+
+The asset passed all twelve conditions against the restored reference: no non-finite value in any written or reference
+row, no constant written row, every largest absolute logit difference below 2.0, and no top-1 change outside a near tie.
+The FP16 asset with `main` and `prefill` against its reference of the section above is in parentheses.
+
+| Condition | Rows | Largest absolute logit difference (FP16) | Top-1 changes in a near tie / outside | Rows of the known call shape: count, largest difference (FP16) | Seconds |
+|---|---:|---:|---:|---:|---:|
+| `short-c1` | 26 | 0.516 (0.458) | 25 / 0 | – | 5.7 |
+| `short-c26` | 26 | 0.521 (0.480) | 25 / 0 | – | 1.5 |
+| `window-c1` | 1,300 | 0.926 (0.989) | 1,266 / 0 | – | 27.4 |
+| `window-c2` | 1,300 | 0.984 (0.929) | 1,266 / 0 | – | 13.9 |
+| `window-c4` | 1,300 | 0.953 (0.855) | 1,266 / 0 | – | 7.4 |
+| `window-c8` | 1,300 | 0.902 (0.861) | 1,250 / 0 | 16, 4.379 (4.266) | 5.7 |
+| `prefix-c1` | 300 | 0.832 (0.836) | 294 / 0 | – | 7.0 |
+| `capacity-2048` | 16 | 0.583 (0.437) | 15 / 0 | – | 2.2 |
+| `capacity-4096` | 16 | 0.612 (0.535) | 14 / 0 | – | 3.4 |
+| `capacity-8192` | 16 | 0.761 (0.459) | 16 / 0 | – | 6.0 |
+| `capacity-16384` | 16 | 0.553 (0.567) | 15 / 0 | – | 11.4 |
+| `tail` | 64 | 0.913 (0.466) | 61 / 0 | – | 12.5 |
+
+- The rows of the known call shape are rows 96 to 111 of `window-c8`; they are left out of the judgment.
+- The tokens before `--start` went through the `prefill` function (1, 1, 1, 2, 4 and 5 calls for `prefix-c1`, the four
+  `capacity` conditions and `tail`), and no `coreai-verify` process stopped.
+- The first condition specialized the asset (3.5 s); the others used the specialization cache, which took 8,733,004 KiB
+  (`resources.bin` 8,932,172,280 B, the size that #665 found for the same form) and was removed after the comparison.
+- The differences, 0.516 to 0.984 outside the known rows, are of the size of those of the FP16 asset against its own
+  reference (0.437 to 0.989).
+
+### Effect of the quantization
+
+`effect` compared the restored reference with the reference of float16-rounded weights on the rows of each condition.
+These differences are the effect of the quantization itself and are recorded, not judged.
+
+| Condition | Rows | Largest absolute logit difference | Top-1 changes in a near tie of the rounded reference / outside |
+|---|---:|---:|---:|
+| `short-c1`, `short-c26` | 26 | 2.800 | 0 / 0 |
+| `window-c1`, `window-c2`, `window-c4`, `window-c8` | 1,300 | 5.263 | 8 / 0 |
+| `prefix-c1` | 300 | 5.263 | 1 / 0 |
+| `capacity-2048` | 16 | 2.614 | 0 / 0 |
+| `capacity-4096` | 16 | 2.060 | 0 / 0 |
+| `capacity-8192` | 16 | 1.870 | 0 / 0 |
+| `capacity-16384` | 16 | 2.447 | 0 / 0 |
+| `tail` | 64 | 2.712 | 0 / 0 |
+
+- The window conditions read the same 1,300 rows of the references and `prefix-c1` the last 300 of them, so the 1,454
+  distinct rows (26 of `short`, 1,428 of `context`) have 8 top-1 changes, all within a near tie of the rounded reference.
+- The quantization moves the logits of these six layers by up to 5.263, more than the conversion and the engine do
+  (up to 0.984 in the comparison above). Saturated logits make the top-1 changes a weak signal here; the quality of the
+  8-bit model is a matter for the evaluation of all 60 layers.
+
+### Limits
+
+- Six of the 60 layers, one function layout, one machine, one OS build and one software environment; the inputs are
+  token IDs of fixed seeds, not a quality set. The export and comparison of all 60 layers and the quality evaluation of
+  the 8-bit model are later steps.
+- The asset summary gives totals per storage type, not per tensor: the count check finds a quantized weight that moves
+  to another type, vanishes or appears, not a smaller change, and the per-tensor hashes cover the tensors that the
+  export passed to the converter, not the stored asset.
+- The rows of the call shape that `Engine` avoids for this model are recorded but not judged.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| Restored FP32 reference `record.json` | `fe11e7b38950b77080c689c8ad812ab3588c1156c0c32e0aef041a65ea11737e` |
+| FP32 reference of float16-rounded weights `record.json` | `e8badd0271df561b5122e50da9a847e708975c5bf0bfb5adf844a42bcda1dbe8` |
+| Report of the export | `5938b920465760da2c41b4e6500fe11c9b0fcb933371b2e86c4080abbc880ab8` |
+| Its `export.json` | `2f123c0d1c022dc45f11f7457017b51e24f43725f6ed4741d18f017efb001032` |
+| Its `comparison.json` | `9f4ddbcb081f89587697ff5a5c50d62a9dd608c54cacff87ad520e73bf11b0e8` |
+| Output of `effect` | `013ed5e04713da98d35c90608d08f4b6549bac7e96aed9feb34b476be792fcdd` |
+
+~~~sh
+python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <restored reference record.json> \
+  --effect <output of effect> --report <report.json> --export <export.json> --comparison <comparison.json> \
+  > docs/validation/gemma4-31b/8bit-first-layers-20261122.json
+~~~
