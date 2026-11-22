@@ -48,13 +48,16 @@ import Testing
     }
 
     @Test(
-        "From position 0, 100 tokens are read as 96 and 4 tokens and 112 tokens as 96, 7, 7 and 2 tokens",
+        "From position 0, main alone reads 100 tokens as 96 + 4 and 112 tokens as 96 + 7 + 7 + 2, and with a prefill function the prefill function reads 96 + 3 and 96 + 7 + 7 + 1 before main reads the last token",
         arguments: [256, 2048, 4096])
     func gemmaRuleSplitsTheExamples(limit: Int) throws {
         let rule = try #require(Engine.callShapeRule(modelID: Self.gemma31B))
         #expect(Engine.callLengths(from: 0, count: 100, limit: limit, rule: rule) == [96, 4])
         #expect(Engine.callLengths(from: 0, count: 112, limit: limit, rule: rule) == [96, 7, 7, 2])
-        #expect(Engine.callLengths(from: 0, count: 99, limit: limit, rule: rule) + [1] == [96, 3, 1])
+        #expect(Engine.callLengths(from: 0, count: 99, limit: limit, rule: rule) == [96, 3])
+        #expect(Engine.callLengths(from: 0, count: 111, limit: limit, rule: rule) == [96, 7, 7, 1])
+        #expect(Engine.callLengths(from: 99, count: 1, limit: limit, rule: rule) == [1])
+        #expect(Engine.callLengths(from: 111, count: 1, limit: limit, rule: rule) == [1])
     }
 
     @Test(
