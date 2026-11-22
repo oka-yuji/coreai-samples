@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 
 from Tools.LLMEvaluation.items import FILES, lines, read_json, sha256
-from Tools.LLMEvaluation.scoring import folded, frozen_set, generated, partition, read_records, standard
+from Tools.LLMEvaluation.scoring import frozen_set, generated, partition, read_records, standard
 
 REASONS = ("hash_mismatch", "run_unfinished", "missing_output", "malformed_record", "not_in_set", "duplicate_id",
            "input_differs", "token_count_differs", "baseline_error", "top2_differs", "unscored_item",
@@ -233,8 +233,6 @@ def compare_runs(bundle, items_path, baseline, candidate, scores, output, layer1
     output = Path(output)
     if output.exists():
         raise FileExistsError(f"Output must be a new folder: {output}")
-    if folded(Path(baseline).resolve().name) == folded(Path(candidate).resolve().name):
-        raise ValueError("The baseline and candidate run folders need different names, as in one score call")
     reason = substitute_reason if substitute_reason and substitute_reason.strip() else None
     name, items_sha256, rows = item_rows(bundle, items_path)
     keys = sorted((row["id"], row["category"], row["kind"]) for row in rows)

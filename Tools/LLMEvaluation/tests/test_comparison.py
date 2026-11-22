@@ -267,10 +267,17 @@ class CompareRunTests(unittest.TestCase):
         self.assertEqual(list((self.folder / "verdict").iterdir()), [])
 
     def test_run_folders_with_the_same_name_are_rejected(self):
-        baseline, candidate = self.run_folder("a/run", "reference"), self.run_folder("b/Run", "fp16")
-        with self.assertRaises(ValueError):
-            self.compared(baseline, candidate, self.scored(baseline))
-        self.assertFalse((self.folder / "verdict").exists())
+        for number, name in enumerate(("run", "Run")):
+            with self.subTest(name):
+                baseline = self.run_folder(f"{number}/a/run", "reference")
+                candidate = self.run_folder(f"{number}/b/{name}", "fp16")
+                scores = self.scored(baseline, name=f"{number}/scores")
+                shared = (scores / name / "summary.json").exists()
+                with self.assertRaises(ValueError if shared else FileNotFoundError) as caught:
+                    self.compared(baseline, candidate, scores, name=f"{number}/verdict")
+                if shared:
+                    self.assertIn("does not belong to the given files", str(caught.exception))
+                self.assertFalse((self.folder / f"{number}/verdict").exists())
 
     def test_a_run_folder_that_changed_after_scoring_is_rejected(self):
         for case in ("outputs", "run", "summary"):
