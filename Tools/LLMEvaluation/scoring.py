@@ -260,9 +260,13 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256, co
     differs, results, done = differing(items, committed(bundle)), {}, {}
     vocabulary = tokenizer.get_vocab_size(with_added_tokens=True)
 
-    def scored(item, ids):
+    def scored(item, first, damaged):
         if item["scorer"]["kind"] == "python_tests" and item["id"] in differs:
             return {"kind": "python_tests", "correct": None, "state": "item_hash_differs", "parsed": None}
+        if item["id"] not in first:
+            return {"kind": item["scorer"]["kind"], "correct": None,
+                    "state": "malformed" if item["id"] in damaged else "missing", "parsed": None}
+        ids = first[item["id"]]["output_ids"]
         key = (item["id"], tuple(ids))
         if key not in done:
             done[key] = score(item, tokenizer.decode(ids, skip_special_tokens=True))
@@ -274,12 +278,7 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256, co
         first, damaged = {}, set(broken)
         for record in good:
             first.setdefault(record["id"], record)
-        rows = [{"id": item["id"], "category": item["category"],
-                 **(scored(item, first[item["id"]]["output_ids"])
-                    if item["id"] in first else
-                    {"kind": item["scorer"]["kind"], "correct": None,
-                     "state": "malformed" if item["id"] in damaged else "missing", "parsed": None})}
-                for item in items]
+        rows = [{"id": item["id"], "category": item["category"], **scored(item, first, damaged)} for item in items]
         results[run.name] = rows, {
             "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
             "items": {"file": Path(items_path).name, "sha256": items_sha256, "set": frozen},

@@ -612,6 +612,35 @@ class CodeScoringTests(unittest.TestCase):
         self.assertEqual(summary["checks"]["item_hash_differs"], names[1:])
         self.assertEqual(summary["categories"]["code-gen-mbpp"]["states"], {"scored": 1, "item_hash_differs": 2})
 
+    def test_a_differing_code_item_is_item_hash_differs_whatever_its_records(self):
+        names = [item["id"] for item in self.items]
+        rewritten = {**self.items[1], "scorer": {**self.items[1]["scorer"], "test": "assert value == 2"}}
+        write_lines(self.items_path, [self.items[0], rewritten, self.items[2]])
+        good = record(names[1], [0])
+        broken = {key: value for key, value in good.items() if key != "top2"}
+        damaged = {key: value for key, value in record(names[2], [0]).items() if key != "top2"}
+        cases = {"a well-formed record": [good], "no record": [], "only a malformed record": [broken],
+                 "a malformed and a well-formed record": [broken, good]}
+        for number, (name, records) in enumerate(cases.items()):
+            with self.subTest(name):
+                folder = self.root / f"case-{number}"
+                folder.mkdir()
+                write_lines(folder / "outputs.jsonl", records + [damaged])
+                (folder / "run.json").write_text("{}", encoding="utf-8")
+                with mock.patch.object(execution, "run", wraps=execution.run) as executed:
+                    rows, summary = self.scored([folder], output=f"scores-{number}")[folder.name]
+                self.assertEqual(executed.call_count, 0)
+                self.assertEqual(rows[names[1]], {"id": names[1], "category": "code-gen-mbpp", "kind": "python_tests",
+                                                  "correct": None, "state": "item_hash_differs", "parsed": None})
+                self.assertEqual((rows[names[0]]["state"], rows[names[2]]["state"]), ("missing", "malformed"))
+                self.assertEqual(summary["categories"]["code-gen-mbpp"],
+                                 {"kind": "python_tests", "items": 3, "correct": 0, "unscored": 3,
+                                  "states": {"missing": 1, "item_hash_differs": 1, "malformed": 1}})
+                self.assertEqual(summary["code"], {"timeouts": 0, "rerun_passed": 0})
+                self.assertEqual(summary["checks"]["item_hash_differs"], [names[1]])
+                self.assertEqual(summary["checks"]["missing"], [names[0]] + ([names[1]] if not records else []))
+                self.assertEqual(summary["checks"]["malformed"], [names[1]] * records.count(broken) + [names[2]])
+
     def test_code_is_not_run_when_the_sandbox_cannot_be_used(self):
         run = self.run_folder("run", {self.items[0]["id"]: [4]})
         unusable = {"no sandbox-exec": mock.patch.object(execution, "SANDBOX", str(self.root / "missing")),
