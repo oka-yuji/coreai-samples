@@ -57,6 +57,36 @@ class ExportTests(unittest.TestCase):
                     self.assertFalse((output / export.WORK).exists())
                     self.assertIsNotNone(record["resources"]["swap"]["increase_bytes"])
 
+    def test_the_loading_work_area_is_removed_when_the_export_or_the_save_fails_or_is_interrupted(self):
+        upstream = Path(coreai_models.__file__).resolve().parents[3]
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder)
+            for label, error in {"export": RuntimeError("export failed"), "save": RuntimeError("save failed"),
+                                 "interruption": KeyboardInterrupt()}.items():
+                output, seen = folder / label, []
+
+                class Program:
+                    def save_asset(self, *arguments):
+                        raise error
+
+                def exported(*arguments, **keywords):
+                    seen.append((output / export.WORK).is_dir())
+                    if label == "save":
+                        return Program()
+                    raise error
+
+                argv = ["export", "--model", str(contract), "--snapshot", str(snapshot), "--upstream", str(upstream),
+                        "--layers", "6", "--functions", "main", "--context", "4096", "--output", str(output)]
+                with self.subTest(case=label), mock.patch("sys.argv", argv), \
+                        mock.patch("coreai_models.export.macos.export_macos_model", exported), \
+                        mock.patch.object(export, "supervise", side_effect=lambda folder, schema, work, conclude: work()), \
+                        self.assertRaises(type(error)):
+                    export.main()
+                self.assertEqual(seen, [True])
+                self.assertFalse((output / export.WORK).exists())
+                self.assertFalse((output / export.BUNDLE).exists())
+
 
 if __name__ == "__main__":
     unittest.main()

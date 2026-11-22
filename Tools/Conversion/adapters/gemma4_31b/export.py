@@ -152,23 +152,25 @@ def run(args, contract, kinds, functions, disk):
     check_checkout(args.upstream, contract["upstream_revision"])
     if Path(coreai_models.__file__).resolve().parents[3] != args.upstream.resolve():
         raise PipelineError("The converter was imported from another checkout than --upstream")
-    model = Gemma4ForCausalLM.from_hf_memory_efficient(
-        str(args.snapshot), max_context_length=args.context, target_dtype=torch.float16,
-        mmap_path=str(args.output / WORK), num_layers=args.layers, hf_config_attr="text_config",
-        hf_state_dict_prefix=PREFIX).eval()
-    model.exports_prefill_graph = "prefill" in functions
-    loaded = weights(model)
-    marks.append(("load_s", time.perf_counter()))
-    settings = SimpleNamespace(max_context_length=args.context, compute_precision="float16", include_debug_info=False,
-                               dynamic_max_batch_size=None)
-    program = export_macos_model(model, model.config, settings)
-    del model
-    marks.append(("convert_s", time.perf_counter()))
-    name, bundle = name_of(args.layers, functions), args.output / INCOMPLETE
-    bundle.mkdir()
-    program.save_asset(bundle / f"{name}.aimodel", build_aimodel_metadata(contract["model_id"]))
-    del program
-    shutil.rmtree(args.output / WORK)
+    work, name, bundle = args.output / WORK, name_of(args.layers, functions), args.output / INCOMPLETE
+    try:
+        model = Gemma4ForCausalLM.from_hf_memory_efficient(
+            str(args.snapshot), max_context_length=args.context, target_dtype=torch.float16, mmap_path=str(work),
+            num_layers=args.layers, hf_config_attr="text_config", hf_state_dict_prefix=PREFIX).eval()
+        model.exports_prefill_graph = "prefill" in functions
+        loaded = weights(model)
+        marks.append(("load_s", time.perf_counter()))
+        settings = SimpleNamespace(max_context_length=args.context, compute_precision="float16", include_debug_info=False,
+                                   dynamic_max_batch_size=None)
+        program = export_macos_model(model, model.config, settings)
+        del model
+        marks.append(("convert_s", time.perf_counter()))
+        bundle.mkdir()
+        program.save_asset(bundle / f"{name}.aimodel", build_aimodel_metadata(contract["model_id"]))
+        del program
+    finally:
+        if work.exists():
+            shutil.rmtree(work)
     marks.append(("save_s", time.perf_counter()))
     write_json(bundle / "metadata.json", metadata(contract, name, args.context))
     (bundle / "tokenizer").mkdir()
