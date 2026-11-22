@@ -568,6 +568,11 @@ class RestoredReferenceTests(unittest.TestCase):
                      "the same tensors in another file": (tensors, lambda target: (
                          (target / layers.QUANTIZED).unlink(),
                          export.save_quantized(target / layers.QUANTIZED, list(reversed(tensors.items()))))),
+                     "a file with a tensor that the record does not list": (
+                         {**tensors, f"{name}.zero_point": torch.zeros(32, 2, dtype=torch.uint8)},
+                         lambda target: record_of(target, lambda record: (
+                             record["quantized"]["tensors"].pop(f"{name}.zero_point"),
+                             record["quantized"].update(file=file_hash(target / layers.QUANTIZED))))),
                      "an extra zero point": ({**tensors, f"{name}.zero_point": torch.zeros(4, 2, dtype=torch.uint8)}, None),
                      "a missing minimum": ({key: value for key, value in tensors.items() if key != f"{name}.minval"},
                                            None),
