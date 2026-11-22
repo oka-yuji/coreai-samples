@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 from Tools.LLMEvaluation import items, scoring
 
@@ -418,6 +419,32 @@ class ScoreRunTests(unittest.TestCase):
                 self.bundle = bundle
                 _, output = self.scored([self.run_folder(f"run-{name}", rows)], output=f"out-{name}")
                 self.assertEqual(items.read_json(output / f"run-{name}" / "summary.json")["items"]["set"], name)
+
+    def test_run_folder_names_that_match_after_folding_are_rejected(self):
+        rows = [record(key, values) for key, values in self.outputs.items()]
+        for name, (left, right) in {"case": ("Baseline", "baseline"),
+                                    "normalization": ("caf\u00e9", "cafe\u0301")}.items():
+            with self.subTest(name):
+                (self.root / f"left-{name}").mkdir()
+                (self.root / f"right-{name}").mkdir()
+                runs = [self.run_folder(f"left-{name}/{left}", rows), self.run_folder(f"right-{name}/{right}", rows)]
+                with self.assertRaises(ValueError):
+                    self.scored(runs, output=f"out-{name}")
+                self.assertFalse((self.root / f"out-{name}").exists())
+
+    def test_a_failure_while_making_the_run_folders_removes_the_output(self):
+        rows = [record(key, values) for key, values in self.outputs.items()]
+        runs = [self.run_folder("one", rows), self.run_folder("two", rows)]
+        make = Path.mkdir
+
+        def failing(path, *arguments, **options):
+            if path.name == "two":
+                raise OSError("cannot make the folder")
+            return make(path, *arguments, **options)
+
+        with mock.patch.object(Path, "mkdir", failing), self.assertRaises(OSError):
+            self.scored(runs)
+        self.assertFalse((self.root / "scores").exists())
 
     def test_runs_are_scored_together_into_a_new_folder(self):
         first = self.run_folder("one", [record(key, ids) for key, ids in self.outputs.items()])

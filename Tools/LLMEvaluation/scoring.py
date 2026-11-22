@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import unicodedata
 
 from Tools.LLMEvaluation.items import FILES, ROOT, SETS, canonical, digest, lines, read_json, sha256
@@ -226,14 +227,18 @@ def frozen_set(bundle, ids):
     return name
 
 
+def folded(name):
+    return unicodedata.normalize("NFC", name).casefold()
+
+
 def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
     output, runs = Path(output), [Path(run).resolve() for run in runs]
     if output.exists():
         raise FileExistsError(f"Output must be a new folder: {output}")
     if not all(run.name for run in runs):
         raise ValueError("Each run folder needs a name")
-    if len({run.name for run in runs}) != len(runs):
-        raise ValueError("Run folders must have distinct names")
+    if len({folded(run.name) for run in runs}) != len(runs):
+        raise ValueError("Run folder names must differ after NFC normalization and case folding")
     items = lines(Path(items_path).read_bytes())
     if len({item["id"] for item in items}) != len(items):
         raise ValueError("Duplicate item ids in the items file")
@@ -257,13 +262,18 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
             "tokenizer": {"sha256": tokenizer_sha256, "vocabulary": vocabulary}, "run": read_json(run / "run.json"),
             "checks": record_checks(items, good, broken, hashes), "categories": summarize(rows)}
     output.mkdir(parents=True)
-    for name, (rows, summary) in results.items():
-        (output / name).mkdir()
-        (output / name / "scores.jsonl").write_text(
-            "".join(json.dumps(standard({**row, **({"f1": float(row["f1"])} if "f1" in row else {})}),
-                               allow_nan=False) + "\n" for row in rows), encoding="utf-8")
-        (output / name / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
-                                                    encoding="utf-8")
+    try:
+        for name in results:
+            (output / name).mkdir()
+        for name, (rows, summary) in results.items():
+            (output / name / "scores.jsonl").write_text(
+                "".join(json.dumps(standard({**row, **({"f1": float(row["f1"])} if "f1" in row else {})}),
+                                   allow_nan=False) + "\n" for row in rows), encoding="utf-8")
+            (output / name / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
+                                                        encoding="utf-8")
+    except BaseException:
+        shutil.rmtree(output, ignore_errors=True)
+        raise
     return {name: {"checks": {key: len(value) for key, value in summary["checks"].items()},
                    "categories": {key: {field: value[field] for field in ("items", "correct", "unscored")}
                                   for key, value in summary["categories"].items()}}
