@@ -100,6 +100,84 @@ import Testing
         }
     }
 
+    @Test(
+        "The prefix goes through main when the call shape rule splits it differently from the prefill chunks, and keeps the prefill function otherwise",
+        arguments: [
+            (0, [], 4096, true, nil), (100, [96, 4], 4096, true, "main"), (112, [96, 7, 7, 2], 4096, true, "main"),
+            (100, [100], 4096, true, "prefill"), (96, [96], 4096, true, "prefill"),
+            (113, [113], 4096, true, "prefill"), (300, [256, 44], 256, true, "prefill"),
+            (100, [100], 4096, false, "main"), (100, [96, 4], 4096, false, "main"),
+        ] as [(Int, [Int], Int, Bool, String?)])
+    func prefixFunctionFollowsTheSplit(
+        start: Int, lengths: [Int], chunkSize: Int, hasPrefillFunction: Bool, expected: String?
+    ) {
+        #expect(
+            PositionLogits.prefixFunction(
+                start: start, lengths: lengths, chunkSize: chunkSize, hasPrefillFunction: hasPrefillFunction)
+                == expected)
+    }
+
+    private func outputPath() throws -> (folder: URL, output: String) {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "position-logits-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        return (folder, folder.appending(path: "logits.f16").path(percentEncoded: false))
+    }
+
+    @Test("The rows go to a partial file in the same folder, which takes the output name only after the writer returns")
+    func outputTakesItsNameWhenComplete() async throws {
+        let (folder, output) = try outputPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let value = try await PositionLogits.writeFile(at: output) { partial in
+            #expect(partial.path(percentEncoded: false) == output + ".partial")
+            #expect(!FileManager.default.fileExists(atPath: output))
+            try Data([1, 2, 3]).write(to: partial)
+            return 7
+        }
+        #expect(value == 7)
+        #expect(try Data(contentsOf: URL(filePath: output)) == Data([1, 2, 3]))
+        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+    }
+
+    @Test("An existing output is refused before anything is written, and it is left unchanged")
+    func existingOutputIsRefused() async throws {
+        let (folder, output) = try outputPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Data([9]).write(to: URL(filePath: output))
+        let error = await #expect(throws: ValidationError.self) {
+            try await PositionLogits.writeFile(at: output) { _ in Issue.record("The writer must not run") }
+        }
+        #expect(error?.message == "The output file already exists: \(output)")
+        #expect(try Data(contentsOf: URL(filePath: output)) == Data([9]))
+        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+    }
+
+    @Test("A partial file left by an interrupted run is overwritten, and the output is created")
+    func leftoverPartialIsOverwritten() async throws {
+        let (folder, output) = try outputPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Data([7, 7, 7, 7]).write(to: URL(filePath: output + ".partial"))
+        try await PositionLogits.writeFile(at: output) { partial in
+            #expect(try Data(contentsOf: partial).isEmpty)
+            try Data([5]).write(to: partial)
+        }
+        #expect(try Data(contentsOf: URL(filePath: output)) == Data([5]))
+        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+    }
+
+    @Test("A failing writer leaves neither the output nor the partial file")
+    func failingWriterLeavesNothing() async throws {
+        let (folder, output) = try outputPath()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        await #expect(throws: CancellationError.self) {
+            try await PositionLogits.writeFile(at: output) { partial in
+                try Data([1]).write(to: partial)
+                throw CancellationError()
+            }
+        }
+        #expect(!FileManager.default.fileExists(atPath: output))
+        #expect(!FileManager.default.fileExists(atPath: output + ".partial"))
+    }
+
     @Test("A chunk length near the largest integer is cut to the remaining positions without overflow")
     func cutsALargeChunkToTheRemainingPositions() {
         #expect(PositionLogits.pieces(1..<10, size: .max) == [1..<10])

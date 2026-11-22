@@ -17,14 +17,17 @@ struct PositionLogits: AsyncParsableCommand {
 
     @Option(
         help:
-            "First position whose logits are written. The tokens before it are read but not written: with the prefill function when the bundle has one, otherwise through main, which needs logits for a whole prefill chunk."
+            "First position whose logits are written. The tokens before it are read but not written: with the prefill function when the bundle has one and the call shape rule keeps the prefill chunks, otherwise through main, which needs logits for a whole call."
     )
     var start: Int
 
     @Option(help: "Tokens per main call from the start position.")
     var chunk: Int
 
-    @Option(help: "Output file of little-endian float16 logits shaped [positions, vocab]. It must not exist yet.")
+    @Option(
+        help:
+            "Output file of little-endian float16 logits shaped [positions, vocab]. It must not exist yet. The rows are written to the same path with .partial appended, which is renamed when the last row is written."
+    )
     var output: String
 
     func validate() throws {
@@ -60,6 +63,28 @@ struct PositionLogits: AsyncParsableCommand {
         }
     }
 
+    static func prefixFunction(start: Int, lengths: [Int], chunkSize: Int, hasPrefillFunction: Bool) -> String? {
+        guard start > 0 else { return nil }
+        let unsplit = lengths == pieces(0..<start, size: chunkSize).map(\.count)
+        return hasPrefillFunction && unsplit ? "prefill" : "main"
+    }
+
+    static func writeFile<Value>(at path: String, _ body: (URL) async throws -> Value) async throws -> Value {
+        guard !FileManager.default.fileExists(atPath: path) else {
+            throw ValidationError("The output file already exists: \(path)")
+        }
+        let partial = URL(filePath: path + ".partial")
+        try Data().write(to: partial)
+        do {
+            let result = try await body(partial)
+            try FileManager.default.moveItem(at: partial, to: URL(filePath: path))
+            return result
+        } catch {
+            try? FileManager.default.removeItem(at: partial)
+            throw error
+        }
+    }
+
     func run() async throws {
         let ids = try tokenIDs()
         try Self.validateTokens(ids, start: start)
@@ -69,24 +94,23 @@ struct PositionLogits: AsyncParsableCommand {
             throw ValidationError(
                 "The token file must hold at most \(bundle.maxContextLength) IDs from 0 to \(bundle.vocabSize - 1).")
         }
-        let url = URL(filePath: output)
-        try Data().write(to: url, options: .withoutOverwriting)
-        do {
-            try await write(ids, bundle: bundle, to: url)
-        } catch {
-            try? FileManager.default.removeItem(at: url)
-            throw error
-        }
+        try emit(try await Self.writeFile(at: output) { try await write(ids, bundle: bundle, to: $0) })
     }
 
-    func write(_ ids: [Int32], bundle: ModelBundle, to url: URL) async throws {
+    func write(_ ids: [Int32], bundle: ModelBundle, to url: URL) async throws -> PositionLogitsRecord {
         let file = try FileHandle(forWritingTo: url)
         let clock = ContinuousClock()
         let loadStart = clock.now
         let engine = try await CoreAIBackend.Engine(bundle: bundle)
         let prefixStart = clock.now
-        let prefix = Self.pieces(from: 0, lengths: engine.callLengths(from: 0, count: start))
-        for piece in prefix { try await engine.readInOneCall(Array(ids[piece]), usePrefillFunction: true) }
+        let lengths = engine.callLengths(from: 0, count: start)
+        let prefixFunction = Self.prefixFunction(
+            start: start, lengths: lengths, chunkSize: engine.prefillChunkSize,
+            hasPrefillFunction: engine.hasPrefillFunction)
+        let prefix = Self.pieces(from: 0, lengths: lengths)
+        for piece in prefix {
+            try await engine.readInOneCall(Array(ids[piece]), usePrefillFunction: prefixFunction == "prefill")
+        }
         let scoringStart = clock.now
         let scored = Self.pieces(start..<ids.count, size: chunk)
         var nonFinite = 0
@@ -101,16 +125,14 @@ struct PositionLogits: AsyncParsableCommand {
         try file.close()
         let end = clock.now
         let stats = engine.loadStats
-        try emit(
-            PositionLogitsRecord(
-                tokenCount: ids.count, tokensSha256: tokensDigest(ids.map(Int.init)), start: start, chunk: chunk,
-                shape: [ids.count - start, engine.vocabSize],
-                prefixFunction: start == 0 ? nil : engine.hasPrefillFunction ? "prefill" : "main",
-                prefixChunk: engine.prefillChunkSize, prefixCalls: prefix.count, mainCalls: scored.count,
-                mainHash: bundle.mainHash, requestedCompute: stats.requestedComputeUnit,
-                expectFrequentReshapes: stats.expectsFrequentReshapes, cached: stats.cached,
-                cacheQueryError: stats.cacheQueryError, specializeS: stats.specializeSeconds,
-                nonFiniteCount: nonFinite, loadS: seconds(prefixStart - loadStart),
-                prefixS: seconds(scoringStart - prefixStart), scoringS: seconds(end - scoringStart)))
+        return PositionLogitsRecord(
+            tokenCount: ids.count, tokensSha256: tokensDigest(ids.map(Int.init)), start: start, chunk: chunk,
+            shape: [ids.count - start, engine.vocabSize], prefixFunction: prefixFunction,
+            prefixChunk: engine.prefillChunkSize, prefixCalls: prefix.count, mainCalls: scored.count,
+            mainHash: bundle.mainHash, requestedCompute: stats.requestedComputeUnit,
+            expectFrequentReshapes: stats.expectsFrequentReshapes, cached: stats.cached,
+            cacheQueryError: stats.cacheQueryError, specializeS: stats.specializeSeconds,
+            nonFiniteCount: nonFinite, loadS: seconds(prefixStart - loadStart),
+            prefixS: seconds(scoringStart - prefixStart), scoringS: seconds(end - scoringStart))
     }
 }
