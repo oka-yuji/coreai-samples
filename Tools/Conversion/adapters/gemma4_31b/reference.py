@@ -22,8 +22,9 @@ SWAP_INCREASE_LIMIT_BYTES = 2_000_000_000
 FIRST_SAMPLE_TIMEOUT_S = 60
 MODEL_CLASS = "Gemma4ForConditionalGeneration"
 LOADED_FILES = ("config.json", "generation_config.json", "model.safetensors.index.json", *TOKENIZER_FILES)
-UNREADABLE = "the monitor could not read swap or the memory free percentage"
+UNREADABLE = "the monitor could not read the resident memory, swap or the memory free percentage"
 READINGS = [shared.COLUMNS.index(name) for name in ("swap_used_bytes", "free_percent")]
+RSS = shared.COLUMNS.index("rss_bytes")
 
 
 def schedule_kill(delay):
@@ -40,7 +41,7 @@ class ReferenceMonitor(shared.Monitor):
 
     def sample(self):
         row = super().sample()
-        if any(row[index] is None for index in READINGS):
+        if any(row[index] is None for index in READINGS) or not row[RSS] > 0:
             self.unreadable += 1
         elif not self.unreadable:
             self.ready.set()

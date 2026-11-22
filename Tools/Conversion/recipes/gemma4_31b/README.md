@@ -55,9 +55,9 @@ Setup checks the integrity record against the contract, then under the shared ma
   the versions of the environment and the Apple toolchain, requires MPS, and stops when `pyproject.toml` or
   `uv.lock` differ from those recorded by setup.
 - `reference` is heavy and runs under the shared machine lock. It waits for the first monitor sample that
-  reads both swap and the free percentage (at most 60 seconds), then hashes the files it loads (both weight
-  shards, `config.json`, `generation_config.json`, `model.safetensors.index.json` and the three tokenizer
-  files) and stops before loading unless every size and SHA-256 equals the contract and the folder still holds
+  reads the resident memory, swap and the free percentage (at most 60 seconds), then hashes the files it loads
+  (both weight shards, `config.json`, `generation_config.json`, `model.safetensors.index.json` and the three
+  tokenizer files) and stops before loading unless every size and SHA-256 equals the contract and the folder still holds
   exactly the pinned files under the rule of `prepare`, which ignores only the download state under `.cache/` and
   Finder's `.DS_Store` files (the loader would prefer a single `model.safetensors` to the pinned shards).
   `reference.json` records these hashes, not the copies in `ready.json`. It then loads `Gemma4ForConditionalGeneration`
@@ -89,13 +89,14 @@ requires clean loading, no non-finite value (in the saved rows and in the step l
 each greedy token at the maximum of its step logits, identical tokens in the second run, a clean monitor
 and recorded resources.
 
-A thread samples swap, the memory free percentage and the free disk every 5 seconds (`monitor.tsv`,
-from `adapters/jev27b/monitor.py`). The stage stops as failed with `failure.json` and exit code 1 when:
+A thread samples the resident memory, swap, the memory free percentage and the free disk every 5 seconds
+(`monitor.tsv`, from `adapters/jev27b/monitor.py`). The stage stops as failed with `failure.json` and exit code 1 when:
 
 - swap grows by more than 2,000,000,000 B from its first sample;
 - the free percentage stays below 8 for three samples in a row;
 - swap is above 16,000,000,000 B and rises on three samples in a row (the condition of the shared monitor);
-- a sample cannot read swap or the free percentage, or the monitor thread ends with an error.
+- a sample cannot read the resident memory (the shared monitor writes 0 when `ps` prints nothing), swap or the
+  free percentage, or the monitor thread ends with an error.
 
 A process still running 120 seconds after a stop is killed, also when the monitor thread itself ended
 with an error (a separate timer takes over the kill). A run that finishes after a stop, with an

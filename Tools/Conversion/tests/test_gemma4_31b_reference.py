@@ -412,6 +412,28 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual((observed["aborts"], observed["failure"] is None), (1, False))
         self.assertFalse(reference.finalize(checked_record({"finite": True}), observed, dict(MEMORY))["passed"])
 
+    def test_a_sample_without_the_resident_memory_does_not_end_the_first_sample_wait(self):
+        with tempfile.TemporaryDirectory() as folder:
+            monitor = self.monitor(folder, [], itertools.repeat(10**9))
+            with mock.patch(f"{MONITOR}.command_output", return_value=""):
+                row = monitor.sample()
+            monitor.sample()
+        self.assertEqual((row[reference.RSS], monitor.ready.is_set(), monitor.unreadable, monitor.verdict()),
+                         (0, False, 1, reference.UNREADABLE))
+
+    def test_a_sample_without_the_resident_memory_during_the_run_fails_the_stage(self):
+        reasons, outputs = [], itertools.chain(["1\n"], itertools.repeat(""))
+        with tempfile.TemporaryDirectory() as folder, mock.patch(f"{MONITOR}.INTERVAL_S", 0.01), \
+                mock.patch(f"{MONITOR}._thread") as thread:
+            monitor = self.monitor(folder, reasons, itertools.repeat(10**9))
+            with mock.patch(f"{MONITOR}.command_output", side_effect=lambda *command: next(outputs)):
+                observed = self.wait(monitor, reasons)
+        self.assertTrue(monitor.ready.is_set())
+        self.assertEqual(reasons[:1], [reference.UNREADABLE])
+        thread.interrupt_main.assert_called_once()
+        self.assertGreaterEqual(observed["unreadable_samples"], 1)
+        self.assertFalse(reference.finalize(checked_record({"finite": True}), observed, dict(MEMORY))["passed"])
+
     def test_unreadable_memory_pressure_output_stops_the_stage(self):
         outputs = {"ps": "1\n", "sysctl": "total = 6144.00M  used = 1024.00M  free = 5120.00M  (encrypted)\n",
                    "memory_pressure": "unexpected output\n"}
