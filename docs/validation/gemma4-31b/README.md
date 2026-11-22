@@ -424,22 +424,23 @@ of the comparison of the logits that the own engine reads from them (`coreai-ver
 reference of the same six layers (#680). Six layers do not make a usable model: the record shows that the export, the
 asset and the reads of the engine are right for these layers, not the quality of the model.
 [`fp16-first-layers-20261122.json`](fp16-first-layers-20261122.json) holds the states, numbers, hashes, versions and
-fixed names of the records, from `fp16_summary`, which checked that each pipeline report is the run that wrote its
-`export.json` and that each comparison was made from that `export.json` and the reference record. It has no local
-paths, commands or environment variables; the records, bundles and logits stay in the local work directory.
+fixed names of the records, from `fp16_summary`, which checked that each pipeline report is the run whose stage
+manifest recorded its `export.json` and that each comparison was made from that `export.json` and the reference
+record. It has no local paths, commands or environment variables; the records, bundles and logits stay in the local
+work directory.
 
 ### Conditions
 
 - The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power). Every
-  model job held the shared machine lock, and none started while another model process ran. Other sessions ran their
-  own model jobs between these runs under the same lock; the times below are records, not measurements.
-- Commit aa2d35d with no local changes for every model job. Converter `apple/coreai-models`
+  model job held the shared machine lock, and none started while another model process ran. No other session held
+  the lock between these runs; the times below are records, not measurements.
+- Commit 1df2f132 with no local changes for every model job. Converter `apple/coreai-models`
   `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core 1.0.0b3, coreai-models 0.1.0, coreai-opt 0.4.0,
   coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors 0.7.0. Reference: transformers 5.16.1,
   torch 2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` was built in release from the same commit.
-- Runs (2026-11-22 JST, pipeline run IDs in UTC): the FP32 reference (`layers.py context`) from 21:39:32; the exports
-  `20261122T124049-9690b4a1` (`main` and `prefill`) from 21:40:49 and `20261122T124401-25ab007b` (`main` only) from
-  21:44:01, each with the `prepare` step of the recipe; the comparisons from 22:18:24 and from 22:52:56.
+- Runs (JST, pipeline run IDs in UTC): the FP32 reference (`layers.py context`) from 2026-11-22 23:59:31; the exports
+  `20261122T150045-f1634169` (`main` and `prefill`) from 2026-11-23 00:00:45 and `20261122T150355-cb087657` (`main`
+  only) from 00:03:55, each with the `prepare` step of the recipe; the comparisons from 00:06:46 and from 00:09:36.
 - Inputs: `short` (26 tokens) and `context` (16,896 tokens), fixed-seed token IDs of the recipe's FP32 tools, not
   text.
 
@@ -447,23 +448,23 @@ paths, commands or environment variables; the records, bundles and logits stay i
 
 | | `main` and `prefill` | `main` only |
 |---|---:|---:|
-| Pipeline | 194.1 s | 170.7 s |
-| `prepare` step | 25.6 s | 25.1 s |
-| `export` step | 73.8 s | 52.2 s |
-| Export tool | 69.92 s | 49.80 s |
-| Hashing the files to load | 21.36 s | 21.41 s |
-| Loading the model class in FP16 | 3.99 s | 2.58 s |
-| `export_macos_model` | 33.05 s | 16.92 s |
-| Saving the asset | 7.66 s | 5.27 s |
-| Hashing the bundle | 3.01 s | 3.02 s |
-| Peak resident memory | 23,346,135,040 B | 23,208,198,144 B |
-| Kernel lifetime footprint peak | 9,482,581,864 B | 14,444,692,880 B |
+| Pipeline | 191.8 s | 172.6 s |
+| `prepare` step | 25.2 s | 25.7 s |
+| `export` step | 70.0 s | 52.5 s |
+| Export tool | 67.18 s | 50.07 s |
+| Hashing the files to load | 21.22 s | 21.57 s |
+| Loading the model class in FP16 | 3.52 s | 2.48 s |
+| `export_macos_model` | 32.23 s | 17.06 s |
+| Saving the asset | 6.51 s | 5.34 s |
+| Hashing the bundle | 3.02 s | 3.03 s |
+| Peak resident memory | 23,634,591,744 B | 23,018,635,264 B |
+| Kernel lifetime footprint peak | 9,479,223,192 B | 14,255,244,544 B |
 | Swap increase (limit 2,000,000,000 B) | 0 B | 0 B |
 | Free disk required at the start | 81,776,897,048 B | 81,776,897,048 B |
-| Lowest free disk during the run (limit 64,424,509,440 B) | 475,974,053,888 B | 475,676,606,464 B |
-| `main.mlirb` | 8,676,277,835 B | 8,676,248,377 B |
-| `main.hash`, the SHA-256 of `main.mlirb` | `e0687fe49f73970361cdac5c283fa75d0cf4d08c9affb0f030e6f3495c4b1993` | `f3d5f8ce716a841ebf480ce457ee0034763e29fb3de8d7771458136b0c5761b0` |
-| Bundle | 8,708,469,929 B | 8,708,440,455 B |
+| Lowest free disk during the run (limit 64,424,509,440 B) | 460,397,543,424 B | 451,675,136,000 B |
+| `main.mlirb` | 8,676,277,832 B | 8,676,248,374 B |
+| `main.hash`, the SHA-256 of `main.mlirb` | `01dc39cbcec9b7a099a694c542c7d440f445e98c25e06696e0633543db834542` | `fdb94713b1926d265989512ae4d9c27d2340c31c85cf2f0766c24945dc526cb0` |
+| Bundle | 8,708,469,926 B | 8,708,440,452 B |
 
 Both assets passed the inspection. No compression setting was given and the PyTorch model had no quantized weight; its
 85 parameters and buffers held 4,338,096,902 float16 elements. Both assets store Float16 4,338,096,906 elements and
@@ -477,11 +478,11 @@ bundle file. The free disk check counts twice the 8,676,193,804 B of FP16 weight
 
 ### FP32 reference
 
-`layers.py context` took 70.2 s: 23.07 s to hash the files to load, 2.23 s to load the first six layers of the
-original implementation, 0.2 s for `short` in one call and 44.1 s for `context` in 17 calls of up to 1,024 tokens with
+`layers.py context` took 69.4 s: 22.14 s to hash the files to load, 2.09 s to load the first six layers of the
+original implementation, 0.2 s for `short` in one call and 44.3 s for `context` in 17 calls of up to 1,024 tokens with
 the cache of the implementation. It kept 26 rows of `short` (27,263,104 B) and 1,428 rows of `context`
-(1,497,366,656 B), all finite. Peak resident memory 55,567,876,096 B, kernel lifetime footprint peak
-55,537,901,360 B.
+(1,497,366,656 B), all finite. Peak resident memory 55,571,234,816 B, kernel lifetime footprint peak
+55,541,243,672 B.
 
 ### Comparison
 
@@ -493,29 +494,30 @@ holds for both.
 
 | Condition | Rows | Largest absolute logit difference | Top-1 changes in a near tie / outside | Rows of the known call shape: count, largest difference | Seconds (`main` and `prefill` / `main` only) |
 |---|---:|---:|---:|---:|---:|
-| `short-c1` | 26 | 0.458 | 25 / 0 | – | 15.9 / 11.1 |
-| `short-c26` | 26 | 0.480 | 25 / 0 | – | 3.4 / 2.8 |
-| `window-c1` | 1,300 | 0.989 | 1,266 / 0 | – | 35.1 / 33.8 |
-| `window-c2` | 1,300 | 0.929 | 1,266 / 0 | – | 19.6 / 18.8 |
-| `window-c4` | 1,300 | 0.855 | 1,266 / 0 | – | 11.4 / 10.4 |
-| `window-c8` | 1,300 | 0.861 | 1,250 / 0 | 16, 4.266 | 8.3 / 7.6 |
-| `prefix-c1` | 300 | 0.836 | 294 / 0 | – | 11.6 / 10.8 |
-| `capacity-2048` | 16 | 0.437 | 15 / 0 | – | 4.5 / 4.7 |
-| `capacity-4096` | 16 | 0.535 | 14 / 0 | – | 5.7 / 5.7 |
-| `capacity-8192` | 16 | 0.459 | 16 / 0 | – | 7.6 / 9.7 |
-| `capacity-16384` | 16 | 0.567 | 15 / 0 | – | 16.7 / 24.7 |
-| `tail` | 64 | 0.466 | 61 / 0 | – | 19.4 / 23.9 |
+| `short-c1` | 26 | 0.458 | 25 / 0 | – | 16.4 / 10.5 |
+| `short-c26` | 26 | 0.480 | 25 / 0 | – | 3.9 / 3.2 |
+| `window-c1` | 1,300 | 0.989 | 1,266 / 0 | – | 35.0 / 38.5 |
+| `window-c2` | 1,300 | 0.929 | 1,266 / 0 | – | 20.4 / 20.8 |
+| `window-c4` | 1,300 | 0.855 | 1,266 / 0 | – | 11.5 / 10.9 |
+| `window-c8` | 1,300 | 0.861 | 1,250 / 0 | 16, 4.266 | 8.9 / 7.5 |
+| `prefix-c1` | 300 | 0.836 | 294 / 0 | – | 11.4 / 10.9 |
+| `capacity-2048` | 16 | 0.437 | 15 / 0 | – | 4.6 / 4.1 |
+| `capacity-4096` | 16 | 0.535 | 14 / 0 | – | 5.6 / 5.9 |
+| `capacity-8192` | 16 | 0.459 | 16 / 0 | – | 7.7 / 11.2 |
+| `capacity-16384` | 16 | 0.567 | 15 / 0 | – | 11.6 / 21.5 |
+| `tail` | 64 | 0.466 | 61 / 0 | – | 13.5 / 24.2 |
 
 - The rows of the known call shape are rows 96 to 111 of `window-c8`, from its calls of 8 tokens that end at 104 and
   112 positions; they are left out of the judgment. The other rows of that condition stay at 0.861.
 - On the asset with `prefill`, the tokens before `--start` went through the `prefill` function (1, 1, 1, 2, 4 and 5
   calls for `prefix-c1`, the four `capacity` conditions and `tail`), and no `coreai-verify` process stopped. On the
-  asset with `main` only they went through `main`.
+  asset with `main` only they went through `main`. The comparison checked the function, the calls and the chunk of
+  these reads against the rules of the engine.
 - The first six layers saturate the logits: in the reference rows of `window-c8` and `capacity-2048`, a median of
   19,423 and 25,971 of the 262,144 logits per row are at 29.98 or above in absolute value. The top two reference
   logits of nearly every row are then within 0.01, so the top-1 criterion rarely applies; the logit difference is the
   measure here, as in #665.
-- The first condition of each asset specialized the asset (11.4 s and 7.6 s); the others used the specialization
+- The first condition of each asset specialized the asset (11.6 s and 6.9 s); the others used the specialization
   cache. The caches took 21,660,880 KiB (`resources.bin` 22,163,497,512 B) and 16,962,060 KiB (`resources.bin`
   17,352,106,248 B), the sizes that #665 found for the same forms, and were removed after the comparisons.
 - Compared with §3.2 of the #665 spike, which read a text input and a reference computed with the spike's own model
@@ -537,13 +539,13 @@ holds for both.
 
 | File | SHA-256 |
 |---|---|
-| FP32 reference `record.json` | `5cfe59f947933ae79eb30ea1b0be0d354dfdd24f99b8ed065ac3758821b72141` |
-| Report of the export with `main` and `prefill` | `e4d86209735c008e0e241747df2db51a0cb63f76fa5f32cd59335d707284d44f` |
-| Its `export.json` | `d40d72040ccf0a2a05be0cb1583065f53e7735e334145aa6ef581388a3b6356e` |
-| Its `comparison.json` | `cc532deab90dfcbf97f989e157e7cd18680e68e73f5cf700f5a13507549758a6` |
-| Report of the export with `main` only | `b231e0f1a66e1ed32afc6cc6685018bbce29fda54ae505a91697572a0ea1dda0` |
-| Its `export.json` | `a7f9b48d7b9c25244984170a077614ff23a4956c655126961d375a7617aac4d5` |
-| Its `comparison.json` | `0cffe4a22ad63a9b12501e7c9242adc36627d6b7483cee10f951e2207a46e0ec` |
+| FP32 reference `record.json` | `e5ee1fb6d2683674f655ba6a3de86b8fce9f351ed72898e5b5ccf380c5842f8f` |
+| Report of the export with `main` and `prefill` | `4ccfd4f26e8745b8ffa4ba0df23884ec5a36f339ccfd9e22b03f5a896fbc9bd6` |
+| Its `export.json` | `9d1b7f1391ac1185afd52a06ee4f101faf37640dace393b7a182377af9f1f010` |
+| Its `comparison.json` | `ec33c81d0a1b2b7ead6f40d35f86be27af77a3df59435064dc47a11e3f6ae8f8` |
+| Report of the export with `main` only | `3c2b28aa34bd067e3b20f06c49bfc1509793c884b9e7df77a348578db168e995` |
+| Its `export.json` | `4680b05db7befabac4659c30bf6c4015b5508fb572a50438c3e4532e4bbd3c31` |
+| Its `comparison.json` | `a4b3fddaf9f7df068758f8a01b4472424e1a942abd2b3f79ddc03e193b89227c` |
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 reference record.json> \
