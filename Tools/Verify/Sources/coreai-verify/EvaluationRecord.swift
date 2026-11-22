@@ -29,27 +29,27 @@ enum LogitsRow: Equatable {
 
     init(_ logits: [Float16]) {
         let nonFinite = logits.lazy.filter { !$0.isFinite }.count
-        guard nonFinite == 0, let maximum = logits.max().map(Double.init) else {
+        guard nonFinite == 0 else {
             self = .nonFinite(nonFinite)
             return
         }
-        let exponents = logits.map { exp(Double($0) - maximum) }
-        let total = exponents.reduce(0, +)
-        var first = (id: 0, probability: -1.0)
-        var second = first
-        for (id, exponent) in exponents.enumerated() {
-            let probability = exponent / total
-            if probability > first.probability {
+        var first = 0
+        var second = -1
+        for id in logits.indices.dropFirst() {
+            if logits[id] > logits[first] {
                 second = first
-                first = (id, probability)
-            } else if probability > second.probability {
-                second = (id, probability)
+                first = id
+            } else if second < 0 || logits[id] > logits[second] {
+                second = id
             }
         }
+        let maximum = Double(logits[first])
+        let total = logits.reduce(0) { $0 + exp(Double($1) - maximum) }
+        func probability(_ id: Int) -> Double { exp(Double(logits[id]) - maximum) / total }
         self = .finite(
             TopTwo(
-                first: Int32(first.id), firstProbability: first.probability, second: Int32(second.id),
-                secondProbability: second.probability))
+                first: Int32(first), firstProbability: probability(first), second: Int32(second),
+                secondProbability: probability(second)))
     }
 }
 

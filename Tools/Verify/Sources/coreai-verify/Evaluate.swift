@@ -58,6 +58,7 @@ struct Evaluate: AsyncParsableCommand {
         guard let mainHash = bundle.mainHash else {
             throw ValidationError("The bundle has no main.hash, so the run record could not name the asset.")
         }
+        guard bundle.vocabSize >= 2 else { throw ValidationError("language.vocab_size must be at least 2.") }
         let items = try EvaluationInput.read(inputData, vocabulary: bundle.vocabSize)
         let folder = URL(filePath: output)
         _ = try Evaluation.stored(in: folder)

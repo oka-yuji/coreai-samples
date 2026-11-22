@@ -86,6 +86,18 @@ func jsonObject(_ data: Data) throws -> [String: Any] {
         #expect(source.calls == ["reset", "prefill 3 true", "step 1", "step 2", "step 0"])
     }
 
+    @Test(
+        "The two candidates are ranked by their logits, so a second logit far below the largest stays second even when its probability rounds to zero"
+    )
+    func ranksByLogits() {
+        #expect(
+            LogitsRow([0, 1, 1024])
+                == .finite(TopTwo(first: 2, firstProbability: 1, second: 1, secondProbability: 0)))
+        #expect(
+            LogitsRow([1024, 0, 1, 1])
+                == .finite(TopTwo(first: 0, firstProbability: 1, second: 2, secondProbability: 0)))
+    }
+
     @Test("A top-2 entry is written as an array of the first id, its probability, the second id and its probability")
     func topTwoWireForm() throws {
         let entry = TopTwo(first: 7, firstProbability: 0.5, second: 2, secondProbability: 0.25)
