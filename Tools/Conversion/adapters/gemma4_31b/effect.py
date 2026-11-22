@@ -4,12 +4,21 @@ from pathlib import Path
 import sys
 
 from .compare import CONTRACT
-from .layers import CONDITIONS, RESTORED, WEIGHTS, kept_rows
+from .export import quantized_names
+from .layers import CONDITIONS, PARTS, RESTORED, WEIGHTS, kept_rows
 from .native import NEAR_TIE, load_reference, measure
 from .prepare import load_contract
+from .summary import HEX
 
 SCHEMA = "gemma4-31b-quantization-effect/1"
 KEPT = ("rows", "non_finite", "reference_non_finite", "max_abs_logit", "top1_mismatches")
+
+
+def checked(record):
+    quantized = record.get("quantized")
+    return isinstance(quantized, dict) and isinstance(quantized.get("export_sha256"), str) \
+        and HEX[64].fullmatch(quantized["export_sha256"]) is not None \
+        and quantized.get("tensors") == len(PARTS) * len(quantized_names(record["layer_types"]))
 
 
 def effect(restored, rounded, contract_path=CONTRACT):
@@ -24,6 +33,9 @@ def effect(restored, rounded, contract_path=CONTRACT):
         loaded[kind] = record, hashed, arrays
     if loaded["restored"][0].get("layers") != loaded["rounded"][0].get("layers"):
         problems.append("the references are of other layer counts")
+    if not problems and not checked(loaded["restored"][0]):
+        problems.append("the restored reference did not check the data, scales and minimums of every quantized weight "
+                        "of a passed export")
     conditions = []
     for name, source, length, start, chunk in [] if problems else CONDITIONS:
         index = {row: position for position, row in enumerate(kept_rows(source))}

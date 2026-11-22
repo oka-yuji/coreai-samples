@@ -482,7 +482,8 @@ converter environment.
 ### FP32 reference restored from the quantized weights
 
 `layers.py context --weights 8bit --export <the export folder of the step>` writes the reference of the comparison with
-the weights that the export quantized. Before it creates its folder, it checks `quantized.safetensors` against the size
+the weights that the export quantized. It reads only an export that passed and recorded exactly the Linear weights of
+the layers as its quantized weights. Before it creates its folder, it checks `quantized.safetensors` against the size
 and SHA-256 in `export.json`; it then checks each tensor against its SHA-256 there, restores each weight as
 uint8 × scale + minimum with the blocks widened to the weight and each operation rounded to float16 (the dequantization
 of the converter), and puts it into the original implementation in float32. The other tensors are rounded to float16 as
@@ -512,7 +513,9 @@ the largest absolute logit difference and the top-1 changes inside and outside a
   --restored <restored reference folder> --rounded <float16 reference folder>
 ~~~
 
-`EffectTests` in `Tools/Conversion/tests/test_gemma4_31b_effect.py` fixes it. `fp16_summary` summarizes 8-bit records
+It refuses a restored reference that did not record the SHA-256 of the export record and the check of the data, scale
+and minimum of every quantized weight. `EffectTests` in `Tools/Conversion/tests/test_gemma4_31b_effect.py` fixes it.
+`fp16_summary` summarizes 8-bit records
 with the restored reference as `--reference` and the output of `effect` as `--effect`; `QuantizedSummaryTests` fixes
 these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).

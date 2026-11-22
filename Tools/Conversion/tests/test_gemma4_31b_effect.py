@@ -103,6 +103,19 @@ class EffectTests(unittest.TestCase):
                 self.assertEqual((code, result["conditions"]), (1, []))
                 self.assertTrue(result["problems"])
 
+    def test_a_restored_reference_without_the_checks_of_every_quantized_tensor_is_refused(self):
+        cases = {"one tensor less": {"export_sha256": "1" * 64, "file": {"bytes": 1, "sha256": "2" * 64}, "tensors": 122},
+                 "no hash of the export record": {"file": {"bytes": 1, "sha256": "2" * 64}, "tensors": 123},
+                 "free text as the hash": {"export_sha256": "private", "file": {}, "tensors": 123},
+                 "a list": ["tensors"]}
+        for label, quantized in cases.items():
+            restored = self.write(label.replace(" ", "-"), layers.RESTORED, self.arrays, quantized=quantized)
+            with self.subTest(case=label):
+                code, output, _ = self.run_main(restored, self.rounded)
+                result = json.loads(output)
+                self.assertEqual((code, result["conditions"]), (1, []))
+                self.assertTrue(result["problems"])
+
     def test_an_unreadable_reference_stops_with_the_fixed_error_and_prints_nothing(self):
         (self.restored / "record.json").write_text("{")
         code, output, errors = self.run_main(self.restored, self.rounded)

@@ -196,19 +196,33 @@ def restore(data, scale, minval):
     return data.to(scale.dtype) * scale.repeat_interleave(blocks, -1) + minval.repeat_interleave(blocks, -1)
 
 
-def quantized_export(folder, contract_path, layers):
-    from .export import SCHEMA
+def names_of(entries):
+    if not isinstance(entries, list) or not all(isinstance(entry, dict) and isinstance(entry.get("name"), str)
+                                                for entry in entries):
+        return None
+    return sorted(entry["name"] for entry in entries)
+
+
+def quantized_export(folder, contract_path, kinds):
+    from .export import SCHEMA, quantized_names
 
     record, hashed, _ = read(folder / "export.json")
-    if not isinstance(record, dict) or (record.get("schema"), record.get("precision"), record.get("layers"),
-                                        (record.get("model") or {}).get("contract_sha256")) \
-            != (SCHEMA, "8bit", layers, sha256(contract_path)):
-        raise ValueError("The export is not an 8-bit export of these layers with this contract")
-    quantized, path = record.get("quantized") or {}, folder / QUANTIZED
-    if path.is_symlink() or not path.is_file() or file_hash(path) != quantized.get("file") \
-            or not isinstance(quantized.get("tensors"), dict):
+    record = record if isinstance(record, dict) else {}
+    model, quantized = record.get("model"), record.get("quantized")
+    if (record.get("schema"), record.get("precision"), record.get("passed"), record.get("layers")) \
+            != (SCHEMA, "8bit", True, len(kinds)) or not isinstance(model, dict) \
+            or model.get("contract_sha256") != sha256(contract_path) or not isinstance(quantized, dict):
+        raise ValueError("The export is not a passed 8-bit export of these layers with this contract")
+    expected = sorted(quantized_names(kinds))
+    tensors, entry = quantized.get("tensors"), quantized.get("file")
+    if names_of(quantized.get("layers")) != expected or not isinstance(tensors, dict) \
+            or set(tensors) != {f"{name}.{part}" for name in expected for part in PARTS} \
+            or not all(isinstance(value, str) for value in tensors.values()):
+        raise ValueError("The export did not record exactly the quantized Linear weights of these layers")
+    path = folder / QUANTIZED
+    if path.is_symlink() or not path.is_file() or file_hash(path) != entry:
         raise ValueError("The quantized tensors differ from the export record")
-    return {"export_sha256": hashed, "file": quantized["file"]}, quantized["tensors"]
+    return {"export_sha256": hashed, "file": entry}, tensors
 
 
 def restored_weights(model, path, digests):
@@ -261,8 +275,8 @@ def context(contract_path, snapshot, layers, output, weights, export=None):
         raise ValueError("Give an export exactly for the weights restored from its quantized tensors")
     contract = load_contract(contract_path)
     config = contract["config"]
-    check_layers(config, layers)
-    quantized, digests = quantized_export(export, contract_path, layers) if export is not None else ({}, None)
+    kinds = check_layers(config, layers)
+    quantized, digests = quantized_export(export, contract_path, kinds) if export is not None else ({}, None)
     import numpy as np
 
     output.mkdir(parents=True)

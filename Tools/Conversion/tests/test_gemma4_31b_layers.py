@@ -487,8 +487,11 @@ def quantized_tensors(text, seed=5):
 def write_export(folder, contract, tensors, **changes):
     folder.mkdir()
     digests = export.save_quantized(folder / layers.QUANTIZED, list(tensors.items()))
-    record = {"schema": export.SCHEMA, "precision": "8bit", "layers": 6, "model": {"contract_sha256": sha256(contract)},
-              "quantized": {"file": file_hash(folder / layers.QUANTIZED), "tensors": digests}, **changes}
+    weights = sorted({name.rsplit(".", 1)[0] for name in tensors})
+    record = {"schema": export.SCHEMA, "precision": "8bit", "passed": True, "layers": 6,
+              "model": {"contract_sha256": sha256(contract)},
+              "quantized": {"layers": [{"name": name} for name in weights], "file": file_hash(folder / layers.QUANTIZED),
+                            "tensors": digests}, **changes}
     write_json(folder / "export.json", record)
     return folder
 
@@ -577,6 +580,16 @@ class RestoredReferenceTests(unittest.TestCase):
                      "scales of another type": ({**tensors, f"{name}.scale": tensors[f"{name}.scale"].float()}, None),
                      "another precision": (tensors, lambda target: record_of(target, lambda record: record.update(
                          precision="float16"))),
+                     "an export that did not pass": (tensors, lambda target: record_of(target, lambda record: record.update(
+                         passed=False))),
+                     "an export without a recorded weight": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"]["layers"].pop())),
+                     "an export with another recorded weight": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"]["layers"].append({"name": "embed_tokens.weight"}))),
+                     "an export whose weights are not a list": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"].update(layers={"name": "a"}))),
+                     "an export whose quantized record is a list": (tensors, lambda target: record_of(
+                         target, lambda record: record.update(quantized=["file"]))),
                      "another layer count": (tensors, lambda target: record_of(target, lambda record: record.update(
                          layers=12))),
                      "another contract": (tensors, lambda target: record_of(target, lambda record: record["model"].update(
