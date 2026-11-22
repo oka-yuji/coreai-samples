@@ -237,7 +237,8 @@ compared and its mean is within the limit; and `failed` otherwise. The report-on
 `kl_mean`, `kl_p99` and `kl_max` (the KL divergence from the baseline to the candidate at each position),
 `max_abs_logit_difference`, `top1_agreement` and `near_tie_count`. A finding about the logits of one item fails that
 item and the comparison, and the other items are still compared; so does a forced record whose fields disagree by
-`inconsistencies` of `Tools/LLMEvaluation/layer1.py`. The command refuses an existing output, also a link,
+`inconsistencies` of `Tools/LLMEvaluation/layer1.py`. An array file is read only when it is a regular file whose size
+is that of its `shape` and `dtype`, and no array file of an item is read once a finding about the item is known. The command refuses an existing output, also a link,
 before it reads the records; once it has made the folder, it writes `layer1.json` on every path, and a minimal failed
 record when the full record cannot be written. The exit code is 0 only when the comparison passed. `VerdictTests`,
 `CorrespondenceTests` and `BoundaryTests` in `Tools/Conversion/tests/test_gemma4_31b_layer1_compare.py` fix these

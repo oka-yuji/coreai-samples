@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat
 import sys
 
 from Tools.LLMEvaluation import checks, items
@@ -96,34 +97,49 @@ def side(name, folder, digest, roles, expected, problems):
     return found
 
 
-def loaded(name, found, record, vocabulary, problems):
-    import numpy as np
-
-    listed, shape = found["entries"].get(record["id"]), [record["rows"], vocabulary]
-    if listed is None:
+def listed(name, found, record, vocabulary, problems):
+    entry, shape = found["entries"].get(record["id"]), [record["rows"], vocabulary]
+    if entry is None:
         problems.append(f"the {name} has no logits for the item")
         return None
     wrong = [text for text, hit in (
-        (f"the {name} read other tokens", listed["tokens_sha256"] != record["tokens_sha256"]),
-        (f"the {name} dtype {listed['dtype']!r} is not float16 or float32", listed["dtype"] not in DTYPES),
-        (f"the {name} logits have the shape {listed['shape']}, not {shape}", listed["shape"] != shape),
+        (f"the {name} read other tokens", entry["tokens_sha256"] != record["tokens_sha256"]),
+        (f"the {name} dtype {entry['dtype']!r} is not float16 or float32", entry["dtype"] not in DTYPES),
+        (f"the {name} logits have the shape {entry['shape']}, not {shape}", entry["shape"] != shape),
         (f"the {name} file name is not a name in its folder",
-         listed["file"] in ("", "..") or Path(listed["file"]).name != listed["file"])) if hit]
-    if wrong:
-        problems += wrong
-        return None
+         entry["file"] in ("", "..") or Path(entry["file"]).name != entry["file"])) if hit]
+    problems += wrong
+    return None if wrong else entry
+
+
+def contents(path, size):
+    with open(path, "rb") as handle:
+        return handle.read(size + 1)
+
+
+def loaded(name, folder, entry, problems):
+    import numpy as np
+
+    dtype, path = np.dtype(DTYPES[entry["dtype"]]), folder / entry["file"]
+    size = entry["shape"][0] * entry["shape"][1] * dtype.itemsize
     try:
-        data = (found["folder"] / listed["file"]).read_bytes()
+        status = os.stat(path)
+        if not stat.S_ISREG(status.st_mode):
+            problems.append(f"the {name} logits are not a regular file")
+            return None
+        if status.st_size != size:
+            problems.append(f"the {name} file holds {status.st_size} B, not {size} B")
+            return None
+        data = contents(path, size)
     except Exception as error:
         problems.append(f"the {name} logits are unreadable ({type(error).__name__})")
         return None
-    dtype = np.dtype(DTYPES[listed["dtype"]])
-    if len(data) != record["rows"] * vocabulary * dtype.itemsize:
-        problems.append(f"the {name} file holds {len(data)} B, not {record['rows'] * vocabulary * dtype.itemsize} B")
-    elif hashlib.sha256(data).hexdigest() != listed["sha256"]:
+    if len(data) != size:
+        problems.append(f"the {name} file changed while it was read")
+    elif hashlib.sha256(data).hexdigest() != entry["sha256"]:
         problems.append(f"the {name} file differs from its SHA-256")
     else:
-        return np.frombuffer(data, dtype=dtype).reshape(shape)
+        return np.frombuffer(data, dtype=dtype).reshape(entry["shape"])
     return None
 
 
@@ -156,7 +172,12 @@ def item(name, records, sides, vocabulary, rule):
         return entry, None
     entry.update(band=band(rule["bands"], record["input_tokens"]), input_tokens=record["input_tokens"],
                  rows=record["rows"])
-    arrays = {key: loaded(key, sides[key], record, vocabulary, entry["problems"]) for key in SIDES}
+    entries = {key: listed(key, sides[key], record, vocabulary, entry["problems"]) for key in SIDES}
+    arrays = {}
+    for key in SIDES:
+        if entry["problems"]:
+            return entry, None
+        arrays[key] = loaded(key, sides[key]["folder"], entries[key], entry["problems"])
     if entry["problems"]:
         return entry, None
     entry["non_finite"] = {key: int(array.size - np.count_nonzero(np.isfinite(array))) for key, array in arrays.items()}

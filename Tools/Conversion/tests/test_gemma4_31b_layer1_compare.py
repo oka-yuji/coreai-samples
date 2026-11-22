@@ -110,11 +110,13 @@ class Comparison(unittest.TestCase):
         (folder / "logits.json").write_text(json.dumps(record))
         return folder
 
-    def compared(self, candidate_dtype="float32", edit=None, forced=None):
+    def compared(self, candidate_dtype="float32", edit=None, forced=None, after=None):
         output = self.folder / "result"
-        result = layer1_compare.compare(forced or self.forced, self.side("baseline", self.baseline),
-                                        self.side("candidate", self.candidate, candidate_dtype, "fp16", edit), output,
-                                        self.contract)
+        baseline = self.side("baseline", self.baseline)
+        candidate = self.side("candidate", self.candidate, candidate_dtype, "fp16", edit)
+        if after is not None:
+            after(candidate)
+        result = layer1_compare.compare(forced or self.forced, baseline, candidate, output, self.contract)
         self.assertEqual(read_json(output / "layer1.json"), result)
         return result
 
@@ -359,6 +361,73 @@ class CorrespondenceTests(Comparison):
         self.failed(result, f"{self.records[0]['id']}: the forced record is inconsistent: its rows are outside 1 to max_per_item")
         self.failed(result, f"{self.records[1]['id']}: the forced record is inconsistent: its input length is outside the bands")
         self.assertFalse(any("made from another forced input" in problem for problem in result["problems"]))
+
+    def reads(self):
+        calls, original = [], layer1_compare.contents
+
+        def recorded(path, size):
+            calls.append((Path(path).parent.name, Path(path).name))
+            return original(path, size)
+
+        return calls, mock.patch.object(layer1_compare, "contents", side_effect=recorded)
+
+    def test_an_array_file_of_another_size_or_kind_is_not_read(self):
+        name, rows = self.records[3]["id"], self.records[3]["rows"]
+        size, extra = rows * VOCABULARY * 4, 4 * VOCABULARY * 16384
+
+        def bigger(folder):
+            with (folder / f"{name}.float32").open("ab") as handle:
+                handle.write(bytes(extra))
+
+        def smaller(folder):
+            path = folder / f"{name}.float32"
+            path.write_bytes(path.read_bytes()[:-4])
+
+        def directory(folder):
+            (folder / f"{name}.float32").unlink()
+            (folder / f"{name}.float32").mkdir()
+
+        for kind, change, text in (("bigger", bigger, f"the candidate file holds {size + extra} B, not {size} B"),
+                                   ("smaller", smaller, f"the candidate file holds {size - 4} B, not {size} B"),
+                                   ("folder", directory, "the candidate logits are not a regular file")):
+            with self.subTest(kind):
+                self.fresh()
+                calls, patched = self.reads()
+                with patched:
+                    result = self.compared(after=change)
+                self.failed(result, f"{name}: {text}")
+                self.assertNotIn(("candidate", f"{name}.float32"), calls)
+                self.assertEqual(len(calls), 2 * len(self.records) - 1)
+
+    def test_a_file_that_grows_after_its_size_was_checked_fails(self):
+        name, real = self.records[3]["id"], os.stat
+
+        def grown(folder):
+            with (folder / f"{name}.float32").open("ab") as handle:
+                handle.write(bytes(4))
+
+        def reported(path, *arguments, **options):
+            status = real(path, *arguments, **options)
+            if Path(path).name == f"{name}.float32" and Path(path).parent.name == "candidate":
+                return os.stat_result(tuple(status)[:6] + (status.st_size - 4,) + tuple(status)[7:10])
+            return status
+
+        with mock.patch.object(layer1_compare.os, "stat", side_effect=reported):
+            result = self.compared(after=grown)
+        self.failed(result, f"{name}: the candidate file changed while it was read")
+
+    def test_no_array_of_an_item_with_a_problem_in_its_records_is_read(self):
+        def changed(records):
+            records[0]["rows"] = LAYER1["positions"]["max_per_item"] + 1
+
+        forced = self.forged(changed)
+        calls, patched = self.reads()
+        with patched:
+            result = self.compared(forced=forced, edit=lambda record: record["items"][1].update(tokens_sha256="0" * 64))
+        self.failed(result, f"{self.records[1]['id']}: the candidate read other tokens")
+        for record in self.records[:2]:
+            self.assertFalse(any(file.startswith(record["id"] + ".") for _, file in calls))
+        self.assertEqual(len(calls), 2 * (len(self.records) - 2))
 
     def test_the_same_folder_on_both_sides_fails(self):
         folder = self.side("both", self.baseline)
