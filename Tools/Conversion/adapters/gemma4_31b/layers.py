@@ -12,7 +12,7 @@ from ...storage import digest, read_json, write_json
 from ..pinned import sha256
 from .compare import BLOCK_ROWS, CONTRACT, recorded
 from .prepare import load_contract
-from .reference import file_record, footprint, verify_inputs
+from .reference import LOADED_FILES, file_record, footprint, verify_inputs
 
 SCHEMA = "gemma4-31b-layer-logits/1"
 COMPARISON = "gemma4-31b-layer-comparison/1"
@@ -30,8 +30,9 @@ CONVERTER = ("coreai-core", "coreai-models", "coreai-opt", "coreai-torch")
 
 def check_layers(config, layers):
     kinds = config["layer_pattern"] * (config["num_hidden_layers"] // len(config["layer_pattern"]))
-    if not 1 <= layers <= len(kinds) or kinds[layers - 1] != "full_attention":
+    if type(layers) is not int or not 1 <= layers <= len(kinds) or kinds[layers - 1] != "full_attention":
         raise ValueError(f"The first {layers} layers must end with a full-attention layer")
+    return kinds[:layers]
 
 
 def tokens(name, config):
@@ -200,10 +201,19 @@ def compare(original, model_class, contract_path=CONTRACT):
     vocabulary = contract["config"]["vocab_size"]
     folders = [Path(original), Path(model_class)]
     records = [read_json(folder / "record.json") for folder in folders]
+    model = {"id": contract["model_id"], "revision": contract["revision"], "contract_sha256": sha256(contract_path),
+             "verified_before_loading": {name: entry for name, entry in contract["files"].items()
+                                         if name in LOADED_FILES or name.endswith(".safetensors")}}
     problems = [f"the {kind} run holds a record of the {record.get('implementation')} implementation"
                 for kind, record in zip(IMPLEMENTATIONS, records) if record.get("implementation") != kind]
-    problems += [f"the {kind} run used another contract" for kind, record in zip(IMPLEMENTATIONS, records)
-                 if (record.get("model") or {}).get("contract_sha256") != sha256(contract_path)]
+    for kind, record in zip(IMPLEMENTATIONS, records):
+        if record.get("model") != model:
+            problems.append(f"the {kind} run recorded another model or contract")
+        try:
+            if record.get("layer_types") != check_layers(contract["config"], record.get("layers")):
+                problems.append(f"the {kind} run recorded layer types that differ from the contract")
+        except ValueError as error:
+            problems.append(f"the {kind} run: {error}")
     problems += [f"the runs differ in {key}" for key in ("model", "layers", "layer_types")
                  if records[0].get(key) != records[1].get(key)]
     if same_file(*(folder / "record.json" for folder in folders)):

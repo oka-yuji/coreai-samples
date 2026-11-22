@@ -86,16 +86,17 @@ def write_snapshot(folder):
 
 def write_run(folder, implementation, contract, arrays):
     folder.mkdir(parents=True)
-    config = load_contract(contract)["config"]
+    pinned = load_contract(contract)
     inputs = {}
     for name, array in arrays.items():
         np.save(folder / f"{name}.npy", array)
-        ids = layers.tokens(name, config)
+        ids = layers.tokens(name, pinned["config"])
         inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids),
                         "logits": layers.file_record(folder / f"{name}.npy")}
+    model = {"id": pinned["model_id"], "revision": pinned["revision"], "contract_sha256": sha256(contract),
+             "verified_before_loading": pinned["files"]}
     write_json(folder / "record.json", {"implementation": implementation, "layers": 6, "inputs": inputs,
-                                        "layer_types": TEXT["layer_types"][:6],
-                                        "model": {"contract_sha256": sha256(contract)}})
+                                        "layer_types": TEXT["layer_types"][:6], "model": model})
 
 
 def edit_record(folder, change):
@@ -229,6 +230,32 @@ class CompareTests(unittest.TestCase):
         with self.subTest(case="missing logits"):
             (run / "class/long.npy").unlink()
             self.assertFalse(self.compare(run)["passed"])
+
+    def test_records_that_both_lack_or_share_a_layer_count_layer_types_or_model_off_the_contract_never_pass(self):
+        kinds = TEXT["layer_types"]
+        edits = {"no layer count": lambda record: record.pop("layers"),
+                 "no layer types": lambda record: record.pop("layer_types"),
+                 "a count that ends with a sliding-window layer": lambda record: record.update(layers=5,
+                                                                                               layer_types=kinds[:5]),
+                 "a count beyond the layers": lambda record: record.update(layers=13, layer_types=kinds + [FULL]),
+                 "a boolean count": lambda record: record.update(layers=True, layer_types=kinds[:1]),
+                 "other layer types": lambda record: record.update(layer_types=[FULL] * 6),
+                 "another model": lambda record: record["model"].update(id="other/model"),
+                 "another revision": lambda record: record["model"].update(revision="0" * 40),
+                 "fewer verified files": lambda record: record["model"]["verified_before_loading"].popitem()}
+        for label, edit in edits.items():
+            with self.subTest(case=label):
+                run = self.pair(label.replace(" ", "-"))
+                for kind in layers.IMPLEMENTATIONS:
+                    edit_record(run / kind, edit)
+                result = self.compare(run)
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
+        full_first = {"layer_pattern": [FULL], "num_hidden_layers": 1}
+        self.assertEqual(layers.check_layers(full_first, 1), [FULL])
+        for value in (True, 1.0, None):
+            with self.subTest(layers=value), self.assertRaisesRegex(ValueError, "must end with a full-attention layer"):
+                layers.check_layers(full_first, value)
 
     def test_runs_that_read_the_same_file_never_pass_and_copies_are_not_stopped_by_that_check(self):
         for label, link in {"symbolic-link": os.symlink, "hard-link": os.link}.items():
