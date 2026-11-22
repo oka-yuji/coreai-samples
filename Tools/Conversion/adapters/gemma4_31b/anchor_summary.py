@@ -110,12 +110,12 @@ def logits_record(entry, name):
                          "seconds": pipeline.number(case["seconds"]),
                          "logits_sha256": matched(case["files"]["logits"]["sha256"], HEX[64])}
                         for case in record["cases"]]}
-    if "ranges" in record:
+    if record["stage"] == "anchor":
         result["ranges"] = [{"point": word(row["point"]), "layer": optional(row["layer"], True),
                              "max_abs": optional(row["max_abs"]), "case": None if row["case"] is None else word(row["case"]),
                              "above_float16_max": count(row["above_float16_max"]),
                              "above_half_float16_max": count(row["above_half_float16_max"])} for row in record["ranges"]]
-    if record.get("cast") is not None:
+    if record["stage"] == "anchor" and compute["weights"] == "float16":
         cast = record["cast"]
         result["cast"] = {**{key: count(cast[key]) for key in ("tensors", "elements", "changed", "underflow", "non_finite",
                                                                 "above_float16_max")},
@@ -159,7 +159,7 @@ def comparison(data, names):
                                       for item in case["mismatches"]]} for case in data["cases"]],
             "groups": [{"kind": word(group["kind"]), "band": word(group["band"]), "scope": word(group["scope"]),
                         "cases": [word(value) for value in group["cases"]],
-                        **{key: count(group[key]) for key in ("first_row", "last_row") if key in group},
+                        **{key: count(group[key]) for key in ("first_row", "last_row") if group["scope"] == "window"},
                         **metrics(group)} for group in data["groups"]]}
 
 

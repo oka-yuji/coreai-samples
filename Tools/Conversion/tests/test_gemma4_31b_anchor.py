@@ -604,7 +604,9 @@ def stage_record(name, digest, **changes):
         record.update(stage=definition.pop("stage"), compute=definition,
                       cases=[{**case, "id": item["id"], "kind": item["kind"]} for item in EXPECTED["cases"]],
                       ranges=[{"point": "residual_input", "layer": 0, "max_abs": 3.0, "case": "ja_long",
-                               "above_float16_max": 0, "above_half_float16_max": 0}], cast=None)
+                               "above_float16_max": 0, "above_half_float16_max": 0}],
+                      cast={"tensors": 1, "elements": 4, "changed": 1, "underflow": 0, "non_finite": 0, "above_float16_max": 0,
+                            "max_abs_error": 1e-8} if name == "anchor_w16" else None)
     record.update(changes)
     return record
 
@@ -742,6 +744,17 @@ class SummaryTests(unittest.TestCase):
             report = write_summary_run(folder)
             comparison = comparison_record(self.hashes(report, "anchor", "reference"))
             self.assertEqual(self.summarize(report, [comparison, comparison]), (1, ""))
+
+    def test_values_that_the_step_or_the_group_requires_are_not_dropped(self):
+        for name, change in (("anchor", lambda record: record.pop("ranges")), ("anchor_w16", lambda record: record.update(cast=None))):
+            record = stage_record(name, "a" * 64)
+            change(record)
+            with self.subTest(name=name), self.assertRaises((KeyError, TypeError)):
+                anchor_summary.logits_record({"record": record, "sha256": "c" * 64}, name)
+        data = comparison_record(["a" * 64, "b" * 64])
+        data["groups"][0].update(scope="window")
+        with self.assertRaises(KeyError):
+            anchor_summary.comparison(data, {"a" * 64: "anchor", "b" * 64: "reference"})
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         for change in (lambda r: r["cases"][0].update(kind="free text"), lambda r: r["compute"].update(weights="a/b"),
