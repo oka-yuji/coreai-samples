@@ -18,11 +18,12 @@ func outputLines(_ folder: URL) throws -> [[String: Any]] {
 func runRecord(
     count: Int, contract: String = "contract", set: String = "primary", role: String = "fp16",
     mainHash: String = "hash", inputs: String = "inputs", prefillChunk: Int = 256, contextLimit: Int = 262_144,
-    commit: String = "c0ffee", started: Date = Date(timeIntervalSince1970: 0), id: String = "run-a"
+    commit: String = "c0ffee", started: Date = Date(timeIntervalSince1970: 0), id: String = "run-a",
+    sourceModelId: String? = "org/model"
 ) -> EvaluationRun {
     EvaluationRun(
         id: id, contract: .init(version: "G31-QC-v1", sha256: contract), set: set, role: role,
-        asset: .init(name: "bundle", mainHash: mainHash, sourceModelId: "org/model"),
+        asset: .init(name: "bundle", mainHash: mainHash, sourceModelId: sourceModelId),
         implementation: .init(commit: commit),
         callShape: .init(
             prefillChunk: prefillChunk, prefillFunction: true, expectFrequentReshapes: true,
@@ -96,30 +97,37 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
     }
 
     @Test(
-        "A run folder whose contract, set, role, asset, input records, call shape, effective context limit or implementation differs is rejected without generating",
+        "A run folder whose contract, set, role, asset hash, asset source, input records, call shape, effective context limit or implementation differs is rejected without generating or removing anything",
         arguments: [
-            ("contract", runRecord(count: 3, contract: "other")), ("set", runRecord(count: 3, set: "reserve")),
-            ("role", runRecord(count: 3, role: "w8")), ("asset.main_hash", runRecord(count: 3, mainHash: "other")),
-            ("inputs", runRecord(count: 3, inputs: "other")), ("call_shape", runRecord(count: 3, prefillChunk: 4096)),
-            ("call_shape", runRecord(count: 3, contextLimit: 8192)),
-            ("implementation", runRecord(count: 3, commit: "other")),
+            ("contract", runRecord(count: 3), runRecord(count: 3, contract: "other")),
+            ("set", runRecord(count: 3), runRecord(count: 3, set: "reserve")),
+            ("role", runRecord(count: 3), runRecord(count: 3, role: "w8")),
+            ("asset.main_hash", runRecord(count: 3), runRecord(count: 3, mainHash: "other")),
+            ("asset.source_model_id", runRecord(count: 3), runRecord(count: 3, sourceModelId: "org/other")),
+            ("asset.source_model_id", runRecord(count: 3), runRecord(count: 3, sourceModelId: nil)),
+            ("asset.source_model_id", runRecord(count: 3, sourceModelId: nil), runRecord(count: 3)),
+            ("inputs", runRecord(count: 3), runRecord(count: 3, inputs: "other")),
+            ("call_shape", runRecord(count: 3), runRecord(count: 3, prefillChunk: 4096)),
+            ("call_shape", runRecord(count: 3), runRecord(count: 3, contextLimit: 8192)),
+            ("implementation", runRecord(count: 3), runRecord(count: 3, commit: "other")),
         ])
-    func rejectsAnotherRun(field: String, other: EvaluationRun) async throws {
+    func rejectsAnotherRun(field: String, stored: EvaluationRun, other: EvaluationRun) async throws {
         let base = try temporaryFolder()
         defer { try? FileManager.default.removeItem(at: base) }
         let folder = base.appending(path: "run")
         let inputs = items(3)
         _ = try await Evaluation.run(
-            inputs, limit: 1, in: folder, record: runRecord(count: 3), source: FakeEvaluationLogitsSource([stopAtOnce]),
+            inputs, limit: 1, in: folder, record: stored, source: FakeEvaluationLogitsSource([stopAtOnce]),
             stopTokens: [3])
-        let before = try Data(contentsOf: folder.appending(path: "outputs.jsonl"))
+        let names = ["outputs.jsonl", "progress.json", "run.json"]
+        let before = try names.map { try Data(contentsOf: folder.appending(path: $0)) }
         let source = FakeEvaluationLogitsSource([stopAtOnce, stopAtOnce])
         let error = await #expect(throws: ValidationError.self) {
             try await Evaluation.run(inputs, in: folder, record: other, source: source, stopTokens: [3])
         }
-        #expect(error?.message.contains(field) == true)
+        #expect(error?.message == "--output holds another run; these differ from its run.json: \(field).")
         #expect(source.calls.isEmpty)
-        #expect(try Data(contentsOf: folder.appending(path: "outputs.jsonl")) == before)
+        #expect(try names.map { try Data(contentsOf: folder.appending(path: $0)) } == before)
     }
 
     @Test(
@@ -585,6 +593,6 @@ func checkpoint(in folder: URL) throws -> EvaluationCheckpoint {
             implementation: .init(commit: "c0ffee", osVersion: "27.0.0", osBuild: "26A428"), callShape: fixed.callShape,
             inputs: fixed.inputs, items: 0, started: fixed.started, load: fixed.load)
         let digest = try record.identityDigest()
-        #expect(digest == "db643feeacc5d86342ac65a0b8e13a17998cb8f57aa97b311694618c5f686233")
+        #expect(digest == "50d855a4a2bed761ef5958e751d69dd5106c4f2bf1f1dd6ae99dde486729aaac")
     }
 }

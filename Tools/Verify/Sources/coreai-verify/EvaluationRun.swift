@@ -48,6 +48,7 @@ struct EvaluationRun: Codable, Equatable {
         let set: String
         let role: String
         let mainHash: String
+        let sourceModelId: String?
         let inputs: Inputs
         let callShape: CallShape
         let implementation: Implementation
@@ -69,16 +70,17 @@ struct EvaluationRun: Codable, Equatable {
     func differences(from stored: EvaluationRun) -> [String] {
         [
             ("contract", contract == stored.contract), ("set", set == stored.set), ("role", role == stored.role),
-            ("asset.main_hash", asset.mainHash == stored.asset.mainHash), ("inputs", inputs == stored.inputs),
-            ("call_shape", callShape == stored.callShape), ("implementation", implementation == stored.implementation),
+            ("asset.main_hash", asset.mainHash == stored.asset.mainHash),
+            ("asset.source_model_id", asset.sourceModelId == stored.asset.sourceModelId),
+            ("inputs", inputs == stored.inputs), ("call_shape", callShape == stored.callShape),
+            ("implementation", implementation == stored.implementation),
         ].filter { !$0.1 }.map(\.0)
     }
 
     func identityDigest() throws -> String {
         let identity = Identity(
-            id: id, contract: contract, set: set, role: role, mainHash: asset.mainHash, inputs: inputs,
-            callShape: callShape,
-            implementation: implementation)
+            id: id, contract: contract, set: set, role: role, mainHash: asset.mainHash,
+            sourceModelId: asset.sourceModelId, inputs: inputs, callShape: callShape, implementation: implementation)
         return hex(Data(SHA256.hash(data: try JSONEncoder.records.encode(identity))))
     }
 }
