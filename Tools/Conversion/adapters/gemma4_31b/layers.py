@@ -17,10 +17,19 @@ from .reference import LOADED_FILES, file_record, footprint, verify_inputs
 
 SCHEMA = "gemma4-31b-layer-logits/1"
 COMPARISON = "gemma4-31b-layer-comparison/1"
+CONTEXT_SCHEMA = "gemma4-31b-context-logits/1"
 PREFIX = "model.language_model."
 LAYER = re.compile(r"layers\.(\d+)\.")
 IMPLEMENTATIONS = ("original", "class")
 INPUTS = {"short": (26, 0), "long": (1400, 1)}
+CONTEXT = {"context": (16896, 2)}
+REFERENCE_CHUNK = 1024
+CONDITIONS = (("short-c1", "short", 26, 0, 1), ("short-c26", "short", 26, 0, 26),
+              ("window-c1", "context", 1300, 0, 1), ("window-c2", "context", 1300, 0, 2),
+              ("window-c4", "context", 1300, 0, 4), ("window-c8", "context", 1300, 0, 8),
+              ("prefix-c1", "context", 1300, 1000, 1), ("capacity-2048", "context", 2056, 2040, 4),
+              ("capacity-4096", "context", 4104, 4088, 8), ("capacity-8192", "context", 8200, 8184, 2),
+              ("capacity-16384", "context", 16392, 16376, 4), ("tail", "context", 16896, 16832, 1))
 CHUNKS = (1, 2, 4, 8)
 CRITERIA = {"short": {"max_abs_logit": 1e-3},
             "long": {"max_abs_logit": 5e-3, "max_probability_error": 1e-6, "top1_mismatches": 0}}
@@ -37,9 +46,13 @@ def check_layers(config, layers):
 
 
 def tokens(name, config):
-    length, seed = INPUTS[name]
+    length, seed = {**INPUTS, **CONTEXT}[name]
     rng, bos = random.Random(seed), config["bos_token_id"]
     return [bos] + [rng.randrange(bos + 1, config["vocab_size"]) for _ in range(length - 1)]
+
+
+def kept_rows(name):
+    return sorted({row for _, source, length, start, _ in CONDITIONS if source == name for row in range(start, length)})
 
 
 def calls(length, window):
@@ -163,6 +176,59 @@ def run(implementation, contract_path, snapshot, layers, output):
     return record
 
 
+def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):
+    import numpy as np
+    import torch
+
+    blocks, bounds, cache = [], [], None
+    with torch.no_grad():
+        for start in range(0, len(ids), size):
+            end = min(start + size, len(ids))
+            rows = torch.tensor([row - start for row in keep if start <= row < end], dtype=torch.long)
+            output = model(input_ids=torch.tensor([ids[start:end]]), position_ids=torch.arange(start, end).unsqueeze(0),
+                           past_key_values=cache, use_cache=True, logits_to_keep=rows)
+            cache = output.past_key_values
+            blocks.append(output.logits[0].float().numpy())
+            bounds.append([start, end])
+    return np.concatenate(blocks), bounds
+
+
+def context(contract_path, snapshot, layers, output):
+    contract = load_contract(contract_path)
+    config = contract["config"]
+    check_layers(config, layers)
+    import numpy as np
+
+    output.mkdir(parents=True)
+    started = time.perf_counter()
+    verified = verify_inputs(snapshot, contract)
+    hashed = time.perf_counter()
+    model, scale, layer_types = original_model(snapshot, layers)
+    loaded = time.perf_counter()
+    inputs = {}
+    for name in ("short", "context"):
+        ids, rows = tokens(name, config), kept_rows(name)
+        begin = time.perf_counter()
+        array, bounds = kept_logits(model, ids, rows)
+        path = output / f"{name}.npy"
+        np.save(path, array)
+        inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids), "rows": rows, "calls": bounds,
+                        "seconds": time.perf_counter() - begin,
+                        "logits": {**file_record(path), "dtype": str(array.dtype), "shape": list(array.shape),
+                                   "non_finite": int(array.size - np.isfinite(array).sum())}}
+    record = {"schema": CONTEXT_SCHEMA, "implementation": "original", "layers": layers, "layer_types": layer_types,
+              "model": {"id": contract["model_id"], "revision": contract["revision"],
+                        "contract_sha256": sha256(contract_path), "verified_before_loading": verified},
+              "weights": WEIGHTS, "embed_scale": scale, "chunk": REFERENCE_CHUNK,
+              "versions": {name: importlib.metadata.version(name) for name in PACKAGES}, "inputs": inputs,
+              "timing": {"input_hash_s": hashed - started, "load_s": loaded - hashed,
+                         "total_s": time.perf_counter() - started},
+              "memory": {"max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                         "lifetime_peak_footprint_bytes": footprint()[1]}}
+    write_json(output / "record.json", record)
+    return record
+
+
 def softmax(rows):
     import numpy as np
 
@@ -260,9 +326,15 @@ def main():
     checker = commands.add_parser("compare")
     for name in ("original", "model-class"):
         checker.add_argument(f"--{name}", type=Path, required=True)
+    contexts = commands.add_parser("context", help="FP32 logits of the original implementation on the rows that the "
+                                                   "twelve conditions of the Core AI comparison score.")
+    contexts.add_argument("--layers", type=int, required=True)
+    for name in ("model", "snapshot", "output"):
+        contexts.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
-    if args.command == "run":
-        record = run(args.implementation, args.model, args.snapshot, args.layers, args.output)
+    if args.command in ("run", "context"):
+        record = (run(args.implementation, args.model, args.snapshot, args.layers, args.output) if args.command == "run"
+                  else context(args.model, args.snapshot, args.layers, args.output))
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
               record["memory"], flush=True)
         return 0

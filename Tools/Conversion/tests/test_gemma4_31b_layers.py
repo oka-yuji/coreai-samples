@@ -314,6 +314,87 @@ class CompareTests(unittest.TestCase):
             self.assertTrue(result["passed"], result["problems"])
 
 
+CONDITIONS = [("short-c1", "short", 26, 0, 1), ("short-c26", "short", 26, 0, 26),
+              ("window-c1", "context", 1300, 0, 1), ("window-c2", "context", 1300, 0, 2),
+              ("window-c4", "context", 1300, 0, 4), ("window-c8", "context", 1300, 0, 8),
+              ("prefix-c1", "context", 1300, 1000, 1), ("capacity-2048", "context", 2056, 2040, 4),
+              ("capacity-4096", "context", 4104, 4088, 8), ("capacity-8192", "context", 8200, 8184, 2),
+              ("capacity-16384", "context", 16392, 16376, 4), ("tail", "context", 16896, 16832, 1)]
+
+
+class ConditionTests(unittest.TestCase):
+    def test_the_twelve_conditions_read_prefixes_of_the_short_and_the_context_input_and_keep_their_rows(self):
+        self.assertEqual([tuple(condition) for condition in layers.CONDITIONS], CONDITIONS)
+        config = {"bos_token_id": 2, "vocab_size": 262144}
+        context = layers.tokens("context", config)
+        self.assertEqual((len(context), context[0]), (16896, 2))
+        self.assertTrue(all(2 < token < 262144 for token in context[1:]))
+        self.assertEqual(layers.tokens("context", config), context)
+        self.assertEqual(layers.kept_rows("short"), list(range(26)))
+        self.assertEqual(layers.kept_rows("context"), [*range(1300), *range(2040, 2056), *range(4088, 4104),
+                                                       *range(8184, 8200), *range(16376, 16392), *range(16832, 16896)])
+
+    def test_a_context_run_refuses_a_layer_count_or_an_existing_output_before_writing_or_loading(self):
+        with tempfile.TemporaryDirectory() as folder:
+            contract = write_contract(folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
+            (Path(folder) / "used").mkdir()
+            (Path(folder) / "dangling").symlink_to(Path(folder) / "missing")
+            with mock.patch.object(layers, "verify_inputs") as verify, \
+                    mock.patch.object(layers, "original_model") as original_model:
+                for count in (0, 5, 7, 13):
+                    with self.subTest(layers=count), self.assertRaisesRegex(ValueError, "full-attention"):
+                        layers.context(contract, Path(folder) / "snapshot", count, Path(folder) / f"layers-{count}")
+                    self.assertFalse((Path(folder) / f"layers-{count}").exists())
+                for name in ("used", "dangling"):
+                    with self.subTest(output=name), self.assertRaises(FileExistsError):
+                        layers.context(contract, Path(folder) / "snapshot", 6, Path(folder) / name)
+            verify.assert_not_called()
+            original_model.assert_not_called()
+
+
+@unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
+class ContextReferenceTests(unittest.TestCase):
+    def test_reading_in_chunks_with_the_cache_keeps_the_logits_of_one_call_on_the_chosen_rows(self):
+        model = original()
+        ids = [2, *torch.randint(3, TEXT["vocab_size"], (60,), generator=torch.Generator().manual_seed(3)).tolist()]
+        with torch.no_grad():
+            expected = model(torch.tensor([ids]), use_cache=False).logits[0].numpy()
+        keep = [0, 6, 7, 8, 9, 16, 23, 24, 25, 40, 60]
+        for size in (1, 3, 8, 13, 61):
+            logits, calls = layers.kept_logits(model, ids, keep, size)
+            with self.subTest(size=size):
+                self.assertEqual(logits.shape, (len(keep), TEXT["vocab_size"]))
+                self.assertEqual(calls, [[start, min(start + size, len(ids))] for start in range(0, len(ids), size)])
+                self.assertLess(float(np.abs(logits - expected[keep]).max()), 1e-3)
+
+    def test_the_context_run_keeps_the_rows_of_the_conditions_for_both_inputs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            snapshot, contract = write_snapshot(folder)
+            config = load_contract(contract)["config"]
+            record = layers.context(contract, snapshot, 6, Path(folder) / "context")
+            self.assertEqual(read_json(Path(folder) / "context/record.json"), record)
+            self.assertEqual((record["schema"], record["implementation"], record["layers"], record["layer_types"],
+                              record["chunk"]), (layers.CONTEXT_SCHEMA, "original", 6, TEXT["layer_types"][:6], 1024))
+            arrays = {}
+            for name in ("short", "context"):
+                ids, rows, entry = layers.tokens(name, config), layers.kept_rows(name), record["inputs"][name]
+                arrays[name] = np.load(Path(folder) / f"context/{name}.npy")
+                with self.subTest(input=name):
+                    self.assertEqual((entry["positions"], entry["tokens_sha256"], entry["rows"]), (len(ids), digest(ids), rows))
+                    self.assertEqual(arrays[name].shape, (len(rows), TEXT["vocab_size"]))
+                    self.assertEqual(entry["logits"]["shape"], [len(rows), TEXT["vocab_size"]])
+                    self.assertEqual(entry["logits"]["sha256"], sha256(Path(folder) / f"context/{name}.npy"))
+            self.assertEqual(record["inputs"]["context"]["calls"],
+                             [[start, min(start + 1024, 16896)] for start in range(0, 16896, 1024)])
+            model, _, _ = layers.original_model(snapshot, 6)
+            ids = layers.tokens("context", config)
+            with torch.no_grad():
+                window = model(torch.tensor([ids[:1300]]), use_cache=False).logits[0].numpy()
+                short = model(torch.tensor([layers.tokens("short", config)]), use_cache=False).logits[0].numpy()
+            self.assertLess(float(np.abs(arrays["context"][:1300] - window).max()), 1e-3)
+            self.assertLess(float(np.abs(arrays["short"] - short).max()), 1e-3)
+
+
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
 class OriginalRunTests(unittest.TestCase):
     def test_the_original_run_reads_the_first_layers_with_rounded_weights_and_the_rounded_scale(self):
