@@ -10,6 +10,7 @@
  },
  "reasons": [
   "hash_mismatch",
+  "run_unfinished",
   "missing_output",
   "malformed_record",
   "not_in_set",
@@ -58,7 +59,7 @@
     {"id": "long-ja-4k-0002", "category": "long-ja-4k", "kind": "reading_exact", "token_count": 4000}
    ],
    "baseline": {
-    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "reference"},
+    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "reference", "items": 23, "inputs": {"count": 23}},
     "summary": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "items": {"file": "primary.jsonl", "sha256": "i0"}, "tokenizer": {"sha256": "t0", "vocabulary": 262144}, "scorer": {"commit": "s0", "python": "3.11.9"}, "code": {"timeouts": 0, "rerun_passed": 0}, "checks": {"missing": [], "not_in_set": [], "duplicate": [], "top2_differs": [], "item_hash_differs": [], "malformed": []}},
     "scores": [
      {"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
@@ -112,7 +113,7 @@
     ]
    },
    "candidate": {
-    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "fp16"},
+    "run": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "set": "primary", "role": "fp16", "items": 23, "inputs": {"count": 23}},
     "summary": {"contract": {"version": "G31-QC-v1", "sha256": "c0"}, "items": {"file": "primary.jsonl", "sha256": "i0"}, "tokenizer": {"sha256": "t0", "vocabulary": 262144}, "scorer": {"commit": "s0", "python": "3.11.9"}, "code": {"timeouts": 0, "rerun_passed": 0}, "checks": {"missing": [], "not_in_set": [], "duplicate": [], "top2_differs": [], "item_hash_differs": [], "malformed": []}},
     "scores": [
      {"id": "ja-choice-0001", "category": "ja-choice", "kind": "choice_digit", "correct": true, "state": "scored"},
@@ -555,6 +556,45 @@
     ["delete", ["upper_bounds", "extract-ja"]],
     ["set", ["claim"], null]
    ]
+  },
+  {
+   "name": "same_output_ids_stopped_differently",
+   "about": "Equal output_ids with different correctness cannot be trusted, even when one run stopped on a stop token and the other at its limit.",
+   "input": [
+    ["set", ["candidate", "outputs", {"id": "extract-ja-0002"}], {"id": "extract-ja-0002", "input_sha256": "in-extract-ja-0002", "input_tokens": 34, "output_ids": [1014, 2014, 3014], "stop": "limit", "top2": [[1014, 0.75, 7, 0.125], [2014, 0.5, 8, 0.25], [3014, 0.625, 9, 0.125]], "non_finite": 0}],
+    ["set", ["candidate", "scores", {"id": "extract-ja-0002"}, "correct"], false]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "score_inconsistent", "ids": ["extract-ja-0002"]}]],
+    ["set", ["regressions"], ["extract-ja-0002"]],
+    ["set", ["changed"], [{"id": "extract-ja-0002", "position": 3, "baseline_gap": 0.625}]],
+    ["set", ["categories", "extract-ja", "candidate_correct"], 1],
+    ["set", ["categories", "extract-ja", "regressions"], 1],
+    ["delete", ["upper_bounds", "extract-ja"]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_says_unfinished",
+   "about": "A run record whose item count is below its input count is an interruption.",
+   "input": [
+    ["set", ["candidate", "run", "items"], 22]
+   ],
+   "expected": [
+    ["set", ["verdict"], "incomplete"],
+    ["set", ["incomplete"], [{"reason": "run_unfinished", "ids": []}]],
+    ["set", ["claim"], null]
+   ]
+  },
+  {
+   "name": "run_record_without_counts",
+   "about": "A run record without the counts is not judged as unfinished.",
+   "input": [
+    ["delete", ["baseline", "run", "items"]],
+    ["delete", ["baseline", "run", "inputs"]]
+   ],
+   "expected": []
   },
   {
    "name": "reasons_are_listed_in_a_fixed_order",

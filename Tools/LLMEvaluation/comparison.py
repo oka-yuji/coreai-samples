@@ -6,8 +6,9 @@ import shutil
 from Tools.LLMEvaluation.items import FILES, lines, read_json, sha256
 from Tools.LLMEvaluation.scoring import folded, frozen_set, generated, partition, read_records, standard
 
-REASONS = ("hash_mismatch", "missing_output", "malformed_record", "not_in_set", "duplicate_id", "input_differs",
-           "token_count_differs", "baseline_error", "top2_differs", "unscored_item", "score_inconsistent")
+REASONS = ("hash_mismatch", "run_unfinished", "missing_output", "malformed_record", "not_in_set", "duplicate_id",
+           "input_differs", "token_count_differs", "baseline_error", "top2_differs", "unscored_item",
+           "score_inconsistent")
 CHECKS = {"missing_output": "missing", "not_in_set": "not_in_set", "duplicate_id": "duplicate",
           "top2_differs": "top2_differs"}
 SIDES = ("baseline", "candidate")
@@ -22,6 +23,12 @@ def repeated(ids, rule):
             if run == (times - 1) * period:
                 return True
     return False
+
+
+def unfinished(run):
+    done, inputs = run.get("items"), run.get("inputs")
+    return (isinstance(done, int) and not isinstance(done, bool) and isinstance(inputs, dict) and "count" in inputs
+            and done != inputs["count"])
 
 
 def flags(ids, rules):
@@ -59,7 +66,9 @@ def compare(document, layer2):
     mismatch = (any(run[part].get("contract") != contract for run in runs.values() for part in ("run", "summary"))
                 or any(run["run"].get("set") != document["set"] for run in runs.values())
                 or any(summaries[0].get(key) != summaries[1].get(key) for key in ("items", "tokenizer", "scorer")))
-    found = {"hash_mismatch": union("item_hash_differs"), **{reason: union(key) for reason, key in CHECKS.items()},
+    held = {"hash_mismatch": mismatch, "run_unfinished": any(unfinished(run["run"]) for run in runs.values())}
+    found = {"hash_mismatch": union("item_hash_differs"), "run_unfinished": [],
+             **{reason: union(key) for reason, key in CHECKS.items()},
              "malformed_record": list(dict.fromkeys(summaries[0]["checks"]["malformed"]
                                                     + summaries[1]["checks"]["malformed"])),
              "input_differs": sorted(item["id"] for item in items if all(item["id"] in records[side] for side in SIDES)
@@ -106,8 +115,7 @@ def compare(document, layer2):
         changed.append({"id": name, "position": position, "baseline_gap": gap(before, position)})
     found["score_inconsistent"] = inconsistent
 
-    incomplete = [{"reason": reason, "ids": found[reason]} for reason in REASONS
-                  if found[reason] or (reason == "hash_mismatch" and mismatch)]
+    incomplete = [{"reason": reason, "ids": found[reason]} for reason in REASONS if found[reason] or held.get(reason)]
     present = {"incomplete": incomplete, "critical_failure": failures, "regression_found": regressions,
                "no_regression_found": True}
     verdict = next(label for label in layer2["precedence"] if present[label])

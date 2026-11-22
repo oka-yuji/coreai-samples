@@ -147,6 +147,7 @@ The reasons of `incomplete`, in this order:
 | Reason | Ids |
 |---|---|
 | `hash_mismatch` | A run record or a scoring summary has another contract version or `contract.json` SHA-256 than this contract, a run record names another set than `--items`, the two summaries differ in `items`, `tokenizer` or `scorer`, or a summary reports `item_hash_differs`. The ids are those of `item_hash_differs`, possibly none |
+| `run_unfinished` | The run record of either run has an integer `items` and an `inputs.count` that differ, as the record of a run that has not finished does: the generating command writes the number of finished items to `items` and the number of input records to `inputs.count`. A run record without either is not judged. No ids |
 | `missing_output`, `not_in_set`, `duplicate_id`, `top2_differs` | The ids of the scoring checks `missing`, `not_in_set`, `duplicate` and `top2_differs` of either run |
 | `malformed_record` | The scoring check `malformed` of the baseline, then the entries of the candidate that the list does not hold yet, in order and without repeats; an entry is an id or a line number |
 | `input_differs` | Items whose baseline and candidate records differ in `input_sha256` |
@@ -155,7 +156,7 @@ The reasons of `incomplete`, in this order:
 | `unscored_item` | Items of a scored category whose `correct` is `null` in either run with a state other than `missing` and `malformed`, for example `pending_code` |
 | `score_inconsistent` | Items whose correctness differs although the baseline and candidate `output_ids` are equal; the scored text is decoded from `output_ids` alone, so a different stop does not explain it |
 
-Except for `malformed_record`, the ids are sorted. The generated tokens of a record are `output_ids`, followed by `stop_token` when the run stopped on one.
+Except for `malformed_record`, the ids are sorted; `run_unfinished` has none. The generated tokens of a record are `output_ids`, followed by `stop_token` when the run stopped on one.
 
 A critical failure is judged for each item with a candidate record: `non_finite_logits` when `non_finite` is above 0, and otherwise `runtime_error` when the record has an `error`. When the baseline also has a record, `empty_output`, `control_token` and `repetition` count only when the candidate output has the property and the baseline output does not. A repetition is a run of `min_consecutive` (4) copies, in a row, of a sequence of `min_length` (8) or more tokens of `output_ids`. The control tokens are `control_token_ids` of `contract.json`.
 
