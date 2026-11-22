@@ -181,7 +181,7 @@ item ごとに、エンジンを空にし、入力を `prefill` で読み(バン
 | `started`、`finished` | 実行を最初に始めた時刻と、最後に終えた時刻。実行の途中と、誤りで止まった後は `finished` が無い |
 | `load` | 最初の回のエンジンの読み込みの `cached`、`specialize_s`、`load_s` |
 
-`--output` に `run.json` があるときは、同じ実行のものでなければなりません。`contract`、`set`、`role`、`asset.main_hash`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。`outputs.jsonl` の最後の行が改行で終わっていなければ(書いている途中で止まった跡)、その行を消し、その item を流し直します。記録のある item は流し直しません(誤りで終わった item も)。それ以外の行は、出力の記録の全体として読み(各項目があり、型が合う)、その `input_sha256` と `input_tokens` が、同じ `id` の入力の記録の値と一致することを確かめます。読めない行、一致しない行、入力の記録に無い `id` の行、`id` が重なる行があれば、行番号と `id` を示して、生成する前に止まります(その行を消したり、流し直したりはしません)。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
+`--output` に `run.json` があるときは、同じ実行のものでなければなりません。`contract`、`set`、`role`、`asset.main_hash`、`inputs`、`call_shape`、`implementation` が今回と同じでなければ、生成する前に止まります。`outputs.jsonl` の最後の行が改行で終わっていなければ(書いている途中で止まった跡)、その行を消し、その item を流し直します。改行で終わる各行は、出力の記録の全体として読み(各項目があり、型が合う)、その `input_sha256` と `input_tokens` が、同じ `id` の入力の記録の値と一致することを確かめます。読めない行、一致しない行、入力の記録に無い `id` の行、`id` が重なる行があれば、行番号と `id` を示して、生成する前に止まります(その行を消したり、流し直したりはしません)。記録のある item は流し直しません(誤りで終わった item も)。再開した実行は `started` と `load` を残し、`items` と `finished` を更新します。
 
 標準出力には item ごとに 1 行の JSON を出します。`record` が `evaluate` で、`id`、`input_tokens`、`output_tokens`、`stop`(`stop_token`、`limit`、item に誤りがあれば `error`)、`seconds` を持ちます。文は出しません。取り消しと、入力の記録・契約・バンドル・実行のフォルダを読めないときは、item の誤りにせず、コマンドを止めます。
 
