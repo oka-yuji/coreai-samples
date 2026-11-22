@@ -1,0 +1,87 @@
+import Foundation
+import Testing
+
+@testable import CoreAIBackend
+
+@Suite(.timeLimit(.minutes(1))) struct PreparedCopyReleaseTests {
+    private typealias Fixture = PreparedCopyFixture
+
+    @Test(
+        "After a recovery whose deletion threw, a manual clear succeeds and removes the ledger, and the next load is normal"
+    )
+    func clearAfterFailedDeletion() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.dead]))
+        let recovery = fixture.recovery()
+        await #expect(throws: POSIXError(.EIO)) {
+            _ = try await recovery.load(delete: { throw POSIXError(.EIO) }, load: { 1 }, warmUp: { _ in })
+        }
+        #expect(recovery.record().failed)
+        let recorder = PreparedCopyRecorder()
+        try recovery.clear(delete: { recorder.note("clear") })
+        #expect(!Fixture.exists(recovery.file))
+        let result = try await recorder.load(recovery)
+        #expect(!result.recovered)
+        #expect(recorder.events == ["clear", "load", "warmUp"])
+    }
+
+    @Test(
+        "When the warm-up of a recovery throws another error, the ledger becomes terminal with the own mark at the warm-up stage and a manual clear succeeds"
+    )
+    func failedRecoveryWarmUpIsTerminal() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.dead]))
+        let recovery = fixture.recovery()
+        await #expect(throws: POSIXError(.EIO)) {
+            _ = try await recovery.load(delete: {}, load: { 1 }, warmUp: { _ in throw POSIXError(.EIO) })
+        }
+        let record = recovery.record()
+        let mark = try #require(record.marks.first)
+        #expect(
+            record
+                == Fixture.record(
+                    [Fixture.own(mark.attempt, .recovery, .warmUp)], recoveries: 1, suspects: [Fixture.dead],
+                    failed: true))
+        let recorder = PreparedCopyRecorder()
+        try recovery.clear(delete: { recorder.note("clear") })
+        #expect(recorder.events == ["clear"])
+    }
+
+    @Test(
+        "When the warm-up of a normal load throws, only its own mark is removed, other living marks stay and a manual clear succeeds"
+    )
+    func failedNormalWarmUpRemovesOwnMark() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.alive]))
+        let recovery = fixture.recovery()
+        let recorder = PreparedCopyRecorder()
+        await #expect(throws: POSIXError(.EIO)) {
+            _ = try await recovery.load(
+                delete: { recorder.note("delete") }, load: { 1 }, warmUp: { _ in throw POSIXError(.EIO) })
+        }
+        #expect(recovery.record() == Fixture.record([Fixture.alive]))
+        try recovery.clear(delete: { recorder.note("clear") })
+        #expect(recorder.events == ["clear"])
+    }
+
+    @Test("During a recovery the lock is free inside the notification, deletion, load and warm-up closures")
+    func recoveryClosuresRunWithoutLock() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(Fixture.record([Fixture.dead]))
+        let recovery = fixture.recovery()
+        var free: [String: Bool] = [:]
+        let result = try await recovery.load(
+            onRecovery: { free["onRecovery"] = fixture.lockIsFree() },
+            delete: { free["delete"] = fixture.lockIsFree() },
+            load: {
+                free["load"] = fixture.lockIsFree()
+                return 1
+            }, warmUp: { _ in free["warmUp"] = fixture.lockIsFree() })
+        #expect(result.recovered)
+        #expect(free == ["onRecovery": true, "delete": true, "load": true, "warmUp": true])
+    }
+}
