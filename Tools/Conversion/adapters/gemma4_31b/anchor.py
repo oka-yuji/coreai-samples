@@ -229,11 +229,20 @@ def load(snapshot, dtype, device, config=None):
     import transformers
 
     options = {"config": config} if config is not None else {}
-    loader = getattr(transformers, reference.MODEL_CLASS).from_pretrained
-    if dtype == "bfloat16":
-        return loader(str(snapshot), dtype=torch.bfloat16, device_map=device, output_loading_info=True, **options)
-    model, info = loader(str(snapshot), dtype=getattr(torch, dtype), output_loading_info=True, **options)
-    return model.to(device), info
+    model, info = getattr(transformers, reference.MODEL_CLASS).from_pretrained(
+        str(snapshot), dtype=torch.bfloat16, device_map=device, output_loading_info=True, **options)
+    if dtype == "float16":
+        for tensor in [*model.parameters(), *model.buffers()]:
+            if tensor.dtype == torch.bfloat16:
+                tensor.data = tensor.data.to(torch.float16)
+                if device == "mps":
+                    torch.mps.synchronize()
+                    torch.mps.empty_cache()
+        for module in model.modules():
+            if hasattr(module, "scalar_embed_scale"):
+                module.embed_scale = torch.tensor(module.scalar_embed_scale, dtype=torch.float16,
+                                                  device=module.embed_scale.device)
+    return model, info
 
 
 def loaded(model, info, device):

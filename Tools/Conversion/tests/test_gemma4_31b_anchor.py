@@ -112,6 +112,24 @@ class LayerwiseTests(unittest.TestCase):
         weight = model.get_parameter(name)
         self.assertTrue(torch.equal(scaled(name), weight.to(torch.float16).float()))
 
+    def test_the_float16_loading_gives_the_state_of_the_float16_checkpoint_loading(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            tiny_model(folder)
+            model, info = anchor.load(folder, "float16", "cpu")
+            expected, expected_info = transformers.Gemma4ForConditionalGeneration.from_pretrained(
+                folder, dtype=torch.float16, output_loading_info=True)
+        state, wanted = ({**dict(item.named_buffers(remove_duplicate=False)), **dict(item.named_parameters(remove_duplicate=False))}
+                         for item in (model, expected))
+        self.assertEqual((sorted(state), info), (sorted(wanted), expected_info))
+        for name, tensor in wanted.items():
+            with self.subTest(name=name):
+                self.assertEqual(state[name].dtype, tensor.dtype)
+                self.assertTrue(torch.equal(state[name], tensor))
+        self.assertEqual((float(state[anchor.SCALE]), str(state["model.language_model.layers.0.layer_scalar"].dtype)),
+                         (6.9296875, "torch.float16"))
+        self.assertIs(model.lm_head.weight, model.model.language_model.embed_tokens.weight)
+
     def test_ranges_are_recorded_for_every_layer_and_the_hooks_are_removed(self):
         model, watch = copy.deepcopy(self.model), anchor.Ranges()
         with torch.no_grad():
