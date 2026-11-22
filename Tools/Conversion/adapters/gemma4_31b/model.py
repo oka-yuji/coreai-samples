@@ -13,6 +13,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from .layers import OUTPUTS
+
 SLIDING = "sliding_attention"
 FULL = "full_attention"
 STATES = (KEY_CACHE_NAME, VALUE_CACHE_NAME, SLIDING_KEY_CACHE_NAME, SLIDING_VALUE_CACHE_NAME)
@@ -173,13 +175,22 @@ class Gemma4ForCausalLM(BaseForCausalLM):
         full, sliding = KVCache(k_cache, v_cache), KVCache(sliding_k_cache, sliding_v_cache)
         weight = self.embed_tokens.weight
         h = self.embed_tokens(input_ids) * torch.tensor(self.embed_scale, dtype=weight.dtype, device=weight.device)
-        for layer in self.model.layers:
+        taps = []
+        for count, layer in enumerate(self.model.layers, 1):
             cache = sliding if layer.self_attn.sliding else full
             h = layer(h, positions, offset, query_len, seq_len, cache, length, mask)
+            if count in self.tap_layers:
+                taps.append(h)
+        tapped = torch.cat(taps, dim=-1)
         if self.prefill_mode:
-            return ()
+            return (tapped,)
+        hidden = self.norm(h)
         cap = self.config.final_logit_softcapping
-        return torch.tanh(F.linear(self.norm(h), weight) / cap) * cap
+        return torch.tanh(F.linear(hidden, weight) / cap) * cap, hidden, tapped
+
+    @classmethod
+    def export_output_names(cls):
+        return {MAIN_GRAPH_NAME: OUTPUTS}
 
     @classmethod
     def export_state_names(cls):

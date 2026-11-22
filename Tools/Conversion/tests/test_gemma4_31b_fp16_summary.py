@@ -9,9 +9,16 @@ import tempfile
 import unittest
 from unittest import mock
 
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
 from Tools.Conversion.adapters.gemma4_31b import export, fp16_summary, layers, native
+from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES
 from Tools.Conversion.adapters.pinned import sha256
-from Tools.Conversion.storage import PipelineError, write_json
+from Tools.Conversion.storage import PipelineError, read_json, write_json
+from Tools.Conversion.tests.test_gemma4_31b_layers import TAPS, TEXT, write_contract, write_run
 
 SENTINEL = "private-example-sentinel"
 SHARD = "model-00001-of-00002.safetensors"
@@ -21,26 +28,28 @@ KINDS = ["sliding_attention"] * 5 + ["full_attention"]
 STATE = {"dtype": "float16", "shape": [1, 1, 4, None, 512]}
 
 
-def context_record():
+def context_record(contract_sha256="b" * 64):
     entry = {"positions": 26, "tokens_sha256": "e" * 64, "rows": list(range(26)), "calls": [[0, 26]], "seconds": 0.5,
              "logits": {"bytes": 10, "sha256": "f" * 64, "dtype": "float32", "shape": [26, 262144], "non_finite": 0}}
-    return {"schema": layers.CONTEXT_SCHEMA, "implementation": "original", "layers": 6, "layer_types": KINDS, "model": MODEL,
+    return {"schema": layers.CONTEXT_SCHEMA, "implementation": "original", "layers": 6, "layer_types": KINDS,
+            "model": {**MODEL, "contract_sha256": contract_sha256},
             "weights": "every checkpoint tensor rounded to float16", "embed_scale": 73.5, "chunk": 1024,
             "versions": {"torch": "2.15.0"}, "inputs": {"short": entry, "context": {**entry, "positions": 16896}},
             "timing": {"total_s": 60.0}, "memory": {"max_rss_bytes": 10, "lifetime_peak_footprint_bytes": None}}
 
 
-def export_record():
+def export_record(contract_sha256="b" * 64):
     function = {"inputs": {"input_ids": {"dtype": "int32", "shape": [1, None]}}, "outputs": {}, "states": {"keyCache": STATE}}
     return {"schema": export.SCHEMA, "passed": True, "checks": {"asset": True, "free_disk": True}, "problems": [],
-            "model": MODEL, "layers": 6, "layer_types": KINDS, "functions": ["main"], "context": 16896, "precision": "float16",
+            "model": {**MODEL, "contract_sha256": contract_sha256}, "layers": 6, "layer_types": KINDS, "functions": ["main"], "context": 16896, "precision": "float16",
             "compression_config": None, "upstream_revision": "1" * 40, "versions": {"coreai-core": "1.0.0b3"},
             "weights": {"tensors": 85, "elements": 9, "elements_by_dtype": {"torch.float16": 9}, "quantized_layouts": 0},
-            "asset": {"functions": {"main": function}, "storage_types": {"Float16": 13, "Int32": 2},
-                      "float16_minus_weights": -12},
+            "asset": {"functions": {"main": function}, "output_order": {"main": ["logits", "hidden_states", "tap_hidden_states"]},
+                      "storage_types": {"Float16": 13, "Int32": 2}, "float16_minus_weights": -12},
             "tokenizer": {"tokenizer.json": "2" * 64},
             "metadata": {"name": "gemma4_31b_l6_fp16_main", "language": {"vocab_size": 262144, "max_context_length": 16896},
-                         "source": {"hf_model_id": "google/gemma-4-31B-it", "revision": "a" * 40}, "compression": None},
+                         "source": {"hf_model_id": "google/gemma-4-31B-it", "revision": "a" * 40}, "compression": None,
+                         "tap_layers": [1, 2, 3, 4, 5], "tap_convention": export.TAP_CONVENTION},
             "bundle": {"folder": "bundle", "name": "gemma4_31b_l6_fp16_main", "main_hash": "3" * 64, "bytes": 4,
                        "files": {"gemma4_31b_l6_fp16_main.aimodel/main.mlirb": {"bytes": 4, "sha256": "4" * 64}}},
             "disk": {"required_free_bytes": 5, "lowest_free_bytes": 6},
@@ -69,16 +78,36 @@ def comparison_record(export_hash, reference_hash):
             "verifier": {"bytes": 1, "sha256": "6" * 64}, "conditions": [first, entry]}
 
 
+def run_arrays(taps=TAPS):
+    generator = np.random.default_rng(0)
+    widths = {"logits": TEXT["vocab_size"], "hidden_states": TEXT["hidden_size"],
+              "tap_hidden_states": TEXT["hidden_size"] * len(taps)}
+    return {name: {output: generator.normal(size=(length, width)).astype(np.float32) for output, width in widths.items()}
+            for name, (length, _) in layers.INPUTS.items()}
+
+
+@unittest.skipIf(np is None, "NumPy is required for the comparison of the model class")
 class SummaryTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(self.folder))
+        self.contract = write_contract(self.folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
+        self.contract_sha256 = sha256(self.contract)
         self.reference = self.folder / "context.json"
-        write_json(self.reference, context_record())
+        write_json(self.reference, context_record(self.contract_sha256))
+        self.runs = self.write_runs("runs")
+
+    def write_runs(self, label, contract=None, taps=TAPS, change=None):
+        arrays, folder = run_arrays(taps), self.folder / label
+        write_run(folder / "original", "original", contract or self.contract, arrays, taps)
+        if change:
+            change(arrays)
+        write_run(folder / "class", "class", contract or self.contract, arrays, taps)
+        return folder / "original", folder / "class"
 
     def run_files(self, label, record=None, origin=None, stage_role="export", manifest=None):
         artifacts = self.folder / label / "artifacts"
-        write_json(artifacts / "export/export.json", record or export_record())
+        write_json(artifacts / "export/export.json", record or export_record(self.contract_sha256))
         data = (artifacts / "export/export.json").read_bytes()
         recorded = {"version": 1, "key": "0" * 64, "status": "completed", "run_id": origin or label, "stage": "export",
                     "outputs": {"required": ["export"], "artifacts": {"tree": {
@@ -97,12 +126,13 @@ class SummaryTests(unittest.TestCase):
         return self.folder / label / "report.json", artifacts / "export/export.json", self.folder / label / "comparison.json"
 
     def summarize(self, *runs):
-        argv = ["fp16_summary", "--reference", str(self.reference)]
+        argv = ["fp16_summary", "--reference", str(self.reference), "--original", str(self.runs[0]),
+                "--model-class", str(self.runs[1])]
         for report, record, comparison in runs:
             argv += ["--report", str(report), "--export", str(record), "--comparison", str(comparison)]
         output = io.StringIO()
-        with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), \
-                contextlib.redirect_stderr(io.StringIO()):
+        with mock.patch.object(sys, "argv", argv), mock.patch.object(fp16_summary, "CONTRACT", self.contract), \
+                contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
             return fp16_summary.main(), output.getvalue()
 
     def test_the_summary_keeps_numbers_hashes_and_fixed_words_and_drops_paths_and_free_text(self):
@@ -122,6 +152,65 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(asset["export"]["asset"]["float16_minus_weights"], -12)
         self.assertEqual({key for entry in asset["comparison"]["conditions"] for key in entry["verifier"]}, set(native.PUBLIC))
         self.assertEqual(asset["pipeline"]["stages"][1]["role"], "export")
+        self.assertEqual((asset["export"]["metadata"]["tap_layers"], asset["export"]["metadata"]["tap_convention"],
+                          asset["export"]["asset"]["output_order"]),
+                         ([1, 2, 3, 4, 5], export.TAP_CONVENTION, {"main": ["logits", "hidden_states", "tap_hidden_states"]}))
+        compared = result["model_class"]
+        self.assertEqual((compared["passed"], compared["problems"], compared["layers"], compared["tap_layers"],
+                          compared["ratio_limit"]), (True, 0, 6, [1, 2, 3, 4, 5], 1e-3))
+        self.assertEqual(compared["records_sha256"], [sha256(folder / "record.json") for folder in self.runs])
+        self.assertEqual(set(compared["inputs"]), {"short", "long"})
+        self.assertEqual(compared["inputs"]["long"]["hidden_states"], {"largest_ratio": 0.0, "passed": True})
+        self.assertEqual(set(compared["inputs"]["long"]["tap_hidden_states"]), {"1", "2", "3", "4", "5"})
+        self.assertNotIn("non_finite", compared["inputs"]["long"])
+
+    def test_runs_of_another_contract_layer_count_or_tap_layers_or_with_a_replaced_array_stop_the_summary(self):
+        run = self.run_files("first")
+        self.assertEqual(self.summarize(run)[0], 0)
+        other = self.folder / "other-contract"
+        other.mkdir()
+        another = write_contract(other, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "1" * 64}))
+
+        def twelve(folder):
+            record = read_json(folder / "record.json")
+            record.update(layers=12, layer_types=TEXT["layer_types"])
+            write_json(folder / "record.json", record)
+
+        def replaced(folder):
+            path = folder / "long.hidden_states.npy"
+            np.save(path, np.load(path) + 1)
+
+        cases = {"runs of another contract": (lambda: self.write_runs("another", contract=another), None),
+                 "runs of four tap layers": (lambda: self.write_runs("four", taps=(1, 2, 3, 4)), None),
+                 "a model-class run of twelve layers": (lambda: self.write_runs("twelve"), twelve),
+                 "a model-class array replaced after its record": (lambda: self.write_runs("replaced"), replaced),
+                 "the run of the original implementation twice": (lambda: (self.runs[0], self.runs[0]), None)}
+        for label, (make, change) in cases.items():
+            self.runs = make()
+            if change:
+                change(self.runs[1])
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize(run), (1, ""))
+        self.runs = self.write_runs("again")
+        self.assertEqual(self.summarize(run)[0], 0)
+        exports = self.run_files("other-exports", record=export_record("2" * 64))
+        with self.subTest(case="exports of another contract"):
+            self.assertEqual(self.summarize(exports), (1, ""))
+        write_json(self.reference, context_record("2" * 64))
+        with self.subTest(case="a reference of another contract"):
+            self.assertEqual(self.summarize(self.run_files("other-reference")), (1, ""))
+
+    def test_runs_that_fail_a_criterion_are_summarized_with_passed_false_like_a_failed_condition(self):
+        def logit(arrays):
+            arrays["short"]["logits"][3, 4] += 0.002
+
+        self.runs = self.write_runs("failing", change=logit)
+        code, output = self.summarize(self.run_files("first"))
+        self.assertEqual(code, 0)
+        compared = json.loads(output)["model_class"]
+        self.assertEqual((compared["passed"], compared["problems"]), (False, 0))
+        self.assertEqual({key for key, passed in compared["inputs"]["short"]["checks"].items() if not passed},
+                         {"max_abs_logit"})
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         changes = [lambda record: record["bundle"]["files"].update({f"/{SENTINEL}/main.mlirb": {"bytes": 1, "sha256": "4" * 64}}),
@@ -187,11 +276,12 @@ class SummaryTests(unittest.TestCase):
             report, record, comparison = self.run_files(label.replace(" ", "-"))
             {"report": report, "comparison": comparison}[kind].write_text(content)
             errors = io.StringIO()
-            argv = ["fp16_summary", "--reference", str(self.reference), "--report", str(report), "--export", str(record),
-                    "--comparison", str(comparison)]
+            argv = ["fp16_summary", "--reference", str(self.reference), "--original", str(self.runs[0]),
+                    "--model-class", str(self.runs[1]),
+                    "--report", str(report), "--export", str(record), "--comparison", str(comparison)]
             output = io.StringIO()
             with self.subTest(case=label), mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), \
-                    contextlib.redirect_stderr(errors):
+                    mock.patch.object(fp16_summary, "CONTRACT", self.contract), contextlib.redirect_stderr(errors):
                 self.assertEqual(fp16_summary.main(), 1)
                 self.assertEqual(output.getvalue(), "")
                 self.assertRegex(errors.getvalue(), r"^Cannot summarize local records \(\w+\)\.\n$")
