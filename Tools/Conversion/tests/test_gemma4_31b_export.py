@@ -44,14 +44,14 @@ def inspected(functions=BOTH):
             "asset": {"functions": {name: copy.deepcopy(LAYOUT[name]) for name in functions},
                       "storage_types": dict(STORAGE)},
             "tokenizer": dict(CONTRACT["tokenizer"]["files"]),
-            "metadata": export.metadata(CONTRACT, export.name_of(6, functions), 16896)}
+            "metadata": export.metadata(CONTRACT, export.name_of(6, functions, "fp16"), 16896, None)}
 
 
 def problems(change=None, functions=BOTH):
     record = inspected(functions)
     if change:
         change(record)
-    return export.check_asset(record, CONTRACT, KINDS, functions, 16896)
+    return export.check_asset(record, CONTRACT, KINDS, functions, 16896, "fp16")
 
 
 def state(name, shape, function_name="main"):
@@ -71,7 +71,7 @@ class AssetTests(unittest.TestCase):
         for functions in (("main",), BOTH):
             with self.subTest(functions=functions):
                 self.assertEqual(problems(functions=functions), [])
-        self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896), {
+        self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896, None), {
             "metadata_version": "0.2", "kind": "llm", "name": "bundle-name", "assets": {"main": "bundle-name.aimodel"},
             "language": {"tokenizer": "google/gemma-4-31B-it", "vocab_size": 262144, "max_context_length": 16896,
                          "embedded_tokenizer": True, "function_map": {"main": ["main"]}},
@@ -182,7 +182,7 @@ class AssetTests(unittest.TestCase):
             if change:
                 change(record)
             with self.subTest(case=label):
-                self.assertTrue(export.check_asset(record, CONTRACT, KINDS, asked, 16896))
+                self.assertTrue(export.check_asset(record, CONTRACT, KINDS, asked, 16896, "fp16"))
 
     def test_asset_types_are_read_from_the_summary_text(self):
         self.assertEqual(export.described("NDArray (Float16, 5 × 1 × 16 × ? × 256)"),
@@ -364,11 +364,11 @@ class QuantizedAssetTests(unittest.TestCase):
     def test_an_asset_with_the_metadata_or_the_name_of_an_fp16_bundle_fails(self):
         cases = {"no compression in metadata.json": lambda record: record["metadata"].update(compression=None),
                  "the FP16 name": lambda record: record.update(
-                     metadata=export.metadata(CONTRACT, export.name_of(6, BOTH), 16896, "8bit"))}
+                     metadata=export.metadata(CONTRACT, export.name_of(6, BOTH, "fp16"), 16896, "8bit"))}
         for label, change in cases.items():
             with self.subTest(case=label):
                 self.assertTrue(quantized_problems(change))
-        self.assertTrue(export.check_asset(quantized(), CONTRACT, KINDS, BOTH, 16896))
+        self.assertTrue(export.check_asset(quantized(), CONTRACT, KINDS, BOTH, 16896, "fp16"))
 
 
 def arguments(folder, output, layers="6", functions="main,prefill", precision="fp16", compression=None):
@@ -469,8 +469,8 @@ class StartTests(unittest.TestCase):
 
     def test_the_export_starts_only_with_room_for_twice_the_float16_weights_and_60_gib(self):
         required = 4 * ELEMENTS + 60 * 2**30
-        self.assertEqual(export.required_bytes(ELEMENTS), 81_776_897_048)
-        self.assertEqual(export.required_bytes(ELEMENTS), required)
+        self.assertEqual(export.required_bytes(ELEMENTS, "fp16"), 81_776_897_048)
+        self.assertEqual(export.required_bytes(ELEMENTS, "fp16"), required)
         with self.assertRaisesRegex(PipelineError, "free") as raised:
             self.main(arguments(self.folder, self.folder / "short"), free=required - 1)
         count, verify, supervise = raised.exception.calls

@@ -72,7 +72,8 @@ class ExportTests(unittest.TestCase):
                     self.assertEqual(record["bundle"]["files"], files)
                     name = record["bundle"]["name"]
                     self.assertEqual(record["bundle"]["main_hash"], (bundle / f"{name}.aimodel/main.hash").read_bytes().hex())
-                    self.assertEqual(read_json(bundle / "metadata.json"), export.metadata(read_json(contract), name, 4096))
+                    self.assertEqual(read_json(bundle / "metadata.json"), export.metadata(read_json(contract), name, 4096,
+                                                                                          None))
                     for item in ("tokenizer.json", "tokenizer_config.json", "chat_template.jinja"):
                         self.assertEqual((bundle / "tokenizer" / item).read_bytes(), (snapshot / item).read_bytes())
                     self.assertFalse((output / export.INCOMPLETE).exists())

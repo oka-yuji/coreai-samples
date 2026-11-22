@@ -50,11 +50,11 @@ SKIPPED, QUANTIZER = "Skipping quantization.", "coreai_opt.quantization.spec.fak
 DEQUANTIZE = "blockwise_shift_scale"
 
 
-def name_of(layers, functions, precision="fp16"):
+def name_of(layers, functions, precision):
     return f"gemma4_31b_l{layers}_{precision}_{'_'.join(functions)}"
 
 
-def metadata(contract, name, context, compression=None):
+def metadata(contract, name, context, compression):
     return {"metadata_version": "0.2", "kind": "llm", "name": name, "assets": {"main": f"{name}.aimodel"},
             "language": {"tokenizer": contract["model_id"], "vocab_size": contract["config"]["vocab_size"],
                          "max_context_length": context, "embedded_tokenizer": True, "function_map": {"main": ["main"]}},
@@ -146,7 +146,7 @@ def quantization_problems(record, kinds, functions):
     return problems
 
 
-def check_asset(record, contract, kinds, functions, context, precision="fp16"):
+def check_asset(record, contract, kinds, functions, context, precision):
     eight_bit = precision == "8bit"
     problems = quantization_problems(record, kinds, functions) if eight_bit else float16_problems(record)
     storage, expected = record["asset"]["storage_types"], float32_elements(contract["config"])
@@ -172,7 +172,7 @@ def check_asset(record, contract, kinds, functions, context, precision="fp16"):
     return problems
 
 
-def required_bytes(elements, precision="fp16"):
+def required_bytes(elements, precision):
     return WRITES[precision] * elements + MARGIN_BYTES
 
 
