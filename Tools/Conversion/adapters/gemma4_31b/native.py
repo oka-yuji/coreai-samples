@@ -24,6 +24,7 @@ MAX_ABS_LOGIT = 2.0
 NEAR_TIE = 0.01
 KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
+LARGEST = 2**63 - 1
 VERIFIER = {"record": "text", "token_count": "count", "start": "count", "chunk": "count", "tokens_sha256": "text",
             "shape": "shape", "dtype": "text", "byte_order": "text", "main_calls": "count", "main_hash": "text",
             "prefix_function": "text", "prefix_calls": "count", "prefix_chunk": "count", "cached": "flag",
@@ -47,9 +48,9 @@ def pinned_model(contract, contract_path):
 
 def valid(kind, value):
     if kind == "count":
-        return type(value) is int and value >= 0
+        return type(value) is int and 0 <= value <= LARGEST
     if kind == "seconds":
-        return type(value) in (int, float) and math.isfinite(value) and value >= 0
+        return valid("count", value) or type(value) is float and math.isfinite(value) and value >= 0
     if kind == "shape":
         return type(value) is list and all(valid("count", size) for size in value)
     return type(value) is {"flag": bool, "text": str}[kind]
@@ -271,6 +272,9 @@ def measured(entry, config, arrays, facts, verifier, output):
     known[[row - start for row in known_rows(start, length, chunk)]] = True
     entry.update(measure(np.frombuffer(data, dtype="<f2").reshape(rows, vocabulary), arrays[source],
                          np.array([index[position] for position in range(start, length)]), known))
+    if entry["verifier"]["non_finite_count"] != entry["non_finite"]:
+        problems.append(f"the verifier counted {entry['verifier']['non_finite_count']} non-finite values, not the "
+                        f"{entry['non_finite']} of its file")
 
 
 def compare(export_folder, reference_folder, verifier, output, contract_path=CONTRACT):

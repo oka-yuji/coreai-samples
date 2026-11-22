@@ -191,6 +191,18 @@ class KnownCallTests(unittest.TestCase):
         self.assertIn('return hasPrefillFunction && unsplit ? "prefill" : "main"', LOGITS.read_text())
         self.assertIn(native.prefill_chunk(), (2048, 4096))
 
+    def test_the_field_check_takes_any_json_value_and_keeps_counts_within_64_bits(self):
+        largest = 2**63 - 1
+        self.assertEqual((native.valid("count", largest), native.valid("seconds", largest), native.valid("seconds", 0.25)),
+                         (True, True, True))
+        for kind in ("count", "seconds", "shape"):
+            for value in (2**63, 10**400, -1, None, "1", True, {"a": 1}, [2**63], [10**400]):
+                with self.subTest(kind=kind, value=repr(value)[:24]):
+                    self.assertFalse(native.valid(kind, value))
+        for value in (float("inf"), float("nan"), -0.5, 10**400):
+            with self.subTest(seconds=repr(value)[:24]):
+                self.assertFalse(native.valid("seconds", value))
+
     def test_the_prefill_chunk_is_4096_from_64_gib_of_memory_like_the_engine(self):
         for pages, chunk in ((2**22 - 1, 2048), (2**22, 4096), (2**23, 4096)):
             sizes = {"SC_PAGE_SIZE": 2**14, "SC_PHYS_PAGES": pages}
@@ -317,6 +329,18 @@ class CompareTests(unittest.TestCase):
                           "prefix-c1": ["the verifier record is malformed (main_calls)"]})
         self.assertEqual(set(conditions["tail"]["verifier"]), set(native.VERIFIER))
         self.assertEqual(set(conditions["short-c1"]["verifier"]), set(native.VERIFIER) - {"prefix_function"})
+
+    def test_a_non_finite_count_of_the_verifier_that_differs_from_its_file_or_a_huge_number_fails_only_its_condition(self):
+        huge = str(10**400)
+        result = self.run_compare({"short-c1": {"record": {"non_finite_count": 1}},
+                                   "window-c1": {"replace": [['"non_finite_count": 0', '"non_finite_count": ' + huge]]},
+                                   "tail": {"replace": [['"load_s": 0.1', '"load_s": ' + huge]]}})
+        self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
+        conditions = self.conditions(result)
+        self.assertEqual({name: entry["problems"] for name, entry in conditions.items() if not entry["passed"]},
+                         {"short-c1": ["the verifier counted 1 non-finite values, not the 0 of its file"],
+                          "window-c1": ["the verifier record is malformed (non_finite_count)"],
+                          "tail": ["the verifier record is malformed (load_s)"]})
 
     def test_non_finite_logits_or_reference_values_fail_their_conditions_and_the_comparison_is_recorded(self):
         array = np.load(self.arrays["short"])
