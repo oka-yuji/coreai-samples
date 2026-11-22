@@ -1,12 +1,14 @@
+from collections import Counter
 from fractions import Fraction
 import json
 import os
 from pathlib import Path
+import platform
 import tempfile
 import unittest
 from unittest import mock
 
-from Tools.LLMEvaluation import items, scoring
+from Tools.LLMEvaluation import execution, items, scoring
 
 TABLE = items.read_json(Path(__file__).resolve().parent / "scoring_cases.json")
 CASES = {case["id"]: case for case in TABLE["cases"]}
@@ -327,8 +329,8 @@ class ScoreRunTests(unittest.TestCase):
         self.assertEqual(scores["ja-choice-0001"]["parsed"], 2)
         self.assertIs(scores["ja-choice-0001"]["correct"], True)
         self.assertEqual(scores["code-fix-0001"],
-                         {"id": "code-fix-0001", "category": "code-fix", "kind": "python_tests", "correct": None,
-                          "state": "pending_code", "parsed": None})
+                         {"id": "code-fix-0001", "category": "code-fix", "kind": "python_tests", "correct": False,
+                          "failure": "not_finished", "rerun": False, "state": "scored", "parsed": None})
         self.assertEqual((scores["free-ja-0001"]["state"], scores["free-ja-0001"]["correct"]), ("unscored", None))
         self.assertEqual((scores["synth-long-4k-0001"]["state"], scores["synth-long-4k-0001"]["correct"]),
                          ("missing", None))
@@ -353,8 +355,8 @@ class ScoreRunTests(unittest.TestCase):
         categories = summary["categories"]
         self.assertEqual(categories["ja-choice"], {"kind": "choice_digit", "items": 1, "correct": 1, "unscored": 0,
                                                    "states": {"scored": 1}})
-        self.assertEqual(categories["code-fix"], {"kind": "python_tests", "items": 1, "correct": 0, "unscored": 1,
-                                                  "states": {"pending_code": 1}})
+        self.assertEqual(categories["code-fix"], {"kind": "python_tests", "items": 1, "correct": 0, "unscored": 0,
+                                                  "states": {"scored": 1}})
         self.assertEqual(categories["ja-reading"]["mean_f1"], 0.9)
         self.assertEqual(categories["ja-reading"]["correct"], 1)
         self.assertEqual({key: categories["extract-ja"][key] for key in ("correct", "tp", "fp", "fn", "micro_f1")},
@@ -526,6 +528,91 @@ class ScoreRunTests(unittest.TestCase):
         path.write_text("{}", encoding="utf-8")
         with self.assertRaises(ValueError):
             scoring.pinned(path, CONTRACT)
+
+
+class CodeScoringTests(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.root = Path(folder.name).resolve()
+        self.trace = self.root / "trace"
+        self.items = [{"id": f"code-gen-mbpp-000{number}", "category": "code-gen-mbpp",
+                       "scorer": {"kind": "python_tests", "setup": "", "test": "assert value == 1", "call": ""},
+                       "answer": None} for number in (1, 2, 3)]
+        self.items_path = self.root / "primary.jsonl"
+        write_lines(self.items_path, self.items)
+        self.bundle = bundle_with([item["id"] for item in self.items])
+        self.tokenizer = Pieces(["```python\nvalue = 1\n```", "value = 2", "slow", "flaky",
+                                 f"open({str(self.trace)!r}, 'w').close()\nvalue = 1"])
+
+    def run_folder(self, name, outputs):
+        folder = self.root / name
+        folder.mkdir()
+        write_lines(folder / "outputs.jsonl", [record(key, ids) for key, ids in outputs.items()])
+        (folder / "run.json").write_text(json.dumps({"role": name}), encoding="utf-8")
+        return folder
+
+    def scored(self, runs, output="scores", **options):
+        scoring.score_runs(self.bundle, self.items_path, runs, self.root / output, self.tokenizer, "f" * 64, **options)
+        return {run.name: ({row["id"]: row for row in read_lines(self.root / output / run.name / "scores.jsonl")},
+                           items.read_json(self.root / output / run.name / "summary.json")) for run in runs}
+
+    def test_the_same_output_ids_of_an_item_run_once_and_share_the_result(self):
+        names = [item["id"] for item in self.items]
+        baseline = self.run_folder("baseline", dict(zip(names, ([0], [0], [1]))))
+        candidate = self.run_folder("candidate", dict(zip(names, ([0], [1], [1]))))
+        with mock.patch.object(execution, "run", wraps=execution.run) as run:
+            found = self.scored([baseline, candidate])
+        self.assertEqual(run.call_count, 4)
+        before, after = found["baseline"][0], found["candidate"][0]
+        self.assertEqual([before[name]["correct"] for name in names], [True, True, False])
+        self.assertEqual([after[name]["correct"] for name in names], [True, False, False])
+        self.assertEqual(before[names[0]], after[names[0]])
+        self.assertEqual(before[names[2]], after[names[2]])
+
+    def test_timeouts_and_passes_on_the_rerun_are_recorded(self):
+        calls = Counter()
+
+        def attempt(units):
+            code = dict(units)["code"]
+            calls[code] += 1
+            return {"slow": "timeout", "flaky": "timeout" if calls[code] == 1 else "passed"}.get(code, "passed")
+
+        names = [item["id"] for item in self.items]
+        run = self.run_folder("run", dict(zip(names, ([2], [3], [0]))))
+        with mock.patch.object(execution, "attempt", attempt):
+            rows, summary = self.scored([run])["run"]
+        self.assertEqual([{key: rows[name][key] for key in ("correct", "failure", "rerun")} for name in names],
+                         [{"correct": False, "failure": "timeout", "rerun": True},
+                          {"correct": True, "failure": None, "rerun": True},
+                          {"correct": True, "failure": None, "rerun": False}])
+        self.assertEqual(summary["code"], {"timeouts": 2, "rerun_passed": 1})
+        self.assertEqual(summary["categories"]["code-gen-mbpp"]["correct"], 2)
+
+    def test_code_is_not_run_when_the_sandbox_cannot_be_used(self):
+        run = self.run_folder("run", {self.items[0]["id"]: [4]})
+        unusable = {"no sandbox-exec": mock.patch.object(execution, "SANDBOX", str(self.root / "missing")),
+                    "a profile that does not compile": mock.patch.object(execution, "PROFILE", "(version 1) (no-rule)")}
+        for number, (name, patch) in enumerate(unusable.items()):
+            with self.subTest(name):
+                with patch, self.assertRaises((OSError, RuntimeError)):
+                    self.scored([run], output=f"scores-{number}")
+                self.assertFalse(self.trace.exists())
+                self.assertFalse((self.root / f"scores-{number}").exists())
+        self.assertIs(self.scored([run])["run"][0][self.items[0]["id"]]["correct"], False)
+        self.assertFalse(self.trace.exists())
+
+    def test_the_summary_records_the_scorer_and_the_code_counts(self):
+        run = self.run_folder("run", {self.items[0]["id"]: [0]})
+        _, summary = self.scored([run], commit="c" * 40)["run"]
+        self.assertEqual(summary["scorer"], {"commit": "c" * 40, "python": platform.python_version()})
+        self.assertEqual(summary["code"], {"timeouts": 0, "rerun_passed": 0})
+        text = {"id": "ja-choice-0001", "category": "ja-choice", "scorer": {"kind": "choice_digit"}, "answer": 1}
+        write_lines(self.items_path, [text])
+        self.bundle = bundle_with([text["id"]])
+        _, summary = self.scored([self.run_folder("text", {text["id"]: [1]})], output="text-scores")["text"]
+        self.assertEqual(summary["scorer"], {"commit": None, "python": platform.python_version()})
+        self.assertEqual(summary["code"], {"timeouts": 0, "rerun_passed": 0})
 
 
 if __name__ == "__main__":

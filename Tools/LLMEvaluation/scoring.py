@@ -3,15 +3,16 @@ from fractions import Fraction
 import hashlib
 import json
 from pathlib import Path
+import platform
 import re
 import shutil
 import unicodedata
 
+from Tools.LLMEvaluation import execution
 from Tools.LLMEvaluation.items import FILES, ROOT, SETS, canonical, digest, lines, read_json
 
 CONTRACT = read_json(ROOT / FILES["contract"])
 RULES = CONTRACT["scorers"]
-LATER = {"unscored": "unscored", "python_tests": "pending_code"}
 
 
 def nfkc(text):
@@ -94,8 +95,11 @@ def formatted(text, rules):
 
 def score(item, text):
     kind, answer = item["scorer"]["kind"], item["answer"]
-    if kind in LATER:
-        return {"kind": kind, "correct": None, "state": LATER[kind], "parsed": None}
+    if kind == "unscored":
+        return {"kind": kind, "correct": None, "state": "unscored", "parsed": None}
+    if kind == "python_tests":
+        return {"kind": kind, **execution.run(execution.program(item["scorer"], execution.extract(text))),
+                "state": "scored", "parsed": None}
     extra, state = {}, "scored"
     if kind == "choice_digit":
         parsed = next((int(character) for character in nfkc(text) if character in RULES[kind]["digits"]), None)
@@ -236,7 +240,7 @@ def folded(name):
     return unicodedata.normalize("NFC", name).casefold()
 
 
-def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
+def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256, commit=None):
     output, runs = Path(output), [Path(run).resolve() for run in runs]
     if output.exists():
         raise FileExistsError(f"Output must be a new folder: {output}")
@@ -249,8 +253,16 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
     if len({item["id"] for item in items}) != len(items):
         raise ValueError("Duplicate item ids in the items file")
     frozen = frozen_set(bundle, {item["id"] for item in items})
-    hashes, results = committed(bundle), {}
+    execution.available()
+    hashes, results, done = committed(bundle), {}, {}
     vocabulary = tokenizer.get_vocab_size(with_added_tokens=True)
+
+    def scored(item, ids):
+        key = (item["id"], tuple(ids))
+        if key not in done:
+            done[key] = score(item, tokenizer.decode(ids, skip_special_tokens=True))
+        return done[key]
+
     for run in runs:
         data = (run / "outputs.jsonl").read_bytes()
         good, broken = partition(read_records(data), vocabulary)
@@ -258,7 +270,7 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
         for record in good:
             first.setdefault(record["id"], record)
         rows = [{"id": item["id"], "category": item["category"],
-                 **(score(item, tokenizer.decode(first[item["id"]]["output_ids"], skip_special_tokens=True))
+                 **(scored(item, first[item["id"]]["output_ids"])
                     if item["id"] in first else
                     {"kind": item["scorer"]["kind"], "correct": None,
                      "state": "malformed" if item["id"] in damaged else "missing", "parsed": None})}
@@ -266,9 +278,12 @@ def score_runs(bundle, items_path, runs, output, tokenizer, tokenizer_sha256):
         results[run.name] = rows, {
             "contract": {"version": bundle["contract"]["version"], "sha256": bundle["hashes"][FILES["contract"]]},
             "items": {"file": Path(items_path).name, "sha256": items_sha256, "set": frozen},
-            "tokenizer": {"sha256": tokenizer_sha256, "vocabulary": vocabulary}, "run": read_json(run / "run.json"),
+            "tokenizer": {"sha256": tokenizer_sha256, "vocabulary": vocabulary},
+            "scorer": {"commit": commit, "python": platform.python_version()}, "run": read_json(run / "run.json"),
             "outputs": {"sha256": hashlib.sha256(data).hexdigest()},
-            "checks": record_checks(items, good, broken, hashes), "categories": summarize(rows)}
+            "checks": record_checks(items, good, broken, hashes), "categories": summarize(rows),
+            "code": {"timeouts": sum(row.get("rerun", False) for row in rows),
+                     "rerun_passed": sum(row.get("rerun", False) and row["correct"] for row in rows)}}
     output.mkdir(parents=True)
     try:
         for name in results:
