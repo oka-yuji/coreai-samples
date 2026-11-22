@@ -457,18 +457,20 @@ criteria and the checks on the records, the bundle, the record of `coreai-verify
 cache that `coreai-verify` makes stays in place; remove it yourself.
 
 `fp16_summary` prints the public summary (only states, numbers, hashes and fixed words) of the reference record, of
-the comparison of the model class with the original implementation that `layers.py compare` printed, and of each
-export with its report and its comparison to standard output:
+the comparison of the model class with the original implementation, which it makes itself with `layers.py compare`
+from the folders of the two runs, and of each export with its report and its comparison to standard output:
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <record.json> \
-  --layers-comparison <output of layers.py compare> \
+  --original <folder of layers.py run --implementation original> --model-class <folder of the model-class run> \
   --report <report.json> --export <export.json> --comparison <comparison.json> [...]
 ~~~
 
 It stops and prints no summary when a check on the records fails, including that each `export.json` is the output
-that the manifest of its stage recorded and that the comparison of the model class is of the layers and tap layers of
-every export; `SummaryTests` in `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
+that the manifest of its stage recorded, that the two runs, the reference and every export are of the contract
+`model.json`, and that the two runs are of the layers and tap layers of every export. A comparison that fails a
+criterion is printed with `passed` false, as a failed condition of the own engine is; `SummaryTests` in
+`Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#fp16-export-of-the-first-six-layers).
 
 ## Terms

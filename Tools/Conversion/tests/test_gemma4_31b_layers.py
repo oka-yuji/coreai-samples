@@ -225,7 +225,8 @@ class CompareTests(unittest.TestCase):
         result = self.compare(self.pair("same"))
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual([result["inputs"][name]["max_abs_logit"] for name in ("short", "long")], [0.0, 0.0])
-        self.assertEqual((result["layers"], result["tap_layers"], result["ratio_limit"]), (6, list(TAPS), 1e-3))
+        self.assertEqual((result["layers"], result["tap_layers"], result["ratio_limit"], result["contract_sha256"]),
+                         (6, list(TAPS), 1e-3, sha256(self.contract)))
         for name in layers.INPUTS:
             outputs = result["inputs"][name]["outputs"]
             self.assertEqual(outputs["hidden_states"], {"largest_ratio": 0.0, "passed": True})
@@ -394,6 +395,19 @@ class CompareTests(unittest.TestCase):
         taps = result["inputs"]["long"]["outputs"]["tap_hidden_states"]
         self.assertEqual({tap for tap, entry in taps.items() if not entry["passed"]}, {"3"})
         self.assertGreaterEqual(taps["3"]["largest_ratio"], 1e-3)
+
+    def test_the_result_names_the_contract_and_the_layers_only_when_both_runs_agree_with_the_contract_and_each_other(self):
+        edits = {"another contract": (lambda record: record["model"].update(contract_sha256="0" * 64), "contract_sha256"),
+                 "another model": (lambda record: record["model"].update(id="other/model"), "contract_sha256"),
+                 "another layer count": (lambda record: record.update(layers=12, layer_types=TEXT["layer_types"]), "layers")}
+        for label, (edit, key) in edits.items():
+            run = self.pair(label.replace(" ", "-"))
+            edit_record(run / "class", edit)
+            result = self.compare(run)
+            with self.subTest(case=label):
+                self.assertIsNone(result[key])
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
 
     def test_non_finite_hidden_states_or_tap_layers_never_pass(self):
         for output in ("hidden_states", "tap_hidden_states"):

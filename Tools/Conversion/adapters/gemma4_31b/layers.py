@@ -362,7 +362,9 @@ def compare(original, model_class, contract_path=CONTRACT):
         problems += found
     return {"schema": COMPARISON, "problems": problems,
             "passed": not problems and all(all(result["checks"].values()) for result in results.values()),
-            "layers": records[0].get("layers") if taps else None, "tap_layers": list(taps) or None, "ratio_limit": RATIO,
+            "contract_sha256": model["contract_sha256"] if all(record.get("model") == model for record in records) else None,
+            "layers": records[0].get("layers") if taps and records[0].get("layers") == records[1].get("layers") else None,
+            "tap_layers": list(taps) or None, "ratio_limit": RATIO,
             "records_sha256": [sha256(folder / "record.json") for folder in folders], "inputs": results}
 
 

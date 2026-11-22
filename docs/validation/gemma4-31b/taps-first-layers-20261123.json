@@ -88,6 +88,46 @@
       "86c291908830b4f552d286ccd376a2b007c8e7a3c7005da61f6d958b1bc00aa7"
     ],
     "inputs": {
+      "short": {
+        "criteria": {
+          "max_abs_logit": 0.001
+        },
+        "rows": 26,
+        "max_abs_logit": 0.0008029937744140625,
+        "max_probability_error": 7.77519726016858e-10,
+        "top1_mismatches": 0,
+        "hidden_states": {
+          "largest_ratio": 1.7355465693928867e-06,
+          "passed": true
+        },
+        "tap_hidden_states": {
+          "1": {
+            "largest_ratio": 6.064049705802628e-07,
+            "passed": true
+          },
+          "2": {
+            "largest_ratio": 1.854270088212926e-06,
+            "passed": true
+          },
+          "3": {
+            "largest_ratio": 1.459265728130185e-06,
+            "passed": true
+          },
+          "4": {
+            "largest_ratio": 1.0124147926400144e-06,
+            "passed": true
+          },
+          "5": {
+            "largest_ratio": 9.117466705797483e-07,
+            "passed": true
+          }
+        },
+        "checks": {
+          "max_abs_logit": true,
+          "hidden_states": true,
+          "tap_hidden_states": true
+        }
+      },
       "long": {
         "criteria": {
           "max_abs_logit": 0.005,
@@ -125,50 +165,10 @@
           }
         },
         "checks": {
-          "hidden_states": true,
           "max_abs_logit": true,
           "max_probability_error": true,
-          "tap_hidden_states": true,
-          "top1_mismatches": true
-        }
-      },
-      "short": {
-        "criteria": {
-          "max_abs_logit": 0.001
-        },
-        "rows": 26,
-        "max_abs_logit": 0.0008029937744140625,
-        "max_probability_error": 7.77519726016858e-10,
-        "top1_mismatches": 0,
-        "hidden_states": {
-          "largest_ratio": 1.7355465693928867e-06,
-          "passed": true
-        },
-        "tap_hidden_states": {
-          "1": {
-            "largest_ratio": 6.064049705802628e-07,
-            "passed": true
-          },
-          "2": {
-            "largest_ratio": 1.854270088212926e-06,
-            "passed": true
-          },
-          "3": {
-            "largest_ratio": 1.459265728130185e-06,
-            "passed": true
-          },
-          "4": {
-            "largest_ratio": 1.0124147926400144e-06,
-            "passed": true
-          },
-          "5": {
-            "largest_ratio": 9.117466705797483e-07,
-            "passed": true
-          }
-        },
-        "checks": {
+          "top1_mismatches": true,
           "hidden_states": true,
-          "max_abs_logit": true,
           "tap_hidden_states": true
         }
       }

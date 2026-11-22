@@ -569,9 +569,11 @@ logits that the own engine reads from the two assets with the FP32 reference by 
 [FP16 export of the first six layers](#fp16-export-of-the-first-six-layers). The own engine reads the logits only; the
 values of the two outputs in the assets are not compared here.
 [`taps-first-layers-20261123.json`](taps-first-layers-20261123.json) holds the states, numbers, hashes, versions and
-fixed names of the records, from `fp16_summary`, which made the checks of the section above and checked that the
-comparison of the model class is of the layers and tap layers of each export. It has no local paths, commands or
-environment variables; the records, bundles and arrays stay in the local work directory.
+fixed names of the records, from `fp16_summary`, which made the checks of the section above, made the comparison of
+the model class itself from the folders of the two runs of `layers.py run`, and checked that the two runs, the FP32
+reference and each export are of the same contract and that the runs are of the layers and tap layers of each export.
+It has no local paths, commands or environment variables; the records, bundles and arrays stay in the local work
+directory.
 
 ### Conditions
 
@@ -685,7 +687,6 @@ The caches took 21,660,884 KiB (`resources.bin` 22,163,497,512 B) and 16,962,064
 |---|---|
 | `record.json` of the original implementation (`layers.py run`) | `a69c4ef758688f79bb7f66de361e255ff739fd20f3ad81c05b4395bbfc9836ae` |
 | `record.json` of the model class (`layers.py run`) | `86c291908830b4f552d286ccd376a2b007c8e7a3c7005da61f6d958b1bc00aa7` |
-| Output of `layers.py compare` | `49950cb4c5ea5c1a1e0de4014285c2cd51b245d949303dab38771bd1d1e2e38a` |
 | FP32 reference `record.json` | `43b6313b217c9c2f203d6e10285a6d1c76fa0776bb1a332bc1c07d185bea0d5c` |
 | Report of the export with `main` and `prefill` | `acdada5938138cf345dac594b537ea0379db0a6e0c0faf4cad7ff2388ab0f663` |
 | Its `export.json` | `e67ff01f72625b6118972c81c9889b60f3e4ee59d471cc558aa36078fb680353` |
@@ -696,7 +697,7 @@ The caches took 21,660,884 KiB (`resources.bin` 22,163,497,512 B) and 16,962,064
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <FP32 reference record.json> \
-  --layers-comparison <output of layers.py compare> \
+  --original <folder of the run of the original implementation> --model-class <folder of the run of the model class> \
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   > docs/validation/gemma4-31b/taps-first-layers-20261123.json
