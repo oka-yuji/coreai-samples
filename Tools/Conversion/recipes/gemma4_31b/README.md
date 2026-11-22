@@ -186,66 +186,40 @@ about 20.4 GB of logits with those of `reference`.
   requires clean loading, finite logits on both paths, a largest absolute logit difference of at most 1e-4 for every
   sequence, a clean monitor and recorded resources.
 
-Compare two of these records (or one of them and the `reference` record) with the reference environment:
+Compare the `reference.json` records of two of the steps `reference`, `anchor`, `anchor_w16`, `anchor_scale_fp32`,
+`anchor_scale_fp16` and `half` with the reference environment. The `layers` step writes `layers.json`, which this
+comparison does not read:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.anchor_compare \
   --baseline <artifacts of the baseline step> --candidate <artifacts of the candidate step> > <comparison.json>
 ~~~
 
-It reads each `reference.json`, token file and logits file once and uses the same bytes for the SHA-256 and the
-values. A record must first have the shape of a BF16, `anchor`, `half` or `layers` record (the type of every entry that
-the comparison reads, the cases and their files included); a record of another shape gets that one problem and no
-further check. Each record is checked on its own against values computed from `model.json` and `fixtures.json`, not only
-against the other record: the model entries (ID, revision, the SHA-256 of `model.json`, the shard SHA-256 and the files
-verified before loading) must equal the contract, the cases must be the twelve cases of `fixtures.json` in order with
-their IDs and kinds (the BF16 reference also with their `max_new_tokens`, and with the SHA-256 of `fixtures.json` in
-`fixtures_sha256`), the device must be the contract device, and the record must be one of the known definitions: the BF16 reference (with its `dtype`
-entries) or an `anchor` or `half` record whose `stage` is the stage of one of its definitions and whose `compute` holds
-exactly the weights, compute, embedding scale and attention rows of that definition and nothing else, with the three
-scales computed from `hidden_size`. The comparison passes only when both records pass
-these checks and passed, differ in SHA-256 and are not the same file (a hard or symbolic link included), every token
-and logits file has the size and SHA-256 that its own record lists and is not the same file as its counterpart, every
-token file holds lists of token IDs, the token counts, saved positions, first scoring row and scoring positions equal
-that record, every array is float32 with
-the shape `[saved positions, 262144]`, the forced tokens of both sides are the same, an `anchor` or `half` record
-names in `source` exactly the SHA-256 of the BF16 reference when that is the other side (two such records name the
-same SHA-256) and no logit is NaN or infinite.
-Otherwise `problems` lists the findings: a case with a finding has no metrics, a finding about the records stops before
-the cases, and no group is reported. Each case is read, checked and measured in one step. A check that does not hold
-adds a finding of its own, so a case can have several; an error raised anywhere in that step leaves that case with a
-single finding that names only the type of the error. Either way the comparison fails and the next case is still
-compared. A `reference.json` that is missing or is not JSON ends the comparison with an error and no result. The output
-also names, for each side, the definition that its `stage` and `compute` (for the BF16 reference, its `dtype`) match
-(`identities`), or null when none matches or the record has another shape. The result is
-written to standard output as JSON and nothing else is written there; the exit code is 0 only when it passed. For every
-row, with p and q the softmax (float64) of the baseline and the candidate,
-it computes the largest |p − q| over the vocabulary, KL(p ‖ q), the largest absolute logit difference and whether the
-two argmax IDs (the smaller ID on a tie) agree; a mismatch is a near tie when both sides have the same top-two IDs and
-the baseline probability of the baseline winner exceeds that of the candidate winner by at most 0.01. Per case and per
-group it reports the maximum and the mean of the largest |p − q|, the mean, 99th percentile and maximum of KL, the
-largest logit difference, the top-1 matches, the near-tie mismatches and the other mismatches, over every row and over
-the scoring rows, and it lists every mismatch. The groups are the case kind (`chat` or `raw`) by input-length band
-(1–512, 513–2,048, 2,049–4,096, 4,097–16,896 tokens, `other` for any other length; only the bands with cases), and the
-rows 992 to 1,056 of every case with more than 1,056 positions (the sliding window of 1,024 drops the BOS from position
+The result is written to standard output as JSON and nothing else is written there; the exit code is 0 only when
+the comparison passed, and `problems` lists the findings otherwise. A `reference.json` that is missing or is not JSON
+ends the command with an error and no result. `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_anchor.py`
+fixes the checks on the records and the case files.
+
+For every row, with p and q the softmax (float64) of the baseline and the candidate, it computes the largest |p − q|
+over the vocabulary, KL(p ‖ q), the largest absolute logit difference and whether the two argmax IDs (the smaller ID
+on a tie) agree; a mismatch is a near tie when both sides have the same top-two IDs and the baseline probability of
+the baseline winner exceeds that of the candidate winner by at most 0.01. Per case and per group it reports the
+maximum and the mean of the largest |p − q|, the mean, 99th percentile and maximum of KL, the largest logit
+difference, the top-1 matches, the near-tie mismatches and the other mismatches, over every row and over the scoring
+rows, and it lists every mismatch. The groups are the case kind (`chat` or `raw`) by input-length band (1–512,
+513–2,048, 2,049–4,096, 4,097–16,896 tokens, `other` for any other length; only the bands with cases), and the rows
+992 to 1,056 of every case with more than 1,056 positions (the sliding window of 1,024 drops the BOS from position
 1,024). A group without rows is not reported.
 
-`anchor_summary` prints only states, numbers, hashes and fixed words. It stops unless the six steps were executed by
-the given run (`status` executed and `origin` the run ID); every record file of the report (the BF16 reference
-included) is the output that the runner recorded for its step, that is, the `manifest.json` beside the step's
-`artifacts` folder has version 1, status `completed`, the step's `origin` as its run ID, the step ID, and the size
-and SHA-256 of that file (read once for this check and for the values) in its output inventory; every record passes
-the checks of the comparison and matches the definition of its step in `recipe.json` (for `anchor` the `--weights`
-and `--embed-scale` of its command); the `layers` record has the contract model and the fixture case IDs in order;
-every record of the six steps names, as `source`, exactly the SHA-256 of the report's `reference.json`; no two steps
-hold the same record, no two comparisons compare the same pair of records (in either order) and every comparison
-lists the SHA-256 of two records of that report. It also stops when the report, a manifest, a record or a comparison does not have the shape of the entries
-that it reads:
+`anchor_summary` prints the public summary (only states, numbers, hashes and fixed words) to standard output:
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.anchor_summary --report <report.json> \
   --comparison <comparison.json> [--comparison <comparison.json> ...]
 ~~~
+
+It stops without output when a check on the report, on the records of its steps or on the given comparisons fails;
+`SummaryTests` in the same test file fixes these checks.
 
 ## Converter environment and model class
 
