@@ -173,7 +173,7 @@ let failingItems = [
 ]
 
 let failingScripts: [ScriptedLogits.Item] = [
-    .init(rows: [[0, 1, 0, 0], [.nan, .infinity, 0, -.infinity]]),
+    .init(rows: [[0, 1, 0, 0], [.nan, .infinity, 0, -.infinity], [0, 0, 0, 1]]),
     .init(rows: [], failsAtPrefill: true),
     .init(rows: [[0, 0, 1, 0], [0, 1, 0, 0]], failsAtStep: 1),
     .init(rows: [[0, 1, 0, 0], [0, 0, 0, 1]]),
