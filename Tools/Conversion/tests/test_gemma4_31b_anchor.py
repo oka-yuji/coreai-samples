@@ -62,8 +62,8 @@ def tiny_model(folder):
                 parameter.normal_(1.0, 0.3)
         for index, layer in enumerate(model.model.language_model.layers):
             layer.layer_scalar.fill_(0.5 + 0.1 * index)
-    model.to(torch.bfloat16).save_pretrained(folder)
     with contextlib.redirect_stderr(io.StringIO()):
+        model.to(torch.bfloat16).save_pretrained(folder)
         loaded, _ = transformers.Gemma4ForConditionalGeneration.from_pretrained(folder, dtype=torch.bfloat16,
                                                                                  output_loading_info=True)
     return loaded.eval()

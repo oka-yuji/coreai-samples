@@ -121,8 +121,8 @@ def comparison(data, names):
     if data.get("schema") != NUMERICS_SCHEMA:
         raise PipelineError(f"Expected a {NUMERICS_SCHEMA} comparison")
     hashes = data.get("records_sha256")
-    if not isinstance(hashes, list) or len(hashes) != 2 or any(value not in names for value in hashes):
-        raise PipelineError("The comparison was made from records that the report does not list")
+    if not isinstance(hashes, list) or len(hashes) != 2:
+        raise PipelineError("Expected the SHA-256 of two records")
     return {"baseline": names[hashes[0]], "candidate": names[hashes[1]], "passed": flag(data["passed"]),
             "problems": len(data["problems"]), "vocabulary": count(data["vocabulary"]), "window": count(data["window"]),
             "near_tie_margin": pipeline.number(data["near_tie_margin"]),
