@@ -88,7 +88,7 @@ def session(folder, entries, calls=None, run=None, deadline=None, made=None):
 
 
 def contents(folder):
-    return {path.name: path.read_bytes() for path in sorted(Path(folder).iterdir())}
+    return {path.name: path.read_bytes() if path.is_file() else None for path in sorted(Path(folder).iterdir())}
 
 
 def complete_lines(data):
@@ -573,6 +573,52 @@ class RunFolderTests(unittest.TestCase):
                 key = "asset" if field == "weights" else "implementation"
                 self.rejected(folder, entries, f"differ from its run.json: {key}",
                               run={**run, key: {**run[key], field: value}})
+
+    def test_temporary_files_that_this_tool_leaves_do_not_stop_a_new_run_or_a_resume_and_are_removed(self):
+        own = [name + "." + "0123456789abcdef" * 2 + ".tmp" for name in ("progress.json", "run.json")]
+        empty = json.dumps({"lines": 0, "sha256": digest(b""), "run": "x"})
+        entries = inputs_of(3)
+        run = conditions(inputs={"sha256": "d" * 64, "count": 3})
+        expected = self.full("full", entries, run=run)
+        starts = [{"outputs.jsonl": "", own[0]: "{"}, {own[0]: ""},
+                  {"outputs.jsonl": "", "progress.json": empty, own[1]: "{\n  \"id\""}]
+        for index, files in enumerate(starts):
+            with self.subTest(files=sorted(files)):
+                folder, calls = self.base / f"new-{index}", []
+                folder.mkdir()
+                for name, text in files.items():
+                    (folder / name).write_text(text)
+                session(folder, entries, calls, run=run)
+                self.assertEqual((calls, sorted(contents(folder))),
+                                 ([entry["id"] for entry in entries], ["outputs.jsonl", "progress.json", "run.json"]))
+        folder, calls = self.base / "resumed", []
+        session(folder, entries, run=run, deadline=0)
+        for name in own:
+            (folder / name).write_text("{")
+        session(folder, entries, calls, run=run)
+        self.assertEqual((calls, (folder / "outputs.jsonl").read_bytes()), (["ja-choice-0002", "ja-choice-0003"], expected))
+        self.assertEqual(sorted(contents(folder)), ["outputs.jsonl", "progress.json", "run.json"])
+
+    def test_unknown_files_or_temporary_files_of_other_names_stop_a_new_run_or_a_resume_without_removing_anything(self):
+        entries = inputs_of(3)
+        run = conditions(inputs={"sha256": "d" * 64, "count": 3})
+        hexes = "0123456789abcdef" * 2
+        others = ["progress.json.tmp", f"run.json.{hexes.upper()}.tmp", f"outputs.jsonl.{hexes}.tmp",
+                  f"progress.json.{hexes[:31]}.tmp", "notes.txt"]
+        for index, name in enumerate([*others, f"progress.json.{hexes}.tmp/"]):
+            for resumed in (False, True):
+                with self.subTest(name=name, resumed=resumed):
+                    folder = self.base / f"other-{index}-{resumed}"
+                    if resumed:
+                        session(folder, entries, run=run, deadline=0)
+                    else:
+                        folder.mkdir()
+                        (folder / "outputs.jsonl").write_text("")
+                    if name.endswith("/"):
+                        (folder / name).mkdir()
+                    else:
+                        (folder / name).write_text("{")
+                    self.rejected(folder, entries, "not a run folder" if not resumed else "not of this run", run=run)
 
     def test_a_folder_without_run_json_starts_only_when_empty_or_left_by_a_start_that_stopped_before_run_json(self):
         empty = json.dumps({"lines": 0, "sha256": digest(b""), "run": "x"})

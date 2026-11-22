@@ -5,6 +5,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import stat
 import sys
 import time
@@ -22,6 +23,8 @@ TOOL = "Tools.Conversion.adapters.gemma4_31b.baseline"
 CHUNK = 1024
 LAST = ("long-ja-4k", "long-ja-16k", "synth-long-4k", "synth-long-16k")
 SESSION = ("id", "items", "started", "finished")
+FILES = ("outputs.jsonl", "progress.json", "run.json")
+TEMPORARY = re.compile(r"(?:run|progress)\.json\.[0-9a-f]{32}\.tmp")
 EMPTY = hashlib.sha256(b"").hexdigest()
 CHANGED = "the run folder was changed outside this tool"
 
@@ -77,8 +80,13 @@ def empty(path):
     return stat.S_ISREG(status.st_mode) and status.st_size == 0
 
 
+def temporary_files(folder):
+    return [path for path in folder.iterdir() if TEMPORARY.fullmatch(path.name) and stat.S_ISREG(os.lstat(path).st_mode)]
+
+
 def unstarted(folder):
-    names = sorted(path.name for path in folder.iterdir())
+    left = temporary_files(folder)
+    names = sorted(path.name for path in folder.iterdir() if path not in left)
     if not names:
         return True
     if names not in (["outputs.jsonl"], ["outputs.jsonl", "progress.json"]) or not empty(folder / "outputs.jsonl"):
@@ -94,6 +102,10 @@ def unstarted(folder):
 
 
 def resume(folder, run, inputs):
+    left = temporary_files(folder)
+    unknown = sorted(path.name for path in folder.iterdir() if path not in left and path.name not in FILES)
+    if unknown:
+        raise ValueError(f"--output holds files that are not of this run: {', '.join(unknown)}")
     stored = read_json(folder / "run.json")
     if not isinstance(stored, dict) or not isinstance(stored.get("id"), str):
         raise ValueError("run.json has no run id; a run folder of an earlier version cannot be resumed")
@@ -135,6 +147,8 @@ def resume(folder, run, inputs):
     if complete < len(data):
         with (folder / "outputs.jsonl").open("r+b") as handle:
             handle.truncate(complete)
+    for path in left:
+        path.unlink()
     return stored, done, hasher
 
 
@@ -145,9 +159,13 @@ def start(folder, run, inputs):
         stored["items"] = len(done)
         stored.pop("finished", None)
     else:
-        if folder.exists() and not (folder.is_dir() and unstarted(folder)):
-            raise ValueError(f"--output exists but is not a run folder with run.json: {folder}")
-        folder.mkdir(exist_ok=True)
+        if folder.exists():
+            if not (folder.is_dir() and unstarted(folder)):
+                raise ValueError(f"--output exists but is not a run folder with run.json: {folder}")
+            for path in temporary_files(folder):
+                path.unlink()
+        else:
+            folder.mkdir()
         stored, done, hasher = {**run, "id": str(uuid.uuid4()), "items": 0, "started": now()}, set(), hashlib.sha256()
         (folder / "outputs.jsonl").write_bytes(b"")
         write_json(folder / "progress.json", {"lines": 0, "sha256": EMPTY, "run": identity(stored)})
