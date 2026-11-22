@@ -188,6 +188,12 @@ class KnownCallTests(unittest.TestCase):
         self.assertIn('return hasPrefillFunction && unsplit ? "prefill" : "main"', LOGITS.read_text())
         self.assertIn(native.prefill_chunk(), (2048, 4096))
 
+    def test_the_prefill_chunk_is_4096_from_64_gib_of_memory_like_the_engine(self):
+        for pages, chunk in ((2**22 - 1, 2048), (2**22, 4096), (2**23, 4096)):
+            sizes = {"SC_PAGE_SIZE": 2**14, "SC_PHYS_PAGES": pages}
+            with self.subTest(pages=pages), mock.patch.object(native.os, "sysconf", side_effect=sizes.__getitem__):
+                self.assertEqual(native.prefill_chunk(), chunk)
+
 
 @unittest.skipIf(np is None, "NumPy is required for the comparison")
 class CompareTests(unittest.TestCase):
