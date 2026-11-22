@@ -309,15 +309,19 @@ class ReadyMonitor:
 
 @unittest.skipIf(torch is None, "PyTorch is required for the command")
 class SessionTests(unittest.TestCase):
-    def run_main(self, folder, failing=None):
-        folder = Path(folder)
-        (folder / "prepare").mkdir()
+    @staticmethod
+    def fixture(folder):
+        (folder / "prepare").mkdir(exist_ok=True)
         write_json(folder / "prepare/ready.json",
                    {"ready": True, "contract_sha256": digest((RECIPE / "model.json").read_bytes())})
         (folder / "inputs.jsonl").write_bytes(b"".join(map(line, inputs_of(2))))
+
+    def run_main(self, folder, failing=None, log="log", output="run", extra=()):
+        folder = Path(folder)
+        self.fixture(folder)
         argv = ["baseline", "--model", str(RECIPE / "model.json"), "--snapshot", str(folder), "--prepare",
                 str(folder / "prepare"), "--contract", str(CONTRACT), "--inputs", str(folder / "inputs.jsonl"), "--commit",
-                "c0ffee", "--output", str(folder / "run"), "--log", str(folder / "log")]
+                "c0ffee", "--output", str(folder / output), "--log", str(folder / log), *extra]
         loading = {"info": {}, "parameter_dtypes": ["torch.bfloat16"], "parameter_devices": ["mps:0"], "training": False,
                    "after_load": dict(MEMORY)}
 
@@ -342,7 +346,46 @@ class SessionTests(unittest.TestCase):
             for patch in patches:
                 stack.enter_context(patch)
             stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            stack.enter_context(contextlib.redirect_stderr(self.errors))
             return baseline.main()
+
+    def setUp(self):
+        self.errors = io.StringIO()
+
+    def refused(self, folder, log, output):
+        self.fixture(Path(folder))
+        before = {name: contents(Path(folder) / name) for name in sorted(path.name for path in Path(folder).iterdir()
+                                                                      if (Path(folder) / path.name).is_dir())}
+        with self.assertRaises(SystemExit):
+            self.run_main(folder, log=log, output=output)
+        self.assertIn("--log must be outside --output", self.errors.getvalue())
+        after = {name: contents(Path(folder) / name) for name in sorted(path.name for path in Path(folder).iterdir()
+                                                                     if (Path(folder) / path.name).is_dir())}
+        self.assertEqual(after, before)
+
+    def test_a_log_folder_inside_the_run_folder_is_refused_before_anything_is_made_and_an_outside_one_resumes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(self.run_main(folder, extra=("--max-minutes", "1e-9")), 0)
+            self.assertEqual(read_json(Path(folder) / "run/run.json")["items"], 1)
+            (Path(folder) / "link").symlink_to(Path(folder) / "run")
+            variants = ["run/log2", "run", "link/log3", "link"]
+            if (Path(folder) / "RUN").exists():
+                variants.append("RUN/log4")
+            for log in variants:
+                with self.subTest(log=log):
+                    self.refused(folder, log, "run")
+            self.assertEqual(sorted(contents(Path(folder) / "run")), ["outputs.jsonl", "progress.json", "run.json"])
+            self.assertEqual(self.run_main(folder, log="log5"), 0)
+            run = read_json(Path(folder) / "run/run.json")
+        self.assertEqual((run["items"], "finished" in run), (2, True))
+
+    def test_a_log_folder_inside_or_at_a_new_run_folder_is_refused_before_anything_is_made(self):
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / "fresh").mkdir()
+            for log, output in (("fresh/log", "fresh"), ("fresh", "fresh"), ("new", "new")):
+                with self.subTest(log=log, output=output):
+                    self.refused(folder, log, output)
+            self.assertEqual((contents(Path(folder) / "fresh"), (Path(folder) / "new").exists()), ({}, False))
 
     def test_a_session_writes_its_record_and_then_the_finish_of_the_run(self):
         with tempfile.TemporaryDirectory() as folder:

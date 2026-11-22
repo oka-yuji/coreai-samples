@@ -163,14 +163,14 @@ reference environment; `baseline` loads the model, so take the heavy-job lock of
   `input_sha256` and `max_new_tokens`, and `inputs.json`, with the version and SHA-256 of `contract.json` and the count
   and SHA-256 of `inputs.jsonl`. It writes nothing when an item does not match. `RecordTests` in
   `Tools/Conversion/tests/test_gemma4_31b_inputs.py` fixes its checks.
-- `baseline`: `--prepare` is the output folder of the `prepare` step, `--commit` the commit to record (the command does
-  not run git), `--output` the run folder and `--log` a new folder for the session's `monitor.tsv` and `session.json`,
-  or `failure.json` when the monitor stops the session. The run folder holds `outputs.jsonl`, the output records of
-  contract §5.1; `progress.json`, the progress of those lines; and `run.json`, the run record, which has `finished` after
-  a session that ended with exit code 0 (the next session removes it when it starts). `InputRecordTests` in
-  `Tools/Conversion/tests/test_gemma4_31b_baseline.py` fixes the checks of the input records, `GenerationTests` and
-  `SmallModelTests` the generation, `RunFolderTests` the run folder and its resume, and `SessionTests` the end of a
-  session.
+- `baseline`: `--prepare` is the output folder of the `prepare` step, `--commit` the commit to record (the command
+  does not run git), `--output` the run folder and `--log` a new folder outside it for the session's `monitor.tsv` and
+  `session.json`, or `failure.json` when the monitor stops the session. The run folder holds `outputs.jsonl`, the
+  output records of contract §5.1; `progress.json`, the progress of those lines; and `run.json`, the run record, which
+  has `finished` after a session that ended with exit code 0 (the next session removes it when it starts).
+  `InputRecordTests` in `Tools/Conversion/tests/test_gemma4_31b_baseline.py` fixes the checks of the input records,
+  `GenerationTests` and `SmallModelTests` the generation, `RunFolderTests` the run folder and its resume, and
+  `SessionTests` the end of a session.
 
 With `--max-minutes`, a session ends after the item in progress once that many minutes have passed since the command
 started. Its last line of standard output (`record` `session`) has `complete`; run the same command with a new `--log`

@@ -274,6 +274,12 @@ def generate(model, entry, stops, device, chunk=CHUNK):
     return record, info
 
 
+def within(path, folder):
+    path, folder = Path(path).resolve(), Path(folder).resolve()
+    return path == folder or folder in path.parents or folder.exists() and any(
+        parent.exists() and os.path.samefile(parent, folder) for parent in (path, *path.parents))
+
+
 def main():
     begun = time.monotonic()
     parser = argparse.ArgumentParser(description="Generate the BF16 MPS reference outputs of quality evaluation inputs.")
@@ -284,6 +290,8 @@ def main():
     args = parser.parse_args()
     if args.max_minutes is not None and not (math.isfinite(args.max_minutes) and args.max_minutes > 0):
         parser.error("--max-minutes must be a positive number")
+    if within(args.log, args.output):
+        parser.error("--log must be outside --output")
     model = load_contract(args.model)
     ready = read_json(args.prepare / "ready.json")
     if ready.get("ready") is not True or ready.get("contract_sha256") != sha256(args.model):
