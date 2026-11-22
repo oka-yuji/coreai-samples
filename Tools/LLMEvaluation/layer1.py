@@ -137,12 +137,20 @@ def checked_sources(bundle, summary, run, known, files):
     return identity
 
 
-def forced_record(entry, source, output, rule):
+def forced_record(entry, source, output, contract):
+    rule, stops = contract["layer1"], set(contract["generation"]["eos_token_id"])
+    limit = next(category["max_new_tokens"] for category in contract["categories"] if category["id"] == entry["category"])
     ids = source.get("input_ids")
     if not token_ids(ids) or source.get("input_sha256") != tokens_sha256(ids):
         return None, ["the input record does not hold token ids with their input_sha256"]
-    targets = generated(output)
+    targets, length = generated(output), len(output["output_ids"])
     wrong = [text for text, failed in (
+        ("the input record has another max_new_tokens than its category", not same(source.get("max_new_tokens"), limit)),
+        ("the output holds a stop token before its end", not stops.isdisjoint(output["output_ids"])),
+        ("the output stopped on a token that is not a stop token",
+         output["stop"] == "stop_token" and output["stop_token"] not in stops),
+        ("the output length does not fit its stop and max_new_tokens",
+         length != limit if output["stop"] == "limit" else length >= limit),
         ("the output ended with an error", "error" in output),
         ("the output saw non-finite logits", output["non_finite"] != 0),
         ("the output was generated from another input",
@@ -181,7 +189,7 @@ def write(bundle, inputs, run, output):
     rule, produced, selection = bundle["contract"]["layer1"], {value["id"]: value for value in good}, chosen(bundle)
     rows, problems = [], []
     for entry in selection:
-        made, wrong = forced_record(entry, known[entry["id"]], produced[entry["id"]], rule)
+        made, wrong = forced_record(entry, known[entry["id"]], produced[entry["id"]], bundle["contract"])
         problems += [f"{entry['id']}: {text}" for text in wrong]
         rows += [made] if made else []
     problems += [f"{row['id']}: the written record is inconsistent: {text}" for row in rows

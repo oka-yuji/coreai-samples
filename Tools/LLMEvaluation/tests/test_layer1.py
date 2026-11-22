@@ -153,7 +153,7 @@ class ForcedInputTests(Folder):
         generate(state, "code-gen-he-0001", range(4000, 4200))
         generate(state, "code-gen-he-0002", range(4000, 4127))
         generate(state, "code-gen-he-0003", range(4000, 4128))
-        generate(state, "code-fix-0001", range(4000, 4300), stop=None)
+        generate(state, "code-fix-0001", range(4000, 4512), stop=None)
         _, records, _ = self.forced(state)
         for name, targets in (("code-gen-he-0001", list(range(4000, 4128))),
                               ("code-gen-he-0002", list(range(4000, 4127)) + [STOP]),
@@ -415,6 +415,26 @@ class RefusalTests(Folder):
             layer1.write(BUNDLE, inputs, run, self.root / "forced")
         self.assertIn(f"malformed [{number + 1}]", str(caught.exception))
         self.assertFalse(os.path.lexists(self.root / "forced"))
+
+    def test_an_output_whose_stop_or_length_does_not_follow_the_contract_writes_nothing(self):
+        def other_limit(state):
+            by_id(state["inputs"], "ja-choice-0005")["max_new_tokens"] = 9
+
+        cases = (("another stop token", lambda state: generate(state, "ja-reading-0003", [11], stop=7),
+                  "ja-reading-0003: the output stopped on a token that is not a stop token"),
+                 ("a stop token inside", lambda state: generate(state, "ja-reading-0003", [11, STOP, 12]),
+                  "ja-reading-0003: the output holds a stop token before its end"),
+                 ("a limit below max_new_tokens", lambda state: generate(state, "ja-choice-0004", [301, 302, 303], stop=None),
+                  "ja-choice-0004: the output length does not fit its stop and max_new_tokens"),
+                 ("a stop at max_new_tokens", lambda state: generate(state, "ja-choice-0004", range(20, 28)),
+                  "ja-choice-0004: the output length does not fit its stop and max_new_tokens"),
+                 ("another max_new_tokens", other_limit,
+                  "ja-choice-0005: the input record has another max_new_tokens than its category"))
+        for name, change, text in cases:
+            with self.subTest(name):
+                state = fixture()
+                change(state)
+                self.refused(state, text)
 
     def test_a_long_context_input_whose_length_differs_from_the_set_writes_nothing(self):
         state = fixture()
