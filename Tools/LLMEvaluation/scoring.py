@@ -2,6 +2,7 @@ from collections import Counter
 from fractions import Fraction
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import shutil
@@ -137,7 +138,7 @@ def well_formed(record, vocabulary):
 
     def entry(value):
         return (isinstance(value, list) and len(value) == 4 and integer(value[0]) and integer(value[2])
-                and all(isinstance(part, (int, float)) and not isinstance(part, bool) for part in value[1::2]))
+                and all(integer(part) or (isinstance(part, float) and math.isfinite(part)) for part in value[1::2]))
 
     return (isinstance(record.get("id"), str) and isinstance(record.get("input_sha256"), str)
             and integer(record.get("input_tokens")) and integer(record.get("non_finite"))
@@ -153,7 +154,7 @@ def read_records(path):
     for number, line in enumerate(Path(path).read_bytes().split(b"\n"), 1):
         if line.strip():
             try:
-                found.append((number, json.loads(line.decode("utf-8"))))
+                found.append((number, json.loads(line.decode("utf-8"), parse_constant=nonstandard)))
             except (ValueError, RecursionError):
                 found.append((number, None))
     return found

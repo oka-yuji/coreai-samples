@@ -175,6 +175,9 @@ class RecordCheckTests(unittest.TestCase):
         self.assertEqual(self.checked(records=limited), self.only("missing", []))
         failed = [{**row, "error": "stopped"} for row in self.records]
         self.assertEqual(self.checked(records=failed), self.only("missing", []))
+        huge = [{**row, "top2": [[entry[0], 10 ** 400, entry[2], entry[3]] for entry in row["top2"]]}
+                for row in self.records]
+        self.assertEqual(self.checked(records=huge), self.only("missing", []))
 
     def test_each_malformed_record_is_reported_only_as_malformed(self):
         first = self.items[0]["id"]
@@ -200,6 +203,8 @@ class RecordCheckTests(unittest.TestCase):
             "top2 entry too short": {**good, "top2": [entry[:3] for entry in good["top2"]]},
             "top2 entry with a string id": {**good, "top2": [["7", 0.75, 0, 0.25]] + good["top2"][1:]},
             "top2 entry with a string probability": {**good, "top2": [[7, "0.75", 0, 0.25]] + good["top2"][1:]},
+            "top2 probability infinite": {**good, "top2": [[7, float("inf"), 0, 0.25]] + good["top2"][1:]},
+            "top2 probability not a number": {**good, "top2": [[7, 0.75, 0, float("nan")]] + good["top2"][1:]},
             "error of another type": {**good, "error": None},
         })
         for name, broken in cases.items():
@@ -445,6 +450,24 @@ class ScoreRunTests(unittest.TestCase):
         with mock.patch.object(Path, "mkdir", failing), self.assertRaises(OSError):
             self.scored(runs)
         self.assertFalse((self.root / "scores").exists())
+
+    def test_records_with_probabilities_that_are_not_finite_are_malformed(self):
+        text = json.dumps(record("ja-choice-0001", [0, 1]))
+
+        def probability(value):
+            return text.replace("0.75", value, 1)
+
+        lines = [probability("NaN"), probability("Infinity"), probability("1e400"), text]
+        lines += [json.dumps(record(key, values)) for key, values in self.outputs.items() if key != "ja-choice-0001"]
+        folder = self.root / "finite"
+        folder.mkdir()
+        (folder / "outputs.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (folder / "run.json").write_text("{}", encoding="utf-8")
+        _, output = self.scored([folder])
+        checks = items.read_json(output / "finite" / "summary.json")["checks"]
+        scores = {row["id"]: row for row in read_lines(output / "finite" / "scores.jsonl")}
+        self.assertEqual((checks["malformed"], checks["duplicate"]), ([1, 2, "ja-choice-0001"], ["ja-choice-0001"]))
+        self.assertEqual((scores["ja-choice-0001"]["state"], scores["ja-choice-0001"]["correct"]), ("scored", True))
 
     def test_runs_are_scored_together_into_a_new_folder(self):
         first = self.run_folder("one", [record(key, ids) for key, ids in self.outputs.items()])
