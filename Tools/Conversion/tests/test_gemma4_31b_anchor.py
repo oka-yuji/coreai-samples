@@ -403,19 +403,34 @@ class ReadyMonitor:
         return copy.deepcopy(self.observed or {"samples": 1, "aborts": 0})
 
 
-class MonitoredTests(unittest.TestCase):
-    def monitored(self, folder, monitor, work):
-        with mock.patch.object(reference, "ReferenceMonitor", monitor), \
-                mock.patch.object(reference, "memory", return_value=dict(MEMORY)):
-            return reference.monitored(Path(folder), Path(folder) / "reference.json", work, "mps", anchor.SCHEMA)
+def finished_record():
+    return {"checks": {"finite": True}, "loading": {"after_load": dict(MEMORY)}, "resources": {"cases": [dict(MEMORY)]},
+            "timing": {}}
 
-    def test_the_shared_section_writes_a_finished_record_with_the_monitor_checks(self):
-        work = lambda: {"checks": {"finite": True}, "loading": {"after_load": dict(MEMORY)},
-                        "resources": {"cases": [dict(MEMORY)]}, "timing": {}}
-        with tempfile.TemporaryDirectory() as folder:
-            code = self.monitored(folder, lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, OBSERVED), work)
-            record = json.loads((Path(folder) / "reference.json").read_text())
-        self.assertEqual((code, record["passed"], record["checks"]["monitor_clean"]), (0, True, True))
+
+class SupervisedTests(unittest.TestCase):
+    def run_main(self, folder, stage, monitor, work, extra=()):
+        prepare = Path(folder) / "prepare"
+        prepare.mkdir(exist_ok=True)
+        (prepare / "ready.json").write_text(json.dumps({"ready": True, "contract_sha256": sha256(RECIPE / "model.json")}))
+        argv = ["anchor", stage, *extra, "--model", str(RECIPE / "model.json"), "--snapshot", folder, "--prepare",
+                str(prepare), "--reference", folder, "--output", folder]
+        with mock.patch.object(sys, "argv", argv), mock.patch.object(reference, "ReferenceMonitor", monitor), \
+                mock.patch.object(reference, "memory", return_value=dict(MEMORY)), \
+                mock.patch.object(anchor, "layers_stage", side_effect=lambda *a: work()), \
+                mock.patch.object(anchor, "logits_stage", side_effect=lambda *a: work()):
+            return anchor.main()
+
+    def test_each_stage_writes_its_own_finished_record_with_the_monitor_checks(self):
+        names = {}
+        for stage, extra in (("layers", ()), ("anchor", ("--weights", "float16", "--embed-scale", "float32")), ("half", ())):
+            with tempfile.TemporaryDirectory() as folder:
+                code = self.run_main(folder, stage, lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, OBSERVED),
+                                     finished_record, extra)
+                names[stage] = sorted(path.name for path in Path(folder).glob("*.json"))
+                record = json.loads((Path(folder) / names[stage][0]).read_text())
+            self.assertEqual((code, record["passed"], record["checks"]["monitor_clean"]), (0, True, True))
+        self.assertEqual(names, {"layers": ["layers.json"], "anchor": ["reference.json"], "half": ["reference.json"]})
 
     def test_a_stop_is_recorded_with_the_schema_of_the_stage(self):
         def monitor(path, volumes, patterns, on_abort):
@@ -426,32 +441,17 @@ class MonitoredTests(unittest.TestCase):
             raise KeyboardInterrupt
 
         with tempfile.TemporaryDirectory() as folder:
-            code = self.monitored(folder, monitor, interrupted)
+            code = self.run_main(folder, "half", monitor, interrupted)
             failure = json.loads((Path(folder) / "failure.json").read_text())
             self.assertFalse((Path(folder) / "reference.json").exists())
         self.assertEqual((code, failure["schema"], failure["abort"][:9]), (1, anchor.SCHEMA, "swap rose"))
 
-    def test_each_stage_writes_its_own_record_and_refuses_an_existing_one(self):
+    def test_an_existing_record_is_refused_before_the_contract_is_read(self):
         with tempfile.TemporaryDirectory() as folder:
-            prepare = Path(folder) / "prepare"
-            prepare.mkdir()
-            (prepare / "ready.json").write_text(json.dumps({"ready": True, "contract_sha256": sha256(RECIPE / "model.json")}))
-            options = ["--model", str(RECIPE / "model.json"), "--snapshot", folder, "--prepare", str(prepare),
-                       "--reference", folder, "--output", folder]
-            written = {}
-            for stage, extra in (("layers", []), ("anchor", ["--weights", "float16", "--embed-scale", "float32"]),
-                                 ("half", [])):
-                with mock.patch.object(sys, "argv", ["anchor", stage, *extra, *options]), \
-                        mock.patch.object(reference, "monitored", return_value=0) as monitored:
-                    self.assertEqual(anchor.main(), 0)
-                written[stage] = (monitored.call_args.args[1].name, monitored.call_args.args[4])
             (Path(folder) / "layers.json").write_text("{}")
-            with mock.patch.object(sys, "argv", ["anchor", "layers", *options]), \
-                    mock.patch.object(anchor, "load_contract") as contract, self.assertRaises(FileExistsError):
-                anchor.main()
+            with mock.patch.object(anchor, "load_contract") as contract, self.assertRaises(FileExistsError):
+                self.run_main(folder, "layers", mock.Mock(), mock.Mock())
             contract.assert_not_called()
-        self.assertEqual(written, {"layers": ("layers.json", anchor.SCHEMA), "anchor": ("reference.json", anchor.SCHEMA),
-                                   "half": ("reference.json", anchor.SCHEMA)})
 
 
 def stage_record(name, digest, **changes):

@@ -379,8 +379,14 @@ def main():
     ready = read_json(args.prepare / "ready.json")
     if ready.get("ready") is not True or ready.get("contract_sha256") != sha256(args.model):
         raise ValueError("Run prepare with this contract first")
-    return reference.monitored(args.output, output, lambda: work(args, contract, ready), contract["reference"]["device"],
-                               SCHEMA)
+
+    def conclude(record, observed, started):
+        reference.finalize(record, observed, reference.memory(contract["reference"]["device"]))
+        record["timing"]["total_s"] = time.perf_counter() - started
+        write_json(output, record)
+        return 0 if record["passed"] else 1
+
+    return reference.supervise(args.output, SCHEMA, lambda: work(args, contract, ready), conclude)
 
 
 if __name__ == "__main__":
