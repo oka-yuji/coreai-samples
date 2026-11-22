@@ -40,10 +40,12 @@ OBSERVED = {"samples": 3, "interval_s": 5, "aborts": 0, "failure": None, "unread
             "first": {"swap_used_bytes": 5}, "peak": {"swap_used_bytes": 5, "rss_bytes": 11},
             "lowest": {"free_percent": 40, "free_bytes": {"volume/folder": 1}}}
 EXPECTED = anchor_compare.expectations()
+LIMIT = 64
 
 
-def expected(names, vocabulary=4, window=4, **changes):
-    return {**EXPECTED, "cases": list(names), "vocabulary": vocabulary, "window": window, **changes}
+def expected(cases, vocabulary=4, window=4, **changes):
+    return {**EXPECTED, "cases": [{"id": name, "kind": kind, "max_new_tokens": LIMIT} for name, kind in cases],
+            "vocabulary": vocabulary, "window": window, **changes}
 
 
 def tiny_model(folder):
@@ -193,13 +195,14 @@ def write_reference(folder, cases, passed=True, model=None, device="mps"):
         tokens, array = folder / f"cases/{name}.tokens.json", folder / f"cases/{name}.logits.npy"
         tokens.write_text(json.dumps({"input_tokens": inputs, "output_tokens": outputs}))
         np.save(array, np.asarray(logits, dtype=np.float32))
-        records.append({"id": name, "kind": kind, "input_tokens": len(inputs), "output_tokens": len(outputs),
+        records.append({"id": name, "kind": kind, "max_new_tokens": LIMIT, "input_tokens": len(inputs), "output_tokens": len(outputs),
                         "saved_positions": len(inputs) + len(outputs), "first_scoring_row": len(inputs) - 1,
                         "scoring_positions": len(outputs),
                         "files": {"tokens": reference.file_record(tokens), "logits": reference.file_record(array)}})
     (folder / "reference.json").write_text(json.dumps({"schema": reference.SCHEMA, "passed": passed,
                                                        "dtype": anchor_compare.REFERENCE_DTYPE, "device": device,
                                                        "model": model or EXPECTED["model"], "cases": records,
+                                                       "fixtures_sha256": EXPECTED["fixtures_sha256"],
                                                        "source": {"reference_sha256": "a" * 64}, "run": folder.name}))
     return folder
 
@@ -221,7 +224,7 @@ class CompareTests(unittest.TestCase):
     def pair(self, folder, first, second, **options):
         a = write_reference(Path(folder) / "a", first)
         b = write_reference(Path(folder) / "b", second)
-        return anchor_compare.compare(a, b, expected([case[0] for case in first], **options))
+        return anchor_compare.compare(a, b, expected([case[:2] for case in first], **options))
 
     def test_the_metrics_follow_their_definitions(self):
         baseline = [[0.0, 0.0, -9.0, -9.0], [2.0, 1.99, -9.0, -9.0], [3.0, 0.0, 2.0, -9.0], [1.0, 0.0, 0.0, 0.0]]
@@ -301,7 +304,7 @@ class CompareTests(unittest.TestCase):
                 if label == "path in the case ID":
                     change(a)
                 names = ["../case"] if label == "path in the case ID" else ["case"]
-                result = anchor_compare.compare(a, b, expected(names))
+                result = anchor_compare.compare(a, b, expected([(name, "chat") for name in names]))
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
 
@@ -311,7 +314,7 @@ class CompareTests(unittest.TestCase):
             shutil.copytree(first, Path(folder) / "copy")
             for second in (first, Path(folder) / "copy"):
                 with self.subTest(second=second.name):
-                    result = anchor_compare.compare(first, second, expected(["case"]))
+                    result = anchor_compare.compare(first, second, expected([("case", "chat")]))
                     self.assertFalse(result["passed"])
                     self.assertIn("both artifacts are the same run", result["problems"])
 
@@ -323,6 +326,15 @@ class CompareTests(unittest.TestCase):
                    "another revision": (lambda data: data["model"].update(revision="0" * 40), ["case"],
                                         "the model differs from the contract"),
                    "a case missing in both": (lambda data: None, ["case", "other"], "the cases differ from the fixtures"),
+                   "another kind in both": (lambda data: data["cases"][0].update(kind="raw"), ["case"],
+                                            "the cases differ from the fixtures"),
+                   "another output limit in both": (lambda data: data["cases"][0].update(max_new_tokens=LIMIT + 1), ["case"],
+                                                    "the cases differ from the fixtures"),
+                   "another kind in two anchor records": (lambda data: (data.update(anchor_record),
+                                                                        data["cases"][0].update(kind="raw")), ["case"],
+                                                          "the cases differ from the fixtures"),
+                   "other fixtures in both": (lambda data: data.update(fixtures_sha256="0" * 64), ["case"],
+                                              "the fixtures differ from the fixture file"),
                    "no dtype in a reference record": (lambda data: data.pop("dtype"), ["case"], anchor_compare.UNKNOWN),
                    "another device": (lambda data: data.update(device="cpu"), ["case"], anchor_compare.UNKNOWN),
                    "an unknown embedding scale": (lambda data: data.update(
@@ -336,14 +348,14 @@ class CompareTests(unittest.TestCase):
                 a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))
                 for side in (a, b):
                     edit(side, change)
-                result = anchor_compare.compare(a, b, expected(names))
+                result = anchor_compare.compare(a, b, expected([(name, "chat") for name in names]))
                 self.assertFalse(result["passed"])
                 self.assertEqual([problem for problem in result["problems"] if problem.endswith(message)],
                                  [f"baseline: {message}", f"candidate: {message}"])
         with tempfile.TemporaryDirectory() as folder:
             a, b = (write_reference(Path(folder) / side, clean) for side in ("a", "b"))
             edit(a, lambda data: data.update(anchor_record))
-            result = anchor_compare.compare(a, b, expected(["case"]))
+            result = anchor_compare.compare(a, b, expected([("case", "chat")]))
         self.assertTrue(result["passed"])
         self.assertEqual(result["identities"], {"baseline": {"stage": "anchor", **anchor_record["compute"]},
                                                 "candidate": anchor_compare.definition("reference", EXPECTED)})
@@ -359,13 +371,13 @@ class CompareTests(unittest.TestCase):
             (Path(folder) / "alias").symlink_to(a)
             for second in (linked, Path(folder) / "alias"):
                 with self.subTest(second=second.name):
-                    result = anchor_compare.compare(a, second, expected(["case"]))
+                    result = anchor_compare.compare(a, second, expected([("case", "chat")]))
                     self.assertFalse(result["passed"])
                     self.assertIn("both records are the same file", result["problems"])
             other = write_reference(Path(folder) / "other", clean)
             (other / "cases/case.logits.npy").unlink()
             os.link(a / "cases/case.logits.npy", other / "cases/case.logits.npy")
-            result = anchor_compare.compare(a, other, expected(["case"]))
+            result = anchor_compare.compare(a, other, expected([("case", "chat")]))
         self.assertFalse(result["passed"])
         self.assertEqual(result["problems"], ["case: both logits files are the same file"])
 
@@ -463,7 +475,7 @@ class StageTests(unittest.TestCase):
                 (args.output / "reference.json").write_text(json.dumps(record))
                 outputs[stage], records[stage] = args.output, record
             result = anchor_compare.compare(outputs["anchor"], Path(folder) / "reference",
-                                            expected([case[0] for case in cases], VOCABULARY, WINDOW, model=identity,
+                                            expected([case[:2] for case in cases], VOCABULARY, WINDOW, model=identity,
                                                      device="cpu", scales={**EXPECTED["scales"], "bfloat16": 6.9375}))
         self.assertEqual(result["problems"], [])
         self.assertTrue(result["passed"])
@@ -563,10 +575,11 @@ def stage_record(name, digest, **changes):
     if name == "layers":
         record.update(stage="layers", layers=6, layer_types=["sliding_attention"], limit=1e-4, attention_rows=512,
                       cases=[{"id": case_id, "positions": 3, "max_abs_difference": 1e-6,
-                              "non_finite": {"layerwise": 0, "plain": 0}} for case_id in EXPECTED["cases"]])
+                              "non_finite": {"layerwise": 0, "plain": 0}} for case_id in (item["id"] for item in EXPECTED["cases"])])
     else:
         definition = dict(anchor_summary.definitions(EXPECTED)[name])
-        record.update(stage=definition.pop("stage"), compute=definition, cases=[{"id": case_id, **case} for case_id in EXPECTED["cases"]],
+        record.update(stage=definition.pop("stage"), compute=definition,
+                      cases=[{**case, "id": item["id"], "kind": item["kind"]} for item in EXPECTED["cases"]],
                       ranges=[{"point": "residual_input", "layer": 0, "max_abs": 3.0, "case": "ja_long",
                                "above_float16_max": 0, "above_half_float16_max": 0}], cast=None)
     record.update(changes)
@@ -580,7 +593,7 @@ def write_summary_run(folder, run="run", reused=(), changes=None):
     artifacts.mkdir(parents=True)
     (artifacts / "reference.json").write_text(json.dumps({
         "schema": reference.SCHEMA, "passed": True, "dtype": anchor_compare.REFERENCE_DTYPE, "device": "mps",
-        "model": EXPECTED["model"], "cases": [{"id": case_id} for case_id in EXPECTED["cases"]]}))
+        "model": EXPECTED["model"], "cases": copy.deepcopy(EXPECTED["cases"]), "fixtures_sha256": EXPECTED["fixtures_sha256"]}))
     digest = sha256(artifacts / "reference.json")
     stages.append({"id": "reference", "role": "reference", "status": "reused", "origin": "earlier",
                    "artifacts": str(artifacts), "execute_s": 0})

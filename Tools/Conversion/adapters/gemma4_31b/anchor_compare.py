@@ -19,6 +19,7 @@ MARGIN = 32
 FILES = {"tokens": "json", "logits": "npy"}
 REFERENCE_DTYPE = {"weights": "bfloat16", "compute": "bfloat16", "logits_saved": "float32"}
 UNKNOWN = "the stage, weights, compute or embedding scale is not a known definition"
+FIELDS = {reference.SCHEMA: ("id", "kind", "max_new_tokens"), anchor.SCHEMA: ("id", "kind"), anchor.LAYERS_SCHEMA: ("id",)}
 
 
 def rounded(value, dtype):
@@ -32,7 +33,7 @@ def rounded(value, dtype):
 
 
 def expectations():
-    data = (RECIPE / "model.json").read_bytes()
+    data, fixtures = (RECIPE / "model.json").read_bytes(), (RECIPE / "fixtures.json").read_bytes()
     contract = parse(data)
     files, config = contract["files"], contract["config"]
     return {"model": {"id": contract["model_id"], "revision": contract["revision"],
@@ -40,7 +41,8 @@ def expectations():
                       "weights_sha256": {name: entry["sha256"] for name, entry in files.items() if name.endswith(".safetensors")},
                       "verified_before_loading": {name: entry for name, entry in files.items()
                                                   if name in reference.LOADED_FILES or name.endswith(".safetensors")}},
-            "cases": [case["id"] for case in reference.load_fixtures(RECIPE / "fixtures.json")],
+            "fixtures_sha256": hashlib.sha256(fixtures).hexdigest(),
+            "cases": [{key: case[key] for key in FIELDS[reference.SCHEMA]} for case in parse(fixtures)["cases"]],
             "device": contract["reference"]["device"], "vocabulary": config["vocab_size"], "window": config["sliding_window"],
             "scales": {dtype: rounded(config["hidden_size"] ** 0.5, dtype) for dtype in ("bfloat16", "float32", "float16")}}
 
@@ -59,8 +61,13 @@ def definition(stage, expected, weights=None, scale=None):
 
 def provenance(record, expected):
     problems = [] if record.get("model") == expected["model"] else ["the model differs from the contract"]
-    if [case.get("id") for case in record.get("cases") or []] != expected["cases"]:
+    fields, cases = FIELDS.get(record.get("schema")), record.get("cases")
+    if fields is None or not isinstance(cases, list) or not all(isinstance(case, dict) for case in cases) \
+            or [{key: case.get(key) for key in fields} for case in cases] \
+            != [{key: case[key] for key in fields} for case in expected["cases"]]:
         problems.append("the cases differ from the fixtures")
+    if record.get("schema") == reference.SCHEMA and record.get("fixtures_sha256") != expected["fixtures_sha256"]:
+        problems.append("the fixtures differ from the fixture file")
     return problems
 
 

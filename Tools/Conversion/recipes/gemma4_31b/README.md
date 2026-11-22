@@ -192,8 +192,9 @@ Compare two of these records (or one of them and the `reference` record) with th
 It reads each `reference.json`, token file and logits file once and uses the same bytes for the SHA-256 and the
 values. Each record is checked on its own against values computed from `model.json` and `fixtures.json`, not only
 against the other record: the model entries (ID, revision, the SHA-256 of `model.json`, the shard SHA-256 and the files
-verified before loading) must equal the contract, the case IDs must be the twelve fixture IDs in order, the device must
-be the contract device, and the record must be one of the known definitions: the BF16 reference (with its `dtype`
+verified before loading) must equal the contract, the cases must be the twelve cases of `fixtures.json` in order with
+their IDs and kinds (the BF16 reference also with their `max_new_tokens`, and with the SHA-256 of `fixtures.json` in
+`fixtures_sha256`), the device must be the contract device, and the record must be one of the known definitions: the BF16 reference (with its `dtype`
 entries) or an `anchor` or `half` record whose `stage` is the stage of one of its definitions and whose `compute` holds
 exactly the weights, compute, embedding scale and attention rows of that definition and nothing else, with the three
 scales computed from `hidden_size`. The comparison passes only when both records pass
@@ -217,7 +218,7 @@ case with more than 1,056 positions (the sliding window of 1,024 drops the BOS f
 `anchor_summary` prints only states, numbers, hashes and fixed words. It stops unless the six steps were executed by
 the given run (`status` executed and `origin` the run ID), every record of the report (the BF16 reference included)
 passes the checks of the comparison and matches the definition of its step in `recipe.json` (for `anchor` the
-`--weights` and `--embed-scale` of its command), the `layers` record has the contract model and the fixture cases, no
+`--weights` and `--embed-scale` of its command), the `layers` record has the contract model and the fixture case IDs in order, no
 two steps hold the same record, no comparison is given twice and every comparison lists the SHA-256 of two records of
 that report:
 
