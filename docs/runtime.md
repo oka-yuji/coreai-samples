@@ -115,9 +115,11 @@ Reasoning strength depends on the bundle. Qwen3.8 uses the three effort values; 
 
 - **To remove a prepared copy**, call `Engine.deleteSpecializationCache(bundle:)`, which removes the calling program's copy of that bundle, use **Clear Prepared Copy** in the model heading's **Model information** (ⓘ) popover (`--clear-prepared` in its screen check), or delete the folder.
 
-Configure the library with `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)`, passed as `reloadPolicy:` to the model initializer. An interval of zero disables periodic reloads; a footprint limit of zero disables the memory trigger.
+Configure the library with `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)`, passed as `reloadPolicy:` to the model initializer. An interval of zero disables periodic reloads; a footprint limit of zero disables the process-footprint trigger, and a `graphicsGrowthLimitBytes` of zero disables the graphics-growth trigger described below.
 
 The defaults are ten completed reads and a process-footprint trigger of 18,000,000,000 bytes (18 decimal GB). The threshold was calibrated on October 9, 2026 on an M4 Max with 128 GiB, macOS 27.0 (26A428) and Xcode 27, using the Qwen3.8-27B 4bit dynamic `gdnfp32` variant. The `M4-h36-memory-v2` run starting at 2026-10-09 13:03:12 UTC (run ID `3cc72f3295ab`) used thirty prompts, a new conversation every ten turns, context limit 16,384, up to 64 generated tokens per turn, interval ten and no footprint trigger. Its maximum of all thirty immediate post-turn footprints was 11,937,577,240 bytes; multiplying by 1.5 and rounding up to a decimal GB gives 18,000,000,000 bytes. The delayed samples were not used in that calculation. This is a measured reload trigger, not a safe memory budget for every device.
+
+A third trigger reloads before the next read when the graphics footprint (the graphics ledger plus its compressed ledger) has grown by `graphicsGrowthLimitBytes` since a baseline that each load takes after its first successful read. It is on by default only for the verified Qwen3.5-0.8B asset, at 536,870,912 bytes (512 MiB); pass a value to enable it for another bundle, or zero to turn it off.
 
 ## Limitations
 
