@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from Tools.Conversion.adapters.gemma4_31b import export, fp16_summary, layers, native
+from Tools.Conversion.adapters.gemma4_31b import effect, export, fp16_summary, layers, native
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import PipelineError, write_json
 
@@ -69,7 +69,7 @@ def comparison_record(export_hash, reference_hash):
             "verifier": {"bytes": 1, "sha256": "6" * 64}, "conditions": [first, entry]}
 
 
-class SummaryTests(unittest.TestCase):
+class Records(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(self.folder))
@@ -105,6 +105,8 @@ class SummaryTests(unittest.TestCase):
                 contextlib.redirect_stderr(io.StringIO()):
             return fp16_summary.main(), output.getvalue()
 
+
+class SummaryTests(Records):
     def test_the_summary_keeps_numbers_hashes_and_fixed_words_and_drops_paths_and_free_text(self):
         code, output = self.summarize(self.run_files("first"), self.run_files("second"))
         self.assertEqual(code, 0)
@@ -215,6 +217,96 @@ class SummaryTests(unittest.TestCase):
         for label, files in cases.items():
             with self.subTest(case=label):
                 self.assertEqual(self.summarize(files), (1, ""))
+
+
+def quantized_record():
+    record = export_record()
+    record.update(precision="8bit", compression_config=copy.deepcopy(export.QUANTIZATION))
+    record["weights"].update(elements=9, elements_by_dtype={"torch.float16": 5, "torch.uint8": 4}, quantized_layouts=41)
+    record["quantized"] = {"layers": [{"name": "model.layers.0.self_attn.q_proj.weight", "block": [1, 32]}],
+                           "skipped": 0, "warnings_enabled": True, "file": {"bytes": 3, "sha256": "7" * 64},
+                           "tensors": {"model.layers.0.self_attn.q_proj.weight.scale": "8" * 64}}
+    record["asset"].update(storage_types={"UInt8": 132, "Float16": 9, "Int32": 2}, float16_minus_weights=4,
+                           uint8_minus_weights=128)
+    name = "gemma4_31b_l6_8bit_main"
+    record["metadata"].update(name=name, compression="8bit")
+    record["bundle"].update(name=name, files={f"{name}.aimodel/main.mlirb": {"bytes": 4, "sha256": "4" * 64}})
+    return record
+
+
+def restored_record():
+    return {**context_record(), "weights": layers.RESTORED,
+            "quantized": {"export_sha256": "a" * 64, "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 123}}
+
+
+def effect_record(reference_hash, **changes):
+    entry = {"name": "tail", "input": "context", "tokens": 16896, "start": 16832, "chunk": 1, "rows": 64, "non_finite": 0,
+             "reference_non_finite": 0, "max_abs_logit": 4.14, "top1_mismatches": {"near_tie": 2, "outside": 1}}
+    return {"schema": effect.SCHEMA, "problems": [], "restored": {"sha256": reference_hash, "layers": 6},
+            "rounded": {"sha256": "9" * 64, "layers": 6}, "criteria": {"near_tie": 0.01}, "conditions": [entry], **changes}
+
+
+class QuantizedSummaryTests(Records):
+    def setUp(self):
+        super().setUp()
+        write_json(self.reference, restored_record())
+        self.effect = self.folder / "effect.json"
+        write_json(self.effect, effect_record(sha256(self.reference)))
+
+    def summarize(self, *runs, effect_file=True):
+        argv = ["fp16_summary", "--reference", str(self.reference), *(["--effect", str(self.effect)] if effect_file else [])]
+        for report, record, comparison in runs:
+            argv += ["--report", str(report), "--export", str(record), "--comparison", str(comparison)]
+        output = io.StringIO()
+        with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), \
+                contextlib.redirect_stderr(io.StringIO()):
+            return fp16_summary.main(), output.getvalue()
+
+    def run_files(self, label, record=None, origin=None, stage_role="export", manifest=None):
+        return super().run_files(label, record or quantized_record(), origin, stage_role, manifest)
+
+    def test_the_summary_keeps_numbers_hashes_and_fixed_words_and_drops_paths_and_free_text(self):
+        code, output = self.summarize(self.run_files("first"))
+        self.assertEqual(code, 0)
+        result = json.loads(output)
+        self.assertNotIn(SENTINEL, output)
+        self.assertNotIn(str(self.folder), output)
+        self.assertEqual(result["schema"], fp16_summary.QUANTIZED_SCHEMA)
+        asset = result["assets"][0]["export"]
+        self.assertEqual(asset["quantized"], {"layers": 1, "skipped": 0, "warnings_enabled": True,
+                                              "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 1})
+        self.assertEqual((asset["asset"]["uint8_minus_weights"], asset["asset"]["float16_minus_weights"]), (128, 4))
+        self.assertEqual(result["reference"]["weights"], "8bit")
+        self.assertEqual(result["reference"]["quantized"], {"export_sha256": "a" * 64,
+                                                            "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 123})
+        self.assertEqual(result["effect"]["rounded_sha256"], "9" * 64)
+        self.assertEqual(result["effect"]["conditions"][0]["top1_mismatches"], {"near_tie": 2, "outside": 1})
+        self.assertEqual(result["effect"]["conditions"][0]["max_abs_logit"], 4.14)
+
+    def test_free_text_in_a_shareable_field_is_rejected(self):
+        changes = [lambda record: record["quantized"]["file"].update(sha256=SENTINEL),
+                   lambda record: record["asset"].update(uint8_minus_weights=SENTINEL),
+                   lambda record: record.update(compression_config={"quantization": SENTINEL}),
+                   lambda record: record["quantized"].update(warnings_enabled="yes")]
+        for index, change in enumerate(changes):
+            record = quantized_record()
+            change(record)
+            with self.subTest(change=index), self.assertRaises(PipelineError):
+                fp16_summary.exported(record)
+
+    def test_an_8bit_summary_needs_the_effect_of_its_reference_and_an_fp16_summary_refuses_one(self):
+        self.assertEqual(self.summarize(self.run_files("no-effect"), effect_file=False), (1, ""))
+        write_json(self.effect, effect_record("0" * 64))
+        self.assertEqual(self.summarize(self.run_files("other-reference")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference), problems=["two rounded references"]))
+        self.assertEqual(self.summarize(self.run_files("with-problems")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference), schema="other"))
+        self.assertEqual(self.summarize(self.run_files("other-schema")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference)))
+        fp16 = Records.run_files(self, "fp16", export_record())
+        self.assertEqual(self.summarize(self.run_files("mixed"), fp16), (1, ""))
+        self.assertEqual(self.summarize(fp16), (1, ""))
+        self.assertEqual(self.summarize(self.run_files("paired"))[0], 0)
 
 
 if __name__ == "__main__":

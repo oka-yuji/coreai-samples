@@ -8,12 +8,18 @@ from ... import summary as pipeline
 from ...storage import PipelineError
 from .anchor import read
 from .anchor_summary import signed
-from .export import SCHEMA as EXPORT_SCHEMA
-from .layers import CONTEXT_SCHEMA
+from .effect import SCHEMA as EFFECT_SCHEMA
+from .export import QUANTIZATION, SCHEMA as EXPORT_SCHEMA
+from .layers import CONTEXT_SCHEMA, RESTORED
 from .native import PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER
 from .summary import HEX, REPOSITORY, SHARD, count, flag, matched, optional, word
 
 SCHEMA = "gemma4-31b-fp16-summary/1"
+QUANTIZED_SCHEMA = "gemma4-31b-8bit-summary/1"
+SCOPES = {SCHEMA: "FP16 export of the first layers and its comparison with the FP32 reference; not a quality evaluation.",
+          QUANTIZED_SCHEMA: "8-bit export of the first layers, its comparison with the FP32 reference restored from the "
+                            "same quantized weights, and the effect of the quantization against the FP32 reference with "
+                            "float16-rounded weights; not a quality evaluation."}
 RELATIVE = re.compile(r"[A-Za-z0-9_.-]{1,64}(/[A-Za-z0-9_.-]{1,64}){0,3}")
 
 
@@ -49,7 +55,11 @@ def logits(entry):
 def reference(record):
     if record.get("schema") != CONTEXT_SCHEMA:
         raise PipelineError(f"Expected a {CONTEXT_SCHEMA} record")
-    return {"implementation": word(record["implementation"]), "layers": count(record["layers"]),
+    restored = {} if record.get("weights") != RESTORED else {
+        "weights": "8bit", "quantized": {"export_sha256": matched(record["quantized"]["export_sha256"], HEX[64]),
+                                         "file": logits(record["quantized"]["file"]),
+                                         "tensors": count(record["quantized"]["tensors"])}}
+    return {**restored, "implementation": word(record["implementation"]), "layers": count(record["layers"]),
             "layer_types": kinds(record["layer_types"]), "model": model(record["model"]),
             "embed_scale": number(record["embed_scale"]), "chunk": count(record["chunk"]),
             "versions": {word(name): word(version) for name, version in record["versions"].items()},
@@ -70,12 +80,22 @@ def layout(functions):
             for name, function in functions.items()}
 
 
+def quantization(record):
+    quantized = record["quantized"]
+    return {"quantized": {"layers": len(quantized["layers"]), "skipped": count(quantized["skipped"]),
+                          "warnings_enabled": flag(quantized["warnings_enabled"]), "file": logits(quantized["file"]),
+                          "tensors": len(quantized["tensors"])}}
+
+
 def exported(record):
-    if record.get("schema") != EXPORT_SCHEMA or record["compression_config"] is not None:
-        raise PipelineError(f"Expected an uncompressed {EXPORT_SCHEMA} record")
+    eight_bit = record.get("precision") == "8bit"
+    if record.get("schema") != EXPORT_SCHEMA or record["compression_config"] != (QUANTIZATION if eight_bit else None):
+        raise PipelineError(f"Expected an uncompressed {EXPORT_SCHEMA} record or one of the fixed 8-bit config")
     metadata, bundle, resources = record["metadata"], record["bundle"], record["resources"]
     monitor = resources["monitor"]
-    return {"passed": flag(record["passed"]), "checks": {word(key): flag(value) for key, value in record["checks"].items()},
+    differences = {"uint8_minus_weights": signed(record["asset"]["uint8_minus_weights"])} if eight_bit else {}
+    return {**(quantization(record) if eight_bit else {}),
+            "passed": flag(record["passed"]), "checks": {word(key): flag(value) for key, value in record["checks"].items()},
             "problems": len(record["problems"]), "model": model(record["model"]), "layers": count(record["layers"]),
             "layer_types": kinds(record["layer_types"]), "functions": [word(name) for name in record["functions"]],
             "context": count(record["context"]), "precision": word(record["precision"]),
@@ -86,7 +106,7 @@ def exported(record):
                         "quantized_layouts": count(record["weights"]["quantized_layouts"])},
             "asset": {"functions": layout(record["asset"]["functions"]),
                       "storage_types": numbers(record["asset"]["storage_types"], True),
-                      "float16_minus_weights": signed(record["asset"]["float16_minus_weights"])},
+                      "float16_minus_weights": signed(record["asset"]["float16_minus_weights"]), **differences},
             "tokenizer": {word(name): matched(value, HEX[64]) for name, value in record["tokenizer"].items()},
             "metadata": {"name": word(metadata["name"]), "vocab_size": count(metadata["language"]["vocab_size"]),
                          "max_context_length": count(metadata["language"]["max_context_length"]),
@@ -159,17 +179,33 @@ def paired(reports, exports, comparisons, reference_hash):
             raise PipelineError("Each comparison must be made from the export record given with it and the reference")
 
 
-def project(reports, exports, comparisons, context):
-    return {"schema": SCHEMA, "scope": "FP16 export of the first layers and its comparison with the FP32 reference; "
-                                       "not a quality evaluation.",
-            "reference": reference(context),
+def effected(record, reference_hash):
+    if record.get("schema") != EFFECT_SCHEMA or record.get("problems") != [] \
+            or (record.get("restored") or {}).get("sha256") != reference_hash:
+        raise PipelineError("Expected the effect of the quantization on the restored reference")
+    return {"rounded_sha256": matched(record["rounded"]["sha256"], HEX[64]), "layers": count(record["restored"]["layers"]),
+            "criteria": {word(key): number(value) for key, value in record["criteria"].items()},
+            "conditions": [{"name": word(entry["name"]), "input": word(entry["input"]),
+                            **{key: count(entry[key]) for key in ("tokens", "start", "chunk", "rows", "non_finite",
+                                                                  "reference_non_finite")},
+                            "max_abs_logit": optional(entry["max_abs_logit"]),
+                            "top1_mismatches": numbers(entry["top1_mismatches"], True)}
+                           for entry in record["conditions"]]}
+
+
+def project(reports, exports, comparisons, context, effect=None):
+    schema = SCHEMA if effect is None else QUANTIZED_SCHEMA
+    return {"schema": schema, "scope": SCOPES[schema], "reference": reference(context),
             "assets": [{"pipeline": pipeline.project(report), "export": exported(record), "comparison": compared(result)}
-                       for report, record, result in zip(reports, exports, comparisons, strict=True)]}
+                       for report, record, result in zip(reports, exports, comparisons, strict=True)],
+            **({} if effect is None else {"effect": effect})}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Print only shareable numbers from Gemma 4 31B FP16 export records.")
+    parser = argparse.ArgumentParser(description="Print only shareable numbers from Gemma 4 31B FP16 or 8-bit export "
+                                                 "records.")
     parser.add_argument("--reference", type=Path, required=True)
+    parser.add_argument("--effect", type=Path)
     for name in ("report", "export", "comparison"):
         parser.add_argument(f"--{name}", type=Path, action="append", required=True)
     args = parser.parse_args()
@@ -179,8 +215,12 @@ def main():
         comparisons = [read(path)[0] for path in args.comparison]
         context, reference_hash, _ = read(args.reference)
         paired(reports, exports, comparisons, reference_hash)
-        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context), indent=2,
-                         allow_nan=False))
+        precisions = {record.get("precision") for _, record, _, _ in exports}
+        if precisions not in ({"float16"}, {"8bit"}) or (precisions == {"8bit"}) != (args.effect is not None):
+            raise PipelineError("Give exports of one precision and the effect of the quantization only with 8-bit exports")
+        effect = None if args.effect is None else effected(read(args.effect)[0], reference_hash)
+        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context, effect),
+                         indent=2, allow_nan=False))
         return 0
     except Exception as error:
         print(f"Cannot summarize local records ({type(error).__name__}).", file=sys.stderr)

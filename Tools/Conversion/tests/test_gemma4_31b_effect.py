@@ -1,0 +1,114 @@
+import contextlib
+import io
+import json
+from pathlib import Path
+import shutil
+import sys
+import tempfile
+import unittest
+from unittest import mock
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+from Tools.Conversion.adapters.gemma4_31b import effect, layers
+from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
+from Tools.Conversion.adapters.pinned import sha256
+from Tools.Conversion.storage import digest, read_json, write_json
+from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
+from Tools.Conversion.tests.test_gemma4_31b_native import model_record
+
+VOCABULARY = TEXT["vocab_size"]
+
+
+@unittest.skipIf(np is None, "NumPy is required for the comparison")
+class EffectTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.contract = write_contract(self.folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
+        self.config = load_contract(self.contract)["config"]
+        generator = np.random.default_rng(2)
+        rounded = {}
+        for name in ("short", "context"):
+            rounded[name] = generator.normal(size=(len(layers.kept_rows(name)), VOCABULARY)).astype(np.float32)
+            rounded[name][:, 0] += 20
+        restored = {name: array.copy() for name, array in rounded.items()}
+        restored["short"][3, 7] += 1.5
+        rows = layers.kept_rows("context")
+        restored["context"][rows.index(1100), 1] = restored["context"][rows.index(1100), 0] + 1.0
+        rounded["context"][rows.index(16890), :2] = (30.005, 30.0)
+        restored["context"][rows.index(16890), :2] = (30.0, 30.5)
+        self.arrays = rounded
+        self.rounded = self.write("rounded", layers.WEIGHTS, rounded)
+        self.restored = self.write("restored", layers.RESTORED, restored,
+                                   quantized={"export_sha256": "1" * 64, "file": {"bytes": 1, "sha256": "2" * 64},
+                                              "tensors": 123})
+
+    def write(self, label, weights, arrays, **extra):
+        folder = self.folder / label
+        folder.mkdir()
+        inputs = {}
+        for name, array in arrays.items():
+            np.save(folder / f"{name}.npy", array)
+            ids, rows = layers.tokens(name, self.config), layers.kept_rows(name)
+            inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids), "rows": rows,
+                            "logits": layers.file_record(folder / f"{name}.npy")}
+        write_json(folder / "record.json", {"schema": layers.CONTEXT_SCHEMA, "implementation": "original", "layers": 6,
+                                            "layer_types": layers.check_layers(self.config, 6), "chunk": 1024,
+                                            "weights": weights, "model": model_record(self.contract), "inputs": inputs,
+                                            **extra})
+        return folder
+
+    def run_main(self, restored, rounded):
+        output, errors = io.StringIO(), io.StringIO()
+        argv = ["effect", "--restored", str(restored), "--rounded", str(rounded)]
+        with mock.patch.object(sys, "argv", argv), mock.patch.object(effect, "CONTRACT", self.contract), \
+                contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+            code = effect.main()
+        return code, output.getvalue(), errors.getvalue()
+
+    def test_the_effect_of_the_quantization_is_printed_for_each_condition_without_a_judgment(self):
+        code, output, _ = self.run_main(self.restored, self.rounded)
+        self.assertEqual(code, 0)
+        result = json.loads(output)
+        self.assertEqual((result["schema"], result["problems"]), (effect.SCHEMA, []))
+        self.assertEqual((result["restored"]["sha256"], result["rounded"]["sha256"]),
+                         (sha256(self.restored / "record.json"), sha256(self.rounded / "record.json")))
+        conditions = {entry["name"]: entry for entry in result["conditions"]}
+        self.assertEqual(list(conditions), [name for name, *_ in layers.CONDITIONS])
+        self.assertTrue(all("checks" not in entry and "passed" not in entry for entry in conditions.values()))
+        self.assertAlmostEqual(conditions["short-c1"]["max_abs_logit"], 1.5, places=5)
+        self.assertEqual(conditions["window-c1"]["top1_mismatches"], {"near_tie": 0, "outside": 1})
+        self.assertEqual(conditions["tail"]["top1_mismatches"], {"near_tie": 1, "outside": 0})
+        self.assertEqual(conditions["capacity-2048"]["max_abs_logit"], 0.0)
+        self.assertEqual({name: entry["rows"] for name, entry in conditions.items()},
+                         {name: length - start for name, _, length, start, _ in layers.CONDITIONS})
+        for folder in (self.restored, self.rounded):
+            self.assertEqual(sorted(path.name for path in folder.iterdir()), ["context.npy", "record.json", "short.npy"])
+
+    def test_references_of_other_weights_or_layers_are_refused_and_nothing_is_compared(self):
+        other = self.write("other-layers", layers.RESTORED, self.arrays)
+        record = read_json(other / "record.json")
+        record.update(layers=12, layer_types=layers.check_layers(self.config, 12))
+        write_json(other / "record.json", record)
+        cases = {"two rounded references": (self.rounded, self.rounded), "swapped references": (self.rounded, self.restored),
+                 "a restored reference of other layers": (other, self.rounded)}
+        for label, (restored, rounded) in cases.items():
+            with self.subTest(case=label):
+                code, output, _ = self.run_main(restored, rounded)
+                result = json.loads(output)
+                self.assertEqual((code, result["conditions"]), (1, []))
+                self.assertTrue(result["problems"])
+
+    def test_an_unreadable_reference_stops_with_the_fixed_error_and_prints_nothing(self):
+        (self.restored / "record.json").write_text("{")
+        code, output, errors = self.run_main(self.restored, self.rounded)
+        self.assertEqual((code, output), (1, ""))
+        self.assertRegex(errors, r"^Cannot compare the references \(\w+\)\.\n$")
+
+
+if __name__ == "__main__":
+    unittest.main()
