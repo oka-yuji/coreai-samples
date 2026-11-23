@@ -551,9 +551,10 @@ that the two runs, the reference and every export are of the contract `model.jso
 are of the layers and tap layers of every export, that the reference is of the layers of every export and uses its kind
 of weights (restored from its quantized tensors for 8 bits, with the SHA-256 of its record, the size and SHA-256 of
 `quantized.safetensors` and the number of tensors, through `correspondence` of `native.py`), and that each comparison
-records the layers, the functions and the asset of its export and the layers of the reference. It reads the records, the
-manifests and the arrays of the references only as regular files (not a link, a pipe or a folder), and an array only at
-its recorded size. The arguments of the runs (layers, tap layers, functions, precision and context limit) are checked
+records the layers, the functions and the asset of its export and the layers of the reference. It reads the report, the
+export record and the comparison of each export, the record of the reference, the manifest of each stage and the arrays of
+the references only as regular files (not a link, a pipe or a folder), and an array only at its recorded size. The
+arguments of the runs (layers, tap layers, functions, precision and context limit) are checked
 for their form and for their agreement with the contract, the other records and the names and the metadata that they
 give. Every other value that it prints is of one of six kinds, and each kind has one rule:
 
