@@ -40,11 +40,12 @@ def decided(squares, own, values, first):
     nearest = min(others, key=others.get)
     smallest, median = float(values.min()), float(np.median(values))
     below = [[first + int(row), float(values[row])] for row in np.flatnonzero(values < SMALLEST)]
+    defined = others[nearest] > 0
     return {"squares": {str(key): value for key, value in squares.items()}, "nearest": str(nearest),
-            "ratio": squares[own] / others[nearest] if others[nearest] > 0 else None,
+            "ratio": squares[own] / others[nearest] if defined else None,
             "cosine": {"smallest": smallest, "smallest_position": first + int(values.argmin()), "median": median},
             "below": below,
-            "checks": {"mixup": all(squares[own] <= MIXUP * value for value in others.values()),
+            "checks": {"mixup": defined and all(squares[own] <= MIXUP * value for value in others.values()),
                        "cosine_smallest": smallest >= SMALLEST, "cosine_median": median >= MEDIAN}}
 
 

@@ -119,8 +119,13 @@ class SectionTests(unittest.TestCase):
         self.assertEqual(failing["cosine_smallest"]["cosine"]["smallest_position"], 10)
 
     def test_the_ratio_to_every_other_layer_also_makes_the_own_layer_the_nearest(self):
-        self.assertTrue(speculation.decided({1: 0.0, 2: 0.0, 3: 1.0}, 1, np.array([1.0]), 0)["checks"]["mixup"])
+        self.assertTrue(speculation.decided({1: 0.0, 2: 1e-30, 3: 1.0}, 1, np.array([1.0]), 0)["checks"]["mixup"])
         self.assertFalse(speculation.decided({1: 1.0, 2: 0.4, 3: 3.0}, 1, np.array([1.0]), 0)["checks"]["mixup"])
+
+    def test_a_section_fails_the_mixup_check_without_a_ratio_when_another_layer_is_not_apart(self):
+        result = speculation.decided({1: 0.0, 2: 0.0, 3: 1.0}, 1, np.array([1.0]), 0)
+        self.assertEqual((result["checks"]["mixup"], result["ratio"], result["nearest"]), (False, None, "2"))
+        json.dumps(result, allow_nan=False)
 
     def test_each_tap_section_is_compared_with_every_layer_of_the_reference(self):
         generator = np.random.default_rng(0)
