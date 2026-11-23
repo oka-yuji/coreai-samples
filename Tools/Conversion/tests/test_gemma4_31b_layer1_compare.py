@@ -18,7 +18,8 @@ except ImportError:
 from Tools.Conversion.adapters.gemma4_31b import baseline, layer1_compare
 from Tools.Conversion.storage import read_json, write_json
 from Tools.LLMEvaluation import layer1
-from Tools.LLMEvaluation.tests.test_layer1 import BUNDLE, bounded, digest, fixture, generate, release, replaced, save
+from Tools.LLMEvaluation.tests.test_layer1 import (BUNDLE, bounded, digest, fixture, generate, inode, release, replaced,
+                                                   save, touched, watched)
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b/model.json"
 ROOT = Path(__file__).resolve().parents[3]
@@ -323,8 +324,12 @@ class CorrespondenceTests(Comparison):
         shutil.copytree(self.forced, copied)
         lines = (copied / "forced.jsonl").read_text().splitlines(keepends=True)
         (copied / "forced.jsonl").write_text("".join(lines[1:]))
-        result = self.compared(forced=copied)
+        events, patched = watched()
+        with patched:
+            result = self.compared(forced=copied)
         self.failed(result, "forced.jsonl differs from the forced input made again")
+        self.assertEqual(touched(events, inode(copied / "forced.jsonl")), [])
+        self.assertEqual(len(touched(events, inode(copied / "forced.json"))), 2)
         self.assertFalse(any("made from another forced input" in problem for problem in result["problems"]))
         self.assertIsNotNone(entry(result, self.records[0]["id"])["max_probability_error"])
 
@@ -431,17 +436,6 @@ class CorrespondenceTests(Comparison):
         self.assertTrue(all(item["max_probability_error"] is None for item in result["items"]))
         self.assertFalse(any("made from another forced input" in problem for problem in result["problems"]))
 
-    def reads(self):
-        calls, original = [], layer1_compare.file_bytes
-
-        def recorded(path, size=None):
-            data = original(path, size)
-            if Path(path).parent.name in ("baseline", "candidate") and Path(path).name != "logits.json":
-                calls.append((Path(path).parent.name, Path(path).name))
-            return data
-
-        return calls, mock.patch.object(layer1_compare, "file_bytes", side_effect=recorded)
-
     def test_an_array_file_of_another_size_or_kind_is_not_read(self):
         name, rows = self.records[3]["id"], self.records[3]["rows"]
         size, extra = rows * VOCABULARY * 4, 4 * VOCABULARY * 16384
@@ -463,12 +457,19 @@ class CorrespondenceTests(Comparison):
                                    ("folder", directory, f"the candidate file {name}.float32 is not a regular file")):
             with self.subTest(kind):
                 self.fresh()
-                calls, patched = self.reads()
+                targets = []
+
+                def changed(folder):
+                    change(folder)
+                    targets.append(inode(folder / f"{name}.float32"))
+
+                events, patched = watched()
                 with patched:
-                    result = self.compared(after=change)
+                    result = self.compared(after=changed)
                 self.failed(result, f"{name}: {text}")
-                self.assertNotIn(("candidate", f"{name}.float32"), calls)
-                self.assertEqual(len(calls), 2 * len(self.records) - 1)
+                self.assertEqual(touched(events, targets[0]), [])
+                self.assertEqual([kind for _, kind, _ in touched(events, inode(self.folder / "baseline" / f"{name}.float32"))],
+                                 ["open", "read"])
 
     def test_a_file_that_grows_after_its_size_was_checked_fails(self):
         name, real, grown_files = self.records[3]["id"], os.fstat, []
@@ -494,14 +495,15 @@ class CorrespondenceTests(Comparison):
             record["items"][0]["dtype"] = "bfloat16"
             record["items"][1]["tokens_sha256"] = "0" * 64
 
-        calls, patched = self.reads()
+        events, patched = watched()
         with patched:
             result = self.compared(edit=changed)
         self.failed(result, f"{self.records[0]['id']}: the candidate dtype 'bfloat16' is not float16 or float32")
         self.failed(result, f"{self.records[1]['id']}: the candidate read other tokens")
         for record in self.records[:2]:
-            self.assertFalse(any(file.startswith(record["id"] + ".") for _, file in calls))
-        self.assertEqual(len(calls), 2 * (len(self.records) - 2))
+            for side in ("baseline", "candidate"):
+                self.assertEqual(touched(events, inode(self.folder / side / f"{record['id']}.float32")), [])
+        self.assertEqual(len(touched(events, inode(self.folder / "candidate" / f"{self.records[2]['id']}.float32"))), 2)
 
     def test_the_same_folder_on_both_sides_fails(self):
         folder = self.side("both", self.baseline)
@@ -566,10 +568,14 @@ class BoundaryTests(Comparison):
                 if path is not None:
                     replaced(path, kind)
                     waited_on.append(path)
-                thread, outcome = bounded(lambda: self.compared(after=None if path is not None else change, **options))
-                self.assertFalse(release(waited_on[-1], thread), "the comparison waited on a file")
+                events, patched = watched()
+                with patched:
+                    thread, outcome = bounded(lambda: self.compared(after=None if path is not None else change, **options))
+                    self.assertFalse(release(waited_on[-1], thread), "the comparison waited on a file")
                 self.assertNotIn("error", outcome, outcome.get("error"))
                 self.failed(outcome["value"], text)
+                if kind in ("fifo", "folder"):
+                    self.assertEqual(touched(events, inode(waited_on[-1])), [])
 
     def test_frozen_files_that_do_not_validate_stop_before_the_output_is_made(self):
         output = self.folder / "result"

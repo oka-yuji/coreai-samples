@@ -1,3 +1,4 @@
+import builtins
 import copy
 import hashlib
 import json
@@ -125,6 +126,42 @@ def replaced(path, kind):
         path.mkdir()
     elif kind == "broken link":
         path.symlink_to(path.parent / "nowhere")
+
+
+def inode(path):
+    status = os.stat(path)
+    return status.st_dev, status.st_ino
+
+
+class Watched:
+    def __init__(self, handle, name, events):
+        self.handle, self.name, self.events = handle, name, events
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *details):
+        self.handle.close()
+
+    def read(self, size=-1):
+        self.events.append((self.name, "read", size))
+        return self.handle.read(size)
+
+
+def watched():
+    events = []
+
+    def opener(file, *arguments, **options):
+        status = os.fstat(file) if isinstance(file, int) else os.stat(file)
+        name = (status.st_dev, status.st_ino)
+        events.append((name, "open", None))
+        return Watched(builtins.open(file, *arguments, **options), name, events)
+
+    return events, mock.patch.object(layer1, "open", new=opener, create=True)
+
+
+def touched(events, name):
+    return [event for event in events if event[0] == name]
 
 
 def grouped(entries):
@@ -546,8 +583,12 @@ class RefusalTests(Folder):
                     source = {"inputs": inputs, "run": run}[folder] / name
                     replaced(source, kind)
                     output = Path(tempfile.mkdtemp(dir=self.root)) / "forced"
-                    thread, outcome = bounded(lambda: layer1.write(BUNDLE, inputs, run, output))
-                    self.assertFalse(release(source, thread), "the forced input waited on the source")
+                    events, patched = watched()
+                    with patched:
+                        thread, outcome = bounded(lambda: layer1.write(BUNDLE, inputs, run, output))
+                        self.assertFalse(release(source, thread), "the forced input waited on the source")
+                    if kind in ("fifo", "folder"):
+                        self.assertEqual(touched(events, inode(source)), [])
                     self.assertIsInstance(outcome.get("error"), error)
                     self.assertIn(text, str(outcome["error"]))
                     if error is ValueError:
