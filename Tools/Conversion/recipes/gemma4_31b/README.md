@@ -564,8 +564,9 @@ JSON, so a `20.0` or `true` never stands for `20` or `1`. Every file that comes 
 where the contract or the record gives it, of that
 size) before its content is read; where the tool reads a file itself, it checks a descriptor opened without waiting.
 `load_contract` of `prepare.py` reads `model.json` once more by its path, and the two reads must give the same contract;
-`safetensors` opens a checkpoint again by its path after the check. The pinned files, the features and the arrays of a
-run must not be links. A hash that a tool records is taken from the bytes it read.
+`safetensors` opens a checkpoint again by its path after the check. The files that the contracts pin and the tools read
+(the index and the shard of `model.json`, `config.json` and `model.safetensors` of the assistant), the features and the
+arrays of a run must not be links. A hash that a tool records is taken from the bytes it read.
 
 ### Drafter class
 
@@ -635,12 +636,16 @@ Run both implementations under the shared machine lock, which the tools do not t
 - `compare` checks each of the two records against values it builds from the fixed inputs in the same process, not
   against the other record: the two contracts (content and SHA-256), the pins of the index and of the shard that the
   index names, `subset.json` (SHA-256) with its items checked against the pinned input and output records, the size and
-  SHA-256
-  of the features of the chosen items (hashed again), the rows of the fixed selection, the stop tokens, window, layers
-  and embedding scale of `model.json`, the weight rounding and `--steps`. Records are compared as normalized JSON with
-  their sets of keys, so a missing or `null` entry fails even when both runs lack it. Each array file must hold one
-  array with the size and SHA-256 in its record, the type, shape and count of non-finite values that the record gives,
-  and the type and shape of those rows.
+  SHA-256 of the features of the chosen items (hashed again), the rows of the fixed selection, the stop tokens, window,
+  layers and embedding scale of `model.json`, the weight rounding and `--steps`. Eleven keys of a record, `schema` (its
+  fixed name), `steps`, `stops`, `window`, `layers`, `model`, `assistant`, `records`, `weights`, `embed_scale` and
+  `rows`, hold these values and are compared as normalized JSON, so a missing or `null` entry fails even when both runs
+  lack it. A record must hold exactly the keys of `RUN`, these eleven and `implementation`, `arrays`, `versions`,
+  `timing` and `memory`: a missing key or an extra one fails. `implementation` must be `original` in the `--original`
+  folder and `class` in the `--model-class` folder. `versions`, `timing` and `memory` (the package versions, the times
+  and the memory of the run) are measured, not built from the fixed inputs: they only have to be present, their values
+  are not compared and `null` passes. Each array file must hold one array with the size and SHA-256 in its record, the
+  type, shape and count of non-finite values that the record gives, and the type and shape of those rows.
 - `compare` passes when every row has a largest absolute logit difference of at most 1e-3, a largest absolute
   difference of the `post_projection` output of at most 1e-3 times its largest absolute value in the original
   implementation, and unrolled drafts equal to the repeated ones. A row whose original `post_projection` output is all

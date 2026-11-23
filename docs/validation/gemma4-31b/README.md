@@ -809,9 +809,9 @@ rounded to four places in all 14 rows. The run took 548.3 s (525 s of drafting);
 
 ### Export of a synthetic drafter
 
-`mtp.py export --steps 7 --context 16896 --seed 11` converted the class with the random weights of `SYNTHETIC`
-(vocabulary 301, hidden size 32, target width 48, 74,372 float16 parameter elements) in 72.4 s, and every asset passed
-its inspection:
+`mtp.py export --steps 7 --context 16896 --seed 11 --output <new folder>` converted the class with the random weights of
+`SYNTHETIC` (vocabulary 301, hidden size 32, target width 48, 74,372 float16 parameter elements) in 72.4 s, and every
+asset passed its inspection:
 
 | Asset | Functions | Bytes | `main.mlirb` | Float16 | `argmax` | `gather_nd` | Conversion |
 |---|---|---:|---:|---:|---:|---:|---:|
@@ -850,5 +850,8 @@ weight of `post_projection`, whose output one step does not read. The counts are
   --snapshot <target snapshot> --records <records of #691> --inputs <inputs.jsonl> --outputs <outputs.jsonl> --steps 7 \
   > docs/validation/gemma4-31b/mtp-drafter-comparison-20261123.json
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
-  acceptance <the arguments of run> > docs/validation/gemma4-31b/mtp-drafter-acceptance-20261123.json
+  acceptance --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json --snapshot <target snapshot> \
+  --assistant-snapshot <assistant snapshot> --records <records of #691> --inputs <inputs.jsonl> \
+  --outputs <outputs.jsonl> --steps 7 > docs/validation/gemma4-31b/mtp-drafter-acceptance-20261123.json
 ~~~
