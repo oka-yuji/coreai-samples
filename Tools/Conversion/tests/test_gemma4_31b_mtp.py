@@ -32,6 +32,7 @@ from Tools.Conversion.storage import read_json, write_json
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
 SLIDING, FULL = "sliding_attention", "full_attention"
+STOPS = {1, 106, 50}
 CONFIG = {"num_hidden_layers": 12, "layer_pattern": [SLIDING] * 5 + [FULL], "hidden_size": 48, "intermediate_size": 96,
           "vocab_size": 301, "sliding_window": 1024, "num_key_value_heads": 2, "num_global_key_value_heads": 1,
           "head_dim": 16, "global_head_dim": 32, "attention_k_eq_v": True, "final_logit_softcapping": 30.0,
@@ -489,7 +490,7 @@ class RecordTests(unittest.TestCase):
     def test_records_that_are_named_pipes_are_refused_without_waiting_for_a_writer(self):
         item = self.items()[0]
         paths = {"subset.json": (self.records / "subset.json", lambda path: mtp.subset_record(path)),
-                 "a drafter record": (self.folder / "drafter.json", lambda path: mtp.draft_rows(path, item, CONFIG["vocab_size"])),
+                 "a drafter record": (self.folder / "drafter.json", lambda path: mtp.draft_rows(path, item, CONFIG["vocab_size"], STOPS)),
                  "trajectories.json": (self.folder / "trajectories.json", lambda path: mtp.published(path, 7, ["alpha"])),
                  "the assistant contract": (self.folder / "assistant.json", mtp.load_assistant)}
         for label, (path, read) in paths.items():
@@ -532,11 +533,12 @@ class RecordTests(unittest.TestCase):
 
     def test_the_drafter_records_and_the_rounds_of_691_are_read_only_in_their_form(self):
         item = self.items()[0]
-        rows = [{"a": 20 + j, "j": j, "fixed": {"accepted": 0, "tokens": [0, 0], "margins": [0.5, 0.0]}} for j in range(9)]
-        rows[0]["fixed"].update(accepted=2, tokens=item["teacher"][1:3])
+        rows = [{"a": 20 + j, "j": j, "available": 9 - j, "fixed": {"accepted": 0, "tokens": [0, 0], "margins": [0.5, 0.0]}}
+                for j in range(9)]
+        rows[0]["fixed"].update(accepted=2, tokens=item["teacher"][1:3] + [0], margins=[0.5, 0.0, 0.25])
         path = self.folder / "drafter.json"
         write_json(path, {"id": item["id"], "P": 20, "T": 10, "mtp": rows})
-        self.assertEqual([row["accepted"] for row in mtp.draft_rows(path, item, CONFIG["vocab_size"]).values()], [2] + [0] * 8)
+        self.assertEqual([row["accepted"] for row in mtp.draft_rows(path, item, CONFIG["vocab_size"], STOPS).values()], [2] + [0] * 8)
         changes = {"a missing anchor": lambda record: record["mtp"].pop(),
                    "an anchor off its output index": lambda record: record["mtp"][0].update(a=21),
                    "a boolean accepted count": lambda record: record["mtp"][0]["fixed"].update(accepted=True),
@@ -551,20 +553,32 @@ class RecordTests(unittest.TestCase):
                    "an anchor as a float": lambda record: record["mtp"][0].update(a=20.0),
                    "an output index as a float": lambda record: record["mtp"][0].update(j=0.0),
                    "an accepted count as a float": lambda record: record["mtp"][1]["fixed"].update(accepted=0.0),
-                   "a draft as a float": lambda record: record["mtp"][1]["fixed"]["tokens"].__setitem__(0, 0.0)}
+                   "a draft as a float": lambda record: record["mtp"][1]["fixed"]["tokens"].__setitem__(0, 0.0),
+                   "no drafts": lambda record: record["mtp"][1]["fixed"].update(tokens=[], margins=[]),
+                   "more drafts than #691 made": lambda record: record["mtp"][1]["fixed"].update(tokens=[0] * 16,
+                                                                                                margins=[0.5] * 16),
+                   "another count of available drafts": lambda record: record["mtp"][1].update(available=3),
+                   "a count of available drafts as a float": lambda record: record["mtp"][1].update(available=8.0),
+                   "a margin rounded to more places": lambda record: record["mtp"][1]["fixed"]["margins"].__setitem__(
+                       0, 0.12345),
+                   "a draft after a stop token": lambda record: record["mtp"][1]["fixed"]["tokens"].__setitem__(0, 106),
+                   "a draft past a difference after the sixth": lambda record: record["mtp"][1]["fixed"].update(
+                       accepted=5, tokens=item["teacher"][2:7] + [0, 0], margins=[0.5] * 7),
+                   "a last draft that does not end the drafting": lambda record: record["mtp"][1]["fixed"].update(
+                       accepted=2, tokens=item["teacher"][2:4], margins=[0.5, 0.5])}
         for label, change in changes.items():
             record = {"id": item["id"], "P": 20, "T": 10, "mtp": json.loads(json.dumps(rows))}
             change(record)
             write_json(path, record)
             with self.subTest(change=label), self.assertRaises(ValueError):
-                mtp.draft_rows(path, item, CONFIG["vocab_size"])
+                mtp.draft_rows(path, item, CONFIG["vocab_size"], STOPS)
         skipped = json.loads(json.dumps(rows))
         skipped[1]["fixed"]["accepted"] = 1
         self.assertEqual(mtp.simulate([row["fixed"]["accepted"] for row in skipped], 10, 7),
                          mtp.simulate([row["fixed"]["accepted"] for row in rows], 10, 7))
         write_json(path, {"id": item["id"], "P": 20, "T": 10, "mtp": skipped})
         with self.assertRaisesRegex(ValueError, "accepted counts that its drafts and the teacher do not give at 1 anchors"):
-            mtp.draft_rows(path, item, CONFIG["vocab_size"])
+            mtp.draft_rows(path, item, CONFIG["vocab_size"], STOPS)
         level = {"alpha": {"rounds": 3, "tokens": 7, "tokens_per_round": 2.3333},
                  "beta": {"rounds": 0, "tokens": 0, "tokens_per_round": None},
                  "pooled": {"rounds": 3, "tokens": 7, "tokens_per_round": 2.3333}}
@@ -1191,8 +1205,8 @@ class RefusalTests(unittest.TestCase):
             items = mtp.items_of(load_contract(contract), records, inputs, outputs, lambda record: record["items"])[2]
             (records / "drafters").mkdir()
             for item in items:
-                rows = [{"a": len(item["input_ids"]) + j, "j": j, "fixed": {"accepted": 0, "tokens": [0], "margins": [0.5]}}
-                        for j in range(len(item["teacher"]) - 1)]
+                rows = [{"a": len(item["input_ids"]) + j, "j": j, "available": min(15, len(item["teacher"]) - 1 - j),
+                         "fixed": {"accepted": 0, "tokens": [0], "margins": [0.5]}} for j in range(len(item["teacher"]) - 1)]
                 write_json(records / "drafters" / f"{item['id']}.json",
                            {"id": item["id"], "P": len(item["input_ids"]), "T": len(item["teacher"]), "mtp": rows})
             level = {"rounds": 1, "tokens": 1, "tokens_per_round": 1.0}

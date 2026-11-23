@@ -370,9 +370,11 @@ def reference_records(arguments, steps):
             with torch.no_grad():
                 tokens = mtp.cut(model(*mtp.row_inputs(item, features, anchor, WINDOW)["arguments"])[0].tolist(),
                                  CONFIG["eos_token_id"])
-            accepted = mtp.matches(tokens, item["teacher"][anchor - prompt + 1:])
-            rows.append({"a": anchor, "j": anchor - prompt, "fixed": {"accepted": accepted, "tokens": tokens,
-                                                                     "margins": [0.5] * len(tokens)}})
+            cont = item["teacher"][anchor - prompt + 1:anchor - prompt + 1 + mtp.DRAFTS]
+            accepted = mtp.matches(tokens, cont)
+            tokens = tokens[:accepted + 1]
+            rows.append({"a": anchor, "j": anchor - prompt, "available": len(cont),
+                         "fixed": {"accepted": accepted, "tokens": tokens, "margins": [0.5] * len(tokens)}})
         write_json(records / "drafters" / f"{item['id']}.json", {"id": item["id"], "P": prompt, "T": len(item["teacher"]),
                                                                   "mtp": rows})
         found = mtp.simulate([row["fixed"]["accepted"] for row in rows], len(item["teacher"]), steps)
@@ -490,7 +492,7 @@ class RunTests(unittest.TestCase):
             fixed = record["mtp"][2]["fixed"]
             count = 2 if fixed["accepted"] - 1 != 2 else 1
             teacher = next(item["teacher"] for item in items if item["id"] == "beta-0001")
-            fixed.update(accepted=count, tokens=teacher[3:3 + count], margins=[0.5] * count)
+            fixed.update(accepted=count, tokens=teacher[3:3 + count] + [0], margins=[0.5] * (count + 1))
             write_json(path, record)
             result = mtp.acceptance(*arguments, 7)
             self.assertEqual(len(result["problems"]), 2)

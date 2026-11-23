@@ -36,6 +36,7 @@ LEVEL = ("rounds", "tokens", "tokens_per_round")
 SUBSET = {"ja-choice": 4, "ja-reading": 4, "code-gen-he": 4, "code-gen-mbpp": 4, "code-fix": 4, "extract-ja": 6,
           "long-ja-4k": 2, "long-ja-16k": 1, "synth-extract": 4, "synth-format": 6, "free-ja": 4, "synth-long-4k": 3,
           "synth-long-16k": 2}
+DRAFTS, MINIMUM = 15, 6
 RECORDS = {"inputs": "a5606837d5cf300ea46fcdbb51e9380fbd69a5d0e0d5d6c027b39d4e4a260aa6",
            "outputs": "1d84643d3d623fabc4ad66645ce3f862994a4afc8a7f40d6091ca6984ad5f5a9"}
 ARRAYS = {"original": ("logits", "projected", "drafts"), "class": ("logits", "projected", "drafts", "repeated")}
@@ -653,7 +654,7 @@ def compared(folders, expected, config, steps, problems):
             "records_sha256": hashes}
 
 
-def draft_rows(path, item, vocabulary):
+def draft_rows(path, item, vocabulary, stops):
     record = document(path)
     rows = record.get("mtp") if isinstance(record, dict) else None
     if not isinstance(rows, list) or record.get("id") != item["id"] \
@@ -663,13 +664,21 @@ def draft_rows(path, item, vocabulary):
     found, wrong = {}, 0
     for row in rows:
         fixed = row.get("fixed") if isinstance(row, dict) else None
-        if not isinstance(fixed, dict) or not all(valid("count", row.get(key)) for key in ("a", "j")) \
+        if not isinstance(fixed, dict) or not all(valid("count", row.get(key)) for key in ("a", "j", "available")) \
                 or row["a"] != row["j"] + len(item["input_ids"]) or row["j"] in found \
                 or not valid("count", fixed.get("accepted")) or not isinstance(fixed.get("tokens"), list) \
                 or not isinstance(fixed.get("margins"), list) or len(fixed["margins"]) != len(fixed["tokens"]) \
                 or not all(valid("count", token) and token < vocabulary for token in fixed["tokens"]) \
                 or not all(valid("seconds", margin) for margin in fixed["margins"]):
             raise ValueError(f"{Path(path).name} holds a malformed row")
+        tokens, cont = fixed["tokens"], item["teacher"][row["j"] + 1:row["j"] + 1 + DRAFTS]
+        last = len(tokens) - 1
+        if not 1 <= len(tokens) <= DRAFTS or row["available"] != len(cont) \
+                or any(round(margin, 4) != margin for margin in fixed["margins"]) \
+                or any(token in stops for token in tokens[:-1]) \
+                or any(index >= len(cont) or tokens[index] != cont[index] for index in range(MINIMUM - 1, last)) \
+                or not (tokens[-1] in stops or len(tokens) == DRAFTS or last >= len(cont) or tokens[-1] != cont[last]):
+            raise ValueError(f"{Path(path).name} holds a row that the drafting of #691 cannot give")
         accepted = matches(fixed["tokens"], item["teacher"][row["j"] + 1:])
         wrong += accepted != fixed["accepted"]
         found[row["j"]] = {**fixed, "accepted": accepted}
@@ -709,7 +718,7 @@ def acceptance(contract_path, assistant_path, snapshot, assistant_snapshot, reco
                                                        records, inputs, outputs, lambda record: record["items"])
     config, place, stops = contract["config"], layout(contract["config"]), set(contract["config"]["eos_token_id"])
     reference = published(Path(records) / "trajectories.json", steps, subset["counts"])
-    drafts = {item["id"]: draft_rows(Path(records) / "drafters" / f"{item['id']}.json", item, config["vocab_size"])
+    drafts = {item["id"]: draft_rows(Path(records) / "drafters" / f"{item['id']}.json", item, config["vocab_size"], stops)
               for item in items}
     started, problems = time.perf_counter(), []
     result = {"schema": ACCEPTANCE, "problems": problems, "steps": steps, "stops": sorted(stops), "position": "fixed",
