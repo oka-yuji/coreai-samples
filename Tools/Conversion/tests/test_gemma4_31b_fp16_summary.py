@@ -14,7 +14,7 @@ try:
 except ImportError:
     np = None
 
-from Tools.Conversion.adapters.gemma4_31b import export, fp16_summary, layers, native
+from Tools.Conversion.adapters.gemma4_31b import effect, export, fp16_summary, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import PipelineError, read_json, write_json
@@ -86,8 +86,7 @@ def run_arrays(taps=TAPS):
             for name, (length, _) in layers.INPUTS.items()}
 
 
-@unittest.skipIf(np is None, "NumPy is required for the comparison of the model class")
-class SummaryTests(unittest.TestCase):
+class Records(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(self.folder))
@@ -95,15 +94,20 @@ class SummaryTests(unittest.TestCase):
         self.contract_sha256 = sha256(self.contract)
         self.reference = self.folder / "context.json"
         write_json(self.reference, context_record(self.contract_sha256))
-        self.runs = self.write_runs("runs")
 
-    def write_runs(self, label, contract=None, taps=TAPS, change=None):
-        arrays, folder = run_arrays(taps), self.folder / label
-        write_run(folder / "original", "original", contract or self.contract, arrays, taps)
-        if change:
-            change(arrays)
-        write_run(folder / "class", "class", contract or self.contract, arrays, taps)
-        return folder / "original", folder / "class"
+    def options(self):
+        return []
+
+    def summarize(self, *runs, options=None):
+        argv = ["fp16_summary", "--reference", str(self.reference), *(self.options() if options is None else options)]
+        for report, record, comparison in runs:
+            argv += ["--report", str(report), "--export", str(record), "--comparison", str(comparison)]
+        output, errors = io.StringIO(), io.StringIO()
+        with mock.patch.object(sys, "argv", argv), mock.patch.object(fp16_summary, "CONTRACT", self.contract), \
+                contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+            code = fp16_summary.main()
+        self.errors = errors.getvalue()
+        return code, output.getvalue()
 
     def run_files(self, label, record=None, origin=None, stage_role="export", manifest=None):
         artifacts = self.folder / label / "artifacts"
@@ -125,15 +129,36 @@ class SummaryTests(unittest.TestCase):
         write_json(self.folder / label / "comparison.json", comparison)
         return self.folder / label / "report.json", artifacts / "export/export.json", self.folder / label / "comparison.json"
 
-    def summarize(self, *runs):
-        argv = ["fp16_summary", "--reference", str(self.reference), "--original", str(self.runs[0]),
-                "--model-class", str(self.runs[1])]
-        for report, record, comparison in runs:
-            argv += ["--report", str(report), "--export", str(record), "--comparison", str(comparison)]
-        output = io.StringIO()
-        with mock.patch.object(sys, "argv", argv), mock.patch.object(fp16_summary, "CONTRACT", self.contract), \
-                contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
-            return fp16_summary.main(), output.getvalue()
+
+@unittest.skipIf(np is None, "NumPy is required for the comparison of the model class")
+class SummaryTests(Records):
+    def setUp(self):
+        super().setUp()
+        self.runs = self.write_runs("runs")
+
+    def write_runs(self, label, contract=None, taps=TAPS, change=None):
+        arrays, folder = run_arrays(taps), self.folder / label
+        write_run(folder / "original", "original", contract or self.contract, arrays, taps)
+        if change:
+            change(arrays)
+        write_run(folder / "class", "class", contract or self.contract, arrays, taps)
+        return folder / "original", folder / "class"
+
+    def options(self):
+        return ["--original", str(self.runs[0]), "--model-class", str(self.runs[1])]
+
+    def test_an_fp16_summary_stops_without_either_run_or_with_the_effect_of_a_quantization(self):
+        run, effect_file = self.run_files("first"), self.folder / "effect.json"
+        write_json(effect_file, effect_record(sha256(self.reference)))
+        original, model_class = self.options()[:2], self.options()[2:]
+        cases = {"without the runs": [], "without the original run": model_class,
+                 "without the model-class run": original, "with an effect": [*self.options(), "--effect", str(effect_file)],
+                 "with an effect and without the runs": ["--effect", str(effect_file)]}
+        for label, options in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize(run, options=options), (1, ""))
+                self.assertEqual(self.errors, "Cannot summarize local records (PipelineError).\n")
+        self.assertEqual(self.summarize(run)[0], 0)
 
     def test_the_summary_keeps_numbers_hashes_and_fixed_words_and_drops_paths_and_free_text(self):
         code, output = self.summarize(self.run_files("first"), self.run_files("second"))
@@ -296,7 +321,7 @@ class SummaryTests(unittest.TestCase):
                 self.assertEqual(self.summarize((report, record, comparison)), (1, ""))
 
     def test_numbers_too_large_for_a_float_stop_with_the_fixed_error_and_print_nothing(self):
-        record = export_record()
+        record = export_record(self.contract_sha256)
         record["weights"]["elements"] = 10**400
         cases = {"an export record": self.run_files("huge-export", record=record), "a comparison": self.run_files("huge-comparison")}
         data = json.loads(cases["a comparison"][2].read_text())
@@ -305,6 +330,116 @@ class SummaryTests(unittest.TestCase):
         for label, files in cases.items():
             with self.subTest(case=label):
                 self.assertEqual(self.summarize(files), (1, ""))
+
+
+def quantized_record(contract_sha256="b" * 64):
+    record = export_record(contract_sha256)
+    record.update(precision="8bit", compression_config=copy.deepcopy(export.QUANTIZATION))
+    record["weights"].update(elements=9, elements_by_dtype={"torch.float16": 5, "torch.uint8": 4}, quantized_layouts=41)
+    record["quantized"] = {"layers": [{"name": "model.layers.0.self_attn.q_proj.weight", "block": [1, 32]}],
+                           "skipped": 0, "warnings_enabled": True, "file": {"bytes": 3, "sha256": "7" * 64},
+                           "tensors": {"model.layers.0.self_attn.q_proj.weight.scale": "8" * 64}}
+    record["asset"].update(storage_types={"UInt8": 132, "Float16": 9, "Int32": 2}, float16_minus_weights=4,
+                           uint8_minus_weights=128, dequantizations=77)
+    name = "gemma4_31b_l6_8bit_main"
+    record["metadata"].update(name=name, compression="8bit")
+    record["bundle"].update(name=name, files={f"{name}.aimodel/main.mlirb": {"bytes": 4, "sha256": "4" * 64}})
+    return record
+
+
+def restored_record(contract_sha256="b" * 64):
+    return {**context_record(contract_sha256), "weights": layers.RESTORED,
+            "quantized": {"export_sha256": "a" * 64, "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 123}}
+
+
+def effect_record(reference_hash, **changes):
+    entry = {"name": "tail", "input": "context", "tokens": 16896, "start": 16832, "chunk": 1, "rows": 64, "non_finite": 0,
+             "reference_non_finite": 0, "max_abs_logit": 4.14, "top1_mismatches": {"near_tie": 2, "outside": 1}}
+    return {"schema": effect.SCHEMA, "problems": [], "restored": {"sha256": reference_hash, "layers": 6},
+            "rounded": {"sha256": "9" * 64, "layers": 6}, "criteria": {"near_tie": 0.01}, "conditions": [entry], **changes}
+
+
+class QuantizedSummaryTests(Records):
+    def setUp(self):
+        super().setUp()
+        write_json(self.reference, restored_record(self.contract_sha256))
+        self.effect = self.folder / "effect.json"
+        write_json(self.effect, effect_record(sha256(self.reference)))
+
+    def options(self):
+        return ["--effect", str(self.effect)]
+
+    def run_files(self, label, record=None, origin=None, stage_role="export", manifest=None):
+        return super().run_files(label, record or quantized_record(self.contract_sha256), origin, stage_role, manifest)
+
+    def test_the_summary_keeps_numbers_hashes_and_fixed_words_and_drops_paths_and_free_text(self):
+        code, output = self.summarize(self.run_files("first"))
+        self.assertEqual(code, 0)
+        result = json.loads(output)
+        self.assertNotIn(SENTINEL, output)
+        self.assertNotIn(str(self.folder), output)
+        self.assertEqual(result["schema"], fp16_summary.QUANTIZED_SCHEMA)
+        asset = result["assets"][0]["export"]
+        self.assertEqual((asset["metadata"]["tap_layers"], asset["metadata"]["tap_convention"]),
+                         ([1, 2, 3, 4, 5], export.TAP_CONVENTION))
+        self.assertEqual(asset["quantized"], {"layers": 1, "skipped": 0, "warnings_enabled": True,
+                                              "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 1})
+        self.assertEqual((asset["asset"]["uint8_minus_weights"], asset["asset"]["float16_minus_weights"],
+                          asset["asset"]["dequantizations"]), (128, 4, 77))
+        self.assertEqual(result["reference"]["weights"], "8bit")
+        self.assertEqual(result["reference"]["quantized"], {"export_sha256": "a" * 64,
+                                                            "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 123})
+        self.assertEqual(result["effect"]["rounded_sha256"], "9" * 64)
+        self.assertEqual(result["effect"]["conditions"][0]["top1_mismatches"], {"near_tie": 2, "outside": 1})
+        self.assertEqual(result["effect"]["conditions"][0]["max_abs_logit"], 4.14)
+
+    def test_free_text_in_a_shareable_field_is_rejected(self):
+        changes = [lambda record: record["quantized"]["file"].update(sha256=SENTINEL),
+                   lambda record: record["asset"].update(uint8_minus_weights=SENTINEL),
+                   lambda record: record.update(compression_config={"quantization": SENTINEL}),
+                   lambda record: record["quantized"].update(warnings_enabled="yes"),
+                   lambda record: record["quantized"].update(layers=SENTINEL),
+                   lambda record: record["quantized"].update(tensors=[SENTINEL]),
+                   lambda record: record["compression_config"]["module_type_configs"]["torch.nn.modules.linear.Linear"][
+                       "op_state_spec"]["weight"]["granularity"].update(axis=True)]
+        for index, change in enumerate(changes):
+            record = quantized_record(self.contract_sha256)
+            change(record)
+            with self.subTest(change=index), self.assertRaises(PipelineError):
+                fp16_summary.exported(record)
+
+    def test_an_8bit_summary_needs_the_effect_of_its_reference_and_an_fp16_summary_refuses_one(self):
+        self.assertEqual(self.summarize(self.run_files("no-effect"), options=[]), (1, ""))
+        self.assertEqual(self.errors, "Cannot summarize local records (PipelineError).\n")
+        write_json(self.effect, effect_record("0" * 64))
+        self.assertEqual(self.summarize(self.run_files("other-reference")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference), problems=["two rounded references"]))
+        self.assertEqual(self.summarize(self.run_files("with-problems")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference), schema="other"))
+        self.assertEqual(self.summarize(self.run_files("other-schema")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference), restored=[sha256(self.reference)]))
+        self.assertEqual(self.summarize(self.run_files("listed-reference")), (1, ""))
+        self.effect.write_text("[]")
+        self.assertEqual(self.summarize(self.run_files("listed-effect")), (1, ""))
+        write_json(self.effect, effect_record(sha256(self.reference)))
+        fp16 = Records.run_files(self, "fp16", export_record(self.contract_sha256))
+        self.assertEqual(self.summarize(self.run_files("mixed"), fp16), (1, ""))
+        self.assertEqual(self.summarize(fp16), (1, ""))
+        self.assertEqual(self.summarize(self.run_files("paired"))[0], 0)
+
+    def test_an_8bit_summary_needs_no_run_of_the_model_class_and_stops_when_one_is_given(self):
+        run, missing = self.run_files("first"), str(self.folder / "missing-run")
+        cases = {"with the original run": [*self.options(), "--original", missing],
+                 "with the model-class run": [*self.options(), "--model-class", missing],
+                 "with both runs": [*self.options(), "--original", missing, "--model-class", missing],
+                 "with both runs and without the effect": ["--original", missing, "--model-class", missing]}
+        for label, options in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize(run, options=options), (1, ""))
+                self.assertEqual(self.errors, "Cannot summarize local records (PipelineError).\n")
+        code, output = self.summarize(run)
+        self.assertEqual(code, 0)
+        self.assertNotIn("model_class", json.loads(output))
 
 
 if __name__ == "__main__":

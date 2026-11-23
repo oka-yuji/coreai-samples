@@ -5,16 +5,25 @@ import re
 import sys
 
 from ... import summary as pipeline
-from ...storage import PipelineError
+from ...storage import PipelineError, canonical
 from .anchor import read
 from .anchor_summary import signed
 from .compare import CONTRACT
-from .export import SCHEMA as EXPORT_SCHEMA
-from .layers import CONTEXT_SCHEMA, compare as compare_layers
+from .effect import SCHEMA as EFFECT_SCHEMA
+from .export import QUANTIZATION, SCHEMA as EXPORT_SCHEMA
+from .layers import CONTEXT_SCHEMA, RESTORED, compare as compare_layers
 from .native import PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER
 from .summary import HEX, REPOSITORY, SHARD, count, flag, matched, optional, word
 
 SCHEMA = "gemma4-31b-fp16-summary/2"
+QUANTIZED_SCHEMA = "gemma4-31b-8bit-summary/1"
+SCOPES = {SCHEMA: "FP16 export of the first layers with the outputs for speculation, the comparison of its logits with "
+                  "the FP32 reference and of the model class with the original implementation; not a quality "
+                  "evaluation.",
+          QUANTIZED_SCHEMA: "8-bit export of the first layers with the outputs for speculation, the comparison of its "
+                            "logits with the FP32 reference restored from the same quantized weights, and the effect of "
+                            "the quantization against the FP32 reference with float16-rounded weights; not a quality "
+                            "evaluation."}
 RELATIVE = re.compile(r"[A-Za-z0-9_.-]{1,64}(/[A-Za-z0-9_.-]{1,64}){0,3}")
 
 
@@ -50,7 +59,11 @@ def logits(entry):
 def reference(record):
     if record.get("schema") != CONTEXT_SCHEMA:
         raise PipelineError(f"Expected a {CONTEXT_SCHEMA} record")
-    return {"implementation": word(record["implementation"]), "layers": count(record["layers"]),
+    restored = {} if record.get("weights") != RESTORED else {
+        "weights": "8bit", "quantized": {"export_sha256": matched(record["quantized"]["export_sha256"], HEX[64]),
+                                         "file": logits(record["quantized"]["file"]),
+                                         "tensors": count(record["quantized"]["tensors"])}}
+    return {**restored, "implementation": word(record["implementation"]), "layers": count(record["layers"]),
             "layer_types": kinds(record["layer_types"]), "model": model(record["model"]),
             "embed_scale": number(record["embed_scale"]), "chunk": count(record["chunk"]),
             "versions": {word(name): word(version) for name, version in record["versions"].items()},
@@ -71,12 +84,26 @@ def layout(functions):
             for name, function in functions.items()}
 
 
+def quantization(record):
+    quantized = record["quantized"]
+    if not isinstance(quantized["layers"], list) or not isinstance(quantized["tensors"], dict):
+        raise PipelineError("Expected the quantized weights as a list and their tensors as a mapping")
+    return {"quantized": {"layers": len(quantized["layers"]), "skipped": count(quantized["skipped"]),
+                          "warnings_enabled": flag(quantized["warnings_enabled"]), "file": logits(quantized["file"]),
+                          "tensors": len(quantized["tensors"])}}
+
+
 def exported(record):
-    if record.get("schema") != EXPORT_SCHEMA or record["compression_config"] is not None:
-        raise PipelineError(f"Expected an uncompressed {EXPORT_SCHEMA} record")
+    eight_bit = record.get("precision") == "8bit"
+    if record.get("schema") != EXPORT_SCHEMA \
+            or canonical(record["compression_config"]) != canonical(QUANTIZATION if eight_bit else None):
+        raise PipelineError(f"Expected an uncompressed {EXPORT_SCHEMA} record or one of the fixed 8-bit config")
     metadata, bundle, resources = record["metadata"], record["bundle"], record["resources"]
     monitor = resources["monitor"]
-    return {"passed": flag(record["passed"]), "checks": {word(key): flag(value) for key, value in record["checks"].items()},
+    differences = {"uint8_minus_weights": signed(record["asset"]["uint8_minus_weights"]),
+                   "dequantizations": count(record["asset"]["dequantizations"])} if eight_bit else {}
+    return {**(quantization(record) if eight_bit else {}),
+            "passed": flag(record["passed"]), "checks": {word(key): flag(value) for key, value in record["checks"].items()},
             "problems": len(record["problems"]), "model": model(record["model"]), "layers": count(record["layers"]),
             "layer_types": kinds(record["layer_types"]), "functions": [word(name) for name in record["functions"]],
             "context": count(record["context"]), "precision": word(record["precision"]),
@@ -89,7 +116,7 @@ def exported(record):
                       "output_order": {word(name): [word(item) for item in items]
                                        for name, items in record["asset"]["output_order"].items()},
                       "storage_types": numbers(record["asset"]["storage_types"], True),
-                      "float16_minus_weights": signed(record["asset"]["float16_minus_weights"])},
+                      "float16_minus_weights": signed(record["asset"]["float16_minus_weights"]), **differences},
             "tokenizer": {word(name): matched(value, HEX[64]) for name, value in record["tokenizer"].items()},
             "metadata": {"name": word(metadata["name"]), "vocab_size": count(metadata["language"]["vocab_size"]),
                          "max_context_length": count(metadata["language"]["max_context_length"]),
@@ -187,24 +214,42 @@ def paired(reports, exports, comparisons, reference_hash):
             raise PipelineError("Each comparison must be made from the export record given with it and the reference")
 
 
-def project(reports, exports, comparisons, context, layered):
+def effected(record, reference_hash):
+    restored = record.get("restored") if isinstance(record, dict) else None
+    if not isinstance(restored, dict) or record.get("schema") != EFFECT_SCHEMA or record.get("problems") != [] \
+            or restored.get("sha256") != reference_hash or not isinstance(record.get("rounded"), dict):
+        raise PipelineError("Expected the effect of the quantization on the restored reference")
+    return {"rounded_sha256": matched(record["rounded"]["sha256"], HEX[64]), "layers": count(record["restored"]["layers"]),
+            "criteria": {word(key): number(value) for key, value in record["criteria"].items()},
+            "conditions": [{"name": word(entry["name"]), "input": word(entry["input"]),
+                            **{key: count(entry[key]) for key in ("tokens", "start", "chunk", "rows", "non_finite",
+                                                                  "reference_non_finite")},
+                            "max_abs_logit": optional(entry["max_abs_logit"]),
+                            "top1_mismatches": numbers(entry["top1_mismatches"], True)}
+                           for entry in record["conditions"]]}
+
+
+def project(reports, exports, comparisons, context, layered, effect):
     if any(export["model"]["contract_sha256"] != context["model"]["contract_sha256"] for export in exports):
         raise PipelineError("The FP32 reference must be of the contract of every export")
-    return {"schema": SCHEMA, "scope": "FP16 export of the first layers with the outputs for speculation, the comparison "
-                                       "of its logits with the FP32 reference and of the model class with the original "
-                                       "implementation; not a quality evaluation.",
-            "reference": reference(context), "model_class": model_class(layered, exports),
+    schema = SCHEMA if effect is None else QUANTIZED_SCHEMA
+    classes = {} if effect is not None else {"model_class": model_class(layered, exports)}
+    return {"schema": schema, "scope": SCOPES[schema], "reference": reference(context), **classes,
             "assets": [{"pipeline": pipeline.project(report), "export": exported(record), "comparison": compared(result)}
-                       for report, record, result in zip(reports, exports, comparisons, strict=True)]}
+                       for report, record, result in zip(reports, exports, comparisons, strict=True)],
+            **({} if effect is None else {"effect": effect})}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Print only shareable numbers from Gemma 4 31B FP16 export records.")
+    parser = argparse.ArgumentParser(description="Print only shareable numbers from Gemma 4 31B FP16 or 8-bit export "
+                                                 "records.")
     parser.add_argument("--reference", type=Path, required=True)
-    parser.add_argument("--original", type=Path, required=True,
-                        help="Folder that layers.py run wrote for the original implementation.")
-    parser.add_argument("--model-class", type=Path, required=True,
-                        help="Folder that layers.py run wrote for the model class with the same layers and tap layers.")
+    parser.add_argument("--original", type=Path,
+                        help="Folder that layers.py run wrote for the original implementation (FP16 exports only).")
+    parser.add_argument("--model-class", type=Path,
+                        help="Folder that layers.py run wrote for the model class with the same layers and tap layers "
+                             "(FP16 exports only).")
+    parser.add_argument("--effect", type=Path, help="Output of effect (8-bit exports only).")
     for name in ("report", "export", "comparison"):
         parser.add_argument(f"--{name}", type=Path, action="append", required=True)
     args = parser.parse_args()
@@ -214,9 +259,16 @@ def main():
         comparisons = [read(path)[0] for path in args.comparison]
         context, reference_hash, _ = read(args.reference)
         paired(reports, exports, comparisons, reference_hash)
-        layered = compare_layers(args.original, args.model_class, CONTRACT)
-        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context, layered), indent=2,
-                         allow_nan=False))
+        precisions = {record.get("precision") for _, record, _, _ in exports}
+        given = tuple(value is not None for value in (args.original, args.model_class, args.effect))
+        if precisions == {"float16"} and given == (True, True, False):
+            layered, effect = compare_layers(args.original, args.model_class, CONTRACT), None
+        elif precisions == {"8bit"} and given == (False, False, True):
+            layered, effect = None, effected(read(args.effect)[0], reference_hash)
+        else:
+            raise PipelineError("Give FP16 exports with --original and --model-class, or 8-bit exports with --effect")
+        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context, layered, effect),
+                         indent=2, allow_nan=False))
         return 0
     except Exception as error:
         print(f"Cannot summarize local records ({type(error).__name__}).", file=sys.stderr)

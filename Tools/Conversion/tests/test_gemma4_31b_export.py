@@ -44,6 +44,11 @@ LAYOUT = {"main": function({"logits": {"dtype": "float16", "shape": [1, None, 26
           "prefill": function(dict(TAPPED))}
 
 
+def bundle_of(name):
+    return {"folder": export.INCOMPLETE, "name": name,
+            "files": dict.fromkeys(export.bundle_layout(name), {"bytes": 1, "sha256": "0" * 64})}
+
+
 def inspected(functions=BOTH):
     return {"compression_config": None,
             "weights": {"elements": ELEMENTS, "elements_by_dtype": {"torch.float16": ELEMENTS}, "quantized_layouts": 0},
@@ -51,14 +56,15 @@ def inspected(functions=BOTH):
                       "output_order": {name: list(LAYOUT[name]["outputs"]) for name in functions},
                       "storage_types": dict(STORAGE)},
             "tokenizer": dict(CONTRACT["tokenizer"]["files"]),
-            "metadata": export.metadata(CONTRACT, export.name_of(6, functions), 16896, TAPS)}
+            "metadata": export.metadata(CONTRACT, export.name_of(6, functions, "fp16"), 16896, None, TAPS),
+            "bundle": bundle_of(export.name_of(6, functions, "fp16"))}
 
 
 def problems(change=None, functions=BOTH):
     record = inspected(functions)
     if change:
         change(record)
-    return export.check_asset(record, CONTRACT, KINDS, functions, 16896, TAPS)
+    return export.check_asset(record, CONTRACT, KINDS, functions, 16896, TAPS, "fp16")
 
 
 def outputs(function_name, change):
@@ -84,7 +90,7 @@ class AssetTests(unittest.TestCase):
         for functions in (("main",), BOTH):
             with self.subTest(functions=functions):
                 self.assertEqual(problems(functions=functions), [])
-        self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896, (1, 17, 29, 47, 59)), {
+        self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896, None, (1, 17, 29, 47, 59)), {
             "metadata_version": "0.2", "kind": "llm", "name": "bundle-name", "assets": {"main": "bundle-name.aimodel"},
             "language": {"tokenizer": "google/gemma-4-31B-it", "vocab_size": 262144, "max_context_length": 16896,
                          "embedded_tokenizer": True, "function_map": {"main": ["main"]}},
@@ -92,6 +98,34 @@ class AssetTests(unittest.TestCase):
                        "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475"},
             "compression": None, "tap_layers": [1, 17, 29, 47, 59],
             "tap_convention": "layers-passed:before-final-norm:ascending"})
+
+    def test_a_complete_bundle_holds_the_three_files_of_the_asset_the_metadata_and_the_tokenizer_files(self):
+        name = export.name_of(6, BOTH, "fp16")
+        self.assertEqual(export.bundle_layout(name), sorted([
+            f"{name}.aimodel/main.hash", f"{name}.aimodel/main.mlirb", f"{name}.aimodel/metadata.json", "metadata.json",
+            "tokenizer/chat_template.jinja", "tokenizer/tokenizer.json", "tokenizer/tokenizer_config.json"]))
+
+        def without(relative):
+            return lambda record: record["bundle"]["files"].pop(relative.format(name=name))
+
+        def extra(record):
+            record["bundle"]["files"]["notes.txt"] = {"bytes": 1, "sha256": "0" * 64}
+
+        def renamed(record):
+            files = record["bundle"]["files"]
+            record["bundle"].update(name=f"{name}_copy", files={key.replace(name, f"{name}_copy"): value
+                                                                for key, value in files.items()})
+
+        cases = {"a recorded name other than that of its files": lambda record: record["bundle"].update(name=f"{name}_copy"),
+                 "no main.mlirb": without("{name}.aimodel/main.mlirb"), "no main.hash": without("{name}.aimodel/main.hash"),
+                 "no metadata.json of the asset": without("{name}.aimodel/metadata.json"),
+                 "no metadata.json of the bundle": without("metadata.json"),
+                 "no tokenizer.json": without("tokenizer/tokenizer.json"), "an extra file": extra,
+                 "another name": renamed}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(problems(change))
+        self.assertEqual(problems(), [])
 
     def test_main_returns_logits_first_then_the_final_norm_output_and_the_taps_and_prefill_only_the_taps(self):
         for layers, taps in ((6, (1, 2, 3, 4, 5)), (6, (6,)), (60, (1, 17, 29, 47, 59))):
@@ -135,7 +169,11 @@ class AssetTests(unittest.TestCase):
                  "an order without the taps": lambda record: record["asset"]["output_order"]["prefill"].clear(),
                  "metadata without tap_layers": lambda record: record["metadata"].pop("tap_layers"),
                  "metadata with other tap layers": lambda record: record["metadata"].update(tap_layers=[1, 2, 3, 4, 6]),
-                 "metadata with another convention": lambda record: record["metadata"].update(tap_convention="after-norm")}
+                 "metadata with another convention": lambda record: record["metadata"].update(tap_convention="after-norm"),
+                 "a state shape that holds true for one": lambda record: record["asset"]["functions"]["main"]["states"][
+                     "keyCache"]["shape"].__setitem__(1, True),
+                 "metadata with a tap layer of true": lambda record: record["metadata"].update(tap_layers=[True, 2, 3, 4, 5]),
+                 "Float32 elements as a float": lambda record: record["asset"]["storage_types"].update(Float32=386.0)}
         for label, edit in cases.items():
             with self.subTest(case=label):
                 self.assertTrue(problems(edit))
@@ -156,6 +194,7 @@ class AssetTests(unittest.TestCase):
         cases = {"a compression config passed to the export": lambda record: record.update(
                      compression_config={"quantization_config": {"module_type_configs": {}}}),
                  "quantized weights in the PyTorch model": lambda record: record["weights"].update(quantized_layouts=41),
+                 "no quantized weights given as 0.0": lambda record: record["weights"].update(quantized_layouts=0.0),
                  "compression named in metadata.json": lambda record: record["metadata"].update(compression="8bit")}
         for label, change in cases.items():
             with self.subTest(case=label):
@@ -243,7 +282,7 @@ class AssetTests(unittest.TestCase):
             if change:
                 change(record)
             with self.subTest(case=label):
-                self.assertTrue(export.check_asset(record, CONTRACT, KINDS, asked, 16896, TAPS))
+                self.assertTrue(export.check_asset(record, CONTRACT, KINDS, asked, 16896, TAPS, "fp16"))
 
     def test_asset_types_are_read_from_the_summary_text(self):
         self.assertEqual(export.described("NDArray (Float16, 5 × 1 × 16 × ? × 256)"),
@@ -252,10 +291,210 @@ class AssetTests(unittest.TestCase):
         self.assertEqual(export.described("Tensor <float16>"), {"raw": "Tensor <float16>"})
 
 
-def arguments(folder, output, layers="6", functions="main,prefill", taps="1,2,3,4,5"):
+QUANTIZED_STORAGE = {"UInt8": 2_930_049_024, "Float16": 1_592_466_186, "Float32": 386, "Int32": 148, "UInt32": 29,
+                     "UInt64": 1}
+QUANTIZED_ELEMENTS = {"torch.float16": 1_592_466_182, "torch.uint8": 2_928_672_768}
+SMALLEST = 4 * 512 * 5376
+DEQUANTIZATIONS = 41 + 41 - 5
+PARTS = {"self_attn.q_proj.weight", "self_attn.k_proj.weight", "self_attn.v_proj.weight", "self_attn.o_proj.weight",
+         "mlp.gate_proj.weight", "mlp.up_proj.weight", "mlp.down_proj.weight"}
+
+
+def layout(name, **changes):
+    return {"name": name, "class": "WeightDequantizeModuleParametrization", "data": "torch.uint8", "shape": [2048, 5376],
+            "scale": "torch.float16", "minval": "torch.float16", "zero_point": None, "block": [1, 32], **changes}
+
+
+def quantized(functions=BOTH):
+    record = inspected(functions)
+    record.update(compression_config=copy.deepcopy(export.QUANTIZATION))
+    record["weights"] = {"elements": sum(QUANTIZED_ELEMENTS.values()), "elements_by_dtype": dict(QUANTIZED_ELEMENTS),
+                         "quantized_layouts": 41}
+    record["quantized"] = {"layers": [layout(name) for name in sorted(export.quantized_names(KINDS))], "skipped": 0,
+                           "warnings_enabled": True}
+    record["asset"].update(storage_types=dict(QUANTIZED_STORAGE),
+                           dequantizations={BOTH: DEQUANTIZATIONS, ("main",): 41}[functions])
+    record["metadata"] = export.metadata(CONTRACT, export.name_of(6, functions, "8bit"), 16896, "8bit", TAPS)
+    record["bundle"] = bundle_of(export.name_of(6, functions, "8bit"))
+    return record
+
+
+def quantized_problems(change=None, functions=BOTH):
+    record = quantized(functions)
+    if change:
+        change(record)
+    return export.check_asset(record, CONTRACT, KINDS, functions, 16896, TAPS, "8bit")
+
+
+def layers_changed(change):
+    def edit(record):
+        record["quantized"]["layers"] = change(record["quantized"]["layers"])
+    return edit
+
+
+def one_layer(name, **changes):
+    return layers_changed(lambda entries: [layout(entry["name"], **changes) if entry["name"] == name else entry
+                                           for entry in entries])
+
+
+def quantization_config(change):
+    def edit(record):
+        change(record["compression_config"])
+    return edit
+
+
+def linear(config):
+    return config["module_type_configs"]["torch.nn.modules.linear.Linear"]
+
+
+def counts(uint8=0, float16=0):
+    def change(record):
+        record["asset"]["storage_types"].update(UInt8=QUANTIZED_ELEMENTS["torch.uint8"] + uint8,
+                                                Float16=QUANTIZED_ELEMENTS["torch.float16"] + float16)
+    return change
+
+
+class QuantizedAssetTests(unittest.TestCase):
+    def test_the_measured_layout_of_the_first_six_layers_passes_with_main_and_prefill_only(self):
+        self.assertEqual(quantized_problems(), [])
+        self.assertTrue(quantized_problems(functions=("main",)))
+        self.assertEqual(export.name_of(6, BOTH, "8bit"), "gemma4_31b_l6_8bit_main_prefill")
+        self.assertEqual(export.metadata(CONTRACT, "bundle-name", 16896, "8bit", TAPS)["compression"], "8bit")
+
+    def test_the_quantized_tensors_are_the_linear_weights_of_each_layer_without_v_in_the_full_attention_layers(self):
+        names = export.quantized_names(KINDS)
+        self.assertEqual(len(names), 5 * 7 + 6)
+        self.assertEqual(len(export.quantized_names(check_layers(CONTRACT["config"], 60))), 50 * 7 + 10 * 6)
+        self.assertEqual({name.split(".", 3)[3] for name in names}, PARTS)
+        self.assertNotIn("model.layers.5.self_attn.v_proj.weight", names)
+        self.assertIn("model.layers.4.self_attn.v_proj.weight", names)
+
+    def test_an_asset_with_a_missing_or_an_extra_quantized_tensor_fails(self):
+        cases = {"a missing down projection": lambda entries: [entry for entry in entries
+                                                               if entry["name"] != "model.layers.3.mlp.down_proj.weight"],
+                 "the embedding quantized": lambda entries: [*entries, layout("embed_tokens.weight")],
+                 "the final norm quantized": lambda entries: [*entries, layout("norm.weight")],
+                 "a value projection in the full-attention layer": lambda entries: [
+                     *entries, layout("model.layers.5.self_attn.v_proj.weight")],
+                 "a weight quantized twice": lambda entries: [*entries, layout("model.layers.0.self_attn.q_proj.weight")],
+                 "no quantized tensor": lambda entries: []}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(layers_changed(change)))
+
+    def test_an_asset_with_another_block_width_or_type_fails(self):
+        name = "model.layers.2.self_attn.o_proj.weight"
+        cases = {"blocks of 64": one_layer(name, block=[1, 64]), "blocks along the other axis": one_layer(name, block=[32, 1]),
+                 "int8 data": one_layer(name, data="torch.int8"), "uint4 data": one_layer(name, data="torch.uint4"),
+                 "float32 scales": one_layer(name, scale="torch.float32"),
+                 "a zero point instead of a minimum": one_layer(name, minval=None, zero_point="torch.uint8"),
+                 "a zero point besides the minimum": one_layer(name, zero_point="torch.uint8"),
+                 "no minimum": one_layer(name, minval=None)}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(change))
+
+    def test_an_asset_with_activation_or_kv_quantization_or_another_config_fails(self):
+        spec = {"dtype": "torch.int8", "qscheme": "symmetric", "granularity": {"type": "per_tensor"}}
+        cases = {"quantized Linear inputs": lambda config: linear(config).update(op_input_spec={"0": spec}),
+                 "quantized Linear outputs": lambda config: linear(config).update(op_output_spec={"0": spec}),
+                 "a quantized KV cache": lambda config: config.update(kv_cache_quant_configs={
+                     "mutable_cache_update_and_fetch": {"op_quantizer_config": {"op_input_spec": {"1": spec},
+                                                                                "op_output_spec": None,
+                                                                                "op_state_spec": None}}}),
+                 "calibrated activations": lambda config: config.update(calibrate_activations=True),
+                 "a quantized embedding": lambda config: config["module_type_configs"].update(
+                     {"torch.nn.modules.sparse.Embedding": copy.deepcopy(linear(config))}),
+                 "uint4 weights": lambda config: linear(config)["op_state_spec"]["weight"].update(dtype="torch.uint4"),
+                 "blocks of 64": lambda config: linear(config)["op_state_spec"]["weight"]["granularity"].update(block_size=64),
+                 "graph execution": lambda config: config.update(execution_mode="graph"),
+                 "a global config": lambda config: config.update(global_config=copy.deepcopy(linear(config))),
+                 "the block axis given as true": lambda config: linear(config)["op_state_spec"]["weight"]["granularity"]
+                 .update(axis=True)}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(quantization_config(change)))
+        self.assertTrue(quantized_problems(lambda record: record.update(compression_config=None)))
+
+    def test_a_pytorch_tensor_of_another_type_or_a_skipped_quantization_fails(self):
+        cases = {"a float32 buffer": lambda record: record["weights"]["elements_by_dtype"].update({"torch.float32": 1}),
+                 "no uint8": lambda record: record["weights"]["elements_by_dtype"].pop("torch.uint8"),
+                 "a skipped Linear layer": lambda record: record["quantized"].update(skipped=1),
+                 "warnings of the quantizer not counted": lambda record: record["quantized"].update(warnings_enabled=False)}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(change))
+
+    def test_every_function_dequantizes_each_quantized_weight_that_it_reads_once(self):
+        self.assertEqual(export.dequantizations(export.quantized_names(KINDS), KINDS, BOTH, TAPS), 77)
+        self.assertEqual(export.dequantizations(export.quantized_names(KINDS), KINDS, ("main",), TAPS), 41)
+        self.assertEqual(export.dequantizations(export.quantized_names(KINDS), KINDS, BOTH, (6,)), 41 + 41)
+        twelve, sixty = (check_layers(CONTRACT["config"], layers) for layers in (12, 60))
+        self.assertEqual(export.dequantizations(export.quantized_names(twelve), twelve, BOTH, TAPS), 82 + 77)
+        self.assertEqual(export.dequantizations(export.quantized_names(sixty), sixty, BOTH, (1, 17, 29, 47, 59)),
+                         410 + 405)
+        self.assertEqual(export.dequantizations(export.quantized_names(sixty), sixty, BOTH, (60,)), 410 + 410)
+        skipped = {name for name in export.quantized_names(KINDS) if ".o_proj." in name or ".down_proj." in name}
+        self.assertEqual(export.dequantizations(skipped, KINDS, BOTH, TAPS), 12 + 10)
+
+    def test_counts_and_flags_of_the_quantization_of_another_type_fail(self):
+        cases = {"a dequantization count as a float": lambda record: record["asset"].update(
+                     dequantizations=float(DEQUANTIZATIONS)),
+                 "warnings enabled as the number one": lambda record: record["quantized"].update(warnings_enabled=1),
+                 "a skipped count of 0.0": lambda record: record["quantized"].update(skipped=0.0),
+                 "40 quantized layouts": lambda record: record["weights"].update(quantized_layouts=40),
+                 "a block of true and 32": one_layer("model.layers.0.self_attn.q_proj.weight", block=[True, 32])}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(change))
+        self.assertEqual(quantized_problems(), [])
+
+    def test_an_asset_with_one_dequantization_less_or_more_fails_and_the_storage_counts_are_only_recorded(self):
+        def dequantized(count, uint8=1_376_256, float16=4):
+            def change(record):
+                counts(uint8, float16)(record)
+                record["asset"]["dequantizations"] = count
+            return change
+
+        cases = {"one less": dequantized(DEQUANTIZATIONS - 1), "one more": dequantized(DEQUANTIZATIONS + 1),
+                 "none": dequantized(0),
+                 "the smallest weight folded back to float16": dequantized(
+                     DEQUANTIZATIONS - 1, 1_376_256 - SMALLEST, 4 + SMALLEST - 2 * 344_064)}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(change))
+        for label, change in {"the measured counts": dequantized(DEQUANTIZATIONS),
+                              "large storage differences": dequantized(DEQUANTIZATIONS, 1_376_256 - SMALLEST,
+                                                                       4 + SMALLEST)}.items():
+            with self.subTest(case=label):
+                self.assertEqual(quantized_problems(change), [])
+        self.assertEqual(export.differences(QUANTIZED_STORAGE, QUANTIZED_ELEMENTS),
+                         {"uint8_minus_weights": 1_376_256, "float16_minus_weights": 4})
+
+    def test_an_asset_with_other_storage_types_or_float32_elements_fails(self):
+        cases = {"uint4 weights": {**QUANTIZED_STORAGE, "UInt4": 64}, "int8 weights": {**QUANTIZED_STORAGE, "Int8": 64},
+                 "bfloat16 weights": {**QUANTIZED_STORAGE, "BFloat16": 64}, "a float32 element more": {**QUANTIZED_STORAGE,
+                                                                                                         "Float32": 387}}
+        for label, types in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(storage(types)))
+
+    def test_an_asset_with_the_metadata_or_the_name_of_an_fp16_bundle_fails(self):
+        cases = {"no compression in metadata.json": lambda record: record["metadata"].update(compression=None),
+                 "the FP16 name": lambda record: record.update(
+                     metadata=export.metadata(CONTRACT, export.name_of(6, BOTH, "fp16"), 16896, "8bit", TAPS))}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(change))
+        self.assertTrue(export.check_asset(quantized(), CONTRACT, KINDS, BOTH, 16896, TAPS, "fp16"))
+
+
+def arguments(folder, output, layers="6", functions="main,prefill", taps="1,2,3,4,5", precision="fp16",
+              compression=None):
     return ["export", "--model", str(RECIPE / "model.json"), "--snapshot", str(folder / "snapshot"),
             "--upstream", str(folder / "upstream"), "--layers", layers, "--functions", functions, "--taps", taps,
-            "--context", "16896", "--output", str(output)]
+            "--context", "16896", "--precision", precision, "--output", str(output),
+            *([] if compression is None else ["--compression", str(compression)])]
 
 
 def observed(output, lowest):
@@ -269,12 +508,12 @@ class StartTests(unittest.TestCase):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(self.folder))
 
-    def main(self, argv, free=10**15):
+    def main(self, argv, free=10**15, supervised=None):
         usage = mock.Mock(free=free)
         with mock.patch.object(sys, "argv", argv), mock.patch.object(export, "weight_elements", return_value=ELEMENTS) as count, \
                 mock.patch.object(export.shutil, "disk_usage", return_value=usage), \
                 mock.patch.object(export, "verify_inputs") as verify, \
-                mock.patch.object(export, "supervise", return_value=0) as supervise:
+                mock.patch.object(export, "supervise", return_value=0, side_effect=supervised) as supervise:
             try:
                 return export.main(), count, verify, supervise
             except BaseException as error:
@@ -367,8 +606,8 @@ class StartTests(unittest.TestCase):
 
     def test_the_export_starts_only_with_room_for_twice_the_float16_weights_and_60_gib(self):
         required = 4 * ELEMENTS + 60 * 2**30
-        self.assertEqual(export.required_bytes(ELEMENTS), 81_776_897_048)
-        self.assertEqual(export.required_bytes(ELEMENTS), required)
+        self.assertEqual(export.required_bytes(ELEMENTS, "fp16"), 81_776_897_048)
+        self.assertEqual(export.required_bytes(ELEMENTS, "fp16"), required)
         with self.assertRaisesRegex(PipelineError, "free") as raised:
             self.main(arguments(self.folder, self.folder / "short"), free=required - 1)
         count, verify, supervise = raised.exception.calls
@@ -387,6 +626,70 @@ class StartTests(unittest.TestCase):
                 with mock.patch("sys.stderr"):
                     self.main(arguments(self.folder, self.folder / "functions", functions=functions))
         self.assertFalse((self.folder / "functions").exists())
+
+    def test_a_precision_must_be_given_and_only_the_8bit_export_takes_the_compression_config(self):
+        config = RECIPE / "compression-8bit.yaml"
+        without = arguments(self.folder, self.folder / "unset")
+        del without[without.index("--precision"):without.index("--precision") + 2]
+        cases = {"no precision": without, "another precision": arguments(self.folder, self.folder / "4bit", precision="4bit"),
+                 "8bit without the config": arguments(self.folder, self.folder / "8bit", precision="8bit"),
+                 "fp16 with the config": arguments(self.folder, self.folder / "fp16", compression=config),
+                 "8bit with main only": arguments(self.folder, self.folder / "main", functions="main", precision="8bit",
+                                                  compression=config)}
+        for label, argv in cases.items():
+            with self.subTest(case=label), mock.patch("sys.stderr"), self.assertRaises(SystemExit) as raised:
+                self.main(argv)
+            for call in getattr(raised.exception, "calls", ()):
+                call.assert_not_called()
+            self.assertFalse(Path(argv[argv.index("--output") + 1]).exists())
+        code, *_ = self.main(arguments(self.folder, self.folder / "both", precision="8bit", compression=config))
+        self.assertEqual(code, 0)
+
+    def test_the_8bit_export_starts_only_with_room_for_seven_bytes_per_weight_and_60_gib(self):
+        required = 7 * ELEMENTS + 60 * 2**30
+        self.assertEqual(export.required_bytes(ELEMENTS, "8bit"), required)
+        config = RECIPE / "compression-8bit.yaml"
+        with self.assertRaisesRegex(PipelineError, "free") as raised:
+            self.main(arguments(self.folder, self.folder / "short", precision="8bit", compression=config), free=required - 1)
+        count, verify, supervise = raised.exception.calls
+        verify.assert_not_called()
+        supervise.assert_not_called()
+        self.assertEqual(read_json(self.folder / "short/failure.json"),
+                         {"schema": export.SCHEMA, "passed": False, "error": "PipelineError"})
+        code, count, verify, supervise = self.main(arguments(self.folder, self.folder / "enough", precision="8bit",
+                                                             compression=config), free=required)
+        self.assertEqual(code, 0)
+        supervise.assert_called_once()
+
+
+    def test_an_interruption_after_the_output_is_made_is_recorded_without_overwriting_a_stop_of_the_monitor(self):
+        stop = {"schema": export.SCHEMA, "passed": False, "abort": "swap rose by 3 B, above 2 B"}
+
+        def interrupted(folder, schema, work, conclude):
+            raise KeyboardInterrupt
+
+        def stopped(folder, schema, work, conclude):
+            write_json(folder / "failure.json", stop)
+            return 1
+
+        def stopped_and_interrupted(folder, schema, work, conclude):
+            write_json(folder / "failure.json", stop)
+            raise KeyboardInterrupt
+
+        for precision, compression in (("fp16", None), ("8bit", RECIPE / "compression-8bit.yaml")):
+            output = self.folder / f"interrupted-{precision}"
+            with self.subTest(precision=precision), self.assertRaises(KeyboardInterrupt):
+                self.main(arguments(self.folder, output, precision=precision, compression=compression),
+                          supervised=interrupted)
+            self.assertEqual(read_json(output / "failure.json"),
+                             {"schema": export.SCHEMA, "passed": False, "error": "KeyboardInterrupt"})
+        output = self.folder / "stopped"
+        code, _, _, _ = self.main(arguments(self.folder, output), supervised=stopped)
+        self.assertEqual((code, read_json(output / "failure.json")), (1, stop))
+        output = self.folder / "stopped-and-interrupted"
+        with self.assertRaises(KeyboardInterrupt):
+            self.main(arguments(self.folder, output), supervised=stopped_and_interrupted)
+        self.assertEqual(read_json(output / "failure.json"), stop)
 
 
 class RecordTests(unittest.TestCase):
@@ -470,13 +773,34 @@ class RecipeTests(unittest.TestCase):
         options = dict(zip(command[3::2], command[4::2]))
         self.assertEqual(options, {"--model": str(RECIPE / "model.json"), "--snapshot": "/model", "--upstream": "/upstream",
                                    "--layers": "6", "--functions": "main,prefill", "--taps": "1,2,3,4,5",
-                                   "--context": "16896", "--output": "/stage/export"})
+                                   "--context": "16896", "--precision": "fp16", "--output": "/stage/export"})
         self.assertEqual((step["role"], step["heavy"], step["depends"], step["outputs"]),
                          ("export", True, ["prepare"], ["export"]))
         self.assertEqual(step["checks"], [{"file": "export/export.json", "key": ["passed"], "equals": True}])
         sources = read_json(RECIPE / "recipe-fp16.json")
         self.assertEqual(sources["steps"][0], read_json(RECIPE / "recipe.json")["steps"][0])
         self.assertEqual(sources["environment"], read_json(RECIPE / "recipe.json")["environment"])
+
+    def test_the_8bit_recipe_is_the_fp16_recipe_with_the_precision_and_the_compression_config(self):
+        recipe = load_recipe(RECIPE / "recipe-8bit.json", {**BINDINGS, "layers": "6", "functions": "main,prefill",
+                                                           "taps": "1,2,3,4,5"}, REPOSITORY)
+        step = recipe["steps"][1]
+        command = expand(step["command"], {**recipe["variables"], "out": "/stage", "prepare": "/prepared"})
+        options = dict(zip(command[3::2], command[4::2]))
+        self.assertEqual((options["--precision"], options["--compression"], options["--taps"], options["--output"]),
+                         ("8bit", str(RECIPE / "compression-8bit.yaml"), "1,2,3,4,5", "/stage/export"))
+        sources = {name: read_json(RECIPE / f"recipe-{name}.json") for name in ("fp16", "8bit")}
+        self.assertIn("$recipe_dir/compression-8bit.yaml", sources["8bit"]["steps"][1]["inputs"])
+        for name, source in sources.items():
+            step = source["steps"][1]
+            at = step["command"].index("--precision")
+            del step["command"][at:at + 2]
+            if "--compression" in step["command"]:
+                at = step["command"].index("--compression")
+                del step["command"][at:at + 2]
+            step["inputs"] = [item for item in step["inputs"] if item != "$recipe_dir/compression-8bit.yaml"]
+            del source["name"], source["description"]
+        self.assertEqual(sources["fp16"], sources["8bit"])
 
     def test_the_runner_fingerprints_the_environment_that_runs_the_export_step(self):
         recipe = self.load(layers="6", functions="main", taps="1,2,3,4,5")

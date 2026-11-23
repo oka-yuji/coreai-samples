@@ -1,9 +1,12 @@
+import copy
+import hashlib
 import io
 import json
 import os
 from pathlib import Path
 import shutil
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -19,10 +22,10 @@ try:
 except ImportError:
     torch = None
 
-from Tools.Conversion.adapters.gemma4_31b import layers
+from Tools.Conversion.adapters.gemma4_31b import export, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
-from Tools.Conversion.storage import digest, read_json, write_json
+from Tools.Conversion.storage import digest, file_hash, read_json, write_json
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
 SLIDING, FULL = "sliding_attention", "full_attention"
@@ -40,10 +43,10 @@ TEXT = {"model_type": "gemma4_text", "hidden_size": 48, "intermediate_size": 96,
         "bos_token_id": 2, "pad_token_id": 0, "eos_token_id": 1}
 
 
-def write_contract(folder, files):
+def write_contract(folder, files, text=TEXT):
     contract = read_json(RECIPE / "model.json")
-    config = {key: TEXT.get(key) for key in contract["config"]}
-    config.update(layer_pattern=TEXT["layer_types"][:6], eos_token_id=[TEXT["eos_token_id"]])
+    config = {key: text.get(key) for key in contract["config"]}
+    config.update(layer_pattern=text["layer_types"][:6], eos_token_id=[text["eos_token_id"]])
     tokenizer = {"policy": "keep-distributed", "files": {name: files[name]["sha256"] for name in TOKENIZER_FILES}}
     contract.update(files=files, config=config, tokenizer=tokenizer)
     path = Path(folder) / "model.json"
@@ -51,9 +54,9 @@ def write_contract(folder, files):
     return path
 
 
-def original(seed=0):
+def original(seed=0, text=TEXT):
     torch.manual_seed(seed)
-    config = Gemma4TextConfig(**TEXT)
+    config = Gemma4TextConfig(**text)
     config._attn_implementation = "eager"
     model = modeling_gemma4.Gemma4ForCausalLM(config).eval()
     with torch.no_grad():
@@ -66,16 +69,17 @@ def original(seed=0):
     return model
 
 
-def write_snapshot(folder):
+def write_snapshot(folder, **changes):
     from safetensors.torch import save_file
 
+    text = {**TEXT, **changes}
     snapshot = Path(folder) / "snapshot"
     snapshot.mkdir()
     state = {"model.language_model." + name.removeprefix("model."): tensor.to(torch.bfloat16).contiguous()
-             for name, tensor in original().state_dict().items() if name != "lm_head.weight"}
+             for name, tensor in original(text=text).state_dict().items() if name != "lm_head.weight"}
     save_file(state, str(snapshot / SHARD))
     documents = {"config.json": {"model_type": "gemma4", "architectures": ["Gemma4ForConditionalGeneration"],
-                                 "text_config": TEXT},
+                                 "text_config": text},
                  "model.safetensors.index.json": {"metadata": {}, "weight_map": dict.fromkeys(state, SHARD)},
                  "generation_config.json": {"bos_token_id": TEXT["bos_token_id"]}, "tokenizer.json": {"model": {}},
                  "tokenizer_config.json": {"bos_token": "<bos>"}}
@@ -83,7 +87,7 @@ def write_snapshot(folder):
         write_json(snapshot / name, value)
     (snapshot / "chat_template.jinja").write_text("{{ bos_token }}")
     files = {path.name: {"bytes": path.stat().st_size, "sha256": sha256(path)} for path in sorted(snapshot.iterdir())}
-    return snapshot, write_contract(folder, files)
+    return snapshot, write_contract(folder, files, text)
 
 
 TAPS = (1, 2, 3, 4, 5)
@@ -473,11 +477,12 @@ class ConditionTests(unittest.TestCase):
                     mock.patch.object(layers, "original_model") as original_model:
                 for count in (0, 5, 7, 13):
                     with self.subTest(layers=count), self.assertRaisesRegex(ValueError, "full-attention"):
-                        layers.context(contract, Path(folder) / "snapshot", count, Path(folder) / f"layers-{count}")
+                        layers.context(contract, Path(folder) / "snapshot", count, Path(folder) / f"layers-{count}",
+                                       "float16")
                     self.assertFalse((Path(folder) / f"layers-{count}").exists())
                 for name in ("used", "dangling"):
                     with self.subTest(output=name), self.assertRaises(FileExistsError):
-                        layers.context(contract, Path(folder) / "snapshot", 6, Path(folder) / name)
+                        layers.context(contract, Path(folder) / "snapshot", 6, Path(folder) / name, "float16")
             verify.assert_not_called()
             original_model.assert_not_called()
 
@@ -495,7 +500,7 @@ class ConditionTests(unittest.TestCase):
                 before = seen()
                 with self.subTest(output=label), mock.patch.object(layers, "load_contract", wraps=layers.load_contract) as load, \
                         self.assertRaises(FileExistsError):
-                    layers.context(broken, Path(folder) / "snapshot", 6, output)
+                    layers.context(broken, Path(folder) / "snapshot", 6, output, "float16")
                 load.assert_not_called()
                 self.assertEqual(seen(), before)
 
@@ -510,7 +515,7 @@ class ConditionTests(unittest.TestCase):
             try:
                 with mock.patch.object(layers, "load_contract", wraps=layers.load_contract) as load, \
                         self.assertRaises(FileExistsError):
-                    layers.context(broken, Path(folder) / "snapshot", 6, output)
+                    layers.context(broken, Path(folder) / "snapshot", 6, output, "float16")
                 load.assert_not_called()
             finally:
                 closed.chmod(0o700)
@@ -536,7 +541,7 @@ class ContextReferenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             snapshot, contract = write_snapshot(folder)
             config = load_contract(contract)["config"]
-            record = layers.context(contract, snapshot, 6, Path(folder) / "context")
+            record = layers.context(contract, snapshot, 6, Path(folder) / "context", "float16")
             self.assertEqual(read_json(Path(folder) / "context/record.json"), record)
             self.assertEqual((record["schema"], record["implementation"], record["layers"], record["layer_types"],
                               record["chunk"]), (layers.CONTEXT_SCHEMA, "original", 6, TEXT["layer_types"][:6], 1024))
@@ -610,6 +615,473 @@ class OriginalRunTests(unittest.TestCase):
                     layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed")
             load.assert_not_called()
             self.assertEqual(list((Path(folder) / "changed").iterdir()), [])
+
+
+def quantized_tensors(text, seed=5):
+    generator = torch.Generator().manual_seed(seed)
+    parameters = dict(original(text=text).named_parameters())
+    tensors = {}
+    for name in sorted(export.quantized_names(text["layer_types"][:6])):
+        rows, columns = parameters[name].shape
+        tensors[f"{name}.quantized_data"] = torch.randint(0, 256, (rows, columns), dtype=torch.uint8, generator=generator)
+        tensors[f"{name}.scale"] = (torch.rand(rows, columns // 32, generator=generator) * 0.01 + 1e-3).to(torch.float16)
+        tensors[f"{name}.minval"] = (-0.5 * torch.rand(rows, columns // 32, generator=generator)).to(torch.float16)
+    return tensors
+
+
+MAIN_ASSET = b"main asset"
+
+
+def resync(target):
+    record, bundle = read_json(target / "export.json"), target / export.BUNDLE
+    files = {path.relative_to(bundle).as_posix(): file_hash(path) for path in sorted(bundle.rglob("*")) if path.is_file()}
+    record["bundle"].update(files=files, bytes=sum(entry["bytes"] for entry in files.values()))
+    write_json(target / "export.json", record)
+
+
+def complete_export(folder, contract, precision="fp16", functions=("main", "prefill"), quantized=None, **changes):
+    pinned, name, eight_bit = load_contract(contract), export.name_of(6, functions, precision), precision == "8bit"
+    config, kinds, compression = pinned["config"], layers.check_layers(pinned["config"], 6), "8bit" if eight_bit else None
+    bundle = folder / export.BUNDLE
+    (bundle / f"{name}.aimodel").mkdir(parents=True)
+    (bundle / f"{name}.aimodel/main.mlirb").write_bytes(MAIN_ASSET)
+    (bundle / f"{name}.aimodel/main.hash").write_bytes(hashlib.sha256(MAIN_ASSET).digest())
+    write_json(bundle / f"{name}.aimodel/metadata.json", {"assetVersion": "2.0"})
+    write_json(bundle / "metadata.json", export.metadata(pinned, name, 16896, compression, TAPS))
+    (bundle / "tokenizer").mkdir()
+    for item in TOKENIZER_FILES:
+        shutil.copyfile(Path(contract).parent / "snapshot" / item, bundle / "tokenizer" / item)
+    names, checkpoint = sorted(export.quantized_names(kinds)), 2000
+    elements = {"torch.float16": 1000, **({"torch.uint8": 4000} if eight_bit else {})}
+    required = export.required_bytes(checkpoint, precision)
+    record = {"schema": export.SCHEMA, "passed": True, "problems": [], "checks": {"asset": True, "free_disk": True},
+              "model": native.pinned_model(pinned, contract), "layers": 6, "layer_types": kinds,
+              "functions": list(functions), "context": 16896, "precision": export.PRECISIONS[precision],
+              "compression_config": copy.deepcopy(export.QUANTIZATION) if eight_bit else None,
+              "upstream_revision": pinned["upstream_revision"],
+              "weights": {"tensors": 85, "elements": sum(elements.values()), "elements_by_dtype": elements,
+                          "quantized_layouts": len(names) if eight_bit else 0},
+              **({"quantized": quantized} if eight_bit else {}),
+              "asset": {"functions": export.expected_functions(config, kinds, functions, TAPS),
+                        "output_order": {item: list(export.RETURNS[item]) for item in functions},
+                        "storage_types": {"Float16": 1004, "Float32": export.float32_elements(config), "Int32": 1,
+                                          "UInt32": 1, "UInt64": 1, **({"UInt8": 4128} if eight_bit else {})},
+                        "dequantizations": export.dequantizations(names, kinds, functions, TAPS) if eight_bit else 0,
+                        "float16_minus_weights": 4, **({"uint8_minus_weights": 128} if eight_bit else {})},
+              "tokenizer": dict(pinned["tokenizer"]["files"]),
+              "metadata": export.metadata(pinned, name, 16896, compression, TAPS),
+              "bundle": {"folder": export.BUNDLE, "name": name, "main_hash": hashlib.sha256(MAIN_ASSET).hexdigest()},
+              "disk": {"weight_bytes": 2 * checkpoint, "estimated_write_bytes": export.WRITES[precision] * checkpoint,
+                       "margin_bytes": export.MARGIN_BYTES, "required_free_bytes": required,
+                       "free_before_bytes": required, "lowest_free_bytes": export.MARGIN_BYTES},
+              "resources": {"swap": {"increase_bytes": 0}}, **changes}
+    write_json(folder / "export.json", record)
+    resync(folder)
+    return folder
+
+
+def write_export(folder, contract, tensors, **changes):
+    folder.mkdir()
+    digests = export.save_quantized(folder / layers.QUANTIZED, list(tensors.items()))
+    weights = sorted({name.rsplit(".", 1)[0] for name in tensors})
+    quantized = {"layers": [{"name": name, "class": "Dequantize", "shape": None, **export.LAYOUT} for name in weights],
+                 "skipped": 0, "warnings_enabled": True, "file": file_hash(folder / layers.QUANTIZED), "tensors": digests}
+    return complete_export(folder, contract, "8bit", quantized=quantized, **changes)
+
+
+def named(relative, target):
+    return relative.format(name=read_json(target / "export.json")["bundle"]["name"])
+
+
+def removed(relative):
+    def change(target):
+        path = target / export.BUNDLE / named(relative, target)
+        shutil.rmtree(path) if path.is_dir() else path.unlink()
+        resync(target)
+    return change
+
+
+def main_hash_only(target):
+    keep = target / export.BUNDLE / named("{name}.aimodel/main.hash", target)
+    for path in (target / export.BUNDLE).rglob("*"):
+        if path.is_file() and path != keep:
+            path.unlink()
+    resync(target)
+
+
+def rewritten(relative, content):
+    def change(target):
+        (target / export.BUNDLE / named(relative, target)).write_bytes(content)
+        resync(target)
+    return change
+
+
+def linked(relative):
+    def change(target):
+        path = target / named(relative, target)
+        moved = target.parent / f"{target.name}-moved-{path.name}"
+        path.rename(moved)
+        path.symlink_to(moved, target_is_directory=moved.is_dir())
+    return change
+
+
+def renamed(target):
+    record, bundle = read_json(target / "export.json"), target / export.BUNDLE
+    old = record["bundle"]["name"]
+    (bundle / f"{old}.aimodel").rename(bundle / f"{old}_copy.aimodel")
+    record["metadata"].update(name=f"{old}_copy", assets={"main": f"{old}_copy.aimodel"})
+    record["bundle"]["name"] = f"{old}_copy"
+    write_json(bundle / "metadata.json", record["metadata"])
+    write_json(target / "export.json", record)
+    resync(target)
+
+
+def changed(change):
+    def apply(target):
+        record = read_json(target / "export.json")
+        change(record)
+        write_json(target / "export.json", record)
+    return apply
+
+
+BUNDLE_DEFECTS = {
+    "a bundle of main.hash only": main_hash_only,
+    "a bundle without main.mlirb": removed("{name}.aimodel/main.mlirb"),
+    "a bundle without the tokenizer": removed("tokenizer"),
+    "a bundle without its metadata.json": removed("metadata.json"),
+    "a bundle with an extra file": rewritten("notes.txt", b"x"),
+    "a bundle under a name that its layers, functions and precision do not give": renamed,
+    "a tokenizer file of other content under a matching record": rewritten("tokenizer/tokenizer.json", b"{}"),
+    "a metadata.json of the bundle of other content under a matching record": rewritten("metadata.json", b'{"name": "x"}'),
+    "a main.mlirb that main.hash does not hash under a matching record": rewritten("{name}.aimodel/main.mlirb", b"other"),
+    "the bundle folder as a link": linked(export.BUNDLE),
+    "the asset folder as a link": linked(export.BUNDLE + "/{name}.aimodel"),
+    "the tokenizer folder as a link": linked(export.BUNDLE + "/tokenizer"),
+    "export.json as a link": linked("export.json"),
+    "a tokenizer file of the bundle as a link": linked(export.BUNDLE + "/tokenizer/tokenizer.json"),
+    "a bundle size other than the sum of its files": changed(lambda record: record["bundle"].update(
+        bytes=record["bundle"]["bytes"] + 1)),
+    "an export of another converter checkout": changed(lambda record: record.update(upstream_revision="0" * 40)),
+    "checks that did not pass": changed(lambda record: record["checks"].update(free_disk=False)),
+    "a lowest free disk below the margin": changed(lambda record: record["disk"].update(
+        lowest_free_bytes=export.MARGIN_BYTES - 1)),
+    "a context limit given as text": changed(lambda record: record.update(context="16896")),
+    "an asset of other outputs": changed(lambda record: record["asset"]["output_order"].update(main=["logits"])),
+    "an asset whose state shape holds true for one": changed(lambda record: record["asset"]["functions"]["main"][
+        "states"]["keyCache"]["shape"].__setitem__(1, True)),
+    "weights whose element counts do not add up": changed(lambda record: record["weights"].update(
+        elements=record["weights"]["elements"] + 1)),
+    "a difference of the storage counts that does not follow from them": changed(lambda record: record["asset"].update(
+        float16_minus_weights=5)),
+    "a disk record that does not follow the rule": changed(lambda record: record["disk"].update(
+        required_free_bytes=record["disk"]["required_free_bytes"] + 1)),
+    "a free disk at the start below the requirement": changed(lambda record: record["disk"].update(
+        free_before_bytes=record["disk"]["required_free_bytes"] - 1)),
+    "a swap increase above its limit": changed(lambda record: record["resources"]["swap"].update(
+        increase_bytes=3 * 10**9))}
+QUANTIZATION_DEFECTS = {
+    "a dequantization count as a float": changed(lambda record: record["asset"].update(
+        dequantizations=float(record["asset"]["dequantizations"]))),
+    "warnings of the quantizer enabled as the number one": changed(lambda record: record["quantized"].update(
+        warnings_enabled=1)),
+    "a skipped count of 0.0": changed(lambda record: record["quantized"].update(skipped=0.0)),
+    "a count of quantized layouts other than the Linear weights": changed(lambda record: record["weights"].update(
+        quantized_layouts=40)),
+    "a difference of the UInt8 count that does not follow from it": changed(lambda record: record["asset"].update(
+        uint8_minus_weights=127))}
+
+
+def interrupted_rename(target):
+    (target / export.BUNDLE).rename(target / export.INCOMPLETE)
+    write_json(target / "failure.json", {"schema": export.SCHEMA, "passed": False, "error": "OSError"})
+
+
+def in_blocks_of(tensors, width):
+    changed = dict(tensors)
+    for key, data in tensors.items():
+        if key.endswith(".quantized_data"):
+            weight, (rows, columns) = key.removesuffix(".quantized_data"), data.shape
+            changed[f"{weight}.scale"] = torch.full((rows, columns // width), 1e-3, dtype=torch.float16)
+            changed[f"{weight}.minval"] = torch.zeros(rows, columns // width, dtype=torch.float16)
+    return changed
+
+
+def float16_restore(data, scale, minval):
+    blocks = data.shape[1] // scale.shape[1]
+    product = data.numpy().astype(np.float16) * np.repeat(scale.numpy(), blocks, axis=1)
+    return torch.from_numpy(product + np.repeat(minval.numpy(), blocks, axis=1))
+
+
+@unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
+class RestoredReferenceTests(unittest.TestCase):
+    TEXT = {**TEXT, "hidden_size": 64}
+
+    def test_restoring_rounds_each_operation_to_float16_like_the_converter(self):
+        tensors = quantized_tensors(self.TEXT)
+        name = "model.layers.0.mlp.down_proj.weight"
+        data, scale, minval = (tensors[f"{name}.{part}"] for part in ("quantized_data", "scale", "minval"))
+        restored = layers.restore(data, scale, minval)
+        self.assertEqual((restored.dtype, tuple(restored.shape)), (torch.float16, tuple(data.shape)))
+        self.assertTrue(torch.equal(restored, float16_restore(data, scale, minval)))
+        blocks = data.shape[1] // scale.shape[1]
+        once = (data.float() * scale.float().repeat_interleave(blocks, 1) + minval.float().repeat_interleave(blocks, 1))
+        self.assertFalse(torch.equal(restored, once.to(torch.float16)))
+
+    def test_the_restored_reference_reads_the_quantized_weights_and_records_the_tensors_that_it_checked(self):
+        with tempfile.TemporaryDirectory() as folder:
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            source = write_export(Path(folder) / "export", contract, tensors)
+            record = layers.context(contract, snapshot, 6, Path(folder) / "restored", "8bit", source)
+            self.assertEqual(read_json(Path(folder) / "restored/record.json"), record)
+            self.assertEqual(record["weights"], layers.RESTORED)
+            self.assertEqual(record["quantized"], {"export_sha256": sha256(source / "export.json"),
+                                                   "file": file_hash(source / layers.QUANTIZED), "tensors": 123})
+            rounded = layers.context(contract, snapshot, 6, Path(folder) / "rounded", "float16")
+            self.assertEqual(rounded["weights"], layers.WEIGHTS)
+            self.assertNotIn("quantized", rounded)
+            model, _, _ = layers.original_model(snapshot, 6)
+            with torch.no_grad():
+                for name, parameter in model.named_parameters():
+                    if f"{name}.quantized_data" in tensors:
+                        parameter.copy_(float16_restore(*(tensors[f"{name}.{part}"] for part in
+                                                          ("quantized_data", "scale", "minval"))).float())
+                ids = layers.tokens("short", load_contract(contract)["config"])
+                expected = model(torch.tensor([ids]), use_cache=False).logits[0].numpy()
+            short = np.load(Path(folder) / "restored/short.npy")
+            self.assertLess(float(np.abs(short - expected).max()), 1e-3)
+            self.assertGreater(float(np.abs(short - np.load(Path(folder) / "rounded/short.npy")).max()), 0.1)
+
+    def test_a_restored_reference_refuses_tensors_or_records_that_differ_from_the_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            name = "model.layers.1.self_attn.k_proj.weight"
+
+            def record_of(target, change):
+                record = read_json(target / "export.json")
+                change(record)
+                write_json(target / "export.json", record)
+
+            def flipped(target, recorded):
+                data = bytearray((target / layers.QUANTIZED).read_bytes())
+                data[-1] ^= 1
+                (target / layers.QUANTIZED).write_bytes(bytes(data))
+                if recorded:
+                    record_of(target, lambda record: record["quantized"].update(file=file_hash(target / layers.QUANTIZED)))
+
+            cases = {"a tensor hash that differs from the export record": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"]["tensors"].update({f"{name}.scale": "0" * 64}))),
+                     "a file changed after the export": (tensors, lambda target: flipped(target, False)),
+                     "a changed tensor under an updated file record": (tensors, lambda target: flipped(target, True)),
+                     "the same tensors in another file": (tensors, lambda target: (
+                         (target / layers.QUANTIZED).unlink(),
+                         export.save_quantized(target / layers.QUANTIZED, list(reversed(tensors.items()))))),
+                     "a file with a tensor that the record does not list": (
+                         {**tensors, f"{name}.zero_point": torch.zeros(32, 2, dtype=torch.uint8)},
+                         lambda target: record_of(target, lambda record: (
+                             record["quantized"]["tensors"].pop(f"{name}.zero_point"),
+                             record["quantized"].update(file=file_hash(target / layers.QUANTIZED))))),
+                     "an extra zero point": ({**tensors, f"{name}.zero_point": torch.zeros(4, 2, dtype=torch.uint8)}, None),
+                     "a missing minimum": ({key: value for key, value in tensors.items() if key != f"{name}.minval"},
+                                           None),
+                     "a weight that the model does not have": (
+                         {key.replace("layers.1.", "layers.7.") if key.startswith(f"{name}.") else key: value
+                          for key, value in tensors.items()}, None),
+                     "a weight of another shape": ({**tensors, f"{name}.quantized_data": tensors[
+                         f"{name}.quantized_data"][:, :32].contiguous(), f"{name}.scale": tensors[f"{name}.scale"][:, :1]
+                         .contiguous(), f"{name}.minval": tensors[f"{name}.minval"][:, :1].contiguous()}, None),
+                     "data of another shape with the scales of the weight": ({**tensors, f"{name}.quantized_data": tensors[
+                         f"{name}.quantized_data"][:, :32].contiguous()}, None),
+                     "scales of another type": ({**tensors, f"{name}.scale": tensors[f"{name}.scale"].float()}, None),
+                     "another precision": (tensors, lambda target: record_of(target, lambda record: record.update(
+                         precision="float16"))),
+                     "an export that did not pass": (tensors, lambda target: record_of(target, lambda record: record.update(
+                         passed=False))),
+                     "an export without a recorded weight": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"]["layers"].pop())),
+                     "an export with another recorded weight": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"]["layers"].append({"name": "embed_tokens.weight"}))),
+                     "an export whose weights are not a list": (tensors, lambda target: record_of(
+                         target, lambda record: record["quantized"].update(layers={"name": "a"}))),
+                     "an export whose quantized record is a list": (tensors, lambda target: record_of(
+                         target, lambda record: record.update(quantized=["file"]))),
+                     "another layer count": (tensors, lambda target: record_of(target, lambda record: record.update(
+                         layers=12))),
+                     "another contract": (tensors, lambda target: record_of(target, lambda record: record["model"].update(
+                         contract_sha256="0" * 64)))}
+            for index, (label, (chosen, change)) in enumerate(cases.items()):
+                target = write_export(folder / f"export-{index}", contract, chosen)
+                if change:
+                    change(target)
+                output = folder / f"restored-{index}"
+                with self.subTest(case=label), self.assertRaises(ValueError), \
+                        mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                    layers.context(contract, snapshot, 6, output, "8bit", target)
+                load.assert_not_called()
+                self.assertFalse(os.path.lexists(output))
+            index = snapshot / "model.safetensors.index.json"
+            saved = index.read_bytes()
+            shutil.copyfile(snapshot / SHARD, folder / "shard.safetensors")
+            for label, content in {"a list": [], "a weight map that is a list": {"weight_map": []},
+                                   "a shard outside the snapshot": {"weight_map": {
+                                       key: "../shard.safetensors" for key in read_json(index)["weight_map"]}}}.items():
+                write_json(index, content)
+                output = folder / f"index-{label.replace(' ', '-')}"
+                with self.subTest(index=label), self.assertRaises(ValueError):
+                    layers.context(contract, snapshot, 6, output, "8bit", write_export(
+                        folder / f"export-index-{label.replace(' ', '-')}", contract, tensors))
+                self.assertFalse(os.path.lexists(output))
+            index.write_bytes(saved)
+            float16 = complete_export(folder / "float16-export", contract)
+            with self.assertRaisesRegex(ValueError, "not an 8-bit export"), \
+                    mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                layers.context(contract, snapshot, 6, folder / "restored-float16", "8bit", float16)
+            load.assert_not_called()
+            self.assertFalse(os.path.lexists(folder / "restored-float16"))
+            source = write_export(folder / "export", contract, tensors)
+            for label, (weights, given) in {"8bit without an export": ("8bit", None),
+                                            "float16 with an export": ("float16", source),
+                                            "another kind of weights": ("bfloat16", None)}.items():
+                with self.subTest(case=label), mock.patch.object(layers, "load_contract") as load, \
+                        self.assertRaises(ValueError):
+                    layers.context(contract, snapshot, 6, folder / label.replace(" ", "-"), weights, given)
+                load.assert_not_called()
+                self.assertFalse((folder / label.replace(" ", "-")).exists())
+
+    def test_a_failure_after_the_reference_folder_is_made_leaves_a_record_of_its_type_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            cases = {"8bit": ("original_model", source), "float16": ("verify_inputs", None)}
+            for error in (RuntimeError("private-example-sentinel"), KeyboardInterrupt()):
+                for weights, (target, export_folder) in cases.items():
+                    output = folder / f"failed-{weights}-{type(error).__name__}"
+                    with self.subTest(weights=weights, error=type(error).__name__), mock.patch.object(
+                            layers, target, side_effect=error), self.assertRaises(type(error)):
+                        layers.context(contract, snapshot, 6, output, weights, export_folder)
+                    self.assertEqual(read_json(output / "failure.json"), {
+                        "schema": layers.CONTEXT_SCHEMA, "passed": False, "weights": weights,
+                        "error": type(error).__name__})
+                    self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
+
+    def test_a_restored_reference_refuses_an_export_that_did_not_finish_did_not_pass_or_has_other_blocks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            name = "model.layers.0.self_attn.q_proj.weight"
+
+            def entry(target, **changes):
+                record = read_json(target / "export.json")
+                for item in record["quantized"]["layers"]:
+                    if item["name"] == name:
+                        item.update(changes)
+                write_json(target / "export.json", record)
+
+            def edited(change):
+                return lambda target: write_json(target / "export.json", change(read_json(target / "export.json")))
+
+            cases = {"the last rename failed": (tensors, interrupted_rename),
+                     "a failure record next to the bundle": (tensors, lambda target: write_json(
+                         target / "failure.json", {"schema": export.SCHEMA, "passed": False, "error": "OSError"})),
+                     "an unfinished bundle next to the bundle": (tensors, lambda target: (
+                         target / export.INCOMPLETE).mkdir()),
+                     "a bundle file changed after the export": (tensors, lambda target: (
+                         target / export.BUNDLE / "metadata.json").write_text("{ }")),
+                     "passed as the number one": (tensors, edited(lambda record: {**record, "passed": 1})),
+                     "an export with a problem": (tensors, edited(lambda record: {**record, "problems": ["asset"]})),
+                     "an export without tap layers": (tensors, edited(lambda record: {**record, "metadata": {}})),
+                     "an export of another function layout": (tensors, edited(
+                         lambda record: {**record, "functions": ["main"]})),
+                     "a weight recorded in blocks of 16": (tensors, lambda target: entry(target, block=[1, 16])),
+                     "a weight recorded with a zero point": (tensors, lambda target: entry(
+                         target, zero_point="torch.uint8")),
+                     "a weight recorded with scales of another type": (tensors, lambda target: entry(
+                         target, scale="torch.float32")),
+                     "a weight listed twice": (tensors, edited(lambda record: {**record, "quantized": {
+                         **record["quantized"],
+                         "layers": record["quantized"]["layers"] + record["quantized"]["layers"][:1]}}))}
+            for index, (label, (chosen, change)) in enumerate(cases.items()):
+                target = write_export(folder / f"export-{index}", contract, chosen)
+                if change:
+                    change(target)
+                output = folder / f"restored-{index}"
+                with self.subTest(case=label):
+                    with self.assertRaises(ValueError), \
+                            mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                        layers.context(contract, snapshot, 6, output, "8bit", target)
+                    load.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
+            record = layers.context(contract, snapshot, 6, folder / "accepted", "8bit",
+                                    write_export(folder / "export-accepted", contract, tensors))
+            self.assertEqual(record["quantized"]["tensors"], 123)
+
+    def test_a_restored_reference_refuses_an_export_whose_bundle_or_record_is_not_complete_or_not_of_the_contract(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            for index, (label, change) in enumerate({**BUNDLE_DEFECTS, **QUANTIZATION_DEFECTS}.items()):
+                target = write_export(folder / f"export-{index}", contract, tensors)
+                change(target)
+                output = folder / f"restored-{index}"
+                with self.subTest(case=label):
+                    with self.assertRaises(ValueError), \
+                            mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                        layers.context(contract, snapshot, 6, output, "8bit", target)
+                    load.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
+
+    def test_a_restored_reference_does_not_wait_on_a_checkpoint_file_or_an_export_record_that_is_a_pipe(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            for index, relative in enumerate(("model.safetensors.index.json", SHARD, "export.json")):
+                target = write_export(folder / f"export-{index}", contract, tensors)
+                path = target / relative if relative == "export.json" else snapshot / relative
+                saved = folder / f"saved-{index}"
+                shutil.move(path, saved)
+                os.mkfifo(path)
+                output, outcome = folder / f"restored-{index}", {}
+
+                def run():
+                    try:
+                        layers.context(contract, snapshot, 6, output, "8bit", target)
+                    except BaseException as error:
+                        outcome["error"] = error
+
+                thread = threading.Thread(target=run, daemon=True)
+                thread.start()
+                thread.join(5)
+                waited = thread.is_alive()
+                if waited:
+                    os.close(os.open(path, os.O_WRONLY | os.O_NONBLOCK))
+                    thread.join(5)
+                path.unlink()
+                shutil.move(saved, path)
+                with self.subTest(file=relative):
+                    self.assertFalse(waited)
+                    self.assertIsInstance(outcome.get("error"), ValueError)
+                    self.assertFalse(os.path.lexists(output))
+
+    def test_a_restored_reference_refuses_scales_and_minimums_in_blocks_other_than_32(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            for width in (16, 64):
+                source = write_export(folder / f"export-{width}", contract, in_blocks_of(tensors, width))
+                output = folder / f"restored-{width}"
+                with self.subTest(width=width):
+                    with self.assertRaisesRegex(ValueError, r"blocks of \[1, 32\]"), \
+                            mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                        layers.context(contract, snapshot, 6, output, "8bit", source)
+                    load.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
 
 
 if __name__ == "__main__":

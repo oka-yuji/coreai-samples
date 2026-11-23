@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import importlib.metadata
 import itertools
 import json
@@ -7,10 +8,11 @@ from pathlib import Path
 import random
 import re
 import resource
+import stat
 import sys
 import time
 
-from ...storage import digest, read_json, write_json
+from ...storage import PipelineError, digest, read_json, write_json
 from ..pinned import sha256
 from .compare import BLOCK_ROWS, CONTRACT, recorded
 from .prepare import load_contract
@@ -20,6 +22,10 @@ SCHEMA = "gemma4-31b-layer-outputs/1"
 COMPARISON = "gemma4-31b-layer-comparison/2"
 CONTEXT_SCHEMA = "gemma4-31b-context-logits/1"
 PREFIX = "model.language_model."
+SLIDING, FULL = "sliding_attention", "full_attention"
+QUANTIZED = "quantized.safetensors"
+PARTS = ("quantized_data", "scale", "minval")
+BLOCK = 32
 LAYER = re.compile(r"layers\.(\d+)\.")
 TAP_LIST = re.compile(r"[1-9][0-9]*(,[1-9][0-9]*)*")
 OUTPUTS = ("logits", "hidden_states", "tap_hidden_states")
@@ -38,6 +44,9 @@ CHUNKS = (1, 2, 4, 8)
 CRITERIA = {"short": {"max_abs_logit": 1e-3},
             "long": {"max_abs_logit": 5e-3, "max_probability_error": 1e-6, "top1_mismatches": 0}}
 WEIGHTS = "every checkpoint tensor rounded to float16, computed in float32 on the CPU"
+RESTORED = ("the quantized Linear weights restored from the tensors that the export passed to the converter, every other "
+            "checkpoint tensor rounded to float16, computed in float32 on the CPU")
+WEIGHT_KINDS = {"float16": WEIGHTS, "8bit": RESTORED}
 PACKAGES = ("numpy", "safetensors", "torch", "transformers")
 CONVERTER = ("coreai-core", "coreai-models", "coreai-opt", "coreai-torch")
 
@@ -202,6 +211,94 @@ def run(implementation, contract_path, snapshot, layers, taps, output):
     return record
 
 
+def tensor_sha256(tensor):
+    import torch
+
+    return hashlib.sha256(tensor.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()).hexdigest()
+
+
+def restore(data, scale, minval):
+    blocks = data.shape[-1] // scale.shape[-1]
+    return data.to(scale.dtype) * scale.repeat_interleave(blocks, -1) + minval.repeat_interleave(blocks, -1)
+
+
+def quantized_export(folder, contract, contract_path, kinds):
+    from .native import load_export
+
+    try:
+        record, hashed, _, problems = load_export(folder, contract, contract_path)
+    except (OSError, PipelineError) as error:
+        raise ValueError(f"The export cannot be read ({type(error).__name__})") from error
+    if not problems and (record["precision"], record["layers"]) != ("8bit", len(kinds)):
+        problems = ["the export is not an 8-bit export of these layers"]
+    if problems:
+        raise ValueError(f"The export cannot be restored: {problems[0]}")
+    return {"export_sha256": hashed, "file": record["quantized"]["file"]}, record["quantized"]["tensors"]
+
+
+def regular(path):
+    try:
+        return stat.S_ISREG(os.lstat(path).st_mode)
+    except OSError:
+        return False
+
+
+def checkpoint_shapes(snapshot, names):
+    from safetensors import safe_open
+
+    if not regular(Path(snapshot) / "model.safetensors.index.json"):
+        raise ValueError("The checkpoint index is not a regular file")
+    index, files = read_json(Path(snapshot) / "model.safetensors.index.json"), {}
+    weight_map = index.get("weight_map") if isinstance(index, dict) else None
+    if not isinstance(weight_map, dict):
+        raise ValueError("The checkpoint index has no weight map")
+    for name in names:
+        key = PREFIX + name.removeprefix("model.")
+        if not isinstance(weight_map.get(key), str) or Path(weight_map[key]).name != weight_map[key]:
+            raise ValueError(f"The checkpoint has no weight {name}")
+        files.setdefault(weight_map[key], []).append((name, key))
+    shapes = {}
+    for file, items in sorted(files.items()):
+        if not regular(Path(snapshot) / file):
+            raise ValueError(f"The checkpoint file {file} is not a regular file")
+        with safe_open(str(Path(snapshot) / file), framework="pt") as handle:
+            for name, key in items:
+                shapes[name] = list(handle.get_slice(key).get_shape())
+    return shapes
+
+
+def quantized_weights(path, digests, shapes):
+    import torch
+    from safetensors import safe_open
+
+    weights = {}
+    with safe_open(str(path), framework="pt") as handle:
+        if set(handle.keys()) != set(digests):
+            raise ValueError("The quantized tensors are not the data, scales and minimums that the export recorded")
+        for weight, shape in sorted(shapes.items()):
+            data, scale, minval = tensors = [handle.get_tensor(f"{weight}.{part}").clone() for part in PARTS]
+            for part, tensor in zip(PARTS, tensors):
+                if tensor_sha256(tensor) != digests[f"{weight}.{part}"]:
+                    raise ValueError(f"The SHA-256 of {weight}.{part} differs from the export record")
+            blocks = [shape[0], shape[1] // BLOCK]
+            if (data.dtype, scale.dtype, minval.dtype) != (torch.uint8, torch.float16, torch.float16) \
+                    or list(data.shape) != shape or shape[1] % BLOCK or list(scale.shape) != blocks \
+                    or list(minval.shape) != blocks:
+                raise ValueError(f"{weight} is not a uint8 Linear weight of the checkpoint with float16 blocks of "
+                                 f"[1, {BLOCK}]")
+            weights[weight] = data, scale, minval
+    return weights
+
+
+def apply(model, weights):
+    import torch
+
+    parameters = dict(model.named_parameters())
+    with torch.no_grad():
+        for name, (data, scale, minval) in weights.items():
+            parameters[name].copy_(restore(data, scale, minval).to(torch.float32))
+
+
 def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):
     import numpy as np
     import torch
@@ -219,19 +316,38 @@ def kept_logits(model, ids, keep, size=REFERENCE_CHUNK):
     return np.concatenate(blocks), bounds
 
 
-def context(contract_path, snapshot, layers, output):
+def context(contract_path, snapshot, layers, output, weights, export=None):
     if os.path.lexists(output):
         raise FileExistsError(f"The reference must be written to a new folder: {output}")
+    if weights not in WEIGHT_KINDS or (weights == "8bit") != (export is not None):
+        raise ValueError("Give an export exactly for the weights restored from its quantized tensors")
     contract = load_contract(contract_path)
     config = contract["config"]
-    check_layers(config, layers)
+    kinds = check_layers(config, layers)
+    quantized, restored = {}, {}
+    if export is not None:
+        quantized, digests = quantized_export(export, contract, contract_path, kinds)
+        names = sorted({key.rsplit(".", 1)[0] for key in digests})
+        restored = quantized_weights(export / QUANTIZED, digests, checkpoint_shapes(snapshot, names))
+        quantized["tensors"] = len(digests)
+    output.mkdir(parents=True)
+    try:
+        return written(contract, contract_path, snapshot, layers, output, weights, quantized, restored)
+    except BaseException as error:
+        write_json(output / "failure.json", {"schema": CONTEXT_SCHEMA, "passed": False, "weights": weights,
+                                             "error": type(error).__name__})
+        raise
+
+
+def written(contract, contract_path, snapshot, layers, output, weights, quantized, restored):
     import numpy as np
 
-    output.mkdir(parents=True)
+    config = contract["config"]
     started = time.perf_counter()
     verified = verify_inputs(snapshot, contract)
     hashed = time.perf_counter()
     model, scale, layer_types = original_model(snapshot, layers)
+    apply(model, restored)
     loaded = time.perf_counter()
     inputs = {}
     for name in ("short", "context"):
@@ -247,7 +363,8 @@ def context(contract_path, snapshot, layers, output):
     record = {"schema": CONTEXT_SCHEMA, "implementation": "original", "layers": layers, "layer_types": layer_types,
               "model": {"id": contract["model_id"], "revision": contract["revision"],
                         "contract_sha256": sha256(contract_path), "verified_before_loading": verified},
-              "weights": WEIGHTS, "embed_scale": scale, "chunk": REFERENCE_CHUNK,
+              "weights": WEIGHT_KINDS[weights], **({"quantized": quantized} if quantized else {}),
+              "embed_scale": scale, "chunk": REFERENCE_CHUNK,
               "versions": {name: importlib.metadata.version(name) for name in PACKAGES}, "inputs": inputs,
               "timing": {"input_hash_s": hashed - started, "load_s": loaded - hashed,
                          "total_s": time.perf_counter() - started},
@@ -383,14 +500,19 @@ def main():
     for name in ("original", "model-class"):
         checker.add_argument(f"--{name}", type=Path, required=True)
     contexts = commands.add_parser("context", help="FP32 logits of the original implementation on the rows that the "
-                                                   "twelve conditions of the Core AI comparison score.")
+                                                   "twelve conditions of the Core AI comparison score, with the weights "
+                                                   "rounded to float16 or restored from the quantized tensors of an "
+                                                   "8-bit export.")
     contexts.add_argument("--layers", type=int, required=True)
     for name in ("model", "snapshot", "output"):
         contexts.add_argument(f"--{name}", type=Path, required=True)
+    contexts.add_argument("--weights", choices=tuple(WEIGHT_KINDS), required=True)
+    contexts.add_argument("--export", type=Path)
     args = parser.parse_args()
     if args.command in ("run", "context"):
         record = (run(args.implementation, args.model, args.snapshot, args.layers, args.taps, args.output)
-                  if args.command == "run" else context(args.model, args.snapshot, args.layers, args.output))
+                  if args.command == "run"
+                  else context(args.model, args.snapshot, args.layers, args.output, args.weights, args.export))
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
               record["memory"], flush=True)
         return 0
