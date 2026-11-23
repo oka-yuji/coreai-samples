@@ -16,10 +16,11 @@ from ..jev27b.monitor import FREE_PERCENT, INTERVAL_S, STREAK, SWAP_LIMIT_BYTES
 from ..pinned import sha256
 from .anchor import parse, read
 from .compare import BLOCK_ROWS, CONTRACT
-from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PRECISIONS, SCHEMA as EXPORT_SCHEMA, WRITES, check_asset,
-                     metadata, name_of, quantized_names, required_bytes)
-from .layers import (CONDITIONS, CONTEXT_SCHEMA, PARTS, QUANTIZED, REFERENCE_CHUNK, WEIGHT_KINDS, check_layers, check_taps,
-                     joined, rounded_scale,
+from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PACKAGES as EXPORT_PACKAGES, PRECISIONS,
+                     SCHEMA as EXPORT_SCHEMA, WRITES, check_asset, expected_functions, metadata, name_of, quantized_names,
+                     required_bytes)
+from .layers import (CONDITIONS, CONTEXT_SCHEMA, PACKAGES as REFERENCE_PACKAGES, PARTS, QUANTIZED, REFERENCE_CHUNK,
+                     WEIGHT_KINDS, check_layers, check_taps, joined, rounded_scale,
                      kept_rows, tokens)
 from .prepare import TOKENIZER_FILES, load_contract
 from .reference import LOADED_FILES, SWAP_INCREASE_LIMIT_BYTES
@@ -34,6 +35,16 @@ BLOCK_BYTES = 16 * 2**20
 CRITERIA = {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE}
 KNOWN_CALL = {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST}
 PREFILL_CHUNKS = (2048, 4096)
+FLOAT16_BYTES = 2
+TOP1 = ("near_tie", "outside")
+FIELDS = ("name", "input", "tokens", "start", "chunk", "rows", "problems", "checks", "passed")
+PATHS = (("seconds",), ("verifier",), ("output",),
+         ("non_finite", "reference_non_finite", "constant_rows", "max_abs_logit", "top1_mismatches", "known"))
+DISK = ("weight_bytes", "estimated_write_bytes", "margin_bytes", "required_free_bytes", "free_before_bytes",
+        "lowest_free_bytes")
+SWAP = ("first_bytes", "peak_bytes", "limit_increase_bytes", "increase_bytes")
+REFERENCE_TIMING = ("input_hash_s", "load_s", "total_s")
+REFERENCE_MEMORY = ("max_rss_bytes", "lifetime_peak_footprint_bytes")
 STEPS = ("input_hash_s", "load_s", "convert_s", "save_s", "inspect_s", "bundle_hash_s")
 QUANTIZING_STEPS = ("quantize_s", "tensors_s")
 MONITOR = {"interval_s": INTERVAL_S, "abort": None, "aborts": 0, "failure": None, "unreadable_samples": 0,
@@ -64,7 +75,7 @@ def pinned_model(contract, contract_path):
 def valid(kind, value):
     if kind == "count":
         return type(value) is int and 0 <= value <= LARGEST
-    if kind == "seconds":
+    if kind in ("seconds", "number"):
         return valid("count", value) or type(value) is float and math.isfinite(value) and value >= 0
     if kind == "shape":
         return type(value) is list and all(valid("count", size) for size in value)
@@ -146,9 +157,82 @@ def measure(swift, reference, indices, known):
     finite = not counts["non_finite"] and not counts["reference_non_finite"]
     result = {"rows": len(swift), "non_finite": counts["non_finite"], "reference_non_finite": counts["reference_non_finite"],
               "constant_rows": counts["constant_rows"], "max_abs_logit": largest if finite else None,
-              "top1_mismatches": {"near_tie": counts["near_tie"], "outside": counts["outside"]},
+              "top1_mismatches": {key: counts[key] for key in TOP1},
               "known": {"rows": int(known.sum()), "max_abs_logit": known_largest if finite and known.any() else None}}
     return {**result, "checks": verdicts(result)}
+
+
+def logits_bytes(rows, vocabulary):
+    return rows * vocabulary * FLOAT16_BYTES
+
+
+def measured_problems(entry, vocabulary):
+    rows, top, known = entry["rows"], entry["top1_mismatches"], entry.get("known")
+    counts, largest = (entry["non_finite"], entry["reference_non_finite"]), entry["max_abs_logit"]
+    finite, marked = counted(*counts) and not any(counts), known["rows"] if known else 0
+    tallied = isinstance(top, dict) and set(top) == set(TOP1) and counted(*top.values())
+    formulas = {
+        "the non-finite values are not counts of the values of the rows":
+            counted(*counts) and all(value <= rows * vocabulary for value in counts),
+        "the constant rows are not a count of the rows":
+            "constant_rows" not in entry or counted(entry["constant_rows"]) and entry["constant_rows"] <= rows,
+        "the largest difference is not a number exactly when every value is finite":
+            valid("number", largest) if finite else largest is None,
+        "the largest difference is not 0 without a row outside the known rows":
+            largest is None or not counted(marked) or marked < rows or largest == 0,
+        "the top-1 changes are not the two counts of the comparison": tallied,
+        "the top-1 changes outnumber the rows outside the known rows":
+            not tallied or not counted(marked) or sum(top.values()) <= rows - marked,
+        "the largest difference of the known rows is not a number exactly when every value is finite and a row is known":
+            known is None or (valid("number", known["max_abs_logit"]) if finite and counted(marked) and marked
+                              else known["max_abs_logit"] is None)}
+    return [message for message, holds in formulas.items() if not holds]
+
+
+def condition_problems(entry, config, main_hash, prefill):
+    fields = [set(FIELDS).union(*PATHS[:index]) for index in range(len(PATHS) + 1)]
+    if set(entry) not in fields:
+        return ["the condition holds other fields than the comparison writes on its paths"]
+    reached, problems, verifier = fields.index(set(entry)), entry["problems"], entry.get("verifier")
+    measured, read = reached == len(PATHS), reached > 2
+    chunk = verifier.get("prefix_chunk") if read else None
+    expected = expected_verifier(entry, config, main_hash, prefill, chunk) if chunk in PREFILL_CHUNKS else {}
+    known = len(known_rows(entry["start"], entry["tokens"], entry["chunk"]))
+    formulas = {
+        "the condition records other checks than its numbers give":
+            canonical(entry["checks"]) == canonical(verdicts(entry) if measured else {}),
+        "the condition records another verdict than its checks and problems give":
+            canonical(entry["passed"]) == canonical(condition_passed(entry)),
+        "the condition records no problem on a path that stops before its numbers": measured or bool(problems),
+        "the condition records other problems than the one of the path that stops at it":
+            reached not in (0, 3) or len(problems) == 1,
+        "the condition records more problems than the count of the verifier after its numbers":
+            not measured or len(problems) <= 1,
+        "the condition records no time of the verifier": reached < 1 or valid("seconds", entry["seconds"]),
+        "the verifier record holds a field or a value that the verifier does not write":
+            verifier is None or isinstance(verifier, dict)
+            and all(key in VERIFIER and valid(VERIFIER[key], value) for key, value in verifier.items()),
+        "the verifier record misses a field that the verifier writes":
+            not read or set(VERIFIER) - OPTIONAL <= set(verifier),
+        "the verifier record differs from the reads of the condition":
+            not read or verifier.get("prefix_chunk") in PREFILL_CHUNKS
+            and canonical({key: verifier.get(key) for key in expected}) == canonical(expected)
+            and ("prefix_function" in verifier) == (entry["start"] > 0),
+        "the verifier recorded a specialization of the asset that it found in the cache":
+            verifier is None or verifier.get("cached") is not True or "specialize_s" not in verifier
+            or verifier["specialize_s"] == 0,
+        "the verifier recorded a longer specialization than its loading":
+            verifier is None or not all(key in verifier for key in ("specialize_s", "load_s"))
+            or verifier["specialize_s"] <= verifier["load_s"],
+        "the logits file does not hold the rows of the condition exactly when they were measured":
+            not read or (canonical(entry["output"]["bytes"]) == canonical(logits_bytes(entry["rows"], config["vocab_size"])))
+            == measured,
+        "the known rows are not those of the call shape that the engine avoids":
+            not measured or canonical(entry["known"]["rows"]) == canonical(known),
+        "the verifier counted other non-finite values than the file exactly when the condition records a problem":
+            not measured or (canonical(verifier["non_finite_count"]) == canonical(entry["non_finite"])) == (not problems)}
+    return [message for message, holds in formulas.items() if not holds] \
+        + (measured_problems(entry, config["vocab_size"]) if measured else [])
 
 
 def verdicts(entry):
@@ -193,9 +277,13 @@ def load_reference(folder, contract, contract_path):
         if (len(content), content_hash) != (logits.get("bytes"), logits.get("sha256")):
             problems.append(f"the {name} logits differ from the size and SHA-256 in the reference record")
             continue
-        array = np.load(io.BytesIO(content))
+        stream = io.BytesIO(content)
+        array = np.load(stream)
         if array.dtype != np.float32 or array.shape != (len(rows), contract["config"]["vocab_size"]):
             problems.append(f"the {name} logits are {array.dtype} {list(array.shape)}")
+            continue
+        if stream.tell() != len(content):
+            problems.append(f"the {name} logits file holds {len(content) - stream.tell()} B after its array")
             continue
         arrays[name] = array
     return record, hashed, arrays, problems
@@ -207,8 +295,9 @@ def reference_record_problems(record, contract):
         problems.append("the reference was not computed in the fixed chunks")
     if canonical(record.get("embed_scale")) != canonical(rounded_scale(config["hidden_size"])):
         problems.append("the reference did not scale the embeddings by the rounded square root of the hidden size")
+    inputs, timing, memory = mapping(record, "inputs"), mapping(record, "timing"), mapping(record, "memory")
     for name in ("short", "context"):
-        entry, count, rows = mapping(mapping(record, "inputs"), name), len(tokens(name, config)), len(kept_rows(name))
+        entry, count, rows = mapping(inputs, name), len(tokens(name, config)), len(kept_rows(name))
         calls = [[start, min(start + REFERENCE_CHUNK, count)] for start in range(0, count, REFERENCE_CHUNK)]
         if canonical(entry.get("calls")) != canonical(calls):
             problems.append(f"the reference did not read the {name} input in the fixed chunks")
@@ -216,7 +305,27 @@ def reference_record_problems(record, contract):
         if canonical({key: logits.get(key) for key in ("dtype", "shape")}) \
                 != canonical({"dtype": "float32", "shape": [rows, config["vocab_size"]]}):
             problems.append(f"the reference recorded the {name} logits of another type or shape")
-    return problems
+        if not valid("count", logits.get("non_finite")) or logits["non_finite"] > rows * config["vocab_size"]:
+            problems.append(f"the reference recorded no count of the non-finite {name} logits")
+        if not valid("seconds", entry.get("seconds")):
+            problems.append(f"the reference recorded no time of the {name} input")
+    spent = [timing.get("input_hash_s"), timing.get("load_s"),
+             *(mapping(inputs, name).get("seconds") for name in ("short", "context"))]
+    formulas = {
+        "the reference holds other inputs than those of the conditions":
+            set(inputs) == {source for _, source, *_ in CONDITIONS},
+        "the reference recorded the versions of other packages than its writer records":
+            set(mapping(record, "versions")) == set(REFERENCE_PACKAGES),
+        "the reference recorded other times than those of its steps":
+            set(timing) == set(REFERENCE_TIMING) and all(valid("seconds", value) for value in timing.values()),
+        "the total time of the reference is shorter than its steps":
+            not all(valid("seconds", value) for value in (*spent, timing.get("total_s")))
+            or sum(spent) <= timing["total_s"],
+        "the reference recorded other memory readings than its writer records":
+            set(memory) == set(REFERENCE_MEMORY) and valid("count", memory.get("max_rss_bytes"))
+            and (memory.get("lifetime_peak_footprint_bytes") is None
+                 or valid("count", memory["lifetime_peak_footprint_bytes"]))}
+    return problems + [message for message, holds in formulas.items() if not holds]
 
 
 def regular_file(path, size=None, keep=False):
@@ -322,6 +431,10 @@ def relation_problems(record, precision):
         "the monitor did not run under the fixed limits without stopping":
             canonical({key: monitor.get(key) for key in MONITOR}) == canonical(MONITOR)
             and canonical(mapping(monitor, "peak").get("temporary_bytes")) == canonical(0),
+        "the disk record does not have the keys that the export writes": set(disk) == set(DISK),
+        "the swap record does not have the keys that the export writes": set(swap) == set(SWAP),
+        "the export recorded the versions of other packages than it records":
+            set(mapping(record, "versions")) == set(EXPORT_PACKAGES),
         "the monitor record does not have the keys that the monitor writes":
             set(monitor) == {*MONITOR, "samples", *READINGS}
             and all(set(mapping(monitor, key)) == keys for key, keys in READINGS.items()),
@@ -388,6 +501,9 @@ def load_export(folder, contract, contract_path):
     if shape is not None:
         try:
             problems += check_asset(record, contract, *shape) + relation_problems(record, shape[4])
+            found, expected = record["asset"]["functions"], expected_functions(contract["config"], *shape[:2], shape[3])
+            if any(set(found[name]) != set(expected[name]) for name in set(found) & set(expected)):
+                problems.append("the functions of the asset hold other parts than inputs, outputs and states")
         except (AttributeError, KeyError, TypeError, ValueError):
             problems.append("the export record does not hold a complete inspection of its asset")
     folders = [bundle, bundle / "tokenizer", *([] if name is None else [bundle / f"{name}.aimodel"])]
@@ -538,8 +654,8 @@ def measured(entry, config, arrays, facts, verifier, output):
         return
     data, content_hash = read_once(output / f"{name}.f16")
     entry["output"] = {"bytes": len(data), "sha256": content_hash}
-    if len(data) != rows * vocabulary * 2:
-        problems.append(f"the logits file holds {len(data)} B, not {rows * vocabulary * 2} B")
+    if len(data) != logits_bytes(rows, vocabulary):
+        problems.append(f"the logits file holds {len(data)} B, not {logits_bytes(rows, vocabulary)} B")
         return
     index = {row: position for position, row in enumerate(kept_rows(source))}
     known = np.zeros(rows, dtype=bool)

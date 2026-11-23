@@ -215,6 +215,60 @@ class MeasureTests(unittest.TestCase):
         nan = lambda swift: swift.__setitem__((20, 7), np.nan)
         self.assertIn("finite", self.failing(self.measure(nan, known=(20,))))
 
+    def test_every_measurement_holds_the_relations_of_its_construction_and_each_broken_number_is_named(self):
+        generator = np.random.default_rng(3)
+        for trial in range(24):
+            rows = int(generator.integers(1, 30))
+            reference = generator.normal(size=(rows, VOCABULARY)).astype(np.float32)
+            swift = (reference + generator.normal(scale=0.5, size=reference.shape)).astype(np.float16)
+            if trial % 4 == 1:
+                swift[0, 3] = np.nan
+            if trial % 4 == 2:
+                reference[rows - 1, 4] = np.inf
+            if trial % 3 == 1:
+                swift[rows // 2] = 1.0
+            known = generator.random(rows) < (0.0, 0.4, 1.0)[trial % 3]
+            result = native.measure(swift, reference, np.arange(rows), known)
+            kept = {key: value for key, value in result.items() if key in ("rows", "non_finite", "reference_non_finite",
+                                                                          "max_abs_logit", "top1_mismatches")}
+            with self.subTest(trial=trial):
+                self.assertEqual(native.measured_problems(result, VOCABULARY), [])
+                self.assertEqual(native.measured_problems(kept, VOCABULARY), [])
+        shifted = lambda swift: swift.__setitem__((20, 50), self.reference[20, 50] + 6.0)
+        base = self.measure(shifted, known=(20, 21))
+        self.assertEqual(native.measured_problems(base, VOCABULARY), [])
+        unmeasured = {"max_abs_logit": None, "known": {"rows": 2, "max_abs_logit": None}}
+        counts, largest, every, tops, outnumbered, marked = (
+            "the non-finite values are not counts of the values of the rows",
+            "the largest difference is not a number exactly when every value is finite",
+            "the largest difference is not 0 without a row outside the known rows",
+            "the top-1 changes are not the two counts of the comparison",
+            "the top-1 changes outnumber the rows outside the known rows",
+            "the largest difference of the known rows is not a number exactly when every value is finite and a row is "
+            "known")
+        cases = {"more non-finite values than the rows hold": ({"non_finite": 40 * VOCABULARY + 1, **unmeasured}, [counts]),
+                 "a negative count of non-finite reference values": ({"reference_non_finite": -1, **unmeasured}, [counts]),
+                 "more constant rows than rows": ({"constant_rows": 41}, ["the constant rows are not a count of the rows"]),
+                 "no largest difference of finite values": ({"max_abs_logit": None}, [largest]),
+                 "a negative largest difference": ({"max_abs_logit": -0.5}, [largest]),
+                 "a largest difference of values that are not all finite": (
+                     {"non_finite": 1, "known": {"rows": 2, "max_abs_logit": None}}, [largest]),
+                 "a largest difference other than 0 with every row known": (
+                     {"known": {"rows": 40, "max_abs_logit": 6.0}, "top1_mismatches": {"near_tie": 0, "outside": 0}}, [every]),
+                 "a third count of top-1 changes": ({"top1_mismatches": {"near_tie": 0, "outside": 0, "other": 0}}, [tops]),
+                 "more top-1 changes than rows outside the known rows": (
+                     {"top1_mismatches": {"near_tie": 30, "outside": 9}}, [outnumbered]),
+                 "no largest difference of the known rows": ({"known": {"rows": 2, "max_abs_logit": None}}, [marked]),
+                 "a largest difference of the known rows without a known row": (
+                     {"known": {"rows": 0, "max_abs_logit": 0.5}}, [marked])}
+        for label, (change, expected) in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(native.measured_problems({**base, **change}, VOCABULARY), expected)
+        effect = {key: value for key, value in self.measure().items() if key not in ("constant_rows", "known", "checks")}
+        self.assertEqual(native.measured_problems(effect, VOCABULARY), [])
+        self.assertEqual(native.measured_problems({**effect, "top1_mismatches": {"near_tie": 41, "outside": 0}}, VOCABULARY),
+                         [outnumbered])
+
 
 class KnownCallTests(unittest.TestCase):
     def test_only_calls_of_eight_or_more_tokens_that_end_at_97_to_112_positions_are_known(self):
@@ -407,6 +461,83 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(failing, {"short-c1", "short-c26", "window-c1"})
         for name in failing:
             self.assertEqual((conditions[name]["max_abs_logit"], conditions[name]["checks"]["finite"]), (None, False))
+
+    def test_every_condition_that_the_comparison_writes_on_any_path_holds_what_the_reader_expects(self):
+        changes = {"short-c1": {"record": {"non_finite_count": 1}}, "short-c26": {"rows": -1}, "window-c1": {"exit": 1},
+                   "window-c2": {"stdout": "not a record"}, "window-c4": {"no_output": True},
+                   "window-c8": {"set": [[100, 5, 30.0]]}, "capacity-2048": {"set": [[2, 3, float("nan")]]},
+                   "capacity-4096": {"constant": [4]}, "prefix-c1": {"drop": ["cached"]},
+                   "capacity-8192": {"record": {"cached": False, "specialize_s": 0.05}}}
+        conditions = self.conditions(self.run_compare(changes))
+        for name, entry in conditions.items():
+            with self.subTest(condition=name):
+                self.assertEqual(native.condition_problems(entry, self.config, MAIN_HASH, True), [])
+        self.assertEqual({len(set(entry) - set(native.FIELDS)) for entry in conditions.values()}, {0, 1, 2, 3, 9})
+        measured, stopped = conditions["tail"], conditions["window-c1"]
+        sized, counted = conditions["short-c26"], conditions["short-c1"]
+        verifier = measured["verifier"]
+        cases = {
+            "a field that the comparison does not write": (measured, {"extra": 1},
+                                                           ["the condition holds other fields than the comparison writes on "
+                                                            "its paths"]),
+            "checks that its numbers do not give": (measured, {"checks": {**measured["checks"], "extra": True}},
+                                                    ["the condition records other checks than its numbers give"]),
+            "a verdict that its checks and problems do not give": (
+                measured, {"passed": False}, ["the condition records another verdict than its checks and problems give"]),
+            "no problem on a path that stops before its numbers": (
+                stopped, {"problems": []}, ["the condition records no problem on a path that stops before its numbers"]),
+            "two problems on the path that stops at the size of the file": (
+                sized, {"problems": sized["problems"] * 2},
+                ["the condition records other problems than the one of the path that stops at it"]),
+            "two problems on the path that stops at an exception": (
+                conditions["window-c4"], {"problems": conditions["window-c4"]["problems"] * 2},
+                ["the condition records other problems than the one of the path that stops at it"]),
+            "another problem after the numbers": (
+                counted, {"problems": counted["problems"] * 2},
+                ["the condition records more problems than the count of the verifier after its numbers"]),
+            "a negative time of the verifier": (stopped, {"seconds": -1.0}, ["the condition records no time of the verifier"]),
+            "a field that the verifier does not write": (
+                measured, {"verifier": {**verifier, "cache_query_error": "private"}},
+                ["the verifier record holds a field or a value that the verifier does not write"]),
+            "a verifier record without the cache flag": (
+                measured, {"verifier": {key: value for key, value in verifier.items() if key != "cached"}},
+                ["the verifier record misses a field that the verifier writes"]),
+            "other calls of the verifier": (measured, {"verifier": {**verifier, "main_calls": verifier["main_calls"] + 1}},
+                                            ["the verifier record differs from the reads of the condition"]),
+            "a prefill chunk that the engine does not use": (
+                measured, {"verifier": {**verifier, "prefix_chunk": 1000}},
+                ["the verifier record differs from the reads of the condition"]),
+            "a prefix function at position 0": (
+                conditions["window-c8"], {"verifier": {**conditions["window-c8"]["verifier"], "prefix_function": "main"}},
+                ["the verifier record differs from the reads of the condition"]),
+            "a specialization of a cached asset": (
+                measured, {"verifier": {**verifier, "specialize_s": 0.05}},
+                ["the verifier recorded a specialization of the asset that it found in the cache"]),
+            "a specialization longer than the loading": (
+                measured, {"verifier": {**verifier, "cached": False, "specialize_s": verifier["load_s"] + 1}},
+                ["the verifier recorded a longer specialization than its loading"]),
+            "measured logits of another size than the rows": (
+                measured, {"output": {**measured["output"], "bytes": measured["output"]["bytes"] - 2}},
+                ["the logits file does not hold the rows of the condition exactly when they were measured"]),
+            "a file of the size of the rows that was not measured": (
+                sized, {"output": {**sized["output"], "bytes": native.logits_bytes(sized["rows"], VOCABULARY)}},
+                ["the logits file does not hold the rows of the condition exactly when they were measured"]),
+            "other known rows": (conditions["window-c8"], {"known": {**conditions["window-c8"]["known"], "rows": 15}},
+                                 ["the known rows are not those of the call shape that the engine avoids"]),
+            "another non-finite count of the verifier without its problem": (
+                measured, {"verifier": {**verifier, "non_finite_count": 1}},
+                ["the verifier counted other non-finite values than the file exactly when the condition records a problem"]),
+            "a third count of top-1 changes": (
+                measured, {"top1_mismatches": {**measured["top1_mismatches"], "other": 0}},
+                ["the top-1 changes are not the two counts of the comparison"])}
+        for label, (entry, change, expected) in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(native.condition_problems({**entry, **change}, self.config, MAIN_HASH, True), expected)
+        zero = {**measured, "verifier": {**verifier, "prefix_chunk": 0}}
+        with self.subTest(case="a prefill chunk of zero, which the reads of the condition are not computed for"), \
+                mock.patch.object(native, "call_lengths", side_effect=AssertionError):
+            self.assertEqual(native.condition_problems(zero, self.config, MAIN_HASH, True),
+                             ["the verifier record differs from the reads of the condition"])
 
     def test_a_condition_record_that_is_not_json_is_reset_and_the_other_conditions_are_kept(self):
         measure = native.measure
@@ -813,7 +944,18 @@ class CompareTests(unittest.TestCase):
                  "8-bit float16 elements other than the checkpoint and the quantized weights give": (True, float16,
                                                                                                     weights),
                  "a quantized shape other than the uint8 elements": (True, lambda record: record["quantized"]["layers"][
-                     0].update(shape=[2, 32]), "the uint8 elements are not those of the quantized shapes")}
+                     0].update(shape=[2, 32]), "the uint8 elements are not those of the quantized shapes"),
+                 "a disk record with a key that the export does not write": (
+                     False, lambda record: record["disk"].update(extra=1),
+                     "the disk record does not have the keys that the export writes"),
+                 "a swap record with a key that the export does not write": (
+                     False, swap(extra=1), "the swap record does not have the keys that the export writes"),
+                 "the version of a package that the export does not record": (
+                     False, lambda record: record["versions"].update(numpy="2.0"),
+                     "the export recorded the versions of other packages than it records"),
+                 "a function of the asset with a part other than its inputs, outputs and states": (
+                     False, lambda record: record["asset"]["functions"]["main"].update(extra={}),
+                     "the functions of the asset hold other parts than inputs, outputs and states")}
         for eight_bit in (False, True):
             if eight_bit:
                 self.quantized()

@@ -84,7 +84,8 @@ def reference_record(folder, contract, weights, quantized=None):
         "schema": layers.CONTEXT_SCHEMA, "implementation": "original", "layers": 6,
         "layer_types": layers.check_layers(config, 6), "model": native.pinned_model(pinned, contract), "weights": weights,
         **({"quantized": quantized} if quantized else {}), "embed_scale": layers.rounded_scale(config["hidden_size"]),
-        "chunk": layers.REFERENCE_CHUNK, "versions": {"torch": "2.15.0"}, "inputs": inputs, "timing": {"total_s": 60.0},
+        "chunk": layers.REFERENCE_CHUNK, "versions": dict.fromkeys(layers.PACKAGES, "2.15.0"), "inputs": inputs,
+        "timing": {"input_hash_s": 1.0, "load_s": 2.0, "total_s": 60.0},
         "memory": {"max_rss_bytes": 10, "lifetime_peak_footprint_bytes": None}})
     return folder / "record.json"
 
@@ -105,7 +106,7 @@ def comparison_record(folder, export_hash, reference_hash, exported, config):
     for name, source, length, start, chunk in layers.CONDITIONS:
         output, known = folder / f"{name}.f16", len(native.known_rows(start, length, chunk))
         ids = layers.tokens(source, config)[:length]
-        output.write_bytes(name.encode())
+        output.write_bytes(bytes(native.logits_bytes(length - start, config["vocab_size"])))
         conditions.append({
             "name": name, "input": source, "tokens": length, "start": start, "chunk": chunk, "rows": length - start,
             "problems": [], "max_abs_logit": 0.5, "non_finite": 0, "reference_non_finite": 0, "constant_rows": 0,
@@ -117,8 +118,7 @@ def comparison_record(folder, export_hash, reference_hash, exported, config):
                          "shape": [length - start, config["vocab_size"]], "dtype": "float16", "byte_order": "little",
                          "main_calls": -(-(length - start) // chunk), "main_hash": exported["bundle"]["main_hash"],
                          **native.prefix_record(start, 4096, "prefill" in exported["functions"]), "cached": True,
-                         "non_finite_count": 0, "load_s": 1.0, "prefix_s": 1.0, "scoring_s": 1.0, "specialize_s": 0.0,
-                         "cache_query_error": SENTINEL}})
+                         "non_finite_count": 0, "load_s": 1.0, "prefix_s": 1.0, "scoring_s": 1.0, "specialize_s": 0.0}})
     return {"schema": native.SCHEMA, "passed": True, "problems": [], "criteria": {"max_abs_logit": 2.0, "near_tie": 0.01},
             "known_call": {"ends": [97, 112], "shortest": 8}, "reference": {"sha256": reference_hash, "layers": 6},
             "export": {"sha256": export_hash, "layers": 6, "functions": exported["functions"],
@@ -194,14 +194,17 @@ class Records(unittest.TestCase):
                         **{f"export/bundle/{name}": dict(entry) for name, entry in written["bundle"]["files"].items()},
                         **({"export/quantized.safetensors": dict(written["quantized"]["file"])}
                            if "quantized" in written else {}),
-                        "export/export.json": {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}}}}}
+                        "export/export.json": {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}}}},
+                    "execute_s": 1.0}
         if manifest:
             manifest(recorded)
         write_json(self.folder / label / "manifest.json", recorded)
         report = {"version": 1, "run_id": label, "status": "completed", "verification": "not_configured",
-                  "stages": [{"id": "prepare", "role": "prepare", "status": "executed", "origin": label},
+                  "stages": [{"id": "prepare", "role": "prepare", "status": "executed", "origin": label,
+                              "prepare_s": 0.5, "execute_s": 2.0, "total_s": 3.0},
                              {"id": "export", "role": stage_role, "status": "executed", "origin": origin or label,
-                              "artifacts": str(artifacts), "execute_s": 1.0}]}
+                              "artifacts": str(artifacts), "prepare_s": 0.5, "execute_s": 1.0, "total_s": 2.0}],
+                  "elapsed_s": 6.0}
         write_json(self.folder / label / "report.json", report)
         comparison = comparison_record(self.folder / label, sha256(artifacts / "export/export.json"), sha256(self.reference),
                                        written, load_contract(self.contract)["config"])
@@ -587,7 +590,7 @@ class QuantizedSummaryTests(Records):
             record["passed"] = False
 
         def failed(record):
-            record.update(problems=["the verifier is unreadable (OSError)"], conditions=[])
+            record.update(problems=["the verifier is unreadable (OSError)"], conditions=[], verifier=None)
 
         def dropped(run):
             rewrite(run[2], lambda record: record["conditions"].pop())
@@ -597,12 +600,28 @@ class QuantizedSummaryTests(Records):
         def output(run):
             (run[2].parent / "window-c1.f16").write_bytes(b"other")
 
+        def sized(run):
+            (run[2].parent / "window-c1.f16").write_bytes(b"ab")
+            rewrite(run[2], conditions(lambda entries: entries[2].update(
+                output={"bytes": 2, "sha256": hashlib.sha256(b"ab").hexdigest()})))
+
+        def trailing(run):
+            path = self.reference.parent / "short.npy"
+            path.write_bytes(path.read_bytes() + b"end")
+            self.referenced(lambda record: record["inputs"]["short"]["logits"].update(layers.file_record(path)), run)
+
         def report(change):
             return lambda run: rewrite(run[0], change)
 
         def unpassed_export(record):
             record["checks"]["free_disk"] = False
             record["passed"] = False
+
+        effect_entries = effect_record("0" * 64)["conditions"]
+        exports = {"an export whose checks and passed do not follow from its record": unpassed_export,
+                   "an export of one more disk record": lambda record: record["disk"].update(free_text=1),
+                   "an export of one more swap record": lambda record: record["resources"]["swap"].update(free_text=1),
+                   "an export of other versions": lambda record: record["versions"].update(free_text="1")}
 
         cases = {"the same condition left out of both records": dropped,
                  "two conditions in another order": lambda run: rewrite(run[2], conditions(swapped)),
@@ -641,7 +660,55 @@ class QuantizedSummaryTests(Records):
                  "a verifier record of another prefill chunk": lambda run: rewrite(run[2], conditions(
                      lambda entries: entries[6]["verifier"].update(prefix_chunk=1000))),
                  "a verifier that counted other non-finite values": lambda run: rewrite(run[2], conditions(
-                     lambda entries: entries[0]["verifier"].update(non_finite_count=1)))}
+                     lambda entries: entries[0]["verifier"].update(non_finite_count=1))),
+                 "problems of a comparison given as an empty mapping": lambda run: rewrite(
+                     run[2], lambda record: record.update(problems={})),
+                 "problems of a condition given as an empty text": lambda run: rewrite(run[2], conditions(
+                     lambda entries: entries[0].update(problems=""))),
+                 "top-1 changes of a condition with another count": lambda run: rewrite(run[2], conditions(
+                     lambda entries: entries[0]["top1_mismatches"].update(free_text=1))),
+                 "top-1 changes of the effect with another count": lambda run: write_json(self.effect, effect_record(
+                     sha256(self.reference), conditions=[{**effect_entries[0], "top1_mismatches": {
+                         **effect_entries[0]["top1_mismatches"], "free_text": 1}}, *effect_entries[1:]])),
+                 "a reference of one more input": lambda run: self.referenced(
+                     lambda record: record["inputs"].update(long=record["inputs"]["short"]), run),
+                 "a reference of other versions": lambda run: self.referenced(
+                     lambda record: record["versions"].update(free_text="1"), run),
+                 "a reference of other times": lambda run: self.referenced(
+                     lambda record: record["timing"].update(free_text=1.0), run),
+                 "a reference of other memory records": lambda run: self.referenced(
+                     lambda record: record["memory"].update(free_text=1), run),
+                 "a logits file of another size than the rows of its condition": sized,
+                 "a verifier record with a field that the verifier does not write": lambda run: rewrite(run[2], conditions(
+                     lambda entries: entries[1]["verifier"].update(cache_query_error=SENTINEL))),
+                 "a verifier that specialized an asset that it found in its cache": lambda run: rewrite(
+                     run[2], conditions(lambda entries: entries[1]["verifier"].update(specialize_s=0.5))),
+                 "a verifier that specialized longer than it loaded": lambda run: rewrite(run[2], conditions(
+                     lambda entries: entries[1]["verifier"].update(cached=False, specialize_s=2.0))),
+                 "a condition with more top-1 changes near a tie than rows": lambda run: rewrite(run[2], conditions(
+                     lambda entries: entries[7]["top1_mismatches"].update(near_tie=17))),
+                 "a largest difference of the known rows without a known row": lambda run: rewrite(run[2], conditions(
+                     lambda entries: entries[0]["known"].update(max_abs_logit=0.5))),
+                 "a comparison without problems and without its verifier": lambda run: rewrite(
+                     run[2], lambda record: record.update(verifier=None)),
+                 "a comparison with problems and with its verifier": lambda run: rewrite(
+                     run[2], lambda record: record.update(problems=["the verifier is unreadable (OSError)"], conditions=[],
+                                                          passed=False)),
+                 "an effect with more top-1 changes than rows": lambda run: write_json(self.effect, effect_record(
+                     sha256(self.reference), conditions=[*effect_entries[:7], {**effect_entries[7], "top1_mismatches": {
+                         "near_tie": 20, "outside": 0}}, *effect_entries[8:]])),
+                 "an effect condition with a field that the comparison of the references does not write": lambda run: write_json(
+                     self.effect, effect_record(sha256(self.reference), conditions=[
+                         {**effect_entries[0], "constant_rows": 0}, *effect_entries[1:]])),
+                 "a reference with more non-finite logits than it kept": lambda run: self.referenced(
+                     lambda record: record["inputs"]["short"]["logits"].update(non_finite=26 * TEXT["vocab_size"] + 1), run),
+                 "a reference whose total time is shorter than its steps": lambda run: self.referenced(
+                     lambda record: record["timing"].update(total_s=3.0), run),
+                 "a reference logits file with bytes after its array": trailing,
+                 "a report whose stage times exceed its total": report(lambda record: record["stages"][1].update(prepare_s=1.5)),
+                 "a report whose stages take longer than the run": report(lambda record: record.update(elapsed_s=4.0)),
+                 "a report of another export time than the manifest": report(
+                     lambda record: record["stages"][1].update(execute_s=0.9))}
         self.assertEqual(self.summarize(self.run_files("consistent"))[0], 0)
         for index, (label, change) in enumerate(cases.items()):
             reference_record(self.reference.parent, self.contract, layers.RESTORED, quantized=reference["quantized"])
@@ -650,12 +717,96 @@ class QuantizedSummaryTests(Records):
             change(run)
             with self.subTest(case=label):
                 self.assertEqual(self.summarize(run), (1, ""))
-        reference_record(self.reference.parent, self.contract, layers.RESTORED, quantized=reference["quantized"])
-        write_json(self.effect, effect_record(sha256(self.reference)))
-        run = self.run_files("unpassed-export", change=unpassed_export)
-        self.referenced(lambda record: record["quantized"].update(export_sha256=sha256(run[1])), run)
-        with self.subTest(case="an export whose checks and passed do not follow from its record"):
-            self.assertEqual(self.summarize(run), (1, ""))
+        for index, (label, change) in enumerate(exports.items()):
+            reference_record(self.reference.parent, self.contract, layers.RESTORED, quantized=reference["quantized"])
+            write_json(self.effect, effect_record(sha256(self.reference)))
+            run = self.run_files(f"export-{index}", change=change)
+            self.referenced(lambda record: record["quantized"].update(export_sha256=sha256(run[1])), run)
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize(run), (1, ""))
+
+    def test_conditions_that_stopped_before_their_numbers_and_a_comparison_with_problems_are_summarized(self):
+        run = self.run_files("stopped")
+        (run[2].parent / "window-c2.f16").write_bytes(b"ab")
+
+        def stopped(record):
+            entries = record["conditions"]
+            fixed = [{key: entry[key] for key in fp16_summary.CONDITION_KEYS} for entry in entries[:4]]
+            failed = {"checks": {}, "passed": False}
+            verifier = {key: value for key, value in entries[2]["verifier"].items() if key != "cached"}
+            entries[:4] = [{**fixed[0], **failed, "problems": ["the condition could not be compared (OSError)"]},
+                           {**fixed[1], **failed, "problems": ["the verifier did not print one JSON object"], "seconds": 2.0},
+                           {**fixed[2], **failed, "problems": ["the verifier record is malformed (cached)"], "seconds": 2.0,
+                            "verifier": verifier},
+                           {**fixed[3], **failed, "problems": ["the logits file holds 2 B"], "seconds": 2.0,
+                            "verifier": entries[3]["verifier"],
+                            "output": {"bytes": 2, "sha256": hashlib.sha256(b"ab").hexdigest()}}]
+            record["passed"] = False
+
+        rewrite(run[2], stopped)
+        code, output = self.summarize(run)
+        self.assertEqual(code, 0, self.errors)
+        compared = json.loads(output)["assets"][0]["comparison"]
+        self.assertEqual((compared["passed"], [entry["passed"] for entry in compared["conditions"][:5]]),
+                         (False, [False, False, False, False, True]))
+        base = ["name", "input", "tokens", "start", "chunk", "rows", "passed", "problems", "checks"]
+        self.assertEqual([list(entry) for entry in compared["conditions"][:4]],
+                         [base, [*base, "seconds"], [*base, "seconds", "verifier"], [*base, "seconds", "output", "verifier"]])
+        self.assertEqual(compared["conditions"][2]["verifier"]["cached"], None)
+        rewrite(run[2], lambda record: record.update(problems=["the verifier is unreadable (FileNotFoundError)"],
+                                                     verifier=None, conditions=[], passed=False))
+        code, output = self.summarize(run)
+        self.assertEqual(code, 0, self.errors)
+        compared = json.loads(output)["assets"][0]["comparison"]
+        self.assertEqual((compared["passed"], compared["problems"], compared["verifier_sha256"], compared["conditions"]),
+                         (False, 1, None, []))
+
+    def test_the_reference_reader_names_each_record_of_the_reference_that_its_writer_does_not_give(self):
+        contract = load_contract(self.contract)
+        record = read_json(self.reference)
+        self.assertEqual(native.reference_record_problems(record, contract), [])
+
+        def changed(change):
+            copied = copy.deepcopy(record)
+            change(copied)
+            return native.reference_record_problems(copied, contract)
+
+        cases = {"one more input": (lambda value: value["inputs"].update(long=value["inputs"]["short"]),
+                                    ["the reference holds other inputs than those of the conditions"]),
+                 "more non-finite logits than it kept": (
+                     lambda value: value["inputs"]["context"]["logits"].update(
+                         non_finite=len(layers.kept_rows("context")) * TEXT["vocab_size"] + 1),
+                     ["the reference recorded no count of the non-finite context logits"]),
+                 "a negative count of non-finite logits": (
+                     lambda value: value["inputs"]["short"]["logits"].update(non_finite=-1),
+                     ["the reference recorded no count of the non-finite short logits"]),
+                 "no time of an input": (lambda value: value["inputs"]["short"].update(seconds=None),
+                                         ["the reference recorded no time of the short input"]),
+                 "the version of a package that its writer does not record": (
+                     lambda value: value["versions"].update(peft="1.0"),
+                     ["the reference recorded the versions of other packages than its writer records"]),
+                 "a time of a step that its writer does not take": (
+                     lambda value: value["timing"].update(save_s=1.0),
+                     ["the reference recorded other times than those of its steps"]),
+                 "a negative time of a step": (lambda value: value["timing"].update(load_s=-1.0),
+                                               ["the reference recorded other times than those of its steps"]),
+                 "a total time shorter than its steps": (lambda value: value["timing"].update(total_s=3.5),
+                                                         ["the total time of the reference is shorter than its steps"]),
+                 "no peak resident memory": (lambda value: value["memory"].update(max_rss_bytes=None),
+                                             ["the reference recorded other memory readings than its writer records"]),
+                 "a memory reading that its writer does not record": (
+                     lambda value: value["memory"].update(rss_bytes=1),
+                     ["the reference recorded other memory readings than its writer records"]),
+                 "a negative peak footprint": (lambda value: value["memory"].update(lifetime_peak_footprint_bytes=-1),
+                                               ["the reference recorded other memory readings than its writer records"])}
+        for label, (change, expected) in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(changed(change), expected)
+        path = self.reference.parent / "context.npy"
+        path.write_bytes(path.read_bytes() + b"end")
+        self.referenced(lambda value: value["inputs"]["context"]["logits"].update(layers.file_record(path)))
+        self.assertEqual(native.load_reference(self.reference.parent, contract, self.contract)[3],
+                         ["the context logits file holds 3 B after its array"])
 
     def test_an_8bit_summary_needs_no_run_of_the_model_class_and_stops_when_one_is_given(self):
         run, missing = self.run_files("first"), str(self.folder / "missing-run")

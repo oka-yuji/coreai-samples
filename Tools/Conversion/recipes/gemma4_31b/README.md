@@ -525,8 +525,10 @@ of `window-c8`) are left out of the difference and the top-1 change and recorded
 rows count on every row. The record that `coreai-verify` prints has to match the condition, including the function,
 the number of calls and the chunk of the reads before `--start`, which follow the rules of the engine.
 `MeasureTests`, `KnownCallTests` and `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_native.py` fix these
-criteria and the checks on the records, the bundle, the record of `coreai-verify` and its files. The specialization
-cache that `coreai-verify` makes stays in place; remove it yourself.
+criteria and the checks on the records, the bundle, the record of `coreai-verify` and its files, and `measured_problems`
+and `condition_problems`, the readers of the numbers, the relations among them and the fields that a condition can hold
+on each path of the comparison, which the summary below applies. The specialization cache that `coreai-verify` makes
+stays in place; remove it yourself.
 
 `fp16_summary` prints the public summary (only states, numbers, hashes and fixed words) of the reference record, of
 the comparison of the model class with the original implementation, which it makes itself with `layers.py compare`
@@ -545,18 +547,35 @@ that the two runs, the reference and every export are of the contract `model.jso
 are of the layers and tap layers of every export, that the reference is of the layers of every export and uses its kind
 of weights (restored from its quantized tensors for 8 bits, with the SHA-256 of its record, the size and SHA-256 of
 `quantized.safetensors` and the number of tensors, through `correspondence` of `native.py`), and that each comparison
-records the layers, the functions and the asset of its export and the layers of the reference. It prints three kinds of
-values. It takes the fixed ones from the tools and refuses records that differ from them: the twelve conditions in their
-order with their inputs, token counts, starts, chunks and rows, the criteria, the call shape that the engine avoids and
-its rows in each condition, the record that the verifier gives for the reads of each condition, the chunks, calls,
-embedding scale and logits type and shape of the reference, and the stages of the report. It computes each verdict again
-with the function that wrote it (the checks and the verdict of each condition and of the comparison from `native.py`,
-the export with `load_export` and the reference with `load_reference`) and refuses a record whose verdict differs. It
-copies the measured numbers and the hashes, checks each hash that leads to a file it reads (the files of the bundle,
-`quantized.safetensors`, the records and the logits files of the reference and of the comparison), and cannot check the
-measured numbers themselves, because it does not compute them from the arrays again. It needs NumPy and PyTorch. A
-comparison that fails a criterion is printed with `passed` false, as a failed condition of the own engine is;
-`SummaryTests` in `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
+records the layers, the functions and the asset of its export and the layers of the reference. The arguments of the runs
+(layers, tap layers, functions, precision and context limit) are checked for their form and for their agreement with the
+contract, the other records and the names and the metadata that they give. Every other value that it prints is of one
+of five kinds, and each kind has one rule:
+
+- A fixed value must equal the constant of the tools or the formula that derives it, and a record that differs is
+  refused: the twelve conditions in their order with their inputs, token counts, starts, chunks and rows, the criteria,
+  the call shape that the engine avoids, the stages of the report, the chunks, calls, embedding scale, logits type and
+  shape and inputs of the reference, and the sizes and counts that they give (the size of each logits file of the
+  comparison, the rows of the known call shape, the record that the verifier gives for the reads of each condition,
+  the counts of the export that follow from its layers, its tap layers and its checkpoint).
+- A verdict (`passed` of the comparison, `passed` and the checks of each condition and of the export, and the comparison
+  of the model class with the original implementation, which it makes itself) is computed again from the numbers and
+  the fixed values with the function that wrote it (`native.py`, `load_export`, `layers.py compare`), and a record whose
+  verdict differs is refused.
+- A measured number (a difference, a count of non-finite values or of top-1 changes, a time, a memory, disk or swap
+  reading) is copied. The summary does not compute it from the arrays again, so it does not check the number itself; it
+  checks the range of the number and the relations that its writer gives it, for example that a count does not exceed
+  the values it counts and that the times of the steps do not exceed the time that holds them.
+- A hash is checked when it leads to a file that the summary reads (the files of the bundle, `quantized.safetensors`,
+  the records and the logits files of the reference and of the comparison, the contract) and copied when it does not
+  (the SHA-256 of the verifier and, for 8 bits, of the record of the rounded reference of `effect`).
+- A version of a package is copied, for exactly the packages that its writer records.
+
+Where it prints a mapping of a record key by key, a constant or the reader of the record (`load_export`,
+`load_reference`, `reference_record_problems`, `condition_problems`, `measured_problems`) fixes the set of keys. It
+needs NumPy and PyTorch. A comparison that fails a criterion is printed with `passed` false, as a failed condition of
+the own engine is; `SummaryTests` in `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The
+published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-in-the-first-six-layers-695).
 
 ## 8-bit export of the first layers
@@ -660,8 +679,9 @@ and minimum of every quantized weight. `EffectTests` in `Tools/Conversion/tests/
 with the restored reference as `--reference` and the output of `effect` as `--effect`, and without `--original` and
 `--model-class`, which only FP16 records take; it stops with its fixed error when an input of the other precision is
 given or one of its own is missing, and when the effect is not of the layers of the restored reference, does not compare
-a rounded reference of these layers or was not measured on the twelve fixed conditions with the fixed criteria.
-`QuantizedSummaryTests` fixes these checks. The published record is
+a rounded reference of these layers, was not measured on the twelve fixed conditions with the fixed criteria or holds
+numbers that the comparison of the two references cannot give. `QuantizedSummaryTests` fixes these checks. The
+published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).
 
 ## Terms
