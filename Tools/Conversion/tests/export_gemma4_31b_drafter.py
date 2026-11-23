@@ -19,7 +19,8 @@ from Tools.Conversion.adapters.gemma4_31b import assistant, drafter, layers, mtp
 from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import read_json, write_json
-from Tools.Conversion.tests.test_gemma4_31b_mtp import CONFIG, FIXED, write_assistant, write_records, write_target
+from Tools.Conversion.tests.test_gemma4_31b_mtp import (CONFIG, FIXED, FIXTURE_RECORDS, write_assistant, write_records,
+                                                         write_target)
 
 ASSISTANT, TARGET = assistant.SYNTHETIC["assistant"], assistant.SYNTHETIC["target"]
 TEXT = ASSISTANT["text_config"]
@@ -419,6 +420,7 @@ class BuildTests(unittest.TestCase):
 
 
 @mock.patch.object(mtp, "SUBSET", FIXED)
+@mock.patch.object(mtp, "RECORDS", FIXTURE_RECORDS)
 class RunTests(unittest.TestCase):
     def test_the_contract_of_the_records_holds_the_synthetic_target(self):
         self.assertEqual({key: CONFIG[key] for key in assistant.TARGET}, TARGET)
@@ -440,8 +442,8 @@ class RunTests(unittest.TestCase):
             model_class = mtp.run("class", *arguments, 7, folder / "class")
             self.assertEqual(original["rows"], model_class["rows"])
             self.assertEqual([(row["id"], row["anchor"], row["window"]) for row in original["rows"]],
-                             [("alpha-0002", 20, 20), ("alpha-0002", 23, 23), ("alpha-0002", 26, 26),
-                              ("alpha-0002", 28, 28), ("beta-0001", 1100, WINDOW), ("beta-0001", 1102, WINDOW),
+                             [("alpha-0001", 20, 20), ("alpha-0001", 23, 23), ("alpha-0001", 26, 26),
+                              ("alpha-0001", 28, 28), ("beta-0001", 1100, WINDOW), ("beta-0001", 1102, WINDOW),
                               ("beta-0001", 1104, WINDOW), ("beta-0001", 1105, WINDOW)])
             pinned = read_json(arguments[1])
             for record in (original, model_class):
@@ -451,8 +453,8 @@ class RunTests(unittest.TestCase):
                 self.assertEqual(record["records"]["features"], {
                     name: {"bytes": (arguments[4] / f"tf/features/{name}.safetensors").stat().st_size,
                            "sha256": sha256(arguments[4] / f"tf/features/{name}.safetensors")}
-                    for name in ("alpha-0002", "beta-0001")})
-            fixed = (arguments[0], arguments[1], arguments[2], arguments[4], 7)
+                    for name in ("alpha-0001", "beta-0001")})
+            fixed = (arguments[0], arguments[1], arguments[2], arguments[4], arguments[5], arguments[6], 7)
             result = mtp.compare(folder / "original", folder / "class", *fixed)
             self.assertTrue(result["passed"], result["problems"])
             self.assertLessEqual(result["summary"]["max_abs_logit"], LIMIT)

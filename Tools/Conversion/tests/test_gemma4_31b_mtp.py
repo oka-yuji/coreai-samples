@@ -36,7 +36,7 @@ CONFIG = {"num_hidden_layers": 12, "layer_pattern": [SLIDING] * 5 + [FULL], "hid
           "vocab_size": 301, "sliding_window": 1024, "num_key_value_heads": 2, "num_global_key_value_heads": 1,
           "head_dim": 16, "global_head_dim": 32, "attention_k_eq_v": True, "final_logit_softcapping": 30.0,
           "tie_word_embeddings": True, "bos_token_id": 2, "eos_token_id": [1, 106, 50]}
-ITEMS = (("alpha-0010", 30, 4, 106), ("alpha-0002", 20, 9, 106), ("beta-0001", 1100, 6, None))
+ITEMS = (("alpha-0001", 20, 9, 106), ("alpha-0002", 30, 4, 106), ("beta-0001", 1100, 6, None))
 FIXED = {"alpha": 2, "beta": 1}
 SHARD = "model-00001-of-00001.safetensors"
 
@@ -143,6 +143,17 @@ def write_assistant(folder, document, state):
                           "files": {name: {"bytes": (snapshot / name).stat().st_size, "sha256": sha256(snapshot / name)}
                                     for name in mtp.ASSISTANT_FILES}})
     return snapshot, contract
+
+
+def fixture_records():
+    if np is None or torch is None:
+        return {}
+    with tempfile.TemporaryDirectory() as folder:
+        _, inputs, outputs = write_records(folder)
+        return {"inputs": sha256(inputs), "outputs": sha256(outputs)}
+
+
+FIXTURE_RECORDS = fixture_records()
 
 
 def assistant_state():
@@ -352,6 +363,8 @@ class PureTests(unittest.TestCase):
                                       "extract-ja": 6, "long-ja-4k": 2, "long-ja-16k": 1, "synth-extract": 4,
                                       "synth-format": 6, "free-ja": 4, "synth-long-4k": 3, "synth-long-16k": 2})
         self.assertEqual((len(mtp.SUBSET), sum(mtp.SUBSET.values())), (13, 48))
+        self.assertEqual(mtp.RECORDS, {"inputs": "a5606837d5cf300ea46fcdbb51e9380fbd69a5d0e0d5d6c027b39d4e4a260aa6",
+                                       "outputs": "1d84643d3d623fabc4ad66645ce3f862994a4afc8a7f40d6091ca6984ad5f5a9"})
 
     def test_the_first_item_of_each_category_follows_the_numbers_of_the_ids(self):
         record = {"counts": {"a": 3, "b": 1}, "items": [{"id": "a-10", "category": "a"}, {"id": "a-9", "category": "a"},
@@ -361,6 +374,7 @@ class PureTests(unittest.TestCase):
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
 @mock.patch.object(mtp, "SUBSET", FIXED)
+@mock.patch.object(mtp, "RECORDS", FIXTURE_RECORDS)
 class RecordTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
@@ -373,7 +387,7 @@ class RecordTests(unittest.TestCase):
 
     def test_the_items_take_the_tokens_and_the_feature_offsets_of_the_records(self):
         items = self.items()
-        self.assertEqual([item["id"] for item in items], ["alpha-0002", "beta-0001"])
+        self.assertEqual([item["id"] for item in items], ["alpha-0001", "beta-0001"])
         self.assertEqual([(len(item["input_ids"]), len(item["teacher"]), item["outputs"], item["first"], item["start"])
                           for item in items], [(20, 10, 9, 0, 0), (1100, 6, 6, 0, 0)])
         self.assertEqual(len(self.items(lambda record: record["items"])), 3)
@@ -426,20 +440,20 @@ class RecordTests(unittest.TestCase):
                       str(features / "beta-0001.safetensors"))
 
         def linked():
-            (features / "alpha-0002.safetensors").unlink()
-            (features / "alpha-0002.safetensors").symlink_to(features / "alpha-0010.safetensors")
+            (features / "alpha-0001.safetensors").unlink()
+            (features / "alpha-0001.safetensors").symlink_to(features / "alpha-0002.safetensors")
 
         cases = {
             "inputs changed after the subset": lambda: self.inputs.write_text(self.inputs.read_text() + "\n"),
-            "a stop token inside the output": lambda: outputs_with(lambda rows: rows[1]["output_ids"].__setitem__(0, 50)),
-            "an output with another length": lambda: outputs_with(lambda rows: rows[1]["output_ids"].append(7)),
-            "an output from another input": lambda: outputs_with(lambda rows: rows[1].update(input_tokens=21)),
-            "an output input length as a float": lambda: outputs_with(lambda rows: rows[1].update(input_tokens=20.0)),
+            "a stop token inside the output": lambda: outputs_with(lambda rows: rows[0]["output_ids"].__setitem__(0, 50)),
+            "an output with another length": lambda: outputs_with(lambda rows: rows[0]["output_ids"].append(7)),
+            "an output from another input": lambda: outputs_with(lambda rows: rows[0].update(input_tokens=21)),
+            "an output input length as a float": lambda: outputs_with(lambda rows: rows[0].update(input_tokens=20.0)),
             "an output without non-finite values as a float": lambda: outputs_with(
-                lambda rows: rows[1].update(non_finite=0.0)),
+                lambda rows: rows[0].update(non_finite=0.0)),
             "features in float32": as_float32,
             "features of another shape": lambda: save_file({key: torch.zeros(2, 2, dtype=torch.bfloat16) for key in (
-                "postnorm", f"k{place['sliding']}")}, str(features / "alpha-0002.safetensors")),
+                "postnorm", f"k{place['sliding']}")}, str(features / "alpha-0001.safetensors")),
             "features that start inside the window": starting_inside_the_window,
             "features linked from elsewhere": linked}
         backup = {path: path.read_bytes() for path in [self.inputs, self.outputs, self.records / "subset.json",
@@ -451,6 +465,25 @@ class RecordTests(unittest.TestCase):
                 path.write_bytes(data)
             change()
             with self.subTest(change=label), self.assertRaises(ValueError):
+                self.items()
+
+    def test_input_and_output_records_of_other_files_are_refused_even_when_they_hold_the_same_items(self):
+        def extended(path, line_of_record):
+            path.write_text(path.read_text() + line_of_record)
+            subset = read_json(self.records / "subset.json")
+            subset[path.stem]["sha256"] = sha256(path)
+            write_json(self.records / "subset.json", subset)
+
+        records = {"inputs": (self.inputs, {"id": "gamma-0001", "input_ids": [2, 3], "input_sha256": tokens_sha256([2, 3]),
+                                            "max_new_tokens": 16}),
+                   "outputs": (self.outputs, {"id": "gamma-0001", "input_sha256": tokens_sha256([2, 3]), "input_tokens": 2,
+                                              "non_finite": 0, "output_ids": [4], "stop": "limit", "top2": []})}
+        backup = {path: path.read_bytes() for path in (self.inputs, self.outputs, self.records / "subset.json")}
+        for name, (path, record) in records.items():
+            for kept, data in backup.items():
+                kept.write_bytes(data)
+            extended(path, line(record))
+            with self.subTest(records=name), self.assertRaisesRegex(ValueError, "other input or output records"):
                 self.items()
 
     def test_records_that_are_named_pipes_are_refused_without_waiting_for_a_writer(self):
@@ -480,6 +513,10 @@ class RecordTests(unittest.TestCase):
                    "a stop token for a limit": lambda record: record["items"][2].update(stop_token=0),
                    "no stop token for a stop": lambda record: record["items"][0].update(stop_token=None),
                    "an empty subset": lambda record: record.update(counts={}, items=[]),
+                   "another id of a category": lambda record: record["items"][1].update(id="alpha-0003"),
+                   "the fixed ids in another order": lambda record: record.update(items=[record["items"][1],
+                                                                                         record["items"][0],
+                                                                                         record["items"][2]]),
                    "another subset than the fixed one": lambda record: record.update(
                        counts={"alpha": 2}, items=[entry for entry in record["items"] if entry["category"] == "alpha"]),
                    "an item without outputs": lambda record: record["items"][0].update(output_tokens=0, teacher_tokens=1),
@@ -565,7 +602,7 @@ class RecordTests(unittest.TestCase):
 
 ROWS = [{"id": name, "category": name.rsplit("-", 1)[0], "anchor": anchor, "output_index": anchor - prompt,
          "window": min(anchor, 1025)}
-        for name, prompt, positions in (("alpha-0002", 20, (20, 23, 26, 28)), ("beta-0001", 1100, (1100, 1102, 1104, 1105)))
+        for name, prompt, positions in (("alpha-0001", 20, (20, 23, 26, 28)), ("beta-0001", 1100, (1100, 1102, 1104, 1105)))
         for anchor in positions]
 
 
@@ -587,7 +624,7 @@ def run_record(folder, kind):
                         "inputs_sha256": sha256(folder / "evaluation/inputs.jsonl"),
                         "outputs_sha256": sha256(folder / "evaluation/outputs.jsonl"),
                         "features": {name: pins(features, [f"{name}.safetensors"])[f"{name}.safetensors"]
-                                     for name in ("alpha-0002", "beta-0001")}},
+                                     for name in ("alpha-0001", "beta-0001")}},
             "weights": mtp.WEIGHTS, "embed_scale": 6.9375, "rows": [dict(row) for row in ROWS],
             "versions": {"torch": "0"}, "timing": {"total_s": 1.0}, "memory": {"max_rss_bytes": 1}}
 
@@ -605,6 +642,7 @@ def write_run(folder, record, arrays):
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the comparison")
 @mock.patch.object(mtp, "SUBSET", FIXED)
+@mock.patch.object(mtp, "RECORDS", FIXTURE_RECORDS)
 class CompareTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
@@ -625,7 +663,8 @@ class CompareTests(unittest.TestCase):
 
     def compare(self, label, original="original", model_class="class", contract="model.json"):
         return mtp.compare(self.folder / label / original, self.folder / label / model_class, self.folder / contract,
-                           self.folder / "assistant.json", self.folder / "target", self.folder / "records", 3)
+                           self.folder / "assistant.json", self.folder / "target", self.folder / "records",
+                           self.folder / "evaluation/inputs.jsonl", self.folder / "evaluation/outputs.jsonl", 3)
 
     def pair(self, label, change=None, record=None, both=None):
         arrays = {kind: {name: array.copy() for name, array in found.items()} for kind, found in self.arrays.items()}
@@ -677,7 +716,7 @@ class CompareTests(unittest.TestCase):
 
     def test_record_values_of_another_type_than_the_fixed_inputs_give_are_problems(self):
         def feature(record):
-            record["records"]["features"]["alpha-0002"]["bytes"] = float(record["records"]["features"]["alpha-0002"]
+            record["records"]["features"]["alpha-0001"]["bytes"] = float(record["records"]["features"]["alpha-0001"]
                                                                          ["bytes"])
 
         changes = {"steps": lambda record: record.update(steps=3.0), "window": lambda record: record.update(window=1025.0),
@@ -769,7 +808,8 @@ class CompareTests(unittest.TestCase):
             arguments = ["mtp", "compare", "--original", str(self.folder / "unexpected/original"), "--model-class",
                          str(self.folder / "unexpected/class"), "--model", str(self.folder / "model.json"),
                          "--assistant", str(self.folder / "assistant.json"), "--snapshot", str(self.folder / "target"),
-                         "--records", str(self.folder / "records"), "--steps", "3"]
+                         "--records", str(self.folder / "records"), "--inputs", str(self.folder / "evaluation/inputs.jsonl"),
+                         "--outputs", str(self.folder / "evaluation/outputs.jsonl"), "--steps", "3"]
             with mock.patch("sys.argv", arguments), mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
                 code = mtp.main()
         self.assertEqual(result, {"schema": mtp.COMPARISON, "passed": False,
@@ -892,7 +932,7 @@ class CompareTests(unittest.TestCase):
                     entry.pop("bytes") for entry in record["assistant"]["verified_before_loading"].values()]),
                 "empty records": (None, lambda record: record.update(records={})),
                 "no features": (None, lambda record: record["records"].pop("features")),
-                "features of another file": (None, lambda record: record["records"]["features"]["alpha-0002"].update(
+                "features of another file": (None, lambda record: record["records"]["features"]["alpha-0001"].update(
                     sha256="1" * 64)),
                 "the features of one item": (None, lambda record: record["records"]["features"].pop("beta-0001")),
                 "a null subset": (None, lambda record: record["records"].update(subset_sha256=None)),
@@ -903,7 +943,7 @@ class CompareTests(unittest.TestCase):
                 "a repeated row": (sliced([0, 1, 2, 3, 4, 5, 6, 7, 7]), lambda record: record["rows"].append(
                     dict(record["rows"][-1]))),
                 "rows of another selection": (sliced(slice(0, 3)), lambda record: record.update(rows=[
-                    {"id": "alpha-0002", "category": "alpha", "anchor": 20 + index, "output_index": index,
+                    {"id": "alpha-0001", "category": "alpha", "anchor": 20 + index, "output_index": index,
                      "window": 20 + index} for index in range(3)])),
                 "an extra field": (None, lambda record: record.update(note="x")),
                 "no versions": (None, lambda record: record.pop("versions"))}
@@ -957,6 +997,7 @@ class CompareTests(unittest.TestCase):
         self.assertTrue(self.compare("again")["passed"])
         inputs = {"the target contract": "model.json", "the assistant contract": "assistant.json",
                   "the index of the target": f"target/{mtp.INDEX}", "subset.json": "records/subset.json",
+                  "the input records": "evaluation/inputs.jsonl", "the output records": "evaluation/outputs.jsonl",
                   "the features": "records/tf/features/beta-0001.safetensors"}
         for label, name in inputs.items():
             saved, _ = piped(self.folder / name)
@@ -977,7 +1018,8 @@ class CompareTests(unittest.TestCase):
             arguments = ["mtp", "compare", "--original", str(self.folder / f"main-{label}/original"), "--model-class",
                          str(self.folder / f"main-{label}/class"), "--model", str(self.folder / "model.json"),
                          "--assistant", str(self.folder / "assistant.json"), "--snapshot", str(self.folder / "target"),
-                         "--records", str(self.folder / "records"), "--steps", "3"]
+                         "--records", str(self.folder / "records"), "--inputs", str(self.folder / "evaluation/inputs.jsonl"),
+                         "--outputs", str(self.folder / "evaluation/outputs.jsonl"), "--steps", "3"]
             with self.subTest(run=label), mock.patch("sys.argv", arguments), \
                     mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
                 code = mtp.main()
@@ -987,6 +1029,7 @@ class CompareTests(unittest.TestCase):
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
 @mock.patch.object(mtp, "SUBSET", FIXED)
+@mock.patch.object(mtp, "RECORDS", FIXTURE_RECORDS)
 class ReadTests(unittest.TestCase):
     def test_a_target_contract_that_changes_between_its_two_reads_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -1025,7 +1068,7 @@ class ReadTests(unittest.TestCase):
         write_json(records / "trajectories.json", {"per_round_on_teacher_path": {"mtp_fixed": {"7": {
             name: level for name in ("alpha", "beta", "pooled")}}}})
         (records / "drafters").mkdir()
-        write_json(records / "drafters/alpha-0010.json", {})
+        write_json(records / "drafters/alpha-0001.json", {})
         arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
         commands = {"run": lambda output: mtp.run("class", *arguments, output),
                     "acceptance": lambda output: mtp.acceptance(*arguments)}
@@ -1037,9 +1080,9 @@ class ReadTests(unittest.TestCase):
                  "the assistant weights": (assistant / "model.safetensors", ("run",)),
                  "subset.json": (records / "subset.json", ("run",)), "the input records": (inputs, ("run",)),
                  "the output records": (outputs, ("run",)),
-                 "the features": (records / "tf/features/alpha-0002.safetensors", ("run",)),
+                 "the features": (records / "tf/features/alpha-0001.safetensors", ("run",)),
                  "trajectories.json": (records / "trajectories.json", ("acceptance",)),
-                 "a drafter record": (records / "drafters/alpha-0010.json", ("acceptance",))}
+                 "a drafter record": (records / "drafters/alpha-0001.json", ("acceptance",))}
         for label, (path, names) in cases.items():
             saved, pipe = piped(path)
             for name in names:
@@ -1070,6 +1113,7 @@ class ReadTests(unittest.TestCase):
 
 
 @mock.patch.object(mtp, "SUBSET", FIXED)
+@mock.patch.object(mtp, "RECORDS", FIXTURE_RECORDS)
 class RefusalTests(unittest.TestCase):
     def test_a_run_refuses_an_existing_output_or_a_bad_argument_before_it_reads_anything(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -1208,7 +1252,7 @@ class RefusalTests(unittest.TestCase):
                     for name in ("original", "class"):
                         write_json(folder / name / "record.json", record)
                 result = mtp.compare(folder / "original", folder / "class", contract, assistant_contract, target, records,
-                                     7)
+                                     inputs, outputs, 7)
                 with self.subTest(input=label):
                     self.assertFalse(result["passed"])
                     self.assertTrue(result["problems"])
@@ -1224,7 +1268,8 @@ class RefusalTests(unittest.TestCase):
                 mtp.run("class", *arguments, folder / "out")
             with self.subTest(input="an empty folder of features", command="compare"), \
                     self.assertRaises(FileNotFoundError):
-                mtp.compare(folder / "original", folder / "class", contract, assistant_contract, target, records, 7)
+                mtp.compare(folder / "original", folder / "class", contract, assistant_contract, target, records, inputs,
+                            outputs, 7)
             self.assertFalse((folder / "out").exists())
 
     @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
@@ -1239,18 +1284,22 @@ class RefusalTests(unittest.TestCase):
                 "pooled": {"rounds": 0, "tokens": 0, "tokens_per_round": None}}}}})
             (records / "drafters").mkdir()
             events, watched = tensor_reads()
-            for label, change in {"an empty subset": {"counts": {}, "items": []},
-                                  "a subset of one category": {"counts": {"alpha": 2}, "items": [
-                                      entry for entry in subset["items"] if entry["category"] == "alpha"]}}.items():
+            other = json.loads(json.dumps(subset["items"]))
+            other[1]["id"] = "alpha-0003"
+            for label, change, message in (
+                    ("an empty subset", {"counts": {}, "items": []}, "fixed subset of #691: 3 items in 2 categories"),
+                    ("a subset of one category", {"counts": {"alpha": 2}, "items": [
+                        entry for entry in subset["items"] if entry["category"] == "alpha"]},
+                     "fixed subset of #691: 3 items in 2 categories"),
+                    ("a subset with another id", {"items": other}, "fixed ids of #691")):
                 write_json(records / "subset.json", {**subset, **change})
                 arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
                 commands = {"run": lambda: mtp.run("class", *arguments, folder / "out"),
                             "acceptance": lambda: mtp.acceptance(*arguments),
                             "compare": lambda: mtp.compare(folder / "a", folder / "b", contract, assistant_contract,
-                                                           target, records, 7)}
+                                                           target, records, inputs, outputs, 7)}
                 for name, command in commands.items():
-                    with self.subTest(subset=label, command=name), watched(), \
-                            self.assertRaisesRegex(ValueError, "fixed subset of #691: 3 items in 2 categories"):
+                    with self.subTest(subset=label, command=name), watched(), self.assertRaisesRegex(ValueError, message):
                         command()
                 self.assertFalse((folder / "out").exists())
             self.assertEqual(events, [])
@@ -1268,7 +1317,7 @@ class RefusalTests(unittest.TestCase):
 
             def features():
                 save_file({key: torch.zeros(2, 2, dtype=torch.bfloat16) for key in ("postnorm", f"k{place['sliding']}")},
-                          str(records / "tf/features/alpha-0002.safetensors"))
+                          str(records / "tf/features/alpha-0001.safetensors"))
 
             unsupported, weights = "Unsupported Gemma 4 assistant", "model.safetensors differs from the expected"
             cases = {"ordered embeddings": (lambda document: document.update(use_ordered_embeddings=True), None, None,
@@ -1287,7 +1336,7 @@ class RefusalTests(unittest.TestCase):
                      "an extra tensor": (None, tensor("model.layers.4.layer_scalar", (1,)), None, weights),
                      "a table of another width": (None, None, (vocabulary, hidden + 2),
                                                   f"{SHARD} differs from the expected"),
-                     "features of another shape": (None, None, features, "alpha-0002.safetensors does not hold")}
+                     "features of another shape": (None, None, features, "alpha-0001.safetensors does not hold")}
             backup = {path: path.read_bytes() for path in (records / "tf/features").iterdir()}
             events, watched = tensor_reads()
             for label, (configured, changed, other, message) in cases.items():

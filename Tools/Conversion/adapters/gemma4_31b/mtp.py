@@ -36,6 +36,8 @@ LEVEL = ("rounds", "tokens", "tokens_per_round")
 SUBSET = {"ja-choice": 4, "ja-reading": 4, "code-gen-he": 4, "code-gen-mbpp": 4, "code-fix": 4, "extract-ja": 6,
           "long-ja-4k": 2, "long-ja-16k": 1, "synth-extract": 4, "synth-format": 6, "free-ja": 4, "synth-long-4k": 3,
           "synth-long-16k": 2}
+RECORDS = {"inputs": "a5606837d5cf300ea46fcdbb51e9380fbd69a5d0e0d5d6c027b39d4e4a260aa6",
+           "outputs": "1d84643d3d623fabc4ad66645ce3f862994a4afc8a7f40d6091ca6984ad5f5a9"}
 ARRAYS = {"original": ("logits", "projected", "drafts"), "class": ("logits", "projected", "drafts", "repeated")}
 RUN = ("schema", "implementation", "steps", "stops", "window", "layers", "model", "assistant", "records", "weights",
        "embed_scale", "rows", "arrays", "versions", "timing", "memory")
@@ -184,6 +186,9 @@ def subset_record(path):
     if canonical(counts) != canonical(SUBSET):
         raise ValueError(f"subset.json does not hold the fixed subset of #691: {sum(SUBSET.values())} items in "
                          f"{len(SUBSET)} categories")
+    if [entry["id"] for entry in items] != [f"{name}-{number:04d}" for name, count in SUBSET.items()
+                                            for number in range(1, count + 1)]:
+        raise ValueError("subset.json does not hold the fixed ids of #691, the first ones of each category in order")
     ids = [entry["id"] for entry in items]
     if len(set(ids)) != len(ids) or len(items) != sum(counts.values()) \
             or any(sum(entry["category"] == name for entry in items) != count for name, count in counts.items()) \
@@ -268,6 +273,8 @@ def items_of(contract, records, inputs, outputs, choose):
         found.append({"id": entry["id"], "category": entry["category"], "input_ids": ids, "teacher": teacher,
                       "outputs": len(output["output_ids"]), **feature_layout(path, config, place, len(ids),
                                                                             len(teacher))})
+    if {key: subset[key]["sha256"] for key in RECORDS} != RECORDS:
+        raise ValueError("subset.json points to other input or output records than the fixed ones of the quality set")
     return subset, subset_sha256, found
 
 
@@ -571,19 +578,19 @@ def canonical(value):
     return json.dumps(value, sort_keys=True)
 
 
-def compare(original, model_class, contract_path, assistant_path, snapshot, records, steps):
+def compare(original, model_class, contract_path, assistant_path, snapshot, records, inputs, outputs, steps):
     check_steps(steps)
     (contract, contract_sha256), (assistant, assistant_sha256) = target_contract(contract_path), load_assistant(
         assistant_path)
     files, shard = table_shard(snapshot, contract)
-    subset, subset_sha256 = subset_record(Path(records) / "subset.json")
-    config, place, chosen = contract["config"], layout(contract["config"]), first_per_category(subset)
-    rows = target_rows(chosen, place["window"])
+    subset, subset_sha256, items = items_of(contract, records, inputs, outputs, first_per_category)
+    config, place = contract["config"], layout(contract["config"])
+    rows = target_rows(first_per_category(subset), place["window"])
     expected = {"schema": SCHEMA, "steps": steps, "stops": list(config["eos_token_id"]), "window": place["window"],
                 "layers": {"sliding": place["sliding"], "full": place["full"]},
                 **provenance(contract, contract_sha256, {**files, shard: dict(contract["files"][shard])}, assistant,
                              assistant_sha256, subset, subset_sha256,
-                             {entry["id"]: digest(feature_path(records, entry["id"])) for entry in chosen}),
+                             {item["id"]: digest(item["features"]) for item in items}),
                 "weights": WEIGHTS, "embed_scale": rounded_scale(config["hidden_size"]), "rows": rows}
     folders, problems = {"original": Path(original), "class": Path(model_class)}, []
     try:
@@ -835,7 +842,7 @@ def main():
             command.add_argument(f"--{option}", type=Path, required=True)
         command.add_argument("--steps", type=int, required=True)
     checker = commands.add_parser("compare")
-    for option in ("original", "model-class", "model", "assistant", "snapshot", "records"):
+    for option in ("original", "model-class", "model", "assistant", "snapshot", "records", "inputs", "outputs"):
         checker.add_argument(f"--{option}", type=Path, required=True)
     checker.add_argument("--steps", type=int, required=True)
     exporter = commands.add_parser("export")
@@ -854,7 +861,7 @@ def main():
         print(json.dumps({name: entry["bytes"] for name, entry in record["assets"].items()}), flush=True)
         return 0 if record["passed"] else 1
     result = (compare(args.original, args.model_class, args.model, args.assistant, args.snapshot, args.records,
-                      args.steps) if args.command == "compare"
+                      args.inputs, args.outputs, args.steps) if args.command == "compare"
               else acceptance(args.model, args.assistant, args.snapshot, args.assistant_snapshot, args.records,
                               args.inputs, args.outputs, args.steps))
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False), flush=True)
