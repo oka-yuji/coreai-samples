@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -7,6 +8,7 @@ import subprocess
 import sys
 import time
 
+from Tools.LLMEvaluation import layer1
 from ...storage import write_json
 from . import native
 from .compare import CONTRACT
@@ -54,10 +56,12 @@ def launched(entry, record, facts, vocabulary, verifier, output):
         problems.append("the verifier recorded a prefix function for an item that starts at position 0")
     if problems:
         return
-    data, content_hash = native.read_once(output / f"{name}.f16")
-    entry["output"] = {"file": f"{name}.f16", "bytes": len(data), "sha256": content_hash}
-    if len(data) != rows * vocabulary * 2:
-        problems.append(f"the logits file holds {len(data)} B, not {rows * vocabulary * 2} B")
+    try:
+        data = layer1.file_bytes(output / f"{name}.f16", rows * vocabulary * 2)
+    except ValueError as error:
+        problems.append(f"the logits file is refused: {error}")
+        return
+    entry["output"] = {"file": f"{name}.f16", "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
 def attempted(record, facts, vocabulary, verifier, output):
@@ -101,7 +105,8 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
         problems.append("an item of the forced input is longer than the context of the export")
     if problems:
         raise ValueError(f"The export is refused for this forced input: {'; '.join(problems)}")
-    data, verifier_hash = native.read_once(verifier)
+    data = layer1.file_bytes(verifier)
+    verifier_hash = hashlib.sha256(data).hexdigest()
     weights = f"{name} main.hash {facts['main_hash']}"
     output.mkdir(parents=True)
     result = {"schema": SCHEMA, "role": role, "weights": weights, "passed": False,

@@ -6,12 +6,11 @@ import re
 import sys
 import time
 
-from Tools.LLMEvaluation import items as evaluation
-from ...storage import canonical, read_json, write_json
+from Tools.LLMEvaluation import items as evaluation, layer1
+from ...storage import canonical, write_json
 from ..jev27b.monitor import swap_used
 from ..pinned import sha256
 from . import anchor, layers, reference
-from .native import valid
 from .prepare import load_contract
 
 SCHEMA = "gemma4-31b-layer1-anchor/1"
@@ -19,63 +18,43 @@ AGREEMENT = "gemma4-31b-layer1-agreement/1"
 LOGITS = "gemma4-31b-layer1-logits/1"
 ROLE, SET = "anchor", "primary"
 ITEM = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
-FORCED = {"id": "item", "input_sha256": "text", "tokens": "tokens", "tokens_sha256": "text", "start": "count",
-          "rows": "count", "input_tokens": "count", "targets": "tokens"}
 WEIGHTS = {"float16": "every checkpoint tensor rounded to float16"}
 PASSING = ("anchor_cpu", "original_cpu")
 RECORDED = (("anchor_run", "anchor_cpu"), ("original_eager_cpu", "original_cpu"), ("original_run", "original_cpu"),
             ("anchor_run", "original_run"))
 
 
-def tokens_sha256(ids):
-    return hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest()
+def frozen():
+    data = layer1.file_bytes(evaluation.ROOT / evaluation.FILES["contract"])
+    contract = layer1.strict(data)
+    return {"version": contract["version"], "sha256": hashlib.sha256(data).hexdigest()}, contract["layer1"]
 
 
-def accepted(kind, value, vocabulary):
-    if kind == "item":
-        return isinstance(value, str) and ITEM.fullmatch(value) is not None
-    if kind == "tokens":
-        return type(value) is list and bool(value) and all(type(token) is int and 0 <= token < vocabulary
-                                                           for token in value)
-    return valid(kind, value)
-
-
-def record_problems(record, vocabulary):
-    if not isinstance(record, dict):
-        return ["it is not a JSON object"]
-    malformed = [key for key, kind in FORCED.items() if key not in record or not accepted(kind, record[key], vocabulary)]
-    if malformed:
-        return [f"it is malformed ({', '.join(malformed)})"]
-    return [text for text, failed in (
-        ("its tokens_sha256 is not that of its tokens", record["tokens_sha256"] != tokens_sha256(record["tokens"])),
-        ("its scored rows are not its last rows",
-         record["rows"] < 1 or record["start"] + record["rows"] != len(record["tokens"]))) if failed]
-
-
-def contract_identity():
-    path = evaluation.ROOT / evaluation.FILES["contract"]
-    return {"version": read_json(path)["version"], "sha256": sha256(path)}
+def record_problems(record, vocabulary, rule):
+    return layer1.inconsistencies(record, rule) or [text for text, failed in (
+        ("its id is not an item id", ITEM.fullmatch(record["id"]) is None),
+        ("a token is outside the vocabulary", max(record["tokens"]) >= vocabulary)) if failed]
 
 
 def forced(folder, vocabulary):
-    data = (Path(folder) / "forced.jsonl").read_bytes()
-    summary, summary_sha256, _ = anchor.read(Path(folder) / "forced.json")
+    data, summary_data = (layer1.file_bytes(Path(folder) / name) for name in ("forced.jsonl", "forced.json"))
+    summary, (identity, rule) = layer1.strict(summary_data), frozen()
     lines = data.split(b"\n")
-    records = [anchor.parse(line) for line in (lines[:-1] if lines[-1] == b"" else lines)]
+    records = [layer1.strict(line) for line in (lines[:-1] if lines[-1] == b"" else lines)]
     problems = [f"forced.jsonl line {number}: {text}" for number, record in enumerate(records, 1)
-                for text in record_problems(record, vocabulary)]
+                for text in record_problems(record, vocabulary, rule)]
     if not records:
         problems.append("forced.jsonl holds no record")
     elif not problems and len({record["id"] for record in records}) != len(records):
         problems.append("forced.jsonl repeats an item")
-    expected = {"contract": contract_identity(), "set": SET,
+    expected = {"contract": identity, "set": SET,
                 "forced": {"count": len(records), "sha256": hashlib.sha256(data).hexdigest()}}
     if not isinstance(summary, dict) or any(canonical(summary.get(key)) != canonical(value)
                                             for key, value in expected.items()):
         problems.append("forced.json is not the summary of this forced.jsonl under this contract")
     if problems:
         raise ValueError(f"The forced input is refused: {'; '.join(problems[:5])}")
-    return {"sha256": expected["forced"]["sha256"], "summary_sha256": summary_sha256}, records
+    return {"sha256": expected["forced"]["sha256"], "summary_sha256": hashlib.sha256(summary_data).hexdigest()}, records
 
 
 def selected(records, names):
@@ -95,8 +74,8 @@ def model_for(snapshot, count, device):
     text.num_hidden_layers, text.layer_types = count, text.layer_types[:count]
     model, info = anchor.load(snapshot, "bfloat16", device, config)
     model.eval()
-    unexpected = [name for name in read_json(Path(snapshot) / "model.safetensors.index.json")["weight_map"]
-                  if (match := anchor.LAYER_KEY.match(name)) and int(match[1]) >= count]
+    index = layer1.strict(layer1.file_bytes(Path(snapshot) / "model.safetensors.index.json"))
+    unexpected = [name for name in index["weight_map"] if (match := anchor.LAYER_KEY.match(name)) and int(match[1]) >= count]
     loading = anchor.loaded(model, info, device)
     return model, loading, anchor.clean(loading, "bfloat16", device, unexpected)
 
@@ -291,7 +270,7 @@ def main():
     if os.path.lexists(args.output):
         raise FileExistsError(f"The {args.command} must be written to a new folder: {args.output}")
     contract = load_contract(args.model)
-    ready = read_json(args.prepare / "ready.json")
+    ready = layer1.strict(layer1.file_bytes(args.prepare / "ready.json"))
     if ready.get("ready") is not True or ready.get("contract_sha256") != sha256(args.model):
         raise ValueError("Run prepare with this contract first")
     kinds = layers.check_layers(contract["config"], args.layers)

@@ -29,11 +29,12 @@ from Tools.Conversion.tests.test_gemma4_31b_anchor import (GEMMA4, MEMORY, OBSER
                                                             ReadyMonitor, tiny_model)
 from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
 from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, model_record
+from Tools.LLMEvaluation.tests.test_layer1 import bounded, inode, release, replaced, touched, watched
 
 EVALUATION = Path(__file__).resolve().parents[2] / "LLMEvaluation/contract.json"
 LENGTHS = ((5, 1), (9, 3), (23, 10), (40, 30))
 FAKE = """#!{python}
-import hashlib, json, sys
+import hashlib, json, os, sys
 from pathlib import Path
 
 plan = json.loads(Path(__file__).with_suffix(".json").read_text())
@@ -45,7 +46,9 @@ change = plan["changes"].get(name, {{}})
 with Path(plan["calls"]).open("a") as calls:
     calls.write(name + "\\n")
 rows = len(ids) - start
-if not change.get("no_output"):
+if change.get("fifo"):
+    os.mkfifo(arguments["--output"])
+elif not change.get("no_output"):
     size = (rows + change.get("rows", 0)) * plan["vocabulary"] * 2
     Path(arguments["--output"]).write_bytes((name.encode() * size)[:size])
 record = {{"record": "logits", "token_count": len(ids), "start": start, "chunk": chunk,
@@ -173,6 +176,21 @@ class ForcedInputTests(unittest.TestCase):
             (path / "forced.jsonl").write_bytes(line + b"\n")
             with self.subTest(case=label), self.assertRaises(ValueError):
                 layer1_anchor.forced(path, vocabulary)
+
+    def test_a_forced_file_that_is_not_a_regular_file_is_refused_without_waiting_or_reading(self):
+        for name in ("forced.jsonl", "forced.json"):
+            for kind, error in (("fifo", ValueError), ("folder", ValueError), ("missing", FileNotFoundError)):
+                with self.subTest(file=name, kind=kind):
+                    path = write_forced(Path(tempfile.mkdtemp(dir=self.folder)) / "forced", made(TEXT["vocab_size"]))
+                    replaced(path / name, kind) if kind != "missing" else (path / name).unlink()
+                    events, patched = watched()
+                    with patched:
+                        thread, outcome = bounded(lambda: layer1_anchor.forced(path, TEXT["vocab_size"]))
+                        self.assertFalse(release(path / name, thread), "the run waited on the forced input")
+                    self.assertIsInstance(outcome.get("error"), error)
+                    if kind != "missing":
+                        self.assertEqual(touched(events, inode(path / name)), [])
+                        self.assertNotIn(str(path), str(outcome["error"]))
 
     def test_the_chosen_items_are_distinct_items_of_the_forced_input_in_the_given_order(self):
         records = made(TEXT["vocab_size"])
@@ -331,6 +349,10 @@ class AnchorRunTests(unittest.TestCase):
         write_json(self.folder / "prepare/ready.json", {"ready": True, "contract_sha256": "0" * 64})
         with self.assertRaisesRegex(ValueError, "prepare"):
             self.main("run", "--weights", "float16", output="unprepared")
+        replaced(self.folder / "prepare/ready.json", "fifo")
+        thread, outcome = bounded(lambda: self.main("run", "--weights", "float16", output="no-ready"))
+        self.assertFalse(release(self.folder / "prepare/ready.json", thread), "the run waited on ready.json")
+        self.assertEqual(str(outcome.get("error")), "ready.json is not a regular file")
         self.assertEqual(sorted(path.name for path in self.folder.iterdir()),
                          ["forced", "model.json", "other", "prepare", "taken"])
 
@@ -403,7 +425,7 @@ class CandidateRunTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.folder)
         self.contract = write_contract(self.folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
         self.vocabulary = TEXT["vocab_size"]
-        self.records = made(self.vocabulary, [(index % 7 + 3, index % 5 + 1) for index in range(10)])
+        self.records = made(self.vocabulary, [(index % 7 + 3, index % 5 + 1) for index in range(12)])
         self.forced = write_forced(self.folder / "forced", self.records)
         self.export = self.folder / "export"
         bundle = self.export / export.BUNDLE
@@ -465,20 +487,25 @@ class CandidateRunTests(unittest.TestCase):
                    ids[2]: {"record": {"shape": [1, self.vocabulary]}}, ids[3]: {"rows": -1},
                    ids[4]: {"stdout": "not a record"}, ids[5]: {"drop": ["cached"]},
                    ids[6]: {"record": {"main_hash": "cd" * 32}}, ids[7]: {"record": {"prefix_chunk": other}},
-                   ids[8]: {"no_output": True}}
-        result = self.run_candidate(changes)
+                   ids[8]: {"no_output": True}, ids[9]: {"fifo": True}}
+        thread, outcome = bounded(lambda: self.run_candidate(changes), 60)
         out = self.folder / "out"
+        self.assertFalse(release(out / f"{ids[9]}.f16", thread), "the run waited on the logits file of a launch")
+        result = outcome["value"]
         self.assertFalse(result["passed"])
         self.assertEqual(read_json(out / "run.json"), result)
         self.assertEqual(self.called(), ids)
-        self.assertEqual([entry["id"] for entry in read_json(out / "logits.json")["items"]], ids[9:])
+        self.assertEqual([entry["id"] for entry in read_json(out / "logits.json")["items"]], ids[10:])
         failing = {entry["id"]: entry["problems"] for entry in result["items"] if entry["problems"]}
-        self.assertEqual(set(failing), set(ids[:9]))
+        self.assertEqual(set(failing), set(ids[:10]))
         self.assertEqual(failing[ids[0]], ["the verifier exited with 1"])
         self.assertEqual(failing[ids[4]], ["the verifier did not print one JSON object"])
         self.assertEqual(failing[ids[5]], ["the verifier record is malformed (cached)"])
         self.assertEqual(failing[ids[8]], ["the item could not be run (FileNotFoundError)"])
-        self.assertTrue(failing[ids[3]][0].startswith("the logits file holds"))
+        self.assertEqual(failing[ids[3]], [f"the logits file is refused: {ids[3]}.f16 holds "
+                                           f"{(self.records[3]['rows'] - 1) * self.vocabulary * 2} B, not "
+                                           f"{self.records[3]['rows'] * self.vocabulary * 2} B"])
+        self.assertEqual(failing[ids[9]], [f"the logits file is refused: {ids[9]}.f16 is not a regular file"])
         self.assertEqual(len(result["problems"]), sum(map(len, failing.values())))
 
     def test_an_export_or_forced_input_that_does_not_fit_is_refused_before_anything_is_written_or_launched(self):
@@ -503,6 +530,8 @@ class CandidateRunTests(unittest.TestCase):
             self.run_candidate(output="taken")
         with self.assertRaises(FileNotFoundError):
             layer1_candidate.run(self.export, self.forced, self.folder / "absent", self.folder / "unlaunched", self.contract)
+        with self.assertRaisesRegex(ValueError, "not a regular file"):
+            layer1_candidate.run(self.export, self.forced, self.folder, self.folder / "unlaunched", self.contract)
         self.assertFalse((self.folder / "other-forced").exists() or (self.folder / "unlaunched").exists())
         self.assertEqual(self.called(), [])
 
