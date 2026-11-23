@@ -717,20 +717,21 @@ real weights was made or run here.
 [`mtp-drafter-comparison-20261123.json`](mtp-drafter-comparison-20261123.json),
 [`mtp-drafter-acceptance-20261123.json`](mtp-drafter-acceptance-20261123.json) and
 [`mtp-drafter-export-20261123.json`](mtp-drafter-export-20261123.json) are the JSON results of `mtp.py compare`,
-`acceptance` and `export`. They hold item ids, positions, numbers, hashes, versions and fixed names, and no token ids,
-text, local paths, commands or environment variables; the run folders and arrays stay in the local work directory.
+`acceptance` and `export`. They hold item ids, positions, numbers, hashes, versions and fixed names (the export also
+the synthetic configuration), and no token sequences, text, local paths, commands or environment variables; the run
+folders and arrays stay in the local work directory.
 
 ### Conditions
 
 - Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power. The runs of both drafters, the
-  comparison and the accepted drafts held the shared machine lock in one session (2026-11-23 16:13:26 to 16:24:13 JST),
+  comparison and the accepted drafts held the shared machine lock in one session (2026-11-23 17:01:23 to 17:11:47 JST),
   the export in an earlier one (14:30:08 to 14:41:56 JST), and no other model process ran; the times below are records,
   not measurements.
-- Commit 5be358f3 with no local changes; the export at commit 15d35fd8, whose drafter class, synthetic configuration and
-  export function are those of 5be358f3. The reference environment of the recipe (torch 2.15.0, transformers 5.16.1)
-  ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers 5.12.1,
-  coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted drafts and
-  the export.
+- Commit 4a116ac8, with no local changes to the tools; the export at commit 15d35fd8, whose drafter class, synthetic
+  configuration and export function are those of 4a116ac8. The reference environment of the recipe (torch 2.15.0,
+  transformers 5.16.1) ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers
+  5.12.1, coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted
+  drafts and the export.
 - `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`) and the embedding table
   of `model-00001-of-00002.safetensors` of the pinned target, every tensor rounded to float16 and computed in float32
   on the CPU. The features are those of #691: the original implementation in BF16 on MPS under teacher forcing with the
@@ -741,10 +742,12 @@ text, local paths, commands or environment variables; the run folders and arrays
 ### Drafter class and original drafter
 
 On a synthetic assistant (`OneStepTests` and `UnrolledTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py`,
-against the drafter of Transformers 5.12.1), the logits and the `post_projection` output of one step were equal to those
-of the original drafter, a largest absolute difference of 0.0, at positions 1, 1,024, 1,025, 1,026, 4,000 and 16,895 and
-with large values at both sides of the window edge, and the unrolled drafts of 1, 2 and 7 steps were those of the
-original generator. On the real weights the comparison passed for 47 rows of 13 items, the first item of each category:
+against the drafter of Transformers 5.12.1), the logits and the `post_projection` output of one step were within 1e-4
+of those of the original drafter (the bound these tests assert) at positions 1, 1,024, 1,025, 1,026, 4,000 and 16,895
+and with large values at both sides of the window edge, and the unrolled drafts of 1, 2 and 7 steps were those of the
+original generator. `BuildTests` builds both drafters from configurations at boundary values and requires finite
+outputs of one step, and non-finite ones from a non-finite hidden state. On the real weights the comparison passed for
+47 rows of 13 items, the first item of each category:
 
 | Item | Anchors a (output index) | w | Largest absolute logit difference | Largest projection ratio |
 |---|---|---|---:|---:|
@@ -770,8 +773,8 @@ and of the shard with the embedding table, `subset.json` and the features of the
 the fixed selection and seven steps. At all 47 rows the argmax was the same, the unrolled drafts of seven steps were
 those of one step repeated seven times, and the unrolled drafts cut after the first stop token were the drafts of the
 original generator. `ja-choice-0001` has one output token, so its four anchors are one. The run of the original drafter
-took 28.7 s (7.2 s after the files to read were hashed), that of the class 43.1 s (20.9 s); kernel lifetime footprint
-peak 28,489,061,208 B and 31,655,156,728 B.
+took 29.1 s (6.8 s after the files to read were hashed), that of the class 40.9 s (19.2 s); kernel lifetime footprint
+peak 28,482,261,800 B and 31,658,662,928 B.
 
 ### Accepted drafts on the teacher path
 
@@ -801,8 +804,8 @@ At 21 anchors the number of accepted drafts differs from the records of #691; at
 top-two logit margin that #691 recorded in BF16 was at most 0.125 (0.0 at two anchors). These are records, not criteria.
 The accepted counts of the records of #691, computed again from their drafts and the reference outputs, equal the
 recorded ones at all 4,462 anchors, and the tokens per round of `trajectories.json` are its tokens over its rounds
-rounded to four places in all 14 rows. The run took 573.2 s (547 s of drafting); kernel lifetime footprint peak
-60,623,056,312 B.
+rounded to four places in all 14 rows. The run took 551.8 s (527 s of drafting); kernel lifetime footprint peak
+60,546,330,088 B.
 
 ### Export of a synthetic drafter
 
@@ -836,8 +839,8 @@ weight of `post_projection`, whose output one step does not read. The counts are
 
 | File | SHA-256 |
 |---|---|
-| `record.json` of the run of the original drafter | `e2a03243c2b5c5d51352c193cc16b40e64a59eeb9a73bec18a014f8148382f2e` |
-| `record.json` of the run of the class | `44e47118c2dbee065e42c37ca49d89c05981d1e664a9dad09ebe39d2205c7427` |
+| `record.json` of the run of the original drafter | `1acad1b8453b8c086c566baa344f1d6118d79cecebecd1b6083dd506c6f440b6` |
+| `record.json` of the run of the class | `3c0013e112eeb7efe8c9b58a5ac31c8bd37786cf402d6e2f3fcc24979ca51ef2` |
 | `subset.json` of #691 | `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9` |
 
 ~~~sh
