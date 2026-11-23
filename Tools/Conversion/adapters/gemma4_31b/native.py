@@ -682,7 +682,6 @@ def measured(entry, config, arrays, facts, verifier, output):
 
 
 def compare(export_folder, reference_folder, verifier, output, contract_path=CONTRACT):
-    verifier = Path(verifier).resolve()
     if os.path.lexists(output):
         raise FileExistsError(f"The comparison must be written to a new folder: {output}")
     contract = load_contract(contract_path)
@@ -706,6 +705,7 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
     verifier_record = None
     if not problems:
         try:
+            verifier = Path(verifier).resolve()
             verifier_record = regular_file(verifier)[0]
         except Exception as error:
             problems.append(f"the verifier is unreadable ({type(error).__name__})")

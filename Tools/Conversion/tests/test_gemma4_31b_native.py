@@ -708,6 +708,17 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
         self.assertTrue(self.calls.exists())
 
+    def test_a_verifier_path_that_cannot_be_resolved_leaves_a_failed_comparison(self):
+        first, second = self.folder / "loop-a", self.folder / "loop-b"
+        first.symlink_to(second)
+        second.symlink_to(first)
+        result = self.run_compare(verifier=first)
+        self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
+        self.assertFalse(result["passed"])
+        self.assertEqual((len(result["problems"]), result["verifier"], result["conditions"]), (1, None, []))
+        self.assertRegex(result["problems"][0], r"^the verifier is unreadable \(\w+\)$")
+        self.assertFalse(self.calls.exists())
+
     def test_a_verifier_that_does_not_finish_in_time_is_stopped_and_its_condition_fails(self):
         with mock.patch.object(native, "TIMEOUT_S", 1.0):
             started = time.perf_counter()
