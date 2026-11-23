@@ -333,6 +333,10 @@ def boundaries():
     return cases
 
 
+def finite(*tensors):
+    return all(bool(torch.isfinite(tensor).all()) for tensor in tensors)
+
+
 def found_for(config, position=3):
     generator = torch.Generator().manual_seed(5)
     return SimpleNamespace(token=torch.zeros(1, 1, dtype=torch.int32),
@@ -392,20 +396,21 @@ class BuildTests(unittest.TestCase):
                 model = drafter.Gemma4AssistantDrafter(config, 1).eval()
                 self.assertEqual({name: list(tensor.shape) for name, tensor in model.state_dict().items()
                                   if name != "target_embed.weight"}, assistant.checkpoint_shapes(config))
-                found = found_for(config)
-                with torch.no_grad():
-                    logits, projected = model.outputs(*ours(found, config.sliding_window + 1))
-                self.assertEqual((tuple(logits.shape), tuple(projected.shape)),
-                                 ((1, 1, config.vocab_size), (1, 1, config.backbone_hidden_size)))
-                self.assertTrue(bool(torch.isfinite(logits).all() and torch.isfinite(projected).all()))
                 settings = Gemma4AssistantConfig(**copy.deepcopy(document))
                 settings._attn_implementation = "eager"
                 original_model = Gemma4AssistantForCausalLM(settings).eval()
                 embed = Gemma4TextScaledWordEmbedding(target["vocab_size"], target["hidden_size"], 0,
                                                       embed_scale=target["hidden_size"] ** 0.5)
-                their_logits, their_hidden = theirs(original_model, embed, found)
-                self.assertEqual((tuple(their_logits.shape), tuple(their_hidden.shape)),
-                                 ((1, 1, config.vocab_size), (1, 1, config.backbone_hidden_size)))
+                found = found_for(config)
+                spoiled = SimpleNamespace(**{**vars(found), "hidden": torch.full_like(found.hidden, float("nan"))})
+                for inputs, expected in ((found, True), (spoiled, False)):
+                    with torch.no_grad():
+                        outputs = model.outputs(*ours(inputs, config.sliding_window + 1))
+                    their = theirs(original_model, embed, inputs)
+                    shapes = ((1, 1, config.vocab_size), (1, 1, config.backbone_hidden_size))
+                    self.assertEqual((tuple(tuple(tensor.shape) for tensor in outputs),
+                                      tuple(tuple(tensor.shape) for tensor in their)), (shapes, shapes))
+                    self.assertEqual((finite(*outputs), finite(*their)), (expected, expected))
                 built.append(label)
         self.assertEqual(refused, ["num_attention_heads 1", "num_attention_heads 3", "num_key_value_heads 3",
                                    "num_key_value_heads 8", "num_global_key_value_heads 3", "num_global_key_value_heads 8",
