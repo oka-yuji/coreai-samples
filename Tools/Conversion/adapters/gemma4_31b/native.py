@@ -18,7 +18,8 @@ from .anchor import parse, read
 from .compare import BLOCK_ROWS, CONTRACT
 from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PRECISIONS, SCHEMA as EXPORT_SCHEMA, WRITES, check_asset,
                      metadata, name_of, quantized_names, required_bytes)
-from .layers import (CONDITIONS, CONTEXT_SCHEMA, PARTS, QUANTIZED, WEIGHT_KINDS, check_layers, check_taps, joined,
+from .layers import (CONDITIONS, CONTEXT_SCHEMA, PARTS, QUANTIZED, REFERENCE_CHUNK, WEIGHT_KINDS, check_layers, check_taps,
+                     joined, rounded_scale,
                      kept_rows, tokens)
 from .prepare import TOKENIZER_FILES, load_contract
 from .reference import LOADED_FILES, SWAP_INCREASE_LIMIT_BYTES
@@ -30,6 +31,9 @@ KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
 LARGEST = 2**63 - 1
 BLOCK_BYTES = 16 * 2**20
+CRITERIA = {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE}
+KNOWN_CALL = {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST}
+PREFILL_CHUNKS = (2048, 4096)
 STEPS = ("input_hash_s", "load_s", "convert_s", "save_s", "inspect_s", "bundle_hash_s")
 QUANTIZING_STEPS = ("quantize_s", "tensors_s")
 MONITOR = {"interval_s": INTERVAL_S, "abort": None, "aborts": 0, "failure": None, "unreadable_samples": 0,
@@ -87,7 +91,7 @@ def known_rows(start, length, chunk):
 
 
 def prefill_chunk():
-    return 4096 if os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") >= 64 << 30 else 2048
+    return PREFILL_CHUNKS[1] if os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") >= 64 << 30 else PREFILL_CHUNKS[0]
 
 
 def call_lengths(position, count, limit):
@@ -99,6 +103,15 @@ def call_lengths(position, count, limit):
         lengths.append(length)
         end += length
     return lengths
+
+
+def expected_verifier(entry, config, main_hash, prefill, prefix_chunk):
+    ids = tokens(entry["input"], config)[:entry["tokens"]]
+    return {"record": "logits", "token_count": entry["tokens"], "start": entry["start"], "chunk": entry["chunk"],
+            "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
+            "shape": [entry["rows"], config["vocab_size"]], "dtype": "float16", "byte_order": "little",
+            "main_calls": math.ceil(entry["rows"] / entry["chunk"]), "main_hash": main_hash,
+            **prefix_record(entry["start"], prefix_chunk, prefill)}
 
 
 def prefix_record(start, chunk, prefill):
@@ -131,12 +144,25 @@ def measure(swift, reference, indices, known):
         counts["near_tie"] += int((changed & near).sum())
         counts["outside"] += int((changed & ~near).sum())
     finite = not counts["non_finite"] and not counts["reference_non_finite"]
-    return {"rows": len(swift), "non_finite": counts["non_finite"], "reference_non_finite": counts["reference_non_finite"],
-            "constant_rows": counts["constant_rows"], "max_abs_logit": largest if finite else None,
-            "top1_mismatches": {"near_tie": counts["near_tie"], "outside": counts["outside"]},
-            "known": {"rows": int(known.sum()), "max_abs_logit": known_largest if finite and known.any() else None},
-            "checks": {"finite": finite, "no_constant_rows": not counts["constant_rows"],
-                       "max_abs_logit": finite and largest < MAX_ABS_LOGIT, "top1": not counts["outside"]}}
+    result = {"rows": len(swift), "non_finite": counts["non_finite"], "reference_non_finite": counts["reference_non_finite"],
+              "constant_rows": counts["constant_rows"], "max_abs_logit": largest if finite else None,
+              "top1_mismatches": {"near_tie": counts["near_tie"], "outside": counts["outside"]},
+              "known": {"rows": int(known.sum()), "max_abs_logit": known_largest if finite and known.any() else None}}
+    return {**result, "checks": verdicts(result)}
+
+
+def verdicts(entry):
+    finite = not entry["non_finite"] and not entry["reference_non_finite"]
+    return {"finite": finite, "no_constant_rows": not entry["constant_rows"],
+            "max_abs_logit": finite and entry["max_abs_logit"] < MAX_ABS_LOGIT, "top1": not entry["top1_mismatches"]["outside"]}
+
+
+def condition_passed(entry):
+    return not entry["problems"] and bool(entry["checks"]) and all(entry["checks"].values())
+
+
+def comparison_passed(problems, conditions):
+    return not problems and len(conditions) == len(CONDITIONS) and all(item["passed"] for item in conditions)
 
 
 def layer_problems(record, contract, label):
@@ -173,6 +199,24 @@ def load_reference(folder, contract, contract_path):
             continue
         arrays[name] = array
     return record, hashed, arrays, problems
+
+
+def reference_record_problems(record, contract):
+    config, problems = contract["config"], []
+    if canonical(record.get("chunk")) != canonical(REFERENCE_CHUNK):
+        problems.append("the reference was not computed in the fixed chunks")
+    if canonical(record.get("embed_scale")) != canonical(rounded_scale(config["hidden_size"])):
+        problems.append("the reference did not scale the embeddings by the rounded square root of the hidden size")
+    for name in ("short", "context"):
+        entry, count, rows = mapping(mapping(record, "inputs"), name), len(tokens(name, config)), len(kept_rows(name))
+        calls = [[start, min(start + REFERENCE_CHUNK, count)] for start in range(0, count, REFERENCE_CHUNK)]
+        if canonical(entry.get("calls")) != canonical(calls):
+            problems.append(f"the reference did not read the {name} input in the fixed chunks")
+        logits = mapping(entry, "logits")
+        if canonical({key: logits.get(key) for key in ("dtype", "shape")}) \
+                != canonical({"dtype": "float32", "shape": [rows, config["vocab_size"]]}):
+            problems.append(f"the reference recorded the {name} logits of another type or shape")
+    return problems
 
 
 def regular_file(path, size=None, keep=False):
@@ -456,7 +500,7 @@ def condition(spec, config, arrays, facts, verifier, output):
         json.dumps(entry, allow_nan=False)
     except Exception as error:
         entry = {**fixed, "problems": [f"the condition could not be compared ({type(error).__name__})"], "checks": {}}
-    entry["passed"] = not entry["problems"] and bool(entry["checks"]) and all(entry["checks"].values())
+    entry["passed"] = condition_passed(entry)
     return entry
 
 
@@ -484,11 +528,7 @@ def measured(entry, config, arrays, facts, verifier, output):
             entry["verifier"] = record
             problems += [f"the verifier record is malformed ({key})" for key in malformed]
             if not malformed:
-                expected = {"record": "logits", "token_count": length, "start": start, "chunk": chunk,
-                            "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
-                            "shape": [rows, vocabulary], "dtype": "float16", "byte_order": "little",
-                            "main_calls": math.ceil(rows / chunk), "main_hash": facts["main_hash"],
-                            **prefix_record(start, prefill_chunk(), facts["prefill"])}
+                expected = expected_verifier(entry, config, facts["main_hash"], facts["prefill"], prefill_chunk())
                 problems += [f"the verifier recorded {key} {record.get(key)!r}, not {value!r}"
                              for key, value in expected.items() if record.get(key) != value]
                 if start == 0 and "prefix_function" in record:
@@ -542,9 +582,7 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
     conditions = [] if problems else [condition(spec, contract["config"], arrays, facts, verifier, output)
                                       for spec in CONDITIONS]
     result = {"schema": SCHEMA, "problems": problems,
-              "passed": not problems and len(conditions) == len(CONDITIONS) and all(item["passed"] for item in conditions),
-              "criteria": {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE},
-              "known_call": {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST},
+              "passed": comparison_passed(problems, conditions), "criteria": CRITERIA, "known_call": KNOWN_CALL,
               "reference": {"sha256": reference_hash, "layers": reference.get("layers")},
               "export": {"sha256": export_hash, "layers": exported.get("layers"), "functions": exported.get("functions"),
                          "main_hash": facts["main_hash"] if facts else None},

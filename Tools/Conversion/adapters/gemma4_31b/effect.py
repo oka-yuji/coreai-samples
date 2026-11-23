@@ -12,6 +12,7 @@ from .summary import HEX
 
 SCHEMA = "gemma4-31b-quantization-effect/1"
 KEPT = ("rows", "non_finite", "reference_non_finite", "max_abs_logit", "top1_mismatches")
+CRITERIA = {"near_tie": NEAR_TIE}
 
 
 def checked(record):
@@ -47,7 +48,7 @@ def effect(restored, rounded, contract_path=CONTRACT):
                            **{key: values[key] for key in KEPT}})
     return {"schema": SCHEMA, "problems": problems,
             **{kind: {"sha256": hashed, "layers": record.get("layers")} for kind, (record, hashed, _) in loaded.items()},
-            "criteria": {"near_tie": NEAR_TIE}, "conditions": conditions}
+            "criteria": CRITERIA, "conditions": conditions}
 
 
 def main():

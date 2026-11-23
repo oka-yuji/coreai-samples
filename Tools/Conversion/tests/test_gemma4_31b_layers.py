@@ -671,7 +671,7 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
               "model": native.pinned_model(pinned, contract), "layers": 6, "layer_types": kinds,
               "functions": list(functions), "context": 16896, "precision": export.PRECISIONS[precision],
               "compression_config": copy.deepcopy(export.QUANTIZATION) if eight_bit else None,
-              "upstream_revision": pinned["upstream_revision"],
+              "upstream_revision": pinned["upstream_revision"], "versions": {"coreai-core": "1.0.0b3"},
               "weights": {"tensors": 85, "elements": sum(elements.values()), "elements_by_dtype": elements,
                           "quantized_layouts": len(names) if eight_bit else 0},
               **({"quantized": quantized} if eight_bit else {}),

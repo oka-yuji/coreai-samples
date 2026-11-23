@@ -5,15 +5,17 @@ import re
 import sys
 
 from ... import summary as pipeline
-from ...storage import PipelineError, canonical
-from ..pinned import sha256
+from ...storage import PipelineError, canonical, file_hash
 from .anchor import read
 from .anchor_summary import signed
 from .compare import CONTRACT
-from .effect import SCHEMA as EFFECT_SCHEMA
+from .effect import CRITERIA as EFFECT_CRITERIA, SCHEMA as EFFECT_SCHEMA
 from .export import QUANTIZATION, SCHEMA as EXPORT_SCHEMA
-from .layers import CONTEXT_SCHEMA, RESTORED, compare as compare_layers
-from .native import PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER, correspondence
+from .layers import CONDITIONS, CONTEXT_SCHEMA, RESTORED, compare as compare_layers
+from .native import (CRITERIA, KNOWN_CALL, PREFILL_CHUNKS, PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER,
+                     comparison_passed, condition_passed, correspondence, expected_verifier, known_rows, load_export,
+                     load_reference, reference_record_problems, verdicts)
+from .prepare import load_contract
 from .summary import HEX, REPOSITORY, SHARD, count, flag, matched, optional, word
 
 SCHEMA = "gemma4-31b-fp16-summary/2"
@@ -26,6 +28,8 @@ SCOPES = {SCHEMA: "FP16 export of the first layers with the outputs for speculat
                             "the quantization against the FP32 reference with float16-rounded weights; not a quality "
                             "evaluation."}
 CONDITION_KEYS = ("name", "input", "tokens", "start", "chunk", "rows")
+FIXED = [[name, source, length, start, chunk, length - start] for name, source, length, start, chunk in CONDITIONS]
+ROLES = ["prepare", "export"]
 RELATIVE = re.compile(r"[A-Za-z0-9_.-]{1,64}(/[A-Za-z0-9_.-]{1,64}){0,3}")
 
 
@@ -161,9 +165,38 @@ def condition(entry):
                          for key in PUBLIC}}
 
 
-def compared(record):
+def fixed(entries):
+    return canonical([[entry[key] for key in CONDITION_KEYS] for entry in entries])
+
+
+def compared(record, folder, exported_record, config):
     if record.get("schema") != COMPARISON_SCHEMA:
         raise PipelineError(f"Expected a {COMPARISON_SCHEMA} comparison")
+    if canonical(record["criteria"]) != canonical(CRITERIA):
+        raise PipelineError("Each comparison must record the fixed criteria")
+    if canonical(record["known_call"]) != canonical(KNOWN_CALL):
+        raise PipelineError("Each comparison must record the fixed call shape that the engine avoids")
+    if fixed(record["conditions"]) != canonical([] if record["problems"] else FIXED):
+        raise PipelineError("Each comparison must hold the twelve fixed conditions in order, or none with its problems")
+    for entry in record["conditions"]:
+        if canonical(entry["known"]["rows"]) != canonical(len(known_rows(entry["start"], entry["tokens"], entry["chunk"]))):
+            raise PipelineError("Each condition must record the rows of the known call shape of its chunks")
+        if canonical(entry["checks"]) != canonical(verdicts(entry)):
+            raise PipelineError("Each condition must record the checks that its numbers give")
+        if canonical(entry["passed"]) != canonical(condition_passed(entry)):
+            raise PipelineError("Each condition must record the verdict that its checks and problems give")
+        if canonical(entry["output"]) != canonical(file_hash(folder / f"{entry['name']}.f16")):
+            raise PipelineError("Each condition must record the size and SHA-256 of its logits file")
+        verifier = entry["verifier"]
+        expected = expected_verifier(entry, config, exported_record["bundle"]["main_hash"],
+                                     "prefill" in exported_record["functions"], verifier.get("prefix_chunk"))
+        if verifier.get("prefix_chunk") not in PREFILL_CHUNKS \
+                or canonical({key: verifier.get(key) for key in expected}) != canonical(expected):
+            raise PipelineError("Each condition must hold the record that the verifier gives for its reads")
+        if canonical(verifier["non_finite_count"]) != canonical(entry["non_finite"]):
+            raise PipelineError("Each condition must count the non-finite values that the verifier counted")
+    if canonical(record["passed"]) != canonical(comparison_passed(record["problems"], record["conditions"])):
+        raise PipelineError("Each comparison must record the verdict that its conditions and problems give")
     return {"passed": flag(record["passed"]), "problems": len(record["problems"]),
             "criteria": {word(key): number(value) for key, value in record["criteria"].items()},
             "known_call": {"ends": [count(value) for value in record["known_call"]["ends"]],
@@ -201,14 +234,15 @@ def paired(reports, exports, comparisons, context, reference_hash):
     if not len(reports) == len(exports) == len(comparisons) or len(set(files)) != len(files) \
             or len({report.get("run_id") for report in reports}) != len(reports):
         raise PipelineError("Give each export once, with its report and its comparison")
-    contract = sha256(CONTRACT)
-    if canonical(context["model"]["contract_sha256"]) != canonical(contract):
-        raise PipelineError("The reference must be of the contract of this repository")
     for report, file, (_, record, digest, size), comparison in zip(reports, files, exports, comparisons):
         stage = next((stage for stage in report.get("stages", []) if stage.get("role") == "export"), {})
         if stage.get("status") != "executed" or stage.get("origin") != report.get("run_id") or not stage.get("artifacts") \
                 or Path(stage["artifacts"]).resolve() / "export" / "export.json" != file:
             raise PipelineError("Each report must be the run that wrote the export record given with it")
+        if (report.get("status"), report.get("verification"), [entry.get("role") for entry in report["stages"]],
+                [entry.get("status") for entry in report["stages"]]) \
+                != ("completed", "not_configured", ROLES, ["executed"] * len(ROLES)):
+            raise PipelineError("Each report must be a completed run of the fixed stages, which has no verify stage")
         manifest = read(Path(stage["artifacts"]).parent / "manifest.json")[0]
         if (manifest.get("version"), manifest.get("status"), manifest.get("run_id"), manifest.get("stage")) \
                 != (1, "completed", report["run_id"], "export") \
@@ -225,8 +259,6 @@ def paired(reports, exports, comparisons, context, reference_hash):
         if record.get("precision") == "8bit" \
                 and canonical(tree.get("export/quantized.safetensors")) != canonical(record["quantized"]["file"]):
             raise PipelineError("Each 8-bit export record must list the quantized file that the manifest recorded")
-        if canonical(record["model"]["contract_sha256"]) != canonical(contract):
-            raise PipelineError("Each export must be of the contract of this repository")
         if canonical(record.get("layers")) != canonical(context.get("layers")):
             raise PipelineError("Each export must be of the layers of the reference")
         if correspondence(record, digest, context):
@@ -242,7 +274,7 @@ def paired(reports, exports, comparisons, context, reference_hash):
             raise PipelineError("Each comparison must record the layers of the reference")
 
 
-def effected(record, context, comparisons, reference_hash):
+def effected(record, context, reference_hash):
     restored = record.get("restored") if isinstance(record, dict) else None
     if not isinstance(restored, dict) or record.get("schema") != EFFECT_SCHEMA or record.get("problems") != [] \
             or restored.get("sha256") != reference_hash or not isinstance(record.get("rounded"), dict):
@@ -251,10 +283,10 @@ def effected(record, context, comparisons, reference_hash):
         raise PipelineError("The effect must be of the layers of the restored reference")
     if canonical(record["rounded"].get("layers")) != canonical(context.get("layers")):
         raise PipelineError("The effect must compare a rounded reference of the layers of the restored reference")
-    kept = [[entry[key] for key in CONDITION_KEYS] for entry in record["conditions"]]
-    if any(canonical(kept) != canonical([[entry[key] for key in CONDITION_KEYS] for entry in comparison["conditions"]])
-           for comparison in comparisons):
-        raise PipelineError("The effect must be measured on the conditions of each comparison")
+    if canonical(record["criteria"]) != canonical(EFFECT_CRITERIA):
+        raise PipelineError("The effect must record the fixed criteria")
+    if fixed(record["conditions"]) != canonical(FIXED):
+        raise PipelineError("The effect must be measured on the twelve fixed conditions in order")
     return {"rounded_sha256": matched(record["rounded"]["sha256"], HEX[64]), "layers": count(record["restored"]["layers"]),
             "criteria": {word(key): number(value) for key, value in record["criteria"].items()},
             "conditions": [{"name": word(entry["name"]), "input": word(entry["input"]),
@@ -265,12 +297,13 @@ def effected(record, context, comparisons, reference_hash):
                            for entry in record["conditions"]]}
 
 
-def project(reports, exports, comparisons, context, layered, effect):
+def project(reports, exports, comparisons, folders, context, layered, effect, config):
     schema = SCHEMA if effect is None else QUANTIZED_SCHEMA
     classes = {} if effect is not None else {"model_class": model_class(layered, exports)}
     return {"schema": schema, "scope": SCOPES[schema], "reference": reference(context), **classes,
-            "assets": [{"pipeline": pipeline.project(report), "export": exported(record), "comparison": compared(result)}
-                       for report, record, result in zip(reports, exports, comparisons, strict=True)],
+            "assets": [{"pipeline": pipeline.project(report), "export": exported(record),
+                        "comparison": compared(result, folder, record, config)}
+                       for report, record, result, folder in zip(reports, exports, comparisons, folders, strict=True)],
             **({} if effect is None else {"effect": effect})}
 
 
@@ -292,16 +325,26 @@ def main():
         exports = [(path, *read(path)) for path in args.export]
         comparisons = [read(path)[0] for path in args.comparison]
         context, reference_hash, _ = read(args.reference)
+        contract = load_contract(CONTRACT)
         paired(reports, exports, comparisons, context, reference_hash)
+        _, loaded_hash, _, found = load_reference(args.reference.parent, contract, CONTRACT)
+        if found or loaded_hash != reference_hash:
+            raise PipelineError("The reference must be a complete reference of the contract with its logits files")
+        if reference_record_problems(context, contract):
+            raise PipelineError("The reference must record the fixed chunks, calls, embedding scale and logits")
+        if any(load_export(Path(path).parent, contract, CONTRACT)[3] for path, _, _, _ in exports):
+            raise PipelineError("Each export must be a passed export of the contract")
         precisions = {record.get("precision") for _, record, _, _ in exports}
         given = tuple(value is not None for value in (args.original, args.model_class, args.effect))
         if precisions == {"float16"} and given == (True, True, False):
             layered, effect = compare_layers(args.original, args.model_class, CONTRACT), None
         elif precisions == {"8bit"} and given == (False, False, True):
-            layered, effect = None, effected(read(args.effect)[0], context, comparisons, reference_hash)
+            layered, effect = None, effected(read(args.effect)[0], context, reference_hash)
         else:
             raise PipelineError("Give FP16 exports with --original and --model-class, or 8-bit exports with --effect")
-        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons, context, layered, effect),
+        print(json.dumps(project(reports, [record for _, record, _, _ in exports], comparisons,
+                                 [Path(path).parent for path in args.comparison], context, layered, effect,
+                                 contract["config"]),
                          indent=2, allow_nan=False))
         return 0
     except Exception as error:
