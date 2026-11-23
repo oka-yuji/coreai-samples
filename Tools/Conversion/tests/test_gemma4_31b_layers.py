@@ -24,6 +24,8 @@ except ImportError:
 
 from Tools.Conversion.adapters.gemma4_31b import export, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
+from Tools.Conversion.adapters.gemma4_31b.reference import SWAP_INCREASE_LIMIT_BYTES
+from Tools.Conversion.adapters.jev27b import monitor as shared
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, file_hash, read_json, write_json
 
@@ -651,9 +653,20 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
     (bundle / "tokenizer").mkdir()
     for item in TOKENIZER_FILES:
         shutil.copyfile(Path(contract).parent / "snapshot" / item, bundle / "tokenizer" / item)
-    names, checkpoint = sorted(export.quantized_names(kinds)), 2000
-    elements = {"torch.float16": 1000, **({"torch.uint8": 4000} if eight_bit else {})}
+    names = sorted(export.quantized_names(kinds))
+    shapes = [entry.get("shape") for entry in (quantized or {}).get("layers", [])]
+    uint8 = sum(shape[0] * shape[1] for shape in shapes if isinstance(shape, list) and len(shape) == 2)
+    elements = {"torch.float16": 1000, **({"torch.uint8": uint8} if eight_bit else {})}
+    checkpoint = 1000 + uint8 - uint8 // 16
     required = export.required_bytes(checkpoint, precision)
+    steps = ["input_hash_s", "load_s", *(["quantize_s", "tensors_s"] if eight_bit else []), "convert_s", "save_s",
+             "inspect_s", "bundle_hash_s"]
+    monitor = {"samples": 2, "interval_s": shared.INTERVAL_S, "abort": None, "aborts": 0, "failure": None,
+               "unreadable_samples": 0, "limits": {"swap_used_bytes": shared.SWAP_LIMIT_BYTES,
+                                                   "free_percent": shared.FREE_PERCENT, "streak": shared.STREAK},
+               "first": {"swap_used_bytes": 5, "free_bytes": {"volume": required}},
+               "peak": {"rss_bytes": 8, "max_rss_bytes": 9, "swap_used_bytes": 5, "temporary_bytes": 0},
+               "lowest": {"free_percent": 50, "free_bytes": {"volume": export.MARGIN_BYTES}}}
     record = {"schema": export.SCHEMA, "passed": True, "problems": [], "checks": {"asset": True, "free_disk": True},
               "model": native.pinned_model(pinned, contract), "layers": 6, "layer_types": kinds,
               "functions": list(functions), "context": 16896, "precision": export.PRECISIONS[precision],
@@ -665,7 +678,7 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
               "asset": {"functions": export.expected_functions(config, kinds, functions, TAPS),
                         "output_order": {item: list(export.RETURNS[item]) for item in functions},
                         "storage_types": {"Float16": 1004, "Float32": export.float32_elements(config), "Int32": 1,
-                                          "UInt32": 1, "UInt64": 1, **({"UInt8": 4128} if eight_bit else {})},
+                                          "UInt32": 1, "UInt64": 1, **({"UInt8": uint8 + 128} if eight_bit else {})},
                         "dequantizations": export.dequantizations(names, kinds, functions, TAPS) if eight_bit else 0,
                         "float16_minus_weights": 4, **({"uint8_minus_weights": 128} if eight_bit else {})},
               "tokenizer": dict(pinned["tokenizer"]["files"]),
@@ -674,7 +687,10 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
               "disk": {"weight_bytes": 2 * checkpoint, "estimated_write_bytes": export.WRITES[precision] * checkpoint,
                        "margin_bytes": export.MARGIN_BYTES, "required_free_bytes": required,
                        "free_before_bytes": required, "lowest_free_bytes": export.MARGIN_BYTES},
-              "resources": {"swap": {"increase_bytes": 0}}, **changes}
+              "resources": {"max_rss_bytes": 9, "lifetime_peak_footprint_bytes": 7, "monitor": monitor,
+                            "swap": {"first_bytes": 5, "peak_bytes": 5, "limit_increase_bytes": SWAP_INCREASE_LIMIT_BYTES,
+                                     "increase_bytes": 0}},
+              "timing": {**dict.fromkeys(steps, 1.0), "total_s": len(steps) + 1.0}, **changes}
     write_json(folder / "export.json", record)
     resync(folder)
     return folder
@@ -684,7 +700,10 @@ def write_export(folder, contract, tensors, **changes):
     folder.mkdir()
     digests = export.save_quantized(folder / layers.QUANTIZED, list(tensors.items()))
     weights = sorted({name.rsplit(".", 1)[0] for name in tensors})
-    quantized = {"layers": [{"name": name, "class": "Dequantize", "shape": None, **export.LAYOUT} for name in weights],
+    shapes = {name: list(tensors[f"{name}.quantized_data"].shape) if f"{name}.quantized_data" in tensors else None
+              for name in weights}
+    quantized = {"layers": [{"name": name, "class": "Dequantize", "shape": shapes[name], **export.LAYOUT}
+                            for name in weights],
                  "skipped": 0, "warnings_enabled": True, "file": file_hash(folder / layers.QUANTIZED), "tensors": digests}
     return complete_export(folder, contract, "8bit", quantized=quantized, **changes)
 
@@ -763,8 +782,9 @@ BUNDLE_DEFECTS = {
         bytes=record["bundle"]["bytes"] + 1)),
     "an export of another converter checkout": changed(lambda record: record.update(upstream_revision="0" * 40)),
     "checks that did not pass": changed(lambda record: record["checks"].update(free_disk=False)),
-    "a lowest free disk below the margin": changed(lambda record: record["disk"].update(
-        lowest_free_bytes=export.MARGIN_BYTES - 1)),
+    "a lowest free disk below the margin": changed(lambda record: (
+        record["disk"].update(lowest_free_bytes=export.MARGIN_BYTES - 1),
+        record["resources"]["monitor"]["lowest"]["free_bytes"].update(volume=export.MARGIN_BYTES - 1))),
     "a context limit given as text": changed(lambda record: record.update(context="16896")),
     "an asset of other outputs": changed(lambda record: record["asset"]["output_order"].update(main=["logits"])),
     "an asset whose state shape holds true for one": changed(lambda record: record["asset"]["functions"]["main"][
@@ -777,8 +797,10 @@ BUNDLE_DEFECTS = {
         required_free_bytes=record["disk"]["required_free_bytes"] + 1)),
     "a free disk at the start below the requirement": changed(lambda record: record["disk"].update(
         free_before_bytes=record["disk"]["required_free_bytes"] - 1)),
-    "a swap increase above its limit": changed(lambda record: record["resources"]["swap"].update(
-        increase_bytes=3 * 10**9))}
+    "a swap increase above its limit": changed(lambda record: (
+        record["resources"]["monitor"]["first"].update(swap_used_bytes=0),
+        record["resources"]["monitor"]["peak"].update(swap_used_bytes=3 * 10**9),
+        record["resources"]["swap"].update(first_bytes=0, peak_bytes=3 * 10**9, increase_bytes=3 * 10**9)))}
 QUANTIZATION_DEFECTS = {
     "a dequantization count as a float": changed(lambda record: record["asset"].update(
         dequantizations=float(record["asset"]["dequantizations"]))),

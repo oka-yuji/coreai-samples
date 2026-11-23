@@ -12,6 +12,7 @@ import sys
 import time
 
 from ...storage import PipelineError, canonical, digest, write_json
+from ..jev27b.monitor import FREE_PERCENT, INTERVAL_S, STREAK, SWAP_LIMIT_BYTES
 from ..pinned import sha256
 from .anchor import parse, read
 from .compare import BLOCK_ROWS, CONTRACT
@@ -29,6 +30,10 @@ KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
 LARGEST = 2**63 - 1
 BLOCK_BYTES = 16 * 2**20
+STEPS = ("input_hash_s", "load_s", "convert_s", "save_s", "inspect_s", "bundle_hash_s")
+QUANTIZING_STEPS = ("quantize_s", "tensors_s")
+MONITOR = {"interval_s": INTERVAL_S, "abort": None, "aborts": 0, "failure": None, "unreadable_samples": 0,
+           "limits": {"swap_used_bytes": SWAP_LIMIT_BYTES, "free_percent": FREE_PERCENT, "streak": STREAK}}
 VERIFIER = {"record": "text", "token_count": "count", "start": "count", "chunk": "count", "tokens_sha256": "text",
             "shape": "shape", "dtype": "text", "byte_order": "text", "main_calls": "count", "main_hash": "text",
             "prefix_function": "text", "prefix_calls": "count", "prefix_chunk": "count", "cached": "flag",
@@ -216,6 +221,10 @@ def arguments(record, contract):
     return kinds, tuple(functions), context, taps, precision
 
 
+def counted(*values):
+    return all(valid("count", value) for value in values)
+
+
 def relation_problems(record, precision):
     weights, asset, disk = record["weights"], record["asset"], record["disk"]
     by_dtype, storage, problems = weights["elements_by_dtype"], asset["storage_types"], []
@@ -234,10 +243,49 @@ def relation_problems(record, precision):
     if rule is None or canonical({key: disk.get(key) for key in rule}) != canonical(rule) or not valid("count", free) \
             or free < rule["required_free_bytes"]:
         problems.append("the disk record does not follow the rule of the free disk")
-    increase = mapping(mapping(record, "resources"), "swap").get("increase_bytes")
+    resources = mapping(record, "resources")
+    swap, monitor, timing = mapping(resources, "swap"), mapping(resources, "monitor"), mapping(record, "timing")
+    first, peak, increase = (swap.get(key) for key in ("first_bytes", "peak_bytes", "increase_bytes"))
     if not valid("count", increase) or increase > SWAP_INCREASE_LIMIT_BYTES:
         problems.append("the export recorded no swap increase within its limit")
-    return problems
+    lowest, started = (mapping(mapping(monitor, key), "free_bytes") for key in ("lowest", "first"))
+    steps = [*STEPS, *(QUANTIZING_STEPS if precision == "8bit" else ()), "total_s"]
+    seconds = all(valid("seconds", value) for value in timing.values())
+    uint8, float16, layouts = by_dtype.get("torch.uint8", 0), by_dtype.get("torch.float16"), \
+        mapping(record, "quantized").get("layers", [])
+    shapes = [entry.get("shape") if isinstance(entry, dict) else None for entry in layouts] \
+        if isinstance(layouts, list) else [None]
+    formulas = {
+        "the swap record names another limit than the fixed one":
+            canonical(swap.get("limit_increase_bytes")) == canonical(SWAP_INCREASE_LIMIT_BYTES),
+        "the first swap of the record is not that of the monitor":
+            canonical(first) == canonical(mapping(monitor, "first").get("swap_used_bytes")),
+        "the peak swap of the record is not that of the monitor":
+            canonical(peak) == canonical(mapping(monitor, "peak").get("swap_used_bytes")),
+        "the swap increase is not the peak less the first swap":
+            counted(first, peak, increase) and increase == peak - first,
+        "the lowest free disk is not that of the monitor":
+            len(lowest) == 1 and canonical(disk.get("lowest_free_bytes")) == canonical([*lowest.values()][0]),
+        "the lowest free disk of the monitor is above its first free disk":
+            set(started) == set(lowest) and all(counted(lowest[key], started[key]) and lowest[key] <= started[key]
+                                                for key in lowest),
+        "the peak resident memory is below that of the monitor":
+            counted(resources.get("max_rss_bytes"), mapping(monitor, "peak").get("max_rss_bytes"))
+            and resources["max_rss_bytes"] >= monitor["peak"]["max_rss_bytes"],
+        "the monitor did not run under the fixed limits without stopping":
+            canonical({key: monitor.get(key) for key in MONITOR}) == canonical(MONITOR)
+            and canonical(mapping(monitor, "peak").get("temporary_bytes")) == canonical(0),
+        "the times are not those of the steps of the export":
+            sorted(timing) == sorted(steps) and seconds,
+        "the total time is shorter than its steps":
+            seconds and sum(value for key, value in timing.items() if key != "total_s") <= timing.get("total_s", 0),
+        "the weight elements do not follow from the checkpoint size and the quantized elements":
+            counted(disk.get("weight_bytes"), uint8, float16)
+            and 8 * (2 * float16 + 2 * uint8 - disk["weight_bytes"]) == uint8,
+        "the uint8 elements are not those of the quantized shapes":
+            all(valid("shape", shape) and len(shape) == 2 for shape in shapes)
+            and canonical(uint8) == canonical(sum(rows * columns for rows, columns in shapes))}
+    return problems + [message for message, holds in formulas.items() if not holds]
 
 
 def load_export(folder, contract, contract_path):

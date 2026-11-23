@@ -559,7 +559,7 @@ class CompareTests(unittest.TestCase):
         tensors.write_bytes(b"quantized tensors")
         entry = {"bytes": tensors.stat().st_size, "sha256": sha256(tensors)}
         names = sorted(export.quantized_names(self.kinds))
-        weights = [{"name": name, "class": "Dequantize", "shape": None, **export.LAYOUT} for name in names]
+        weights = [{"name": name, "class": "Dequantize", "shape": [1, 32], **export.LAYOUT} for name in names]
         digests = {f"{name}.{part}": "1" * 64 for name in names for part in layers.PARTS}
         complete_export(self.export, self.contract, "8bit", quantized={
             "layers": weights, "skipped": 0, "warnings_enabled": True, "file": entry, "tensors": digests}, **changes)
@@ -734,6 +734,66 @@ class CompareTests(unittest.TestCase):
             if eight_bit:
                 shutil.rmtree(self.export)
                 complete_export(self.export, self.contract)
+
+    def test_the_reader_names_each_number_of_the_record_that_does_not_follow_from_the_others(self):
+        limit, contract = native.SWAP_INCREASE_LIMIT_BYTES, load_contract(self.contract)
+
+        def swap(**values):
+            return lambda record: record["resources"]["swap"].update(values)
+
+        def monitored(part, **values):
+            return lambda record: record["resources"]["monitor"][part].update(values)
+
+        def review(record):
+            monitored("first", swap_used_bytes=0)(record)
+            monitored("peak", swap_used_bytes=limit + 1)(record)
+            swap(first_bytes=0, peak_bytes=limit + 1, increase_bytes=0)(record)
+
+        def float16(record):
+            record["weights"]["elements_by_dtype"]["torch.float16"] += 2
+            record["weights"]["elements"] += 2
+            record["asset"]["float16_minus_weights"] -= 2
+
+        increase, first, peak = ("the swap increase is not the peak less the first swap",
+                                 "the first swap of the record is not that of the monitor",
+                                 "the peak swap of the record is not that of the monitor")
+        weights = "the weight elements do not follow from the checkpoint size and the quantized elements"
+        cases = {"a swap above its limit recorded as no increase": (False, review, increase),
+                 "a swap increase other than the peak less the first swap": (False, swap(increase_bytes=1), increase),
+                 "a first swap other than that of the monitor": (False, swap(first_bytes=4, increase_bytes=1), first),
+                 "a peak swap other than that of the monitor": (False, swap(peak_bytes=6, increase_bytes=1), peak),
+                 "another limit of the swap increase": (False, swap(limit_increase_bytes=limit + 1),
+                                                        "the swap record names another limit than the fixed one"),
+                 "a lowest free disk other than that of the monitor": (False, lambda record: record["disk"].update(
+                     lowest_free_bytes=export.MARGIN_BYTES + 1), "the lowest free disk is not that of the monitor"),
+                 "a first free disk of the monitor below its lowest": (False, lambda record: record["resources"][
+                     "monitor"]["first"]["free_bytes"].update(volume=export.MARGIN_BYTES - 1),
+                     "the lowest free disk of the monitor is above its first free disk"),
+                 "a peak resident memory below that of the monitor": (False, lambda record: record["resources"].update(
+                     max_rss_bytes=8), "the peak resident memory is below that of the monitor"),
+                 "a monitor that stopped the export": (False, lambda record: record["resources"]["monitor"].update(
+                     aborts=1), "the monitor did not run under the fixed limits without stopping"),
+                 "the time of a step that the export does not take": (False, lambda record: record["timing"].update(
+                     quantize_s=1.0), "the times are not those of the steps of the export"),
+                 "a total time shorter than its steps": (False, lambda record: record["timing"].update(total_s=1.0),
+                                                         "the total time is shorter than its steps"),
+                 "float16 elements other than the checkpoint holds": (False, float16, weights),
+                 "8-bit float16 elements other than the checkpoint and the quantized weights give": (True, float16,
+                                                                                                    weights),
+                 "a quantized shape other than the uint8 elements": (True, lambda record: record["quantized"]["layers"][
+                     0].update(shape=[2, 32]), "the uint8 elements are not those of the quantized shapes")}
+        for eight_bit in (False, True):
+            if eight_bit:
+                self.quantized()
+            self.assertEqual(native.load_export(self.export, contract, self.contract)[3], [])
+            for index, (label, (case_bit, change, expected)) in enumerate(cases.items()):
+                if case_bit != eight_bit:
+                    continue
+                folder = self.folder / f"numbers-{int(eight_bit)}-{index}"
+                shutil.copytree(self.export, folder)
+                edit(folder / "export.json", change)
+                with self.subTest(case=label):
+                    self.assertEqual(native.load_export(folder, contract, self.contract)[3], [expected])
 
     def test_the_export_reader_names_each_defect_of_the_record_and_of_its_folder(self):
         contract = load_contract(self.contract)
