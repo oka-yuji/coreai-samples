@@ -434,7 +434,7 @@ class RecordTests(unittest.TestCase):
     def test_records_that_are_named_pipes_are_refused_without_waiting_for_a_writer(self):
         item = self.items()[0]
         paths = {"subset.json": (self.records / "subset.json", lambda path: mtp.subset_record(path)),
-                 "a drafter record": (self.folder / "drafter.json", lambda path: mtp.draft_rows(path, item)),
+                 "a drafter record": (self.folder / "drafter.json", lambda path: mtp.draft_rows(path, item, CONFIG["vocab_size"])),
                  "trajectories.json": (self.folder / "trajectories.json", lambda path: mtp.published(path, 7, ["alpha"])),
                  "the assistant contract": (self.folder / "assistant.json", mtp.load_assistant)}
         for label, (path, read) in paths.items():
@@ -466,26 +466,28 @@ class RecordTests(unittest.TestCase):
         rows[0]["fixed"].update(accepted=2, tokens=item["teacher"][1:3])
         path = self.folder / "drafter.json"
         write_json(path, {"id": item["id"], "P": 20, "T": 10, "mtp": rows})
-        self.assertEqual([row["accepted"] for row in mtp.draft_rows(path, item).values()], [2] + [0] * 8)
+        self.assertEqual([row["accepted"] for row in mtp.draft_rows(path, item, CONFIG["vocab_size"]).values()], [2] + [0] * 8)
         changes = {"a missing anchor": lambda record: record["mtp"].pop(),
                    "an anchor off its output index": lambda record: record["mtp"][0].update(a=21),
                    "a boolean accepted count": lambda record: record["mtp"][0]["fixed"].update(accepted=True),
                    "margins of another length": lambda record: record["mtp"][0]["fixed"]["margins"].pop(),
                    "a negative margin": lambda record: record["mtp"][0]["fixed"]["margins"].__setitem__(0, -0.5),
+                   "a draft beyond the vocabulary": lambda record: record["mtp"][1]["fixed"]["tokens"].__setitem__(
+                       0, CONFIG["vocab_size"]),
                    "another input length": lambda record: record.update(P=21)}
         for label, change in changes.items():
             record = {"id": item["id"], "P": 20, "T": 10, "mtp": json.loads(json.dumps(rows))}
             change(record)
             write_json(path, record)
             with self.subTest(change=label), self.assertRaises(ValueError):
-                mtp.draft_rows(path, item)
+                mtp.draft_rows(path, item, CONFIG["vocab_size"])
         skipped = json.loads(json.dumps(rows))
         skipped[1]["fixed"]["accepted"] = 1
         self.assertEqual(mtp.simulate([row["fixed"]["accepted"] for row in skipped], 10, 7),
                          mtp.simulate([row["fixed"]["accepted"] for row in rows], 10, 7))
         write_json(path, {"id": item["id"], "P": 20, "T": 10, "mtp": skipped})
         with self.assertRaisesRegex(ValueError, "accepted counts that its drafts and the teacher do not give at 1 anchors"):
-            mtp.draft_rows(path, item)
+            mtp.draft_rows(path, item, CONFIG["vocab_size"])
         level = {"alpha": {"rounds": 3, "tokens": 7, "tokens_per_round": 2.3333},
                  "beta": {"rounds": 0, "tokens": 0, "tokens_per_round": None},
                  "pooled": {"rounds": 3, "tokens": 7, "tokens_per_round": 2.3333}}
@@ -609,6 +611,17 @@ class CompareTests(unittest.TestCase):
         record = read_json(folder / "record.json")
         record["arrays"][name].update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
         write_json(folder / "record.json", record)
+
+    def test_arrays_of_another_type_shape_or_count_of_non_finite_values_than_their_record_are_problems(self):
+        for name, value in {"dtype": "float64", "shape": [8, 300], "non_finite": 1}.items():
+            label = f"record-{name}"
+            self.pair(label)
+            record = read_json(self.folder / label / "class/record.json")
+            record["arrays"]["logits"][name] = value
+            write_json(self.folder / label / "class/record.json", record)
+            with self.subTest(field=name):
+                self.assertIn("the class run records another type, shape or count of non-finite values of its logits",
+                              self.compare(label)["problems"])
 
     def test_an_archive_of_arrays_in_place_of_an_array_is_a_problem_of_that_array(self):
         self.pair("archive")
@@ -898,6 +911,18 @@ class ReadTests(unittest.TestCase):
             with mock.patch.object(mtp, "load_contract", side_effect=changed), \
                     self.assertRaisesRegex(ValueError, "model.json changed while it was read"):
                 mtp.target_contract(path)
+            good = read_json(path)
+            changes = {"a width as a float": {"hidden_size": 48.0}, "a head dimension as a boolean": {"head_dim": True},
+                       "a vocabulary as text": {"vocab_size": "301"}, "layers as a float": {"num_hidden_layers": 12.0},
+                       "a window of zero": {"sliding_window": 0},
+                       "a stop token beyond the vocabulary": {"eos_token_id": [1, 106, CONFIG["vocab_size"]]},
+                       "a stop token as a float": {"eos_token_id": [1.0, 106, 50]},
+                       "a layer pattern without a full-attention layer": {"layer_pattern": [SLIDING] * 6},
+                       "a layer pattern as text": {"layer_pattern": "sliding_attention"}}
+            for label, change in changes.items():
+                write_json(path, {**good, "config": {**good["config"], **change}})
+                with self.subTest(change=label), self.assertRaises(ValueError):
+                    mtp.target_contract(path)
 
     def test_inputs_that_are_named_pipes_are_refused_without_waiting_or_reading_them(self):
         folder = Path(tempfile.mkdtemp())
@@ -1034,6 +1059,7 @@ class RefusalTests(unittest.TestCase):
                                             unsupported),
                      "a width as a float": (lambda document: document["text_config"].update(hidden_size=32.0), None, None,
                                             "hidden_size"),
+                     "a target width as a float": (None, None, "target width", "model.json holds configuration values"),
                      "another width of the target": (lambda document: document.update(backbone_hidden_size=64), None,
                                                      None, unsupported),
                      "a sliding-window layer in place of the full-attention layer": (
@@ -1062,6 +1088,9 @@ class RefusalTests(unittest.TestCase):
                     other()
                 table = torch.zeros(*(other if isinstance(other, tuple) else (vocabulary, hidden)))
                 target, contract = write_target(case, table)
+                if other == "target width":
+                    pinned = read_json(contract)
+                    write_json(contract, {**pinned, "config": {**pinned["config"], "hidden_size": float(hidden)}})
                 assistant, assistant_contract = write_assistant(case, document, state)
                 arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
                 for implementation in mtp.IMPLEMENTATIONS:

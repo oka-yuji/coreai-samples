@@ -14,7 +14,7 @@ import time
 from Tools.LLMEvaluation.layer1 import file_bytes, strict, strict_records
 from Tools.LLMEvaluation.scoring import generated, partition
 from ...storage import write_json
-from .assistant import SYNTHETIC, TARGET, assistant_config, checkpoint_shapes
+from .assistant import FULL, KINDS, SLIDING, SYNTHETIC, TARGET, assistant_config, checkpoint_shapes
 from .baseline import read_inputs
 from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, rounded_scale, same_file
 from .native import valid
@@ -78,6 +78,13 @@ def target_contract(path):
     contract = load_contract(path)
     if strict(data) != contract:
         raise ValueError(f"{Path(path).name} changed while it was read")
+    config = contract["config"]
+    pattern, stops = config["layer_pattern"], config["eos_token_id"]
+    if not all(KINDS["count"](config[name]) for name in (*TARGET, "num_hidden_layers")) \
+            or not isinstance(pattern, list) or not all(kind in (SLIDING, FULL) for kind in pattern) \
+            or SLIDING not in pattern or FULL not in pattern or not isinstance(stops, list) \
+            or not all(type(token) is int and 0 <= token < config["vocab_size"] for token in stops):
+        raise ValueError(f"{Path(path).name} holds configuration values of another kind than the tool reads")
     return contract, hashlib.sha256(data).hexdigest()
 
 
@@ -528,7 +535,16 @@ def loaded_run(folder, kind, problems):
         elif type(arrays[name]) is not np.ndarray:
             problems.append(f"the {kind} {name} are not one array")
             arrays[name] = None
+        elif canonical([entry.get(key) for key in ("dtype", "shape", "non_finite")]) != canonical(described(arrays[name])):
+            problems.append(f"the {kind} run records another type, shape or count of non-finite values of its {name}")
     return record, arrays, found
+
+
+def described(array):
+    import numpy as np
+
+    return [str(array.dtype), list(array.shape),
+            int(array.size - np.isfinite(array).sum()) if array.dtype.kind in "biufc" else None]
 
 
 def tokens_or_padding(array, vocabulary, padded):
@@ -619,7 +635,7 @@ def compared(folders, expected, config, steps, problems):
             "records_sha256": hashes}
 
 
-def draft_rows(path, item):
+def draft_rows(path, item, vocabulary):
     record = document(path)
     rows = record.get("mtp") if isinstance(record, dict) else None
     if not isinstance(rows, list) or record.get("id") != item["id"] \
@@ -632,7 +648,7 @@ def draft_rows(path, item):
                 or row["a"] != row["j"] + len(item["input_ids"]) or row["j"] in found \
                 or not valid("count", fixed.get("accepted")) or not isinstance(fixed.get("tokens"), list) \
                 or not isinstance(fixed.get("margins"), list) or len(fixed["margins"]) != len(fixed["tokens"]) \
-                or not all(valid("count", token) for token in fixed["tokens"]) \
+                or not all(valid("count", token) and token < vocabulary for token in fixed["tokens"]) \
                 or not all(valid("seconds", margin) for margin in fixed["margins"]):
             raise ValueError(f"{Path(path).name} holds a malformed row")
         accepted = matches(fixed["tokens"], item["teacher"][row["j"] + 1:])
@@ -674,7 +690,8 @@ def acceptance(contract_path, assistant_path, snapshot, assistant_snapshot, reco
                                                        records, inputs, outputs, lambda record: record["items"])
     config, place, stops = contract["config"], layout(contract["config"]), set(contract["config"]["eos_token_id"])
     reference = published(Path(records) / "trajectories.json", steps, subset["counts"])
-    drafts = {item["id"]: draft_rows(Path(records) / "drafters" / f"{item['id']}.json", item) for item in items}
+    drafts = {item["id"]: draft_rows(Path(records) / "drafters" / f"{item['id']}.json", item, config["vocab_size"])
+              for item in items}
     started, problems = time.perf_counter(), []
     result = {"schema": ACCEPTANCE, "problems": problems, "steps": steps, "stops": sorted(stops), "position": "fixed",
               "window": place["window"], **sources, "weights": WEIGHTS}
