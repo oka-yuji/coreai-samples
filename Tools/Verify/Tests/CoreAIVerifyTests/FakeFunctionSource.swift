@@ -13,9 +13,11 @@ final class FakeFunctionSource: FunctionSource, Sendable {
             specializeS: 0.5, loadS: 0.75)
         var failsAtLoad = false
         var cancelsAtLoad = false
+        var cancelsTaskAtLoad = false
         var outputs = [FunctionFixture.outputs()]
         var failsAtCall: Int?
         var cancelsAtCall: Int?
+        var cancelsTaskAtCall: Int?
         var beforeCall: (@Sendable (Int) -> Void)?
     }
 
@@ -43,6 +45,7 @@ final class FakeFunctionSource: FunctionSource, Sendable {
         state.withLock { $0.calls.append("load \(function)") }
         if script.cancelsAtLoad { throw CancellationError() }
         if script.failsAtLoad { throw Failure() }
+        if script.cancelsTaskAtLoad { Self.cancelTheTask() }
         return script.load
     }
 
@@ -55,6 +58,11 @@ final class FakeFunctionSource: FunctionSource, Sendable {
         script.beforeCall?(number)
         if script.cancelsAtCall == number { throw CancellationError() }
         if script.failsAtCall == number { throw Failure() }
+        if script.cancelsTaskAtCall == number { Self.cancelTheTask() }
         return script.outputs[min(number, script.outputs.count) - 1]
+    }
+
+    private static func cancelTheTask() {
+        _ = withUnsafeCurrentTask { $0?.cancel() }
     }
 }

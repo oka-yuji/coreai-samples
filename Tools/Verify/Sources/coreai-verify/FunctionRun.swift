@@ -3,7 +3,8 @@ import Foundation
 
 enum FunctionRun {
     static func run(
-        function name: String, inputs listURL: URL, output: URL, repeatCount: Int, source: some FunctionSource
+        function name: String, inputs listURL: URL, output: URL, repeatCount: Int, source: some FunctionSource,
+        folderMode: mode_t = 0o755
     ) async throws -> FunctionRecord {
         precondition(repeatCount >= 1)
         let path = output.path(percentEncoded: false)
@@ -19,13 +20,20 @@ enum FunctionRun {
                 folder.appending(path: item.file), label: item.file, expectedBytes: item.byteCount)
             inputs.append(FunctionTensor(name: item.name, dtype: item.dtype, shape: item.shape, data: data))
         }
-        guard mkdir(path, 0o755) == 0 else {
+        guard mkdir(path, folderMode) == 0 else {
             throw errno == EEXIST
                 ? FunctionError.outputExists(path)
                 : FunctionError.cannot("create the output folder", String(cString: strerror(errno)))
         }
+        do {
+            try FunctionFailureRecord(kind: .incomplete).write(to: output)
+        } catch {
+            rmdir(path)
+            throw FunctionError.cannot("write the failure record", error.localizedDescription)
+        }
         var stage = FunctionFailureRecord.Kind.load
         do {
+            try Task.checkCancellation()
             let load = try await source.load(name)
             stage = .call
             var first: [FunctionTensor] = []
@@ -33,12 +41,14 @@ enum FunctionRun {
             var timings: [Double] = []
             var differing: [Int] = []
             for number in 1...repeatCount {
+                try Task.checkCancellation()
                 let start = ContinuousClock.now
                 last = try await source.call(inputs)
                 timings.append(seconds(ContinuousClock.now - start))
                 if number == 1 { first = last } else if last != first { differing.append(number) }
             }
             stage = .write
+            try Task.checkCancellation()
             let files = try last.map { try fileName(for: $0.name) }
             for (tensor, file) in zip(last, files) {
                 try tensor.data.write(to: output.appending(path: file), options: .withoutOverwriting)
@@ -49,10 +59,14 @@ enum FunctionRun {
                 differingCalls: differing)
             try (JSONEncoder.records.encode(record) + Data("\n".utf8)).write(
                 to: output.appending(path: "function.json"), options: .atomic)
-            if !differing.isEmpty { FunctionFailureRecord(kind: .repeatMismatch).write(to: output) }
+            if differing.isEmpty {
+                try FileManager.default.removeItem(at: output.appending(path: FunctionFailureRecord.fileName))
+            } else {
+                try? FunctionFailureRecord(kind: .repeatMismatch).write(to: output)
+            }
             return record
         } catch {
-            FunctionFailureRecord(kind: error is CancellationError ? .cancelled : stage).write(to: output)
+            try? FunctionFailureRecord(kind: error is CancellationError ? .cancelled : stage).write(to: output)
             throw error
         }
     }

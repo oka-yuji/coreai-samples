@@ -2,6 +2,7 @@ import Foundation
 
 struct FunctionFailureRecord: Codable, Equatable {
     enum Kind: String, Codable {
+        case incomplete
         case load
         case call
         case write
@@ -9,11 +10,13 @@ struct FunctionFailureRecord: Codable, Equatable {
         case cancelled
     }
 
+    static let fileName = "failure.json"
+
     var record = "function-failure"
     let kind: Kind
 
-    func write(to folder: URL) {
-        guard let line = try? JSONEncoder.records.encode(self) + Data("\n".utf8) else { return }
-        try? line.write(to: folder.appending(path: "failure.json"), options: .atomic)
+    func write(to folder: URL) throws {
+        try (JSONEncoder.records.encode(self) + Data("\n".utf8)).write(
+            to: folder.appending(path: Self.fileName), options: .atomic)
     }
 }

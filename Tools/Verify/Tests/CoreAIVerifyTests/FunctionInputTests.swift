@@ -27,12 +27,12 @@ import Testing
     func readsInputs() throws {
         let data = list(
             entry(name: #""input_ids""#, shape: "[1,1]", file: #""ids.bin""#),
-            entry(name: #""keys""#, dtype: #""float16""#, shape: "[1,2,5,3]", file: #""nested/keys.bin""#),
+            entry(name: #""keys""#, dtype: #""float16""#, shape: "[1,2,5,3]", file: #""keys.bin""#),
             entry(name: #""scale""#, dtype: #""float32""#, shape: "[7]", file: #""scale.bin""#))
         #expect(
             try FunctionInput.read(data) == [
                 FunctionInput(name: "input_ids", dtype: .int32, shape: [1, 1], file: "ids.bin"),
-                FunctionInput(name: "keys", dtype: .float16, shape: [1, 2, 5, 3], file: "nested/keys.bin"),
+                FunctionInput(name: "keys", dtype: .float16, shape: [1, 2, 5, 3], file: "keys.bin"),
                 FunctionInput(name: "scale", dtype: .float32, shape: [7], file: "scale.bin"),
             ])
     }
@@ -100,8 +100,8 @@ import Testing
                 "inputs[0].dtype must be int32, float16 or float32"
             ),
             (#"{"name":"a","dtype":32,"shape":[1],"file":"a"}"#, "inputs[0].dtype must be int32, float16 or float32"),
-            (#"{"name":"a","dtype":"int32","shape":[1],"file":1}"#, "inputs[0].file must be a relative path"),
-            (#"{"name":"a","dtype":"int32","shape":[1],"file":null}"#, "inputs[0].file must be a relative path"),
+            (#"{"name":"a","dtype":"int32","shape":[1],"file":1}"#, "inputs[0].file must be the name of a file"),
+            (#"{"name":"a","dtype":"int32","shape":[1],"file":null}"#, "inputs[0].file must be the name of a file"),
         ])
     func rejectsABadScalar(entry: String, message: String) throws {
         #expect(try reason(Data(#"{"inputs":[\#(entry)]}"#.utf8)).hasPrefix(message))
@@ -130,18 +130,21 @@ import Testing
     }
 
     @Test(
-        "A file that is empty, absolute, has a parent component or has a NUL character is rejected",
+        "A file that is not the name of a file in the folder of the inputs file is rejected: empty, with a slash or a NUL character, or a dot or two",
         arguments: [
-            #""""#, #""/a.bin""#, #""/""#, #""../a.bin""#, #""a/../b.bin""#, #""a/..""#, #""..""#, #""a\u0000b""#,
+            #""""#, #""/a.bin""#, #""/""#, #""../a.bin""#, #""a/../b.bin""#, #""a/..""#, #""..""#, #"".""#,
+            #""./a.bin""#, #""sub/a.bin""#, #""a/""#, #""a/b/c.bin""#, #""a\u0000b""#, #""\u0000""#,
         ])
-    func rejectsAnUnsafeFile(file: String) throws {
-        #expect(try reason(list(entry(file: file))).hasPrefix("inputs[0].file must be a relative path"))
+    func rejectsAFileThatIsNotAFileName(file: String) throws {
+        #expect(
+            try reason(list(entry(file: file))).hasPrefix(
+                "inputs[0].file must be the name of a file in the folder of the inputs file"))
     }
 
     @Test(
-        "A file with a nested path, a current-folder component or dots inside a name is read",
-        arguments: ["a.bin", "nested/deeper/a.bin", "./a.bin", "..a", "a..", "a..b/c", ".hidden"])
-    func readsASafeFile(file: String) throws {
+        "A file that is a name with dots, spaces or a leading dot is read as it is",
+        arguments: ["a.bin", "..a", "a..", "a..b", ".hidden", "...", "a b.bin", "-a", "~"])
+    func readsAFileName(file: String) throws {
         #expect(try FunctionInput.read(list(entry(file: #""\#(file)""#))).map(\.file) == [file])
     }
 

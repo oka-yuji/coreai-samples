@@ -89,7 +89,7 @@ import Testing
     @Test(
         "A failure record holds the name of the record and the kind of the error and nothing else",
         arguments: [
-            (FunctionFailureRecord.Kind.load, "load"), (.call, "call"), (.write, "write"),
+            (FunctionFailureRecord.Kind.incomplete, "incomplete"), (.load, "load"), (.call, "call"), (.write, "write"),
             (.repeatMismatch, "repeat_mismatch"), (.cancelled, "cancelled"),
         ])
     func failureRecordHoldsOnlyTheKind(kind: FunctionFailureRecord.Kind, name: String) throws {

@@ -15,7 +15,7 @@ struct FunctionFixture {
     static let inputs = [
         FunctionInput(name: "input_ids", dtype: .int32, shape: [1, 1], file: "input_ids.bin"),
         FunctionInput(name: "hidden_states", dtype: .float16, shape: [1, 1, 4], file: "hidden_states.bin"),
-        FunctionInput(name: "keys", dtype: .float16, shape: [1, 2, 5, 3], file: "nested/keys.bin"),
+        FunctionInput(name: "keys", dtype: .float16, shape: [1, 2, 5, 3], file: "keys.bin"),
     ]
 
     static func data(_ input: FunctionInput) -> Data {
@@ -44,21 +44,40 @@ struct FunctionFixture {
     init(inputs: [FunctionInput] = Self.inputs, listText: String? = nil) throws {
         folder = FileManager.default.temporaryDirectory.appending(path: "function-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
-        for input in inputs {
-            let url = folder.appending(path: input.file)
-            try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try Self.data(input).write(to: url)
-        }
+        for input in inputs { try Self.data(input).write(to: folder.appending(path: input.file)) }
+        if let listText { try Data(listText.utf8).write(to: list) } else { try writeList(inputs) }
+    }
+
+    func writeList(_ inputs: [FunctionInput]) throws {
         let entries = inputs.map {
             ["name": $0.name, "dtype": $0.dtype.rawValue, "shape": $0.shape, "file": $0.file] as [String: Any]
         }
-        let text = try listText.map { Data($0.utf8) } ?? JSONSerialization.data(withJSONObject: ["inputs": entries])
-        try text.write(to: folder.appending(path: "inputs.json"))
+        try JSONSerialization.data(withJSONObject: ["inputs": entries]).write(to: list)
     }
 
     func remove() {
         try? FileManager.default.removeItem(at: folder)
+    }
+
+    func run(
+        _ source: FakeFunctionSource, repeatCount: Int = 1, function: String = "draft", folderMode: mode_t = 0o755
+    ) async throws -> FunctionRecord {
+        try await FunctionRun.run(
+            function: function, inputs: list, output: output, repeatCount: repeatCount, source: source,
+            folderMode: folderMode)
+    }
+
+    static func exists(_ url: URL) -> Bool {
+        FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+    }
+
+    func names() throws -> [String] {
+        try FileManager.default.contentsOfDirectory(atPath: output.path(percentEncoded: false)).sorted()
+    }
+
+    func failureKind() throws -> String? {
+        let object = try JSONSerialization.jsonObject(with: Data(contentsOf: output.appending(path: "failure.json")))
+        return (object as? [String: Any])?["kind"] as? String
     }
 
     func url(_ file: String) -> URL {

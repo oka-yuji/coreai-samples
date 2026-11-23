@@ -41,9 +41,10 @@ struct FunctionInput: Equatable {
         guard let items = fields["shape"] as? [Any], !items.isEmpty, items.allSatisfy({ dimension($0) != nil }) else {
             throw FunctionError.invalidList("\(place).shape must be a non-empty array of integers from 1")
         }
-        guard let file = fields["file"] as? String, isInsideFolder(file) else {
+        guard let file = fields["file"] as? String, isFileName(file) else {
             throw FunctionError.invalidList(
-                "\(place).file must be a relative path inside the folder of the inputs file, without .. components")
+                "\(place).file must be the name of a file in the folder of the inputs file: not empty, without / or NUL, and not . or .."
+            )
         }
         return FunctionInput(name: name, dtype: dtype, shape: items.compactMap(dimension), file: file)
     }
@@ -54,8 +55,7 @@ struct FunctionInput: Equatable {
         return number.intValue
     }
 
-    private static func isInsideFolder(_ file: String) -> Bool {
-        !file.isEmpty && !file.hasPrefix("/") && !file.contains("\u{0}")
-            && !file.split(separator: "/", omittingEmptySubsequences: false).contains("..")
+    private static func isFileName(_ file: String) -> Bool {
+        !file.isEmpty && file != "." && file != ".." && !file.contains("/") && !file.contains("\u{0}")
     }
 }

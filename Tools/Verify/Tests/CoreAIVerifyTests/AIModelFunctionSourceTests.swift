@@ -1,4 +1,5 @@
 import CoreAI
+import Darwin
 import Foundation
 import Testing
 
@@ -42,7 +43,7 @@ import Testing
         let tensor = FunctionTensor(
             name: "t", dtype: dtype, shape: shape,
             data: Data((0..<count).map { UInt8(truncatingIfNeeded: $0 &* 7 &+ 1) }))
-        let array = AIModelFunctionSource.array(tensor)
+        let array = try AIModelFunctionSource.array(tensor)
         #expect(array.scalarType == dtype.scalarType)
         #expect(array.shape == shape)
         #expect(FunctionTensor.hasRowMajorLayout(shape: array.shape, strides: array.strides))
@@ -65,5 +66,40 @@ import Testing
         #expect(throws: FunctionError.cannot("read the output t", "its dtype is not int32, float16 or float32")) {
             try AIModelFunctionSource.tensor("t", array)
         }
+    }
+
+    @Test(
+        "An NDArray made for an input is row-major with no interleave layout, in the shapes of the inputs of a function",
+        arguments: FunctionDtype.allCases,
+        [
+            [1, 1], [1, 1, 48], [1, 2, 3, 4], [1, 16, 1025, 8], [1, 1, 2, 5, 16], [1, 1, 2, 1025, 16],
+            [1, 1, 1, 2000, 32],
+        ])
+    func makesRowMajorArrays(dtype: FunctionDtype, shape: [Int]) {
+        let array = NDArray(shape: shape, scalarType: dtype.scalarType)
+        #expect(array.interleaveLayout == nil)
+        #expect(FunctionTensor.hasRowMajorLayout(shape: array.shape, strides: array.strides))
+    }
+
+    @Test(
+        "The main hash is read in hex from a regular file, and a missing file, a folder, a link or a named pipe gives none without waiting",
+        arguments: ["regular", "missing", "folder", "link", "pipe"])
+    func readsTheMainHash(kind: String) throws {
+        let base = FileManager.default.temporaryDirectory.appending(path: "main-hash-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: base, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let file = base.appending(path: "main.hash")
+        let bytes = Data(0..<32)
+        switch kind {
+        case "regular": try bytes.write(to: file)
+        case "folder": try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
+        case "link":
+            try bytes.write(to: base.appending(path: "target"))
+            try FileManager.default.createSymbolicLink(at: file, withDestinationURL: base.appending(path: "target"))
+        case "pipe": try #require(mkfifo(file.path(percentEncoded: false), 0o600) == 0)
+        default: break
+        }
+        let expected = kind == "regular" ? bytes.map { String(format: "%02x", $0) }.joined() : nil
+        #expect(AIModelFunctionSource.mainHash(in: base) == expected)
     }
 }

@@ -25,8 +25,11 @@ final class AIModelFunctionSource: FunctionSource {
         }
     }
 
-    static func array(_ tensor: FunctionTensor) -> NDArray {
+    static func array(_ tensor: FunctionTensor) throws -> NDArray {
         var array = NDArray(shape: tensor.shape, scalarType: tensor.dtype.scalarType)
+        guard array.interleaveLayout == nil,
+            FunctionTensor.hasRowMajorLayout(shape: array.shape, strides: array.strides)
+        else { throw FunctionError.cannot("write the input \(tensor.name)", "the array is not stored row-major") }
         tensor.data.withUnsafeBytes { source in
             array.mutableRawView().withUnsafeMutableBytes { target, _, _ in
                 if let base = source.baseAddress { target.copyMemory(from: base, byteCount: source.count) }
@@ -47,17 +50,20 @@ final class AIModelFunctionSource: FunctionSource {
         return FunctionTensor(name: name, dtype: dtype, shape: array.shape, data: data)
     }
 
+    static func mainHash(in folder: URL) -> String? {
+        (try? InputFile.read(folder.appending(path: "main.hash"), label: "main.hash", expectedBytes: nil)).map(hex)
+    }
+
     func describe() throws -> (mainHash: String?, functions: [FunctionSignature]) {
         guard let summary = try AIModelAsset(contentsOf: url).summary(includingStatistics: false) else {
             throw FunctionError.cannot("read the functions of the asset", "no summary could be read from the folder")
         }
-        let hash = try? Data(contentsOf: url.appending(path: "main.hash"))
         let functions = summary.functions.map { function in
             FunctionSignature(
                 name: function.name, inputs: function.inputs.map { .init(name: $0.name, typeName: $0.typeName) },
                 stateNames: function.states.map(\.name))
         }
-        return (hash.map(hex), functions)
+        return (Self.mainHash(in: url), functions)
     }
 
     func load(_ name: String) async throws -> FunctionLoad {
@@ -92,7 +98,8 @@ final class AIModelFunctionSource: FunctionSource {
 
     func call(_ inputs: [FunctionTensor]) async throws -> [FunctionTensor] {
         guard let function else { throw FunctionError.cannot("run the function", "it is not loaded") }
-        let arrays = Dictionary(inputs.map { ($0.name, Self.array($0)) }, uniquingKeysWith: { _, last in last })
+        var arrays: [String: NDArray] = [:]
+        for input in inputs { arrays[input.name] = try Self.array(input) }
         var outputs = try await function.run(inputs: arrays)
         var tensors: [FunctionTensor] = []
         for name in function.descriptor.outputNames {
