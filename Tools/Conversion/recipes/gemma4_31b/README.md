@@ -554,8 +554,10 @@ compares it in FP32 with the drafter of the reference environment (Transformers 
 recorded, follows the accepted drafts on the teacher path, and exports a synthetic drafter. `assistant.json` pins the
 revision `627c5ec1458b9086b841a91e0512fd31fd2fbbf1` and the size and SHA-256 of the two files that are read,
 `config.json` and `model.safetensors`. Before `run` creates its folder and before `run` or `acceptance` reads a tensor,
-they check the two contracts, the size and SHA-256 of these files and of the index and the shard of `model.json` that
-hold the embedding table of the target, and the records of #691; then the configuration with `assistant_config` and
+they check the two contracts (including the kinds of the values of `model.json` that the tools read: whole numbers
+from 1 for the widths, heads, window and layers, the two layer kinds, and stop tokens below the vocabulary), the size
+and SHA-256 of these files and of the index and the shard of `model.json` that hold the embedding table of the target,
+and the records of #691; then the configuration with `assistant_config` and
 the names, BF16 type and shapes of every tensor of the assistant checkpoint, of the embedding table and of the features.
 Every file that comes from outside must be a regular file (and, where the contract or the record gives it, of that
 size) before its content is read; where the tool reads a file itself, it checks a descriptor opened without waiting.
@@ -566,8 +568,10 @@ run must not be links. A hash that a tool records is taken from the bytes it rea
 ### Drafter class
 
 - `Gemma4AssistantDrafter(assistant_config(<config.json>, <target>), steps)`: the target is the values of `model.json`
-  that the drafter reads (`TARGET`), and `steps`, the number of drafts, has no default. `assistant_config` stops with
-  `ValueError` for a configuration that the class does not cover. It and `checkpoint_shapes`, the tensors that the
+  that the drafter reads (`TARGET`), and `steps`, the number of drafts, has no default. `assistant_config` checks every
+  value it reads against a table of kinds (whole numbers from 1 for widths and counts, booleans for the flags, text
+  for the activation, a positive finite float for `rms_norm_eps`), so a width written as `32.0` is refused, and stops
+  with `ValueError` for a configuration that the class does not cover. It and `checkpoint_shapes`, the tensors that the
   checkpoint must hold for a configuration, are in `adapters/gemma4_31b/assistant.py`, which imports neither PyTorch
   nor the converter, so the reference environment checks the same configuration.
 - Inputs, in this order: `input_ids` int32 [1, 1], the last confirmed token at position a; `hidden_states`
@@ -623,13 +627,18 @@ Run both implementations under the shared machine lock, which the tools do not t
   index names, `subset.json` (SHA-256) with the SHA-256 of the input and output records it holds, the size and SHA-256
   of the features of the chosen items (hashed again), the rows of the fixed selection, the stop tokens, window, layers
   and embedding scale of `model.json`, the weight rounding and `--steps`. Records are compared as normalized JSON with
-  their sets of keys, so a missing or `null` entry fails even when both runs lack it. The arrays must have the size and
-  SHA-256 in their record and the type and shape of those rows.
+  their sets of keys, so a missing or `null` entry fails even when both runs lack it. Each array file must hold one
+  array with the size and SHA-256 in its record, the type, shape and count of non-finite values that the record gives,
+  and the type and shape of those rows.
 - `compare` passes when every row has a largest absolute logit difference of at most 1e-3, a largest absolute
   difference of the `post_projection` output of at most 1e-3 times its largest absolute value in the original
-  implementation, and unrolled drafts equal to the repeated ones. It also records per row whether the argmax is the
-  same and whether the cut unrolled drafts equal the generator drafts. It prints its JSON result, and the exit code is 0
-  only when it passed.
+  implementation, and unrolled drafts equal to the repeated ones. A row whose original `post_projection` output is all
+  zero has the ratio 0 when the output of the class is all zero too, and otherwise no bounded ratio (`null`) and fails;
+  the largest ratio of the summary is then `null` too. It also records per row whether the argmax is the same and
+  whether the cut unrolled drafts equal the generator drafts. After the fixed inputs are checked, every content of the
+  two runs (another container, an empty or zero-dimensional array, non-finite or extreme values, other types) and any
+  error in the comparison give a JSON result that did not pass, with the problem (an error by the name of its type). It
+  prints its JSON result, and the exit code is 0 only when it passed.
 
 `CompareTests`, `RecordTests`, `ReadTests` and `RefusalTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix
 the records, the reads and the criteria; `OneStepTests`, `UnrolledTests`, `ContractTests` and `RunTests` in
@@ -649,8 +658,11 @@ adds one token of the target; per category it prints the rounds, the tokens and 
 #691 (`drafters/<id>.json` and `trajectories.json` of `--records`), the anchors whose accepted drafts differ from the
 records of #691, and the top-two margin that #691 recorded at the first draft that differs. The accepted count of #691
 at every anchor is computed again from its recorded drafts and the teacher, as for the class; a record whose
-`accepted` differs at any anchor is refused before a weight is read. `problems` lists categories where these counts do
-not give the rounds and tokens of `trajectories.json`. The values are records, not criteria.
+`accepted` differs at any anchor, or with a draft token outside the vocabulary, is refused before a weight is read, and
+so is a `trajectories.json` whose tokens per round are not its tokens over its rounds rounded to four places (`null`
+without rounds), as #691 wrote them. `problems` lists categories where the recomputed counts do not give the rounds and
+tokens of `trajectories.json`, and an error after the inputs are checked (by the name of its type), with the JSON
+printed in either case. The values are records, not criteria.
 
 ### Export of a synthetic drafter
 
