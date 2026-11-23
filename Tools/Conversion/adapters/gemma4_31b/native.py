@@ -10,12 +10,13 @@ import subprocess
 import sys
 import time
 
-from ...storage import digest, file_hash, write_json
+from ...storage import canonical, digest, file_hash, write_json
 from ..pinned import sha256
 from .anchor import read
 from .compare import BLOCK_ROWS, CONTRACT
-from .export import BUNDLE, FUNCTIONS, SCHEMA as EXPORT_SCHEMA
-from .layers import CONDITIONS, CONTEXT_SCHEMA, check_layers, kept_rows, tokens
+from .export import BUNDLE, FUNCTIONS, INCOMPLETE, LAYOUT, PRECISIONS, SCHEMA as EXPORT_SCHEMA, quantized_names
+from .layers import (CONDITIONS, CONTEXT_SCHEMA, PARTS, QUANTIZED, WEIGHT_KINDS, check_layers, check_taps, joined,
+                     kept_rows, tokens)
 from .prepare import load_contract
 from .reference import LOADED_FILES
 
@@ -164,29 +165,93 @@ def load_reference(folder, contract, contract_path):
     return record, hashed, arrays, problems
 
 
+def mapping(record, key):
+    value = record.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def recorded_weights(record, contract):
+    quantized = mapping(record, "quantized")
+    entries, tensors = quantized.get("layers"), quantized.get("tensors")
+    try:
+        expected = sorted(quantized_names(check_layers(contract["config"], record.get("layers"))))
+    except ValueError:
+        return False
+    if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries) \
+            or not isinstance(tensors, dict) or not all(isinstance(value, str) for value in tensors.values()):
+        return False
+    fields = ("name", *LAYOUT)
+    return sorted(canonical({key: entry.get(key) for key in fields}) for entry in entries) \
+        == [canonical({"name": name, **LAYOUT}) for name in expected] \
+        and set(tensors) == {f"{name}.{part}" for name in expected for part in PARTS}
+
+
 def load_export(folder, contract, contract_path):
     record, hashed, _ = read(folder / "export.json")
-    problems = [] if record.get("schema") == EXPORT_SCHEMA and record.get("passed") is True else [
-        "the export is not a passed FP16 export"]
+    recorded = (record.get("bundle") or {}) if isinstance(record, dict) else None
+    if not isinstance(recorded, dict) or not isinstance(recorded.get("files") or {}, dict):
+        raise ValueError("The export record and its bundle record must be objects")
+    passed = record.get("schema") == EXPORT_SCHEMA and record.get("passed") is True and record.get("problems") == []
+    problems = [] if passed else ["the export is not a passed export"]
     problems += layer_problems(record, contract, "export")
-    if record.get("model") != pinned_model(contract, contract_path):
+    if canonical(record.get("model")) != canonical(pinned_model(contract, contract_path)):
         problems.append("the export recorded another model or contract")
-    bundle, recorded = folder / BUNDLE, record.get("bundle") or {}
-    files = recorded.get("files") or {}
+    if record.get("precision") not in PRECISIONS.values():
+        problems.append("the export recorded no known precision")
+    try:
+        check_taps(joined(mapping(record, "metadata").get("tap_layers")), record.get("layers"))
+    except ValueError:
+        problems.append("the export recorded no valid tap layers")
+    problems += [f"the export folder holds {kind}" for name, kind in (("failure.json", "a failure record"),
+                                                                      (INCOMPLETE, "an unfinished bundle"))
+                 if os.path.lexists(folder / name)]
+    bundle, files = folder / BUNDLE, recorded.get("files") or {}
     present = {path.relative_to(bundle).as_posix() for path in bundle.rglob("*") if path.is_symlink() or not path.is_dir()}
     if recorded.get("folder") != BUNDLE or present != set(files):
         problems.append("the bundle folder holds other files than its export record")
     else:
         for relative, entry in sorted(files.items()):
-            if (bundle / relative).is_symlink() or file_hash(bundle / relative) != entry:
+            if (bundle / relative).is_symlink() or canonical(file_hash(bundle / relative)) != canonical(entry):
                 problems.append(f"a bundle file differs from the export record: {relative}")
     main = bundle / f"{recorded.get('name')}.aimodel" / "main.hash"
     if not main.is_file() or main.read_bytes().hex() != recorded.get("main_hash"):
         problems.append("main.hash of the bundle differs from the export record")
     if record.get("functions") not in [list(functions) for functions in FUNCTIONS.values()]:
         problems.append("the export recorded other functions than main or main and prefill")
+    if record.get("precision") == "8bit" and record.get("functions") != list(FUNCTIONS["main,prefill"]):
+        problems.append("an 8-bit export recorded other functions than main and prefill")
+    if record.get("precision") == "8bit":
+        if not recorded_weights(record, contract):
+            problems.append("the export did not record exactly the quantized Linear weights of its layers in blocks of "
+                            "[1, 32]")
+        quantized, tensors = quantized_entry(record), folder / QUANTIZED
+        if quantized is None or tensors.is_symlink() or not tensors.is_file() or file_hash(tensors) != quantized["file"]:
+            problems.append("the quantized tensors of the export differ from its record")
     facts = {"bundle": bundle, "main_hash": recorded.get("main_hash"), "prefill": "prefill" in (record.get("functions") or [])}
     return record, hashed, facts, problems
+
+
+def quantized_entry(record):
+    quantized = record.get("quantized")
+    entry, tensors = (quantized.get("file"), quantized.get("tensors")) if isinstance(quantized, dict) else (None, None)
+    if not isinstance(entry, dict) or set(entry) != {"bytes", "sha256"} or not valid("count", entry["bytes"]) \
+            or not valid("text", entry["sha256"]) or not isinstance(tensors, dict) \
+            or not all(isinstance(key, str) and isinstance(value, str) for key, value in tensors.items()):
+        return None
+    return {"file": dict(entry), "tensors": len(tensors)}
+
+
+def correspondence(exported, export_hash, reference):
+    precision = exported.get("precision")
+    if precision not in tuple(WEIGHT_KINDS) or reference.get("weights") != WEIGHT_KINDS[precision]:
+        return [f"the reference does not use the weights of the export of precision {precision!r}"]
+    if precision != "8bit":
+        return []
+    quantized = quantized_entry(exported)
+    expected = {"export_sha256": export_hash, **(quantized or {})}
+    if quantized is None or canonical(reference.get("quantized")) != canonical(expected):
+        return ["the reference was not restored from the quantized tensors of this export"]
+    return []
 
 
 def run_verifier(command, timeout, log):
@@ -293,8 +358,11 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
         problems += found
     except Exception as error:
         problems.append(f"the export record is unreadable ({type(error).__name__})")
-    if None not in (reference_hash, export_hash) and exported.get("layers") != reference.get("layers"):
-        problems.append("the export and the reference are of other layer counts")
+    if None not in (reference_hash, export_hash):
+        if exported.get("layers") != reference.get("layers"):
+            problems.append("the export and the reference are of other layer counts")
+        if not problems:
+            problems += correspondence(exported, export_hash, reference)
     verifier_record = None
     if not problems:
         try:
