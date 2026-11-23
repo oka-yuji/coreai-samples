@@ -32,7 +32,7 @@ TABLE = PREFIX + "embed_tokens.weight"
 ASSISTANT_FILES = ("config.json", "model.safetensors")
 ITEM = {"id": "text", "category": "text", "max_new_tokens": "count", "stop": "text", "input_tokens": "count",
         "output_tokens": "count", "teacher_tokens": "count"}
-LEVEL = {"rounds": "count", "tokens": "count", "tokens_per_round": "seconds"}
+LEVEL = ("rounds", "tokens", "tokens_per_round")
 ARRAYS = {"original": ("logits", "projected", "drafts"), "class": ("logits", "projected", "drafts", "repeated")}
 RUN = ("schema", "implementation", "steps", "stops", "window", "layers", "model", "assistant", "records", "weights",
        "embed_scale", "rows", "arrays", "versions", "timing", "memory")
@@ -631,14 +631,23 @@ def draft_rows(path, item):
     return found
 
 
+def per_round(tokens, rounds):
+    return round(tokens / rounds, 4) if rounds else None
+
+
 def published(path, steps, categories):
     record = document(path)
     level = (((record.get("per_round_on_teacher_path") or {}).get("mtp_fixed") or {}).get(str(steps))
              if isinstance(record, dict) else None)
     if not isinstance(level, dict) or set(level) != {*categories, "pooled"} \
             or not all(isinstance(entry, dict) and set(entry) == set(LEVEL)
-                       and all(valid(kind, entry[key]) for key, kind in LEVEL.items()) for entry in level.values()):
+                       and valid("count", entry["rounds"]) and valid("count", entry["tokens"]) for entry in level.values()):
         raise ValueError(f"trajectories.json holds no per-round values of the fixed position for {steps} steps")
+    wrong = [name for name, entry in level.items()
+             if type(entry["tokens_per_round"]) is not type(per_round(entry["tokens"], entry["rounds"]))
+             or entry["tokens_per_round"] != per_round(entry["tokens"], entry["rounds"])]
+    if wrong:
+        raise ValueError(f"trajectories.json holds tokens per round that its rounds and tokens do not give: {wrong}")
     return level
 
 

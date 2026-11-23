@@ -336,7 +336,7 @@ def reference_records(arguments, steps):
         for name in (item["category"], "pooled"):
             totals[name] = [sum(pair) for pair in zip(totals.get(name, (0, 0)), found)]
     write_json(records / "trajectories.json", {"per_round_on_teacher_path": {"mtp_fixed": {str(steps): {
-        name: {"rounds": rounds, "tokens": tokens, "tokens_per_round": tokens / rounds}
+        name: {"rounds": rounds, "tokens": tokens, "tokens_per_round": round(tokens / rounds, 4)}
         for name, (rounds, tokens) in totals.items()}}}})
     return items
 

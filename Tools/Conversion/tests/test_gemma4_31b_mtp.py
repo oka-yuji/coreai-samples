@@ -485,13 +485,28 @@ class RecordTests(unittest.TestCase):
         write_json(path, {"id": item["id"], "P": 20, "T": 10, "mtp": skipped})
         with self.assertRaisesRegex(ValueError, "accepted counts that its drafts and the teacher do not give at 1 anchors"):
             mtp.draft_rows(path, item)
-        level = {"alpha": {"rounds": 2, "tokens": 5, "tokens_per_round": 2.5},
-                 "pooled": {"rounds": 2, "tokens": 5, "tokens_per_round": 2.5}}
+        level = {"alpha": {"rounds": 3, "tokens": 7, "tokens_per_round": 2.3333},
+                 "beta": {"rounds": 0, "tokens": 0, "tokens_per_round": None},
+                 "pooled": {"rounds": 3, "tokens": 7, "tokens_per_round": 2.3333}}
         write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": level}}})
-        self.assertEqual(mtp.published(path, 7, ["alpha"]), level)
-        for steps, categories in ((6, ["alpha"]), (7, ["alpha", "beta"])):
+        self.assertEqual(mtp.published(path, 7, ["alpha", "beta"]), level)
+        for steps, categories in ((6, ["alpha", "beta"]), (7, ["alpha"])):
             with self.subTest(steps=steps, categories=categories), self.assertRaisesRegex(ValueError, "trajectories"):
                 mtp.published(path, steps, categories)
+        rates = {"a rate rounded otherwise": ("alpha", 2.333), "a rate unlike its counts": ("pooled", 2.5),
+                 "a rate as a boolean": ("alpha", True), "no rate for rounds": ("alpha", None),
+                 "a rate without rounds": ("beta", 0.0), "a rate as text": ("alpha", "2.3333")}
+        for label, (name, rate) in rates.items():
+            changed = json.loads(json.dumps(level))
+            changed[name]["tokens_per_round"] = rate
+            write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": changed}}})
+            with self.subTest(change=label), self.assertRaisesRegex(ValueError, f"tokens per round .*{name}"):
+                mtp.published(path, 7, ["alpha", "beta"])
+        changed = json.loads(json.dumps(level))
+        changed["alpha"].update(rounds=True)
+        write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": changed}}})
+        with self.assertRaisesRegex(ValueError, "no per-round values"):
+            mtp.published(path, 7, ["alpha", "beta"])
 
 
 ROWS = [{"id": name, "category": name.rsplit("-", 1)[0], "anchor": anchor, "output_index": anchor - prompt,
