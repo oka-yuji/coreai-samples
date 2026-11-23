@@ -470,8 +470,9 @@ converter environment (the `export_*.py` command of [Tests](#tests)).
 
 ### FP32 reference of the comparison
 
-`layers.py context` writes the FP32 logits of the first layers of the original implementation, with the weights of
-`run` (every checkpoint tensor rounded to float16, computed in float32 on the CPU), for `short` and for `context`, a
+`layers.py context --weights float16` writes the FP32 logits of the first layers of the original implementation, with
+the weights of `run` (every checkpoint tensor rounded to float16, computed in float32 on the CPU), for `short` and for
+`context`, a
 sequence of 16,896 tokens made like the other inputs (seed 2). It reads each input with the cache of the original
 implementation in calls of 1,024 tokens. Into a new folder it writes `short.npy` and `context.npy` (float32, only the
 26 and 1,428 rows that the conditions below compare) and, last, `record.json`. Start it under the shared machine lock,
@@ -480,7 +481,7 @@ which it does not take itself, like `run`:
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers context --layers 6 \
   --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
-  --output <new folder>
+  --weights float16 --output <new folder>
 ~~~
 
 `ConditionTests` and `ContextReferenceTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` fix the rows, the
@@ -541,6 +542,94 @@ that the manifest of its stage recorded, that the two runs, the reference and ev
 criterion is printed with `passed` false, as a failed condition of the own engine is; `SummaryTests` in
 `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-in-the-first-six-layers-695).
+
+## 8-bit export of the first layers
+
+`recipe-8bit.json` is `recipe-fp16.json` with `--precision 8bit` and `--compression compression-8bit.yaml`, and its
+`functions` can be `main,prefill` only: the export refuses `main` alone with `--precision 8bit`. Before it stages the
+functions, the `export` step quantizes the weights of the `torch.nn.Linear` layers of the model class with
+the converter's `quantize_for_export` and the config of `compression-8bit.yaml`: uint8, asymmetric, blocks of 32 along
+the input axis, float16 minimums, eager execution, no activation or KV cache quantization. The embedding, the shared
+head (the embedding table), the norms and `layer_scalar` stay float16. The step reads the file with
+`_load_compression_config_object` of `coreai_models.llm.export`, a non-public function of the converter package. It
+takes the same `layers`, `functions` and `taps`, and the asset has the outputs of the FP16 asset:
+
+~~~sh
+python3 -m Tools.Conversion run Tools/Conversion/recipes/gemma4_31b/recipe-8bit.json \
+  --bindings .local/conversion/gemma4_31b.paths.json --set layers=6 --set functions=main,prefill --set taps=1,2,3,4,5 \
+  --work-dir .local/conversion/work/gemma4_31b-8bit --lock-dir ~/Library/Caches/coreai-samples/heavy-job
+~~~
+
+Next to `export.json` and the bundle (`gemma4_31b_l<layers>_8bit_<functions>.aimodel`, with `compression` `8bit` in
+`metadata.json` next to `tap_layers` and `tap_convention`), the step writes `quantized.safetensors`: the uint8 data,
+the float16 scales and the float16 minimums of every quantized weight as the step passed them to the converter, with
+the SHA-256 of each tensor in `export.json`.
+The asset summary does not give the tensors one by one, so these hashes are of the tensors that the step passed to the
+converter; the asset itself is checked through its operations and through the logits of the own engine below. The
+converter's work area `export/quantization/` is removed with `export/layers/`. An error or an interruption (Ctrl-C,
+`KeyboardInterrupt`) after the step made `export/`, with either precision, leaves `export/failure.json` with the type of
+the error; when the monitor stopped the step, its own `failure.json` with the reason stays and is not overwritten. A
+process ended by SIGTERM or SIGKILL, as the runner ends a step at its timeout, leaves no record. The step starts only
+with seven bytes per weight element of the chosen layers plus 60 GiB free. `QuantizedAssetTests` in
+`Tools/Conversion/tests/test_gemma4_31b_export.py` fixes the checks of a passing run. Their values: the fixed config,
+the Linear weights of the layers as the quantized tensors (41 for six layers, 410 for 60; the full-attention layers have
+no value projection), no `Skipping quantization.` from the converter, and as many `blockwise_shift_scale` operations
+(the dequantization of a weight) in the asset as the functions read quantized weights: every one in `main`, and in
+`prefill` all but the query, output and MLP projections of the last layer, unless the last layer is a tap layer (77
+for six layers with the tap layers 1 to 5 and 82 with 6, 815 for 60 with 1, 17, 29, 47 and 59). `export.json` records
+the UInt8 and Float16 counts of the asset minus the uint8 and float16 elements of the PyTorch model without judging
+them.
+`QuantizedExportTests` in `Tools/Conversion/tests/export_gemma4_31b_export.py` runs the step on synthetic models in the
+converter environment.
+
+### FP32 reference restored from the quantized weights
+
+`layers.py context --weights 8bit --export <the export folder of the step>` writes the reference of the comparison with
+the weights that the export quantized. It reads the export with `load_export` of `native.py`, the one definition of an
+export that may be used, which the comparison below also applies: the bundle under its final name with exactly the
+files of the record and their sizes and SHA-256, no `failure.json` and no `bundle.incomplete` next to it, `passed` the
+JSON true and no problem, the schema, the contract, the layers, the function layout, the precision and the tap layers
+checked by type (a boolean is not taken for a number), and for 8 bits exactly the Linear weights of the layers as uint8
+with float16 scales and minimums in blocks of [1, 32] and no zero point, their tensors, and the size and SHA-256 of
+`quantized.safetensors`. Before it creates its folder, it also checks each tensor against its SHA-256 in `export.json`,
+its weight against the shape in the checkpoint and its scales and minimums against exactly [rows, columns / 32]. It
+then restores each weight as uint8 × scale + minimum with the blocks widened to the weight and each operation rounded to
+float16 (the dequantization of the converter), and puts it into the original implementation in
+float32. The other tensors are rounded to float16 as with `--weights float16`. `record.json` records the kind of the
+weights, the SHA-256 of `export.json`, the size and SHA-256 of `quantized.safetensors` and the number of tensors that
+it checked. An error or an interruption after the folder exists, with either kind of weights, leaves `failure.json`
+with the type of the error:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers context --layers 6 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --weights 8bit --export <artifacts of the export step>/export --output <new folder>
+~~~
+
+`RestoredReferenceTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` and
+`test_restoring_gives_the_weights_that_the_converter_dequantizes` in the converter tests fix the formula and the
+refusals.
+
+### Comparison and the effect of the quantization
+
+`native` compares an 8-bit export only with the reference restored from its own `quantized.safetensors`, and an FP16
+export only with a reference of float16-rounded weights, with the conditions and criteria of
+[Comparison with the own engine](#comparison-with-the-own-engine). `effect` prints to standard output, without a
+judgment, how far the restored reference is from a reference of float16-rounded weights on the rows of each condition:
+the largest absolute logit difference and the top-1 changes inside and outside a near tie of the rounded reference.
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.effect \
+  --restored <restored reference folder> --rounded <float16 reference folder>
+~~~
+
+It refuses a restored reference that did not record the SHA-256 of the export record and the check of the data, scale
+and minimum of every quantized weight. `EffectTests` in `Tools/Conversion/tests/test_gemma4_31b_effect.py` fixes it.
+`fp16_summary` summarizes 8-bit records
+with the restored reference as `--reference` and the output of `effect` as `--effect`, and without `--original` and
+`--model-class`, which only FP16 records take; it stops with its fixed error when an input of the other precision is
+given or one of its own is missing. `QuantizedSummaryTests` fixes these checks. The published record is
+[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).
 
 ## Terms
 
