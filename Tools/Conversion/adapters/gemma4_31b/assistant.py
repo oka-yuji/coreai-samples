@@ -1,3 +1,4 @@
+import json
 import math
 from types import SimpleNamespace
 
@@ -64,7 +65,7 @@ def assistant_config(document, target):
         "double-wide MLP": text["use_double_wide_mlp"],
         "attention bias": text["attention_bias"],
         "another activation": text["hidden_activation"] != "gelu_pytorch_tanh",
-        "another RoPE": text["rope_parameters"] != ROPE,
+        "another RoPE": json.dumps(text["rope_parameters"], sort_keys=True) != json.dumps(ROPE, sort_keys=True),
         "layer types other than one or more sliding-window layers and full-attention layers":
             len(kinds) != layers or any(kind not in (SLIDING, FULL) for kind in kinds) or SLIDING not in kinds
             or FULL not in kinds,

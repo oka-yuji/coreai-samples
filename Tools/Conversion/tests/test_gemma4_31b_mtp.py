@@ -292,6 +292,11 @@ class PureTests(unittest.TestCase):
             with self.subTest(key=name, value=value), self.assertRaisesRegex(ValueError, name if target is
                                                                              SYNTHETIC["target"] else "target"):
                 assistant_config(document, target)
+        rope = json.loads(json.dumps(SYNTHETIC["assistant"]["text_config"]["rope_parameters"]))
+        rope[SLIDING]["rope_theta"] = 10000
+        with self.assertRaisesRegex(ValueError, "another RoPE"):
+            assistant_config({**SYNTHETIC["assistant"], "text_config": {**SYNTHETIC["assistant"]["text_config"],
+                                                                        "rope_parameters": rope}}, SYNTHETIC["target"])
         for name, value in (("head_dim", 17), ("global_head_dim", 33), ("head_dim", 1)):
             document = {**SYNTHETIC["assistant"], "text_config": {**SYNTHETIC["assistant"]["text_config"], name: value}}
             with self.subTest(key=name, odd=value), self.assertRaisesRegex(ValueError, "head widths that RoPE cannot"):
@@ -328,6 +333,8 @@ class PureTests(unittest.TestCase):
                                                             "model.safetensors": entry}},
                    "a size of zero": {**good, "files": {"config.json": {"bytes": 0, "sha256": "0" * 64},
                                                        "model.safetensors": entry}},
+                   "a size as a float": {**good, "files": {"config.json": {"bytes": 1.0, "sha256": "0" * 64},
+                                                          "model.safetensors": entry}},
                    "an uppercase hash": {**good, "files": {"config.json": {"bytes": 1, "sha256": "A" * 64},
                                                           "model.safetensors": entry}}}
         with tempfile.TemporaryDirectory() as folder:
@@ -419,6 +426,9 @@ class RecordTests(unittest.TestCase):
             "a stop token inside the output": lambda: outputs_with(lambda rows: rows[1]["output_ids"].__setitem__(0, 50)),
             "an output with another length": lambda: outputs_with(lambda rows: rows[1]["output_ids"].append(7)),
             "an output from another input": lambda: outputs_with(lambda rows: rows[1].update(input_tokens=21)),
+            "an output input length as a float": lambda: outputs_with(lambda rows: rows[1].update(input_tokens=20.0)),
+            "an output without non-finite values as a float": lambda: outputs_with(
+                lambda rows: rows[1].update(non_finite=0.0)),
             "features in float32": as_float32,
             "features of another shape": lambda: save_file({key: torch.zeros(2, 2, dtype=torch.bfloat16) for key in (
                 "postnorm", f"k{place['sliding']}")}, str(features / "alpha-0002.safetensors")),
@@ -456,6 +466,11 @@ class RecordTests(unittest.TestCase):
                    "an id without a number": lambda record: record["items"][0].update(id="alpha-x"),
                    "a missing field": lambda record: record["items"][0].pop("teacher_tokens"),
                    "a count as a boolean": lambda record: record["items"][0].update(input_tokens=True),
+                   "a length as a float": lambda record: record["items"][0].update(input_tokens=30.0),
+                   "a category count as a float": lambda record: record["counts"].update(alpha=2.0),
+                   "a stop token as a float": lambda record: record["items"][0].update(stop_token=106.0),
+                   "a stop token for a limit": lambda record: record["items"][2].update(stop_token=0),
+                   "no stop token for a stop": lambda record: record["items"][0].update(stop_token=None),
                    "an extra field": lambda record: record.update(note="x")}
         for label, change in changes.items():
             record = json.loads(json.dumps(subset))
@@ -481,7 +496,11 @@ class RecordTests(unittest.TestCase):
                    "another input length": lambda record: record.update(P=21),
                    "an input length as a float": lambda record: record.update(P=20.0),
                    "a teacher length as a float": lambda record: record.update(T=10.0),
-                   "an input length as text": lambda record: record.update(P="20")}
+                   "an input length as text": lambda record: record.update(P="20"),
+                   "an anchor as a float": lambda record: record["mtp"][0].update(a=20.0),
+                   "an output index as a float": lambda record: record["mtp"][0].update(j=0.0),
+                   "an accepted count as a float": lambda record: record["mtp"][1]["fixed"].update(accepted=0.0),
+                   "a draft as a float": lambda record: record["mtp"][1]["fixed"]["tokens"].__setitem__(0, 0.0)}
         for label, change in changes.items():
             record = {"id": item["id"], "P": 20, "T": 10, "mtp": json.loads(json.dumps(rows))}
             change(record)
@@ -517,8 +536,14 @@ class RecordTests(unittest.TestCase):
         write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": changed}}})
         with self.assertRaisesRegex(ValueError, "tokens per round .*alpha"):
             mtp.published(path, 7, ["alpha", "beta"])
+        for rounds in (True, 3.0):
+            changed = json.loads(json.dumps(level))
+            changed["alpha"].update(rounds=rounds)
+            write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": changed}}})
+            with self.subTest(rounds=rounds), self.assertRaisesRegex(ValueError, "no per-round values"):
+                mtp.published(path, 7, ["alpha", "beta"])
         changed = json.loads(json.dumps(level))
-        changed["alpha"].update(rounds=True)
+        changed["alpha"].update(tokens=7.0)
         write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": changed}}})
         with self.assertRaisesRegex(ValueError, "no per-round values"):
             mtp.published(path, 7, ["alpha", "beta"])
@@ -634,6 +659,29 @@ class CompareTests(unittest.TestCase):
             with self.subTest(field=name):
                 self.assertIn("the class run records another type, shape or count of non-finite values of its logits",
                               self.compare(label)["problems"])
+
+    def test_record_values_of_another_type_than_the_fixed_inputs_give_are_problems(self):
+        def feature(record):
+            record["records"]["features"]["alpha-0002"]["bytes"] = float(record["records"]["features"]["alpha-0002"]
+                                                                         ["bytes"])
+
+        changes = {"steps": lambda record: record.update(steps=3.0), "window": lambda record: record.update(window=1025.0),
+                   "layers": lambda record: record["layers"].update(sliding=10.0),
+                   "records": feature, "rows": lambda record: record["rows"][0].update(anchor=20.0),
+                   "stops": lambda record: record.update(stops=[True, 106, 50])}
+        for key, change in changes.items():
+            result = self.pair(f"typed-{key}", both=change)
+            with self.subTest(field=key):
+                self.assertIn(f"the class run holds another {key} than its fixed inputs give", result["problems"])
+        for field, value in {"non_finite": 0.0, "bytes": None}.items():
+            label = f"typed-array-{field}"
+            self.pair(label)
+            record = read_json(self.folder / label / "class/record.json")
+            record["arrays"]["logits"][field] = value if value is not None else float(record["arrays"]["logits"]["bytes"])
+            write_json(self.folder / label / "class/record.json", record)
+            with self.subTest(array_field=field):
+                self.assertTrue(any(problem.startswith("the class run records") for problem in self.compare(label)
+                                    ["problems"]))
 
     def test_an_archive_of_arrays_in_place_of_an_array_is_a_problem_of_that_array(self):
         self.pair("archive")
@@ -936,6 +984,7 @@ class ReadTests(unittest.TestCase):
                        "a window of zero": {"sliding_window": 0},
                        "a stop token beyond the vocabulary": {"eos_token_id": [1, 106, CONFIG["vocab_size"]]},
                        "a stop token as a float": {"eos_token_id": [1.0, 106, 50]},
+                       "a stop token as a boolean": {"eos_token_id": [True, 106, 50]},
                        "a layer pattern without a full-attention layer": {"layer_pattern": [SLIDING] * 6},
                        "a layer pattern as text": {"layer_pattern": "sliding_attention"}}
             for label, change in changes.items():

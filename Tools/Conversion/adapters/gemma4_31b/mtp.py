@@ -171,7 +171,9 @@ def subset_record(path):
                        for key in ("inputs", "outputs")) \
             or not all(valid("count", count) and count > 0 for count in counts.values()) \
             or not all(isinstance(entry, dict) and set(entry) == {*ITEM, "stop_token"}
-                       and all(valid(kind, entry[key]) for key, kind in ITEM.items()) for entry in items):
+                       and all(valid(kind, entry[key]) for key, kind in ITEM.items())
+                       and (entry["stop"] == "limit" and entry["stop_token"] is None
+                            or entry["stop"] == "stop_token" and valid("count", entry["stop_token"])) for entry in items):
         raise ValueError("subset.json is not the record of a subset of the quality set")
     ids = [entry["id"] for entry in items]
     if len(set(ids)) != len(ids) or len(items) != sum(counts.values()) \
