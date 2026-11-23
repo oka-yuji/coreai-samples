@@ -1,6 +1,7 @@
 import builtins
 import hashlib
 import io
+import itertools
 import json
 import math
 import os
@@ -241,6 +242,40 @@ def piped(path):
     return saved, inode(path)
 
 
+def drafts_of_691(choices, teacher, minimum, steps):
+    found = []
+
+    def draft(tokens):
+        index = len(tokens)
+        for value in choices(index):
+            drafted = tokens + [value]
+            if value in STOPS:
+                found.append(drafted)
+            elif index + 1 >= minimum and (index >= len(teacher) or value != teacher[index]):
+                found.append(drafted)
+            elif index == steps - 1:
+                found.append(drafted)
+            else:
+                draft(drafted)
+
+    draft([])
+    return found
+
+
+def drafter_rows(folder, teacher, tokens):
+    rows = []
+    for j in range(len(teacher) - 1):
+        drafts, rest = tokens if j == 0 else [106], teacher[j + 1:]
+        accepted = next((index for index, (draft, token) in enumerate(zip(drafts, rest)) if draft != token),
+                        min(len(drafts), len(rest)))
+        rows.append({"a": 2 + j, "j": j, "available": min(15, len(rest)),
+                     "fixed": {"accepted": accepted, "tokens": drafts, "margins": [0.5] * len(drafts)}})
+    path = Path(folder) / "drafter.json"
+    path.write_text(json.dumps({"id": "alpha-0001", "P": 2, "T": len(teacher), "mtp": rows}))
+    return mtp.draft_rows(path, {"id": "alpha-0001", "input_ids": [2, 3], "teacher": teacher}, CONFIG["vocab_size"],
+                          STOPS)
+
+
 class PureTests(unittest.TestCase):
     def test_the_cut_keeps_the_drafts_up_to_and_with_the_first_stop_token(self):
         cases = {"no stop token": ([4, 5, 6], (1,), [4, 5, 6]), "a stop token first": ([1, 5, 6], (1,), [1]),
@@ -323,6 +358,46 @@ class PureTests(unittest.TestCase):
         for steps in (0, -1, True, 1.0, None, "7"):
             with self.subTest(steps=steps), self.assertRaisesRegex(ValueError, "whole number"):
                 mtp.check_steps(steps)
+
+    def test_a_drafter_record_passes_exactly_the_rows_that_the_drafting_of_691_can_give(self):
+        def choices(index):
+            return 11 + index, 8, 106
+
+        given, refused, wrong = 0, 0, []
+        with tempfile.TemporaryDirectory() as folder:
+            for remaining in range(1, 9):
+                teacher = list(range(10, 11 + remaining))
+                rows = {tuple(tokens) for minimum in (0, 6)
+                        for tokens in drafts_of_691(choices, teacher[1:], minimum, mtp.DRAFTS)}
+                for tokens in rows:
+                    try:
+                        drafter_rows(folder, teacher, list(tokens))
+                    except ValueError as error:
+                        wrong.append((remaining, tokens, str(error)))
+                given += len(rows)
+                for length in range(1, 9):
+                    for kinds in itertools.product(range(3), repeat=length):
+                        tokens = tuple(choices(index)[kind] for index, kind in enumerate(kinds))
+                        if tokens in rows:
+                            continue
+                        refused += 1
+                        try:
+                            drafter_rows(folder, teacher, list(tokens))
+                            wrong.append((remaining, tokens, "passed"))
+                        except ValueError as error:
+                            if "cannot give" not in str(error):
+                                wrong.append((remaining, tokens, str(error)))
+        self.assertEqual((len(wrong), wrong[:3]), (0, []))
+        self.assertEqual((given, refused), (1438, 77378))
+
+    def test_a_drafter_record_passes_15_drafts_only_when_the_last_is_the_fifteenth_of_691(self):
+        teacher = list(range(10, 27))
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(drafter_rows(folder, teacher, teacher[1:16])[0]["accepted"], 15)
+            self.assertEqual(drafter_rows(folder, teacher, [8] * 5 + teacher[6:16])[0]["accepted"], 0)
+            for tokens in (teacher[1:17], [8] * 5 + teacher[6:17]):
+                with self.subTest(drafts=tokens), self.assertRaisesRegex(ValueError, "cannot give"):
+                    drafter_rows(folder, teacher, tokens)
 
     def test_the_layout_names_the_last_layer_of_each_kind_and_the_window_of_the_assistant(self):
         self.assertEqual(mtp.layout(load_contract(RECIPE / "model.json")["config"]),
@@ -533,7 +608,7 @@ class RecordTests(unittest.TestCase):
 
     def test_the_drafter_records_and_the_rounds_of_691_are_read_only_in_their_form(self):
         item = self.items()[0]
-        rows = [{"a": 20 + j, "j": j, "available": 9 - j, "fixed": {"accepted": 0, "tokens": [0, 0], "margins": [0.5, 0.0]}}
+        rows = [{"a": 20 + j, "j": j, "available": 9 - j, "fixed": {"accepted": 0, "tokens": [0], "margins": [0.5]}}
                 for j in range(9)]
         rows[0]["fixed"].update(accepted=2, tokens=item["teacher"][1:3] + [0], margins=[0.5, 0.0, 0.25])
         path = self.folder / "drafter.json"
@@ -561,7 +636,10 @@ class RecordTests(unittest.TestCase):
                    "a count of available drafts as a float": lambda record: record["mtp"][1].update(available=8.0),
                    "a margin rounded to more places": lambda record: record["mtp"][1]["fixed"]["margins"].__setitem__(
                        0, 0.12345),
-                   "a draft after a stop token": lambda record: record["mtp"][1]["fixed"]["tokens"].__setitem__(0, 106),
+                   "a draft after a stop token": lambda record: record["mtp"][1]["fixed"].update(tokens=[106, 0],
+                                                                                                 margins=[0.5, 0.5]),
+                   "a difference before the last of fewer than six drafts": lambda record: record["mtp"][1]["fixed"].update(
+                       tokens=[0, 0], margins=[0.5, 0.5]),
                    "a draft past a difference after the sixth": lambda record: record["mtp"][1]["fixed"].update(
                        accepted=5, tokens=item["teacher"][2:7] + [0, 0], margins=[0.5] * 7),
                    "a last draft that does not end the drafting": lambda record: record["mtp"][1]["fixed"].update(

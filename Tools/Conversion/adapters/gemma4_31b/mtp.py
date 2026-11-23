@@ -654,6 +654,13 @@ def compared(folders, expected, config, steps, problems):
             "records_sha256": hashes}
 
 
+def producible(tokens, cont, stops, minimum):
+    ends = [token in stops or index == DRAFTS - 1
+            or index + 1 >= minimum and (index >= len(cont) or token != cont[index])
+            for index, token in enumerate(tokens)]
+    return bool(ends) and ends[-1] and not any(ends[:-1])
+
+
 def draft_rows(path, item, vocabulary, stops):
     record = document(path)
     rows = record.get("mtp") if isinstance(record, dict) else None
@@ -671,13 +678,9 @@ def draft_rows(path, item, vocabulary, stops):
                 or not all(valid("count", token) and token < vocabulary for token in fixed["tokens"]) \
                 or not all(valid("seconds", margin) for margin in fixed["margins"]):
             raise ValueError(f"{Path(path).name} holds a malformed row")
-        tokens, cont = fixed["tokens"], item["teacher"][row["j"] + 1:row["j"] + 1 + DRAFTS]
-        last = len(tokens) - 1
-        if not 1 <= len(tokens) <= DRAFTS or row["available"] != len(cont) \
-                or any(round(margin, 4) != margin for margin in fixed["margins"]) \
-                or any(token in stops for token in tokens[:-1]) \
-                or any(index >= len(cont) or tokens[index] != cont[index] for index in range(MINIMUM - 1, last)) \
-                or not (tokens[-1] in stops or len(tokens) == DRAFTS or last >= len(cont) or tokens[-1] != cont[last]):
+        cont = item["teacher"][row["j"] + 1:row["j"] + 1 + DRAFTS]
+        if row["available"] != len(cont) or any(round(margin, 4) != margin for margin in fixed["margins"]) \
+                or not any(producible(fixed["tokens"], cont, stops, minimum) for minimum in (0, MINIMUM)):
             raise ValueError(f"{Path(path).name} holds a row that the drafting of #691 cannot give")
         accepted = matches(fixed["tokens"], item["teacher"][row["j"] + 1:])
         wrong += accepted != fixed["accepted"]
