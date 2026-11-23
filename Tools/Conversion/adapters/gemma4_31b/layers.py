@@ -25,6 +25,7 @@ PREFIX = "model.language_model."
 SLIDING, FULL = "sliding_attention", "full_attention"
 QUANTIZED = "quantized.safetensors"
 PARTS = ("quantized_data", "scale", "minval")
+BLOCK = 32
 LAYER = re.compile(r"layers\.(\d+)\.")
 TAP_LIST = re.compile(r"[1-9][0-9]*(,[1-9][0-9]*)*")
 OUTPUTS = ("logits", "hidden_states", "tap_hidden_states")
@@ -283,11 +284,12 @@ def quantized_weights(path, digests, shapes):
             for part, tensor in zip(PARTS, tensors):
                 if tensor_sha256(tensor) != digests[f"{weight}.{part}"]:
                     raise ValueError(f"The SHA-256 of {weight}.{part} differs from the export record")
+            blocks = [shape[0], shape[1] // BLOCK]
             if (data.dtype, scale.dtype, minval.dtype) != (torch.uint8, torch.float16, torch.float16) \
-                    or list(data.shape) != shape or scale.dim() != 2 or minval.shape != scale.shape \
-                    or scale.shape[0] != data.shape[0] or not 0 < scale.shape[1] <= data.shape[1] \
-                    or data.shape[1] % scale.shape[1]:
-                raise ValueError(f"{weight} is not a uint8 Linear weight of the checkpoint with float16 blocks")
+                    or list(data.shape) != shape or shape[1] % BLOCK or list(scale.shape) != blocks \
+                    or list(minval.shape) != blocks:
+                raise ValueError(f"{weight} is not a uint8 Linear weight of the checkpoint with float16 blocks of "
+                                 f"[1, {BLOCK}]")
             weights[weight] = data, scale, minval
     return weights
 

@@ -15,7 +15,7 @@ import time
 
 from ...storage import PipelineError, file_hash, write_json
 from ..pinned import sha256
-from .layers import FULL, OUTPUTS, PREFIX, QUANTIZED, SLIDING, check_layers, check_taps, tensor_sha256
+from .layers import BLOCK, FULL, OUTPUTS, PREFIX, QUANTIZED, SLIDING, check_layers, check_taps, tensor_sha256
 from .prepare import TOKENIZER_FILES, load_contract
 from .reference import SWAP_INCREASE_LIMIT_BYTES, footprint, supervise, verify_inputs
 
@@ -38,7 +38,8 @@ QUANTIZATION = {"execution_mode": "eager", "global_config": None, "module_type_c
     "torch.nn.modules.linear.Linear": {"op_state_spec": {"weight": {
         "dtype": "torch.uint8", "qscheme": "asymmetric", "granularity": {"type": "per_block", "block_size": 32, "axis": 1},
         "qformulation": "minval"}}, "op_input_spec": None, "op_output_spec": None}}}
-LAYOUT = {"data": "torch.uint8", "scale": "torch.float16", "minval": "torch.float16", "zero_point": None, "block": [1, 32]}
+LAYOUT = {"data": "torch.uint8", "scale": "torch.float16", "minval": "torch.float16", "zero_point": None,
+          "block": [1, BLOCK]}
 LINEAR = {SLIDING: ("self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj", "self_attn.o_proj", "mlp.gate_proj",
                     "mlp.up_proj", "mlp.down_proj"),
           FULL: ("self_attn.q_proj", "self_attn.k_proj", "self_attn.o_proj", "mlp.gate_proj", "mlp.up_proj",

@@ -638,6 +638,16 @@ def write_export(folder, contract, tensors, **changes):
     return folder
 
 
+def in_blocks_of(tensors, width):
+    changed = dict(tensors)
+    for key, data in tensors.items():
+        if key.endswith(".quantized_data"):
+            weight, (rows, columns) = key.removesuffix(".quantized_data"), data.shape
+            changed[f"{weight}.scale"] = torch.full((rows, columns // width), 1e-3, dtype=torch.float16)
+            changed[f"{weight}.minval"] = torch.zeros(rows, columns // width, dtype=torch.float16)
+    return changed
+
+
 def float16_restore(data, scale, minval):
     blocks = data.shape[1] // scale.shape[1]
     product = data.numpy().astype(np.float16) * np.repeat(scale.numpy(), blocks, axis=1)
@@ -788,6 +798,21 @@ class RestoredReferenceTests(unittest.TestCase):
                 self.assertEqual(read_json(output / "failure.json"), {"schema": layers.CONTEXT_SCHEMA, "passed": False,
                                                                        "weights": weights, "error": "RuntimeError"})
                 self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
+
+    def test_a_restored_reference_refuses_scales_and_minimums_in_blocks_other_than_32(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            for width in (16, 64):
+                source = write_export(folder / f"export-{width}", contract, in_blocks_of(tensors, width))
+                output = folder / f"restored-{width}"
+                with self.subTest(width=width):
+                    with self.assertRaisesRegex(ValueError, r"blocks of \[1, 32\]"), \
+                            mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                        layers.context(contract, snapshot, 6, output, "8bit", source)
+                    load.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
 
 
 if __name__ == "__main__":
