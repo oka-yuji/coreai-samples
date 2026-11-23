@@ -602,10 +602,9 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
   [1, 1, 4, n, 512], those of the last full-attention layer (layer 59, slot 9) at all n = a positions 0 to a − 1. The
   keys are the stored ones, after `k_norm` and RoPE. The class has no mask: the caller cuts the ranges. `outputs` and
   `forward` check their inputs first and stop with `ValueError` (`The drafter inputs differ from the contract`) for a
-  tensor of another shape, dtype or number of dimensions (an argument that is not a tensor fails earlier, with
-  `AttributeError`): `hidden_states`, the keys and the values must be in the dtype of the weights of the class (float16
-  in the export), the keys and the values of one shape, with w from 1 to `sliding_window + 1` and n from 1 without an
-  upper limit.
+  tensor of another shape, dtype or number of dimensions: `hidden_states`, the keys and the values must be in the dtype
+  of the weights of the class (float16 in the export), the keys and the values of one shape, with w from 1 to
+  `sliding_window + 1` and n from 1 without an upper limit.
 - A token enters as its row of the target table times 73.5 (the BF16 value of √5376). The query uses position a at every
   step of a round. The logits are the product with the assistant's own embedding over the whole vocabulary, without a
   soft cap.
@@ -615,8 +614,7 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
   `mtp.py` keeps the drafts up to and including the first stop token, where the original generator stops. The output of
   `post_projection` is no output of the function: the hidden state of the next round comes from the target.
 - `export(drafters, context)` stages one function `draft_<steps>` per drafter with the steps of `staged` in `export.py`,
-  so the drafters need different `steps`: the converter refuses two functions of one name (seen for two drafters of 1, 2
-  and 7 steps, each a `ValueError`: `A program with entrypoint_name='draft_1' is already staged`). w (declared from 1 to
+  so the drafters need different `steps`: the converter refuses two functions of one name. w (declared from 1 to
   `sliding_window + 1`, that is 1,025 for the assistant of the 31B model) and n (declared from 1 to `context`) are the
   dynamic dimensions of its inputs, which take the dtype of the weights of the class (float16 in `mtp.py export`). It
   traces each function with example inputs of 5 sliding-window positions and 9 full-attention positions, so
