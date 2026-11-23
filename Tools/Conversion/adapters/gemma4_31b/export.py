@@ -31,6 +31,7 @@ CONSTANT_TYPES = ("Float32", "Int32", "UInt32", "UInt64")
 MARGIN_BYTES = 60 * 2**30
 SMALL_BYTES = 64 * 2**20
 BUNDLE, INCOMPLETE, WORK, QUANTIZING = "bundle", "bundle.incomplete", "layers", "quantization"
+ASSET_FILES = ("main.hash", "main.mlirb", "metadata.json")
 PACKAGES = ("coreai-core", "coreai-models", "coreai-opt", "coreai-torch", "safetensors", "torch", "transformers")
 TIMES = " × "
 TYPE = re.compile(r"NDArray \((\w+), ([0-9?]+(?:" + TIMES + r"[0-9?]+)*)\)")
@@ -54,6 +55,11 @@ DEQUANTIZE = "blockwise_shift_scale"
 
 def name_of(layers, functions, precision):
     return f"gemma4_31b_l{layers}_{precision}_{'_'.join(functions)}"
+
+
+def bundle_layout(name):
+    return sorted([*(f"{name}.aimodel/{item}" for item in ASSET_FILES), "metadata.json",
+                   *(f"tokenizer/{item}" for item in TOKENIZER_FILES)])
 
 
 def metadata(contract, name, context, compression, taps):
@@ -115,7 +121,7 @@ def float16_problems(record):
     problems = []
     if record["compression_config"] is not None:
         problems.append("the export was given a compression config")
-    if record["weights"]["quantized_layouts"]:
+    if canonical(record["weights"]["quantized_layouts"]) != canonical(0):
         problems.append(f"the PyTorch model holds {record['weights']['quantized_layouts']} quantized weights")
     if set(record["weights"]["elements_by_dtype"]) != {"torch.float16"}:
         problems.append(f"the PyTorch model holds {shown(record['weights']['elements_by_dtype'])} elements; every "
@@ -133,18 +139,22 @@ def quantization_problems(record, kinds, functions, taps):
     if names != expected:
         problems.append(f"the PyTorch model quantized {len(names)} tensors, not the {len(expected)} Linear weights; "
                         f"missing {sorted(set(expected) - set(names))}, others {sorted(set(names) - set(expected))}")
-    wrong = [entry["name"] for entry in quantized["layers"] if {key: entry.get(key) for key in LAYOUT} != LAYOUT]
+    wrong = [entry["name"] for entry in quantized["layers"]
+             if canonical({key: entry.get(key) for key in LAYOUT}) != canonical(LAYOUT)]
     if wrong:
         problems.append(f"{wrong} are not uint8 with float16 scales and minimums in blocks of [1, 32]")
     if set(record["weights"]["elements_by_dtype"]) != {"torch.float16", "torch.uint8"}:
         problems.append(f"the PyTorch model holds {shown(record['weights']['elements_by_dtype'])} elements; every "
                         "parameter and buffer must be the uint8 quantized data or float16")
-    if quantized["skipped"]:
+    if canonical(record["weights"]["quantized_layouts"]) != canonical(len(expected)):
+        problems.append(f"the PyTorch model holds {record['weights']['quantized_layouts']} quantized layouts, not one for "
+                        f"each of the {len(expected)} Linear weights")
+    if canonical(quantized["skipped"]) != canonical(0):
         problems.append(f"the converter logged {SKIPPED!r} {quantized['skipped']} times")
-    if not quantized["warnings_enabled"]:
+    if quantized["warnings_enabled"] is not True:
         problems.append("the warnings of the quantizer were not enabled, so skipped weights could not be counted")
     expected = dequantizations(quantized_names(kinds), kinds, functions, taps)
-    if record["asset"]["dequantizations"] != expected:
+    if canonical(record["asset"]["dequantizations"]) != canonical(expected):
         problems.append(f"the asset dequantizes {record['asset']['dequantizations']} times, not {expected}: one for each "
                         "quantized weight that each function reads")
     return problems
@@ -159,7 +169,7 @@ def check_asset(record, contract, kinds, functions, context, taps, precision):
     if other:
         problems.append(f"the asset stores {other}; only {' and '.join(stored)} weights and {list(CONSTANT_TYPES)} "
                         "constants may remain")
-    if storage.get("Float32", 0) != expected:
+    if canonical(storage.get("Float32", 0)) != canonical(expected):
         problems.append(f"Float32 holds {storage.get('Float32', 0)} elements, not the {expected} of the two RoPE tables "
                         "and the two constants")
     found, expected = record["asset"]["functions"], expected_functions(contract["config"], kinds, functions, taps)
@@ -167,15 +177,19 @@ def check_asset(record, contract, kinds, functions, context, taps, precision):
         problems.append(f"the asset has the functions {sorted(found)}, not {sorted(expected)}")
     for name in sorted(set(found) & set(expected)):
         problems += [f"{name} {kind}: {shown(found[name][kind])}, not {shown(expected[name][kind])}"
-                     for kind in ("inputs", "outputs", "states") if found[name][kind] != expected[name][kind]]
+                     for kind in ("inputs", "outputs", "states")
+                     if canonical(found[name][kind]) != canonical(expected[name][kind])]
     order = {name: list(RETURNS[name]) for name in functions}
     if record["asset"]["output_order"] != order:
         problems.append(f"the functions return {shown(record['asset']['output_order'])}, not {shown(order)}")
-    if record["tokenizer"] != contract["tokenizer"]["files"]:
+    if canonical(record["tokenizer"]) != canonical(contract["tokenizer"]["files"]):
         problems.append(f"the tokenizer files {shown(record['tokenizer'])} differ from the distributed files")
-    compression = "8bit" if eight_bit else None
-    if record["metadata"] != metadata(contract, name_of(len(kinds), functions, precision), context, compression, taps):
+    compression, name = "8bit" if eight_bit else None, name_of(len(kinds), functions, precision)
+    if canonical(record["metadata"]) != canonical(metadata(contract, name, context, compression, taps)):
         problems.append(f"metadata.json differs from the contract and the arguments: {shown(record['metadata'])}")
+    if record["bundle"]["name"] != name or sorted(record["bundle"]["files"]) != bundle_layout(name):
+        problems.append(f"the bundle {shown(record['bundle']['name'])} holds {sorted(record['bundle']['files'])}, not "
+                        f"the files of the complete bundle {name}")
     return problems
 
 

@@ -26,15 +26,15 @@ try:
 except ImportError:
     torch = None
 
-from Tools.Conversion.adapters.gemma4_31b import anchor, export, layer1_anchor, layer1_candidate, layers, native, reference
+from Tools.Conversion.adapters.gemma4_31b import anchor, layer1_anchor, layer1_candidate, layers, native, reference
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import file_hash, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_anchor import (GEMMA4, MEMORY, OBSERVED, RECIPE, VOCABULARY, WINDOW,
                                                             ReadyMonitor, tiny_model)
-from Tools.Conversion.tests.test_gemma4_31b_layers import (TEXT, float16_restore, quantized_tensors, write_contract,
-                                                            write_export, write_snapshot)
-from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, model_record
+from Tools.Conversion.tests.test_gemma4_31b_layers import (TEXT, complete_export, float16_restore, quantized_tensors,
+                                                            write_contract, write_export, write_snapshot)
+from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH
 from Tools.LLMEvaluation.tests.test_layer1 import bounded, inode, release, replaced, touched, watched
 
 EVALUATION = Path(__file__).resolve().parents[2] / "LLMEvaluation/contract.json"
@@ -558,26 +558,24 @@ class CandidateRunTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
-        self.contract = write_contract(self.folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
+        (self.folder / "snapshot").mkdir()
+        for index, item in enumerate(TOKENIZER_FILES):
+            (self.folder / "snapshot" / item).write_text("abc"[index])
+        files = {item: {"bytes": 1, "sha256": sha256(self.folder / "snapshot" / item)} for item in TOKENIZER_FILES}
+        self.contract = write_contract(self.folder, files)
         self.vocabulary = TEXT["vocab_size"]
         self.records = made(self.vocabulary, [(index % 7 + 3, index % 5 + 1) for index in range(12)])
         self.forced = write_forced(self.folder / "forced", self.records)
-        self.export = self.folder / "export"
-        bundle = self.export / export.BUNDLE
-        (bundle / "asset.aimodel").mkdir(parents=True)
-        (bundle / "asset.aimodel/main.hash").write_bytes(bytes.fromhex(MAIN_HASH))
-        (bundle / "metadata.json").write_text("{}")
-        files = {path.relative_to(bundle).as_posix(): {"bytes": path.stat().st_size, "sha256": sha256(path)}
-                 for path in sorted(bundle.rglob("*")) if path.is_file()}
-        self.exported = {"schema": export.SCHEMA, "passed": True, "problems": [], "layers": 6, "precision": "float16",
-                         "context": 64, "layer_types": layers.check_layers(load_contract(self.contract)["config"], 6),
-                         "functions": ["main", "prefill"], "model": model_record(self.contract),
-                         "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
-                         "bundle": {"folder": export.BUNDLE, "name": "asset", "main_hash": MAIN_HASH, "files": files}}
-        write_json(self.export / "export.json", self.exported)
+        self.export = complete_export(self.folder / "export", self.contract)
+        self.exported = read_json(self.export / "export.json")
         self.verifier, self.calls, self.launches = self.folder / "verifier", self.folder / "calls.txt", self.folder / "launches.txt"
 
-    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH):
+    def eight_bit(self):
+        (self.folder / "eight").mkdir()
+        contract = write_snapshot(self.folder / "eight", hidden_size=64)[1]
+        return write_export(self.folder / "export-8bit", contract, quantized_tensors({**TEXT, "hidden_size": 64})), contract
+
+    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH, contract=None):
         prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
                   for record in self.records}
         plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": main_hash,
@@ -586,7 +584,8 @@ class CandidateRunTests(unittest.TestCase):
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
         with contextlib.redirect_stdout(io.StringIO()):
-            return layer1_candidate.run(self.export, self.forced, self.verifier, self.folder / output, self.contract)
+            return layer1_candidate.run(self.export, self.forced, self.verifier, self.folder / output,
+                                        contract or self.contract)
 
     def called(self):
         return self.calls.read_text().split() if self.calls.exists() else []
@@ -599,7 +598,8 @@ class CandidateRunTests(unittest.TestCase):
         self.assertEqual(self.called(), [record["id"] for record in self.records])
         handoff = read_json(out / "logits.json")
         self.assertEqual({key: handoff[key] for key in ("schema", "role", "weights", "forced_sha256")},
-                         {"schema": layer1_anchor.LOGITS, "role": "fp16", "weights": f"asset main.hash {MAIN_HASH}",
+                         {"schema": layer1_anchor.LOGITS, "role": "fp16",
+                          "weights": f"{self.exported['bundle']['name']} main.hash {MAIN_HASH}",
                           "forced_sha256": sha256(self.forced / "forced.jsonl")})
         self.assertEqual(len(handoff["items"]), len(self.records))
         for entry, record in zip(handoff["items"], self.records):
@@ -674,19 +674,17 @@ class CandidateRunTests(unittest.TestCase):
 
     @unittest.skipIf(not GEMMA4, "Transformers with Gemma 4 and PyTorch are required to write the quantized tensors")
     def test_an_8bit_export_gives_the_role_w8(self):
-        self.export = write_export(self.folder / "export-8bit", self.contract,
-                                   quantized_tensors({**TEXT, "hidden_size": 64}), context=64)
-        result = self.run_candidate(main_hash=bytes(32).hex(), output="w8")
+        self.export, contract = self.eight_bit()
+        result = self.run_candidate(output="w8", contract=contract)
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual((result["role"], read_json(self.folder / "w8/logits.json")["role"]), ("w8", "w8"))
 
     @unittest.skipIf(not GEMMA4, "Transformers with Gemma 4 and PyTorch are required to write the quantized tensors")
     def test_an_export_of_a_precision_without_a_role_is_refused_before_anything_is_written_or_launched(self):
-        self.export = write_export(self.folder / "export-8bit", self.contract,
-                                   quantized_tensors({**TEXT, "hidden_size": 64}), context=64)
+        self.export, contract = self.eight_bit()
         with mock.patch.dict(layer1_candidate.ROLES, {"float16": "fp16"}, clear=True), \
                 self.assertRaisesRegex(ValueError, "no role is known for the precision '8bit'"):
-            self.run_candidate(main_hash=bytes(32).hex(), output="unknown")
+            self.run_candidate(output="unknown", contract=contract)
         self.assertFalse((self.folder / "unknown").exists() or self.launches.exists())
 
     def test_an_interrupt_is_made_effective_before_the_items_are_read(self):
@@ -916,8 +914,7 @@ class RestoredRunTests(unittest.TestCase):
             (folder / layers.QUANTIZED).write_bytes(bytes(data))
 
         cases = {"not passed": write_export(self.folder / "failed", self.contract, self.tensors, passed=False),
-                 "not 8bit": write_export(self.folder / "half", self.contract, {}, precision="float16",
-                                          quantized=None),
+                 "not 8bit": complete_export(self.folder / "half", self.contract),
                  "another tensor digest": edited("digest", digest), "a changed tensor file": edited("flipped", flipped)}
         with mock.patch.object(layer1_anchor, "model_for") as model_for:
             for label, folder in cases.items():

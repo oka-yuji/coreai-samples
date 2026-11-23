@@ -720,27 +720,44 @@ model: the record shows that the quantized export, the asset and the reads of th
 not the quality of the model or of the quantization.
 [`8bit-first-layers-20261123.json`](8bit-first-layers-20261123.json) holds the states, numbers, hashes, versions and
 fixed names of the records, from `fp16_summary`, which checked that the pipeline report is the run whose stage manifest
-recorded its `export.json`, that the comparison was made from that `export.json` and the restored reference record, and
-that the effect was computed from that reference record. The hashes of the quantized tensors are those of the tensors
-that the export passed to the converter (`quantized.safetensors`), because the asset summary does not list the tensors
-of the asset; the asset itself is checked through the number of its dequantizing operations and through the logits of
-the engine. The summary has no local paths, commands or environment variables; the records, the bundle, the quantized
-tensors and the logits stay in the local work directory.
+recorded its `export.json`, the files of its bundle and its `quantized.safetensors`; that the comparison was made from
+that `export.json` and the restored reference record and records their layers, the functions and the asset; that the
+restored reference and the export are of the contract of the repository and of the same layers and that the reference
+was restored from the quantized tensors of that export (the SHA-256 of `export.json`, the size and SHA-256 of
+`quantized.safetensors` and the number of tensors); and that the effect was computed from that reference record, with a
+rounded reference of the same layers, on the conditions of the comparison. It computed the effect itself from the two
+references, and the numbers of each condition (the differences, the counts of non-finite values and of top-1 changes,
+the known rows and the checks) again from the logits file of the condition and the reference, and counted the
+non-finite logits of the reference again, each equal to the record. It also checked the type of each number of a run
+that no array gives, such as a time, and the relations that their writers give them, such as the time of a condition
+not being shorter than the steps that its verifier recorded (the list is in the
+[recipe](../../../Tools/Conversion/recipes/gemma4_31b/README.md#comparison-with-the-own-engine)). The hashes of the
+quantized tensors are those of the tensors that the export passed to the converter (`quantized.safetensors`), because
+the asset summary does not list the tensors of the asset; the asset itself is checked through the number of its
+dequantizing operations and through the logits of the engine. The summary has no local paths, commands or environment
+variables; the records, the bundle, the quantized tensors and the logits stay in the local work directory.
 
 ### Conditions
 
 - The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power, battery
-  100 % at the start of every job). Every model job held the shared machine lock, and none started while another model
+  100 % at the start of the export, 51 % (charging) at the start of the restored reference, the reference with
+  float16-rounded weights and the comparison, which ran in one hold of the lock that the run took after another
+  session's job released it). Every model job held the shared machine lock, and none started while another model
   process ran. The times below are records, not measurements.
-- Commit e873b4ee with no local changes for every model job; the tools last changed in e876c730, and e873b4ee
-  changed only a test. Converter `apple/coreai-models`
-  `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core 1.0.0b3, coreai-models 0.1.0, coreai-opt 0.4.0,
-  coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors 0.7.0. Reference: transformers 5.16.1, torch
-  2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` was built in release from e873b4ee.
-- Runs (2026-11-23 JST, the pipeline run ID in UTC): the export `20261123T005205-78dbfcbb` from 09:52:01 with the
-  `prepare` step of the recipe (the `export` step ran, not reused); the restored reference (`layers.py context --weights
-  8bit`) from 09:57:36; the reference with float16-rounded weights (`--weights float16`) from 10:03:42; the comparison
-  from 10:07:05, and `effect` after it.
+- No local changes for any model job. The export ran at commit ca63eb81. The restored reference, the reference with
+  float16-rounded weights and the comparison ran at commit da7add90, from a `git archive` of that commit, the last
+  change of the sources that these jobs read: the later merge of `main` only added the files of the MTP drafter
+  (`assistant.py`, `drafter.py`, `mtp.py` and the recipe `assistant.json`). The commits after ca63eb81 changed only the
+  reader of the export (`native.py`), the effect (`effect.py`) and the summary (`fp16_summary.py`), no input of the
+  export step, so it was not run again. Converter
+  `apple/coreai-models` `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core 1.0.0b3, coreai-models 0.1.0,
+  coreai-opt 0.4.0, coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors 0.7.0. Reference: transformers
+  5.16.1, torch 2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` is the binary built in release at 7de91afa, the
+  same as from ca63eb81 (the SHA-256 in the record of the comparison, unchanged); no Swift source changed after it.
+- Runs (JST, the pipeline run ID in UTC): the export `20261123T043147-264994c4` from 2026-11-23 13:31:43 with the
+  `prepare` step of the recipe (the `export` step ran, not reused); the restored reference (`layers.py context
+  --weights 8bit`) from 2026-11-24 07:21:12, the reference with float16-rounded weights (`--weights float16`) from
+  07:22:33 and the comparison from 07:23:46, in one hold of the shared machine lock (07:21:12 to 07:25:57).
 - Tap layers `1,2,3,4,5`. Inputs: `short` (26 tokens) and `context` (16,896 tokens), the fixed-seed token IDs of the
   FP16 record above.
 
@@ -748,25 +765,25 @@ tensors and the logits stay in the local work directory.
 
 | | `main` and `prefill` |
 |---|---:|
-| Pipeline | 205.1 s |
-| `prepare` step | 26.8 s |
-| `export` step | 74.4 s |
-| Export tool | 71.33 s |
-| Hashing the files to load | 22.82 s |
-| Loading the model class in FP16 | 2.64 s |
-| `quantize_for_export` | 2.04 s |
-| Writing `quantized.safetensors` and hashing it | 2.64 s |
-| Tracing and converting the functions | 34.05 s |
-| Saving the asset | 4.17 s |
-| Hashing the bundle | 2.33 s |
-| Peak resident memory | 20,353,499,136 B |
-| Kernel lifetime footprint peak | 11,585,683,872 B |
+| Pipeline | 213.5 s |
+| `prepare` step | 27.0 s |
+| `export` step | 79.8 s |
+| Export tool | 77.06 s |
+| Hashing the files to load | 23.38 s |
+| Loading the model class in FP16 | 4.65 s |
+| `quantize_for_export` | 3.22 s |
+| Writing `quantized.safetensors` and hashing it | 3.29 s |
+| Tracing and converting the functions | 33.84 s |
+| Saving the asset | 5.68 s |
+| Hashing the bundle | 2.31 s |
+| Peak resident memory | 20,349,681,664 B |
+| Kernel lifetime footprint peak | 11,581,915,624 B |
 | Swap increase (limit 2,000,000,000 B) | 0 B |
 | Free disk required at the start | 94,791,187,754 B |
-| Lowest free disk during the run (limit 64,424,509,440 B) | 312,909,512,704 B |
-| `main.mlirb` | 6,113,706,121 B |
-| `main.hash`, the SHA-256 of `main.mlirb` | `cbeab38f2b68ef02932592041bfc01f8165d1e4045e6a444288af31fd12bc933` |
-| Bundle | 6,145,898,339 B |
+| Lowest free disk during the run (limit 64,424,509,440 B) | 287,105,204,224 B |
+| `main.mlirb` | 6,113,706,114 B |
+| `main.hash`, the SHA-256 of `main.mlirb` | `4284357701f6269241428ff43323cb69bec24790ecc6e06edf43912d304dc98d` |
+| Bundle | 6,145,898,332 B |
 | `quantized.safetensors` | 3,294,771,912 B |
 | Its SHA-256 | `5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833` |
 
@@ -783,63 +800,70 @@ more), recorded without a judgment, and the constants Float32 386, Int32 148, UI
 assets), and no other type. `main` returns `logits` float16 [1, ?, 262144], `hidden_states` float16 [1, ?, 5376] and
 `tap_hidden_states` float16 [1, ?, 26880] in this order, and `prefill` returns `tap_hidden_states` float16
 [1, ?, 26880]; the inputs and the states are those of the FP16 assets. `main.mlirb` is 0.705 times the FP16 one with
-`main` and `prefill` of the section above. The three tokenizer files are the distributed files, and `metadata.json` has
+`main` and `prefill` of the section above. The bundle holds exactly the seven files of a complete bundle, the three of
+the asset, `metadata.json` and the three tokenizer files, which are the distributed files, and `metadata.json` has
 `compression` `8bit`, `tap_layers` [1, 2, 3, 4, 5], `tap_convention` `layers-passed:before-final-norm:ascending`,
 vocabulary 262,144, context limit 16,896, `source.hf_model_id` `google/gemma-4-31B-it` and `source.revision`
 `842da3794eaa0b77d5f08bae87a17459d91ff475`. The free disk check counts seven bytes per weight element
 (30,366,678,314 B) plus 60 GiB.
 
-Two earlier 8-bit exports of the same layers wrote the same `quantized.safetensors` (the same size and SHA-256), the
-same storage counts and the same 77 operations: the one from 18eedf75, with the same outputs before the changes of the
-checks, whose `main.mlirb` is 2 B smaller and differs only in its last 7,510 bytes, and the one from 6abb7325, before the
-outputs for speculation, whose `main` returned `logits` only and whose `main.mlirb` is 290 B smaller.
+Three earlier 8-bit exports of the same layers wrote the same `quantized.safetensors` (the same size and SHA-256), the
+same storage counts and the same 77 operations: the one from e873b4ee, before the last changes of the checks of the
+export and of its reader, whose `main.mlirb` is 7 B larger and differs from this one only in its last 7,512 bytes; the
+one from 18eedf75, with the same outputs, whose `main.mlirb` is 5 B larger (it differed from that of e873b4ee only in
+its last 7,510 bytes); and the one from 6abb7325, before the outputs for speculation, whose `main` returned `logits`
+only and whose `main.mlirb` is 283 B smaller.
 
 ### FP32 references
 
 | | Restored from the quantized weights | float16-rounded weights |
 |---|---:|---:|
-| Total | 71.8 s | 73.0 s |
-| Hashing the files to load | 23.25 s | 24.48 s |
-| Loading the original implementation (and restoring the 41 weights) | 2.63 s | 2.71 s |
-| `context` in 17 calls of up to 1,024 tokens | 44.9 s | 44.9 s |
-| Peak resident memory | 51,228,786,688 B | 55,567,056,896 B |
-| Kernel lifetime footprint peak | 51,196,695,320 B | 55,537,082,160 B |
+| Total | 74.7 s | 72.4 s |
+| Hashing the files to load | 25.01 s | 23.57 s |
+| Loading the original implementation (and restoring the 41 weights) | 2.33 s | 2.26 s |
+| `context` in 17 calls of up to 1,024 tokens | 46.5 s | 45.6 s |
+| Peak resident memory | 51,240,747,008 B | 55,566,876,672 B |
+| Kernel lifetime footprint peak | 51,208,721,272 B | 55,536,934,752 B |
 
-Before it made its folder, the restored reference read the export with the reader that the comparison also uses (the
-bundle under its final name with the files of its record, no failure record or unfinished bundle, a passed record of
-these layers and tap layers, and the 41 Linear weights in blocks of [1, 32] with `quantized.safetensors` of the recorded
-size and SHA-256), checked the 123 tensors against their SHA-256 and each weight against its shape in the checkpoint,
-with scales and minimums of exactly [rows, columns / 32], and then restored the 41 weights (these checks are not in the
-times above). Both references kept 26 rows of `short` and 1,428 rows of `context`, all finite, and their logits files
-have the SHA-256 of those of the references of the runs at 18eedf75 and 6abb7325.
+Before it made its folder, the restored reference read the export with the reader that the comparison also uses (a
+complete bundle under its final name with the sizes and SHA-256 of its record, the tokenizer files of the contract, the
+expected `metadata.json` and `main.hash` the SHA-256 of `main.mlirb`; real folders and regular files, each read only at
+its recorded size; no failure record or unfinished bundle; a passed record of these layers and tap layers, whose
+inspection it ran again and whose numbers that the export derives from others follow from them; and the 41 Linear
+weights in blocks of [1, 32] with `quantized.safetensors` of the recorded size and SHA-256), checked the 123 tensors
+against their SHA-256 and each weight against its shape in the checkpoint, with scales and minimums of exactly [rows,
+columns / 32], and then restored the 41 weights (these checks are not in the times above). Both references kept 26 rows
+of `short` and 1,428 rows of `context`, all finite, and their logits files have the SHA-256 of those of the references
+of the runs at 22af0632, 7de91afa, 8dd53a88, f15f6f79, ca63eb81, e873b4ee, 18eedf75 and 6abb7325.
 
 ### Comparison
 
 The asset passed all twelve conditions against the restored reference: no non-finite value in any written or reference
 row, no constant written row, every largest absolute logit difference below 2.0, and no top-1 change outside a near tie.
-Each of the twelve logits files is byte-identical to the file of the same condition from the exports from 18eedf75 and
-6abb7325, so the differences are those of these exports. The FP16 asset with `main` and `prefill` against its reference
-of the FP16 section above is in parentheses.
+Each of the twelve logits files is byte-identical to the file of the same condition from the comparisons of the same
+export at ca63eb81, f15f6f79, 8dd53a88, 7de91afa and 22af0632 and from the exports from e873b4ee, 18eedf75 and 6abb7325, so the
+differences are those of these exports. The FP16 asset with `main` and `prefill` against
+its reference of the FP16 section above is in parentheses.
 
 | Condition | Rows | Largest absolute logit difference (FP16) | Top-1 changes in a near tie / outside | Rows of the known call shape: count, largest difference (FP16) | Seconds |
 |---|---:|---:|---:|---:|---:|
-| `short-c1` | 26 | 0.516 (0.458) | 25 / 0 | – | 8.0 |
+| `short-c1` | 26 | 0.516 (0.458) | 25 / 0 | – | 9.2 |
 | `short-c26` | 26 | 0.521 (0.480) | 25 / 0 | – | 2.1 |
-| `window-c1` | 1,300 | 0.926 (0.989) | 1,266 / 0 | – | 25.9 |
-| `window-c2` | 1,300 | 0.984 (0.929) | 1,266 / 0 | – | 14.1 |
-| `window-c4` | 1,300 | 0.953 (0.855) | 1,266 / 0 | – | 8.0 |
+| `window-c1` | 1,300 | 0.926 (0.989) | 1,266 / 0 | – | 25.8 |
+| `window-c2` | 1,300 | 0.984 (0.929) | 1,266 / 0 | – | 13.9 |
+| `window-c4` | 1,300 | 0.953 (0.855) | 1,266 / 0 | – | 7.7 |
 | `window-c8` | 1,300 | 0.902 (0.861) | 1,250 / 0 | 16, 4.379 (4.266) | 6.6 |
-| `prefix-c1` | 300 | 0.832 (0.836) | 294 / 0 | – | 8.2 |
-| `capacity-2048` | 16 | 0.583 (0.437) | 15 / 0 | – | 2.9 |
-| `capacity-4096` | 16 | 0.612 (0.535) | 14 / 0 | – | 4.0 |
-| `capacity-8192` | 16 | 0.761 (0.459) | 16 / 0 | – | 6.5 |
-| `capacity-16384` | 16 | 0.553 (0.567) | 15 / 0 | – | 11.6 |
-| `tail` | 64 | 0.913 (0.466) | 61 / 0 | – | 14.7 |
+| `prefix-c1` | 300 | 0.832 (0.836) | 294 / 0 | – | 8.0 |
+| `capacity-2048` | 16 | 0.583 (0.437) | 15 / 0 | – | 3.1 |
+| `capacity-4096` | 16 | 0.612 (0.535) | 14 / 0 | – | 4.8 |
+| `capacity-8192` | 16 | 0.761 (0.459) | 16 / 0 | – | 6.4 |
+| `capacity-16384` | 16 | 0.553 (0.567) | 15 / 0 | – | 11.1 |
+| `tail` | 64 | 0.913 (0.466) | 61 / 0 | – | 13.1 |
 
 - The rows of the known call shape are rows 96 to 111 of `window-c8`; they are left out of the judgment.
 - The tokens before `--start` went through the `prefill` function (1, 1, 1, 2, 4 and 5 calls for `prefix-c1`, the four
   `capacity` conditions and `tail`), and no `coreai-verify` process stopped.
-- The first condition specialized the asset (5.1 s); the others used the specialization cache, which took 8,738,288 KiB
+- The first condition specialized the asset (6.6 s); the others used the specialization cache, which took 8,739,724 KiB
   (`resources.bin` 8,932,172,280 B, the size that #665 found for the same form) and was removed after the comparison.
 - The differences, 0.516 to 0.984 outside the known rows, are of the size of those of the FP16 asset against its own
   reference (0.437 to 0.989).
@@ -883,15 +907,175 @@ These differences are the effect of the quantization itself and are recorded, no
 
 | File | SHA-256 |
 |---|---|
-| Restored FP32 reference `record.json` | `f59dfd767e111f0860933d76cb1f97433bed0afeeb23bc7092157ec5af3dab4f` |
-| FP32 reference of float16-rounded weights `record.json` | `4f013b021b0131398c659bf985cbac624f2da39396d209d60479a8a7bd742144` |
-| Report of the export | `1fb710b3ed8032125052996fc73f6659481ff4c79f391e6da8be84a2983b505f` |
-| Its `export.json` | `a8ac2814254efdfa3f83cabad9faa7c1a03c0187c1b8970c40b50d53908789fe` |
-| Its `comparison.json` | `5db7c3104f276ce9c5f5e5d2f46f7a97c5ce671aaf62b41fc89eefb544dcceb9` |
-| Output of `effect` | `2d449de5ffab96553f300d9f734b76b8a5008bf68d8a4ce2c5a5bdfb3548712b` |
+| Restored FP32 reference `record.json` | `b57c1539d3ef062021ddc5b6d8a761b26c8e720e251eccf3f9dbb9f79356515f` |
+| FP32 reference of float16-rounded weights `record.json` | `d3e52e7ae6d6c1728c03c9e104c39e0677b1725e7f24f955b863c4d31904abc1` |
+| Report of the export | `0c118a098bfb814f4eb4ab145310f660aaf34865329f79f35b63b968d3faf483` |
+| Its `export.json` | `ce5a3eb725214faac782150e2606476b666da7a1c7ec43cbcea889d6aec7b025` |
+| Its `comparison.json` | `05b43a87268bf855d9c89f0d180ca947d6a1f1e19628b4f46464640aa40025c4` |
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <restored reference record.json> \
-  --effect <output of effect> --report <report.json> --export <export.json> --comparison <comparison.json> \
+  --rounded <folder of the reference of float16-rounded weights> \
+  --report <report.json> --export <export.json> --comparison <comparison.json> \
   > docs/validation/gemma4-31b/8bit-first-layers-20261123.json
+~~~
+
+## MTP drafter class (#704)
+
+This section copies the numbers of the drafter class of the recipe for the MTP drafter
+`google/gemma-4-31B-it-assistant` ([MTP drafter](../../../Tools/Conversion/recipes/gemma4_31b/README.md#mtp-drafter)):
+its comparison with the drafter of the original implementation on the features that #691 recorded, the accepted drafts
+on the teacher path, and the export of a synthetic drafter. The class is the drafter in PyTorch; no Core AI asset of the
+real weights was made or run here.
+[`mtp-drafter-comparison-20261123.json`](mtp-drafter-comparison-20261123.json) and
+[`mtp-drafter-acceptance-20261123.json`](mtp-drafter-acceptance-20261123.json) are the JSON results that
+`mtp.py compare` and `acceptance` print, and [`mtp-drafter-export-20261123.json`](mtp-drafter-export-20261123.json) is
+the `export.json` that `mtp.py export` writes. They hold item ids, positions, numbers, hashes, versions and fixed names
+(the export also the synthetic configuration), and no token sequences, text, local paths, commands or environment
+variables; the run folders and arrays stay in the local work directory.
+
+### Conditions
+
+- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a). The runs of both drafters, the comparison and the
+  accepted drafts held the shared machine lock in one session (2026-11-23 19:24:00 to 19:34:18 JST, on AC power), the
+  export in an earlier one (14:30:08 to 14:41:56 JST, with the battery at 100% at both ends). Each session took the lock
+  only when it was free and no `coreai-verify`, `coreai-chat` or demo-app process was running; the times below are those
+  of single runs, not timing measurements.
+- Commit 977309b1 with no local changes; the export at commit 15d35fd8, whose drafter class, synthetic configuration
+  and export function are those of 977309b1. The reference environment of the recipe (torch 2.15.0,
+  transformers 5.16.1) ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers
+  5.12.1, coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted
+  drafts and the export.
+- `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`) and the embedding table
+  of `model-00001-of-00002.safetensors` of the pinned target, every tensor rounded to float16 and computed in float32
+  on the CPU. The features are those of #691: the original implementation in BF16 on MPS under teacher forcing with the
+  reference outputs of 48 items of the primary set. Seven draft steps, stop tokens 1, 106 and 50.
+- The arrays of both runs and every compared value equal those of the runs made before the tools checked their inputs
+  as they do now; only the times, the memory and the hashes of the records differ.
+
+### Drafter class and original drafter
+
+On a synthetic assistant (`OneStepTests` and `UnrolledTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py`,
+against the drafter of Transformers 5.12.1), the logits and the `post_projection` output of one step were within 1e-4 of
+those of the original drafter (the bound these tests assert) at positions 1, 1,024, 1,025, 1,026, 4,000 and 16,895 and
+with large values at both sides of the window edge, and the unrolled drafts of 1, 2 and 7 steps were those of the
+original generator. `BuildTests` requires `assistant_config` to refuse 11 of 46 configurations at boundary values,
+builds both drafters from the other 35, and requires finite outputs of one step, and non-finite ones from a non-finite
+hidden state. On the real weights the comparison passed for 47 rows of 13 items, the first item of each category:
+
+| Item | Anchors a (output index) | w | Largest absolute logit difference | Largest projection ratio |
+|---|---|---|---:|---:|
+| `ja-choice-0001` | 91 (0) | 91 | 1.14e-05 | 3.40e-07 |
+| `ja-reading-0001` | 156 (0), 157 (1) | 156, 157 | 1.53e-05 | 3.24e-07 |
+| `code-gen-he-0001` | 176 (0), 239 (63), 303 (127), 366 (190) | 176, 239, 303, 366 | 1.53e-05 | 3.82e-07 |
+| `code-gen-mbpp-0001` | 202 (0), 225 (23), 248 (46), 271 (69) | 202, 225, 248, 271 | 1.53e-05 | 2.26e-07 |
+| `code-fix-0001` | 242 (0), 257 (15), 272 (30), 287 (45) | 242, 257, 272, 287 | 9.54e-06 | 1.90e-07 |
+| `extract-ja-0001` | 137 (0), 172 (35), 208 (71), 243 (106) | 137, 172, 208, 243 | 1.53e-05 | 2.46e-07 |
+| `long-ja-4k-0001` | 3,647 (0), 3,648 (1), 3,649 (2), 3,650 (3) | 1,025 | 1.14e-05 | 2.36e-07 |
+| `long-ja-16k-0001` | 14,875 (0), 14,876 (1), 14,878 (3), 14,879 (4) | 1,025 | 9.54e-06 | 3.89e-07 |
+| `synth-extract-0001` | 209 (0), 294 (85), 380 (171), 465 (256) | 209, 294, 380, 465 | 1.91e-05 | 3.72e-07 |
+| `synth-format-0001` | 120 (0), 129 (9), 138 (18), 147 (27) | 120, 129, 138, 147 | 6.68e-06 | 3.15e-07 |
+| `free-ja-0001` | 28 (0), 113 (85), 198 (170), 283 (255) | 28, 113, 198, 283 | 1.14e-05 | 2.98e-07 |
+| `synth-long-4k-0001` | 3,791 (0), 3,804 (13), 3,817 (26), 3,830 (39) | 1,025 | 1.14e-05 | 3.35e-07 |
+| `synth-long-16k-0001` | 15,345 (0), 15,372 (27), 15,399 (54), 15,426 (81) | 1,025 | 1.14e-05 | 3.36e-07 |
+
+The comparison passes when every row has a largest absolute logit difference of at most 1e-3, a projection ratio (the
+largest absolute difference of the `post_projection` output over its largest absolute value in the original drafter) of
+at most 1e-3, and unrolled drafts equal to one step repeated (the JSON lists the two bounds as `criteria` and the three
+checks of each row in `rows[].checks`); no row has an original `post_projection` output that is all zero. `compare`
+checked both records against what it built from the fixed inputs: the two contracts, the pins of the index and of the
+shard with the embedding table and of the two files of the assistant, `subset.json` with the input and output records
+that it pins, the features of the 13 items hashed again, the 47 rows of the fixed selection, the stop tokens, window,
+layers, embedding scale, weight rounding, seven steps and the schema name; the package versions, times and memory of the
+runs only had to be present. At all 47 rows the unrolled drafts of seven steps were those of one step repeated seven
+times; the argmax was the same and the unrolled drafts cut after the first stop token were the drafts of the original
+generator, which are records, not criteria. `ja-choice-0001` has one output token, so its four anchors are one. The run
+of the original drafter took 28.7 s (7.0 s after the files to read were hashed), that of the class 39.1 s (19.4 s);
+kernel lifetime footprint peak 28,484,473,640 B and 31,658,892,304 B.
+
+### Accepted drafts on the teacher path
+
+The class drafted seven tokens at each of the 4,462 anchors of the 48 items; a round accepts the leading drafts, up to
+and including the first stop token, that match the reference output and adds one token of the target. The rounds and the
+tokens of every category are those of #691 (the fixed position with seven drafts: `trajectories.json` of its records,
+whose tokens per round §4.5 of its conclusion shows to two places), which the per-anchor records of #691 also gave
+again:
+
+| Category | Items | Anchors | Rounds | Tokens | Tokens per round | #691: rounds, tokens, tokens per round | Anchors with another accepted count | Largest #691 margin there |
+|---|---:|---:|---:|---:|---:|---|---:|---:|
+| ja-choice | 4 | 4 | 4 | 8 | 2.0000 | 4, 8, 2.0000 | 0 | |
+| ja-reading | 4 | 16 | 4 | 20 | 5.0000 | 4, 20, 5.0000 | 0 | |
+| code-gen-he | 4 | 585 | 82 | 589 | 7.1829 | 82, 589, 7.1829 | 2 | 0.125 |
+| code-gen-mbpp | 4 | 748 | 113 | 751 | 6.6460 | 113, 751, 6.6460 | 4 | 0.125 |
+| code-fix | 4 | 259 | 39 | 263 | 6.7436 | 39, 263, 6.7436 | 0 | |
+| extract-ja | 6 | 559 | 75 | 563 | 7.5067 | 75, 563, 7.5067 | 0 | |
+| long-ja-4k | 2 | 6 | 2 | 8 | 4.0000 | 2, 8, 4.0000 | 0 | |
+| long-ja-16k | 1 | 5 | 1 | 6 | 6.0000 | 1, 6, 6.0000 | 0 | |
+| synth-extract | 4 | 732 | 96 | 736 | 7.6667 | 96, 736, 7.6667 | 0 | |
+| synth-format | 6 | 176 | 58 | 181 | 3.1207 | 58, 181, 3.1207 | 0 | |
+| free-ja | 4 | 1,020 | 348 | 1,023 | 2.9397 | 348, 1,023, 2.9397 | 13 | 0.125 |
+| synth-long-4k | 3 | 171 | 27 | 174 | 6.4444 | 27, 174, 6.4444 | 1 | 0.0 |
+| synth-long-16k | 2 | 181 | 41 | 182 | 4.4390 | 41, 182, 4.4390 | 1 | 0.0 |
+| all | 48 | 4,462 | 890 | 4,504 | 5.0607 | 890, 4,504, 5.0607 | 21 | 0.125 |
+
+At 21 anchors the number of accepted drafts differs from that of the records of #691, counted up to seven drafts; at the
+first draft that differs, the top-two logit margin that #691 recorded in BF16 was at most 0.125 at each of the 21
+(`synth-long-4k` and `synth-long-16k` have one differing anchor each, with the margin 0.0; the JSON holds the largest
+margin of each category, not one per anchor). These are records, not criteria. The accepted counts of the records of
+#691, computed again from their drafts and the reference outputs, equal the recorded ones at all 4,462 anchors, and the
+tokens per round of `trajectories.json` are its tokens over its rounds rounded to four places in the 14 rows (13
+categories and pooled) of its fixed-position level with seven drafts, which the tool reads. The run took 548.3 s (525 s
+of drafting); kernel lifetime footprint peak 65,812,085,752 B.
+
+### Export of a synthetic drafter
+
+`mtp.py export --steps 7 --context 16896 --seed 11 --output <new folder>` converted the class with the random weights of
+`SYNTHETIC` (vocabulary 301, hidden size 32, target width 48; the PyTorch model holds 74,372 float16 elements in 49
+tensors: 74,368 in 45 parameters and 4 in the 4 buffers `layer_scalar`) in 72.4 s, and every asset passed its
+inspection:
+
+| Asset | Functions | Bytes | `main.mlirb` | Float16 | `argmax` | `gather_nd` | Conversion |
+|---|---|---:|---:|---:|---:|---:|---:|
+| One step | `draft_1` | 175,724 | 175,587 | 72,839 | 1 | 4 | 5.3 s |
+| Unrolled | `draft_7` | 235,331 | 235,194 | 74,375 | 7 | 10 | 29.4 s |
+| Both functions | `draft_1`, `draft_7` | 249,409 | 249,272 | 74,375 | 8 | 11 | 35.0 s |
+
+The inputs of both functions are `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 48], `position_ids` int32
+[1, 1], `k_sliding` and `v_sliding` float16 [1, 1, 2, ?, 16] and `k_full` and `v_full` float16 [1, 1, 1, ?, 32]; the
+output is `draft_tokens` int32 [1, 1] or [1, 7], and there are no states. `Float16` is the number of Float16 elements
+that an asset stores (`storage_types` of its summary), a total over the asset and not over a function. The asset with
+both functions holds the Float16 count of the unrolled asset alone. The one-step asset holds 1,536 Float16 elements
+fewer, as many as the weight of `post_projection` has (48 × 32), whose output one step does not read. Each count is 3
+above the elements of the model that the functions of the asset use: 74,372 for the unrolled asset and for the asset
+with both functions, 74,372 − 1,536 = 72,836 for the one-step asset.
+
+### Limits
+
+- PyTorch in float32 on the CPU with the weights rounded to float16; no Core AI asset of the real drafter, no FP16 or
+  8-bit numerics of the drafter, no timing.
+- The features are those of the original implementation in BF16 on MPS, not of the Core AI target, and the accepted
+  drafts are teacher forcing on the reference outputs, not generation.
+- The synthetic checks compare with the drafter of the converter environment (Transformers 5.12.1); the comparison on
+  the real weights is with Transformers 5.16.1.
+- The export is of a synthetic drafter; the size of the asset of the real drafter is not known from it.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| `record.json` of the run of the original drafter | `8c87bd62f3fe96c42a813b23061ca6c86233383bce15faa9f1fad89ff20d2b80` |
+| `record.json` of the run of the class | `04ea4763d7c026894a0f723644b716e95a5e3342331147781309d8a0ef0503c6` |
+| `subset.json` of #691 | `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9` |
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp compare \
+  --original <run of the original drafter> --model-class <run of the class> \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
+  --snapshot <target snapshot> --records <records of #691> --inputs <inputs.jsonl> --outputs <outputs.jsonl> --steps 7 \
+  > docs/validation/gemma4-31b/mtp-drafter-comparison-20261123.json
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
+  acceptance --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json --snapshot <target snapshot> \
+  --assistant-snapshot <assistant snapshot> --records <records of #691> --inputs <inputs.jsonl> \
+  --outputs <outputs.jsonl> --steps 7 > docs/validation/gemma4-31b/mtp-drafter-acceptance-20261123.json
 ~~~

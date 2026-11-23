@@ -19,6 +19,7 @@ LAYER = re.compile(r"model\.language_model\.layers\.(\d+)\.")
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
 CONFIG = RECIPE / "compression-8bit.yaml"
 PARTS = ("quantized_data", "scale", "minval")
+CONTEXT = native.LONGEST
 
 
 def checkpoint_elements(snapshot, layers):
@@ -30,7 +31,7 @@ def checkpoint_elements(snapshot, layers):
 def arguments(contract, snapshot, output, functions="main", precision="fp16", taps="1,2,3,4,5"):
     upstream = Path(coreai_models.__file__).resolve().parents[3]
     return ["export", "--model", str(contract), "--snapshot", str(snapshot), "--upstream", str(upstream),
-            "--layers", "6", "--functions", functions, "--taps", taps, "--context", "4096", "--precision", precision,
+            "--layers", "6", "--functions", functions, "--taps", taps, "--context", str(CONTEXT), "--precision", precision,
             "--output", str(output), *(["--compression", str(CONFIG)] if precision == "8bit" else [])]
 
 
@@ -38,7 +39,7 @@ def loaded(snapshot):
     from Tools.Conversion.adapters.gemma4_31b.model import Gemma4ForCausalLM
 
     model = Gemma4ForCausalLM.from_hf_memory_efficient(
-        str(snapshot), max_context_length=4096, target_dtype=torch.float16, num_layers=6, hf_config_attr="text_config",
+        str(snapshot), max_context_length=CONTEXT, target_dtype=torch.float16, num_layers=6, hf_config_attr="text_config",
         hf_state_dict_prefix=layers.PREFIX).eval()
     model.tap_layers = (1, 2, 3, 4, 5)
     return model
@@ -55,7 +56,7 @@ class ExportTests(unittest.TestCase):
             for functions, taps in (("main", "2,6"), ("main,prefill", "1,2,3,4,5")):
                 output = folder / functions.replace(",", "-")
                 argv = ["export", "--model", str(contract), "--snapshot", str(snapshot), "--upstream", str(upstream),
-                        "--layers", "6", "--functions", functions, "--taps", taps, "--context", "4096",
+                        "--layers", "6", "--functions", functions, "--taps", taps, "--context", str(CONTEXT),
                         "--precision", "fp16", "--output", str(output)]
                 width = TEXT["hidden_size"] * len(taps.split(","))
                 with self.subTest(functions=functions), mock.patch("sys.argv", argv):
@@ -75,7 +76,7 @@ class ExportTests(unittest.TestCase):
                                       "prefill": ["tap_hidden_states"]} if "prefill" in found
                                      else {"main": ["logits", "hidden_states", "tap_hidden_states"]})
                     self.assertEqual(record["metadata"]["tap_layers"], [int(tap) for tap in taps.split(",")])
-                    self.assertEqual((record["layers"], record["functions"], record["context"]), (6, functions.split(","), 4096))
+                    self.assertEqual((record["layers"], record["functions"], record["context"]), (6, functions.split(","), CONTEXT))
                     self.assertEqual(record["weights"], {"tensors": record["weights"]["tensors"], "elements": elements,
                                                          "elements_by_dtype": {"torch.float16": elements},
                                                          "quantized_layouts": 0})
@@ -89,7 +90,7 @@ class ExportTests(unittest.TestCase):
                     name = record["bundle"]["name"]
                     self.assertEqual(record["bundle"]["main_hash"], (bundle / f"{name}.aimodel/main.hash").read_bytes().hex())
                     self.assertEqual(read_json(bundle / "metadata.json"),
-                                     export.metadata(read_json(contract), name, 4096, None, export.check_taps(taps, 6)))
+                                     export.metadata(read_json(contract), name, CONTEXT, None, export.check_taps(taps, 6)))
                     for item in ("tokenizer.json", "tokenizer_config.json", "chat_template.jinja"):
                         self.assertEqual((bundle / "tokenizer" / item).read_bytes(), (snapshot / item).read_bytes())
                     self.assertFalse((output / export.INCOMPLETE).exists())
@@ -117,7 +118,7 @@ class ExportTests(unittest.TestCase):
                     raise error
 
                 argv = ["export", "--model", str(contract), "--snapshot", str(snapshot), "--upstream", str(upstream),
-                        "--layers", "6", "--functions", "main", "--taps", "1", "--context", "4096", "--precision", "fp16",
+                        "--layers", "6", "--functions", "main", "--taps", "1", "--context", str(CONTEXT), "--precision", "fp16",
                         "--output", str(output)]
                 with self.subTest(case=label), mock.patch("sys.argv", argv), \
                         mock.patch.object(export, "staged", exported), \
@@ -175,7 +176,7 @@ class QuantizedExportTests(unittest.TestCase):
             self.assertEqual(set(found), {f"{name}.{part}" for name in export.quantized_names(kinds) for part in PARTS})
             bundle = output / export.BUNDLE
             self.assertEqual(read_json(bundle / "metadata.json"),
-                             export.metadata(read_json(contract), record["bundle"]["name"], 4096, "8bit", (1, 2, 3, 4, 5)))
+                             export.metadata(read_json(contract), record["bundle"]["name"], CONTEXT, "8bit", (1, 2, 3, 4, 5)))
             self.assertFalse((bundle / layers.QUANTIZED).exists())
             for work in (export.WORK, export.QUANTIZING, export.INCOMPLETE):
                 self.assertFalse((output / work).exists())
