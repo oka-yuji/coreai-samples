@@ -316,7 +316,7 @@ def recorded_setup(folder):
 def reference_records(arguments, steps):
     contract, _, target, assistant, records, inputs, outputs = arguments
     pinned = load_contract(contract)
-    _, items = mtp.items_of(pinned, records, inputs, outputs, lambda record: record["items"])
+    _, _, items = mtp.items_of(pinned, records, inputs, outputs, lambda record: record["items"])
     model = mtp.class_drafter(assistant, mtp.table(target / mtp.table_shard(target, pinned)[1], CONFIG), CONFIG, steps)
     totals = {}
     (records / "drafters").mkdir()

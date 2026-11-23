@@ -1,6 +1,8 @@
 import argparse
+import errno
 import hashlib
 import importlib.metadata
+import io
 import json
 import os
 from pathlib import Path
@@ -12,7 +14,6 @@ import time
 from Tools.LLMEvaluation.layer1 import file_bytes, strict, strict_records
 from Tools.LLMEvaluation.scoring import generated, partition
 from ...storage import write_json
-from ..pinned import sha256
 from .assistant import SYNTHETIC, TARGET, assistant_config, checkpoint_shapes
 from .baseline import read_inputs
 from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, rounded_scale, same_file
@@ -37,8 +38,47 @@ ARRAYS = {"original": ("logits", "projected", "drafts"), "class": ("logits", "pr
 SAME = ("steps", "stops", "window", "layers", "model", "assistant", "records", "weights", "embed_scale", "rows")
 
 
-def document(path):
-    return strict(file_bytes(path))
+def document(path, size=None):
+    return strict(file_bytes(path, size))
+
+
+def hashed(path):
+    data = file_bytes(path)
+    return strict(data), hashlib.sha256(data).hexdigest()
+
+
+def regular(path, size=None):
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    except OSError as error:
+        if error.errno == errno.ELOOP:
+            raise ValueError(f"{Path(path).name} is a link") from None
+        raise
+    status = os.fstat(descriptor)
+    if not stat.S_ISREG(status.st_mode) or size is not None and status.st_size != size:
+        os.close(descriptor)
+        raise ValueError(f"{Path(path).name} is not a regular file" if not stat.S_ISREG(status.st_mode)
+                         else f"{Path(path).name} holds {status.st_size} B, not {size} B")
+    return descriptor
+
+
+def digest(path, size=None):
+    descriptor, found, read = regular(path, size), hashlib.sha256(), 0
+    try:
+        while block := os.read(descriptor, 8 * 1024 * 1024):
+            found.update(block)
+            read += len(block)
+    finally:
+        os.close(descriptor)
+    return {"bytes": read, "sha256": found.hexdigest()}
+
+
+def target_contract(path):
+    data = file_bytes(path)
+    contract = load_contract(path)
+    if strict(data) != contract:
+        raise ValueError(f"{Path(path).name} changed while it was read")
+    return contract, hashlib.sha256(data).hexdigest()
 
 
 def cut(tokens, stops):
@@ -84,7 +124,7 @@ def check_steps(steps):
 
 
 def load_assistant(path):
-    contract = document(path)
+    contract, found = hashed(path)
     files = contract.get("files") if isinstance(contract, dict) else None
     if not isinstance(files, dict) or set(contract) != {"model_id", "revision", "files"} \
             or set(files) != set(ASSISTANT_FILES) or not isinstance(contract["model_id"], str) \
@@ -95,18 +135,14 @@ def load_assistant(path):
                    for entry in files.values()):
         raise ValueError("The assistant contract needs an owner/name ID, a full revision and the size and SHA-256 of "
                          + " and ".join(ASSISTANT_FILES))
-    return contract
+    return contract, found
 
 
 def verified(folder, files, names):
-    found = {}
     for name in names:
-        path, pin = Path(folder) / name, files[name]
-        status = os.lstat(path)
-        if not stat.S_ISREG(status.st_mode) or status.st_size != pin["bytes"] or sha256(path) != pin["sha256"]:
+        if digest(Path(folder) / name, files[name]["bytes"]) != files[name]:
             raise ValueError(f"A file to read differs from its contract: {name}")
-        found[name] = dict(pin)
-    return found
+    return {name: dict(files[name]) for name in names}
 
 
 def layout(config):
@@ -117,7 +153,7 @@ def layout(config):
 
 
 def subset_record(path):
-    record = document(path)
+    record, found = hashed(path)
     counts, items = (record.get(key) if isinstance(record, dict) else None for key in ("counts", "items"))
     if not isinstance(counts, dict) or set(record) != {"inputs", "outputs", "rule", "counts", "items", "total"} \
             or not isinstance(items, list) \
@@ -134,7 +170,7 @@ def subset_record(path):
             or any(entry["id"].rsplit("-", 1)[0] != entry["category"] or not entry["id"].rsplit("-", 1)[-1].isdigit()
                    for entry in items):
         raise ValueError("subset.json does not hold its counts of items per category")
-    return record
+    return record, found
 
 
 def first_per_category(record):
@@ -174,7 +210,7 @@ def feature_layout(path, config, place, prompt, teacher):
 
 def items_of(contract, records, inputs, outputs, choose):
     config, place = contract["config"], layout(contract["config"])
-    subset = subset_record(Path(records) / "subset.json")
+    subset, subset_sha256 = subset_record(Path(records) / "subset.json")
     vocabulary, stops = config["vocab_size"], set(config["eos_token_id"])
     data = {"inputs": file_bytes(inputs), "outputs": file_bytes(outputs)}
     if any(hashlib.sha256(value).hexdigest() != subset[key]["sha256"] for key, value in data.items()):
@@ -202,13 +238,15 @@ def items_of(contract, records, inputs, outputs, choose):
         found.append({"id": entry["id"], "category": entry["category"], "input_ids": ids, "teacher": teacher,
                       "outputs": len(output["output_ids"]), **feature_layout(path, config, place, len(ids),
                                                                             len(teacher))})
-    return subset, found
+    return subset, subset_sha256, found
 
 
 def loaded_features(item):
     import torch
     from safetensors import safe_open
 
+    if not stat.S_ISREG(os.lstat(item["features"]).st_mode):
+        raise ValueError(f"{item['features'].name} is not a regular file")
     with safe_open(str(item["features"]), framework="pt") as handle:
         return {key: handle.get_tensor(name).to(torch.float32) for key, name in item["names"].items()}
 
@@ -245,7 +283,7 @@ def checkpoint(path, expected, every):
 
 def table_shard(snapshot, contract):
     files = verified(snapshot, contract["files"], (INDEX,))
-    places = document(Path(snapshot) / INDEX).get("weight_map")
+    places = document(Path(snapshot) / INDEX, contract["files"][INDEX]["bytes"]).get("weight_map")
     shard = places.get(TABLE) if isinstance(places, dict) else None
     if not isinstance(shard, str) or not shard.endswith(".safetensors") or shard not in contract["files"]:
         raise ValueError("The index of the target does not place the embedding table in a pinned shard")
@@ -359,22 +397,24 @@ def versions(implementation):
 
 
 def prepared(contract_path, assistant_path, snapshot, assistant_snapshot, records, inputs, outputs, choose):
-    contract, assistant = load_contract(contract_path), load_assistant(assistant_path)
+    (contract, contract_sha256), (assistant, assistant_sha256) = target_contract(contract_path), load_assistant(
+        assistant_path)
     files, shard = table_shard(snapshot, contract)
     files.update(verified(snapshot, contract["files"], (shard,)))
     held = verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
-    subset, items = items_of(contract, records, inputs, outputs, choose)
+    subset, subset_sha256, items = items_of(contract, records, inputs, outputs, choose)
     config = contract["config"]
-    settings = assistant_config(document(Path(assistant_snapshot) / "config.json"), {key: config[key] for key in TARGET})
+    settings = assistant_config(document(Path(assistant_snapshot) / "config.json", held["config.json"]["bytes"]),
+                                {key: config[key] for key in TARGET})
     expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
     expect(Path(snapshot) / shard, table_shape(config), False)
     sources = {"model": {"id": contract["model_id"], "revision": contract["revision"],
-                         "contract_sha256": sha256(contract_path), "verified_before_loading": files},
+                         "contract_sha256": contract_sha256, "verified_before_loading": files},
                "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
-                             "contract_sha256": sha256(assistant_path), "verified_before_loading": held},
-               "records": {"subset_sha256": sha256(Path(records) / "subset.json"), "inputs_sha256": sha256(inputs),
-                           "outputs_sha256": sha256(outputs),
-                           "features": {item["id"]: file_record(item["features"]) for item in items}}}
+                             "contract_sha256": assistant_sha256, "verified_before_loading": held},
+               "records": {"subset_sha256": subset_sha256, "inputs_sha256": subset["inputs"]["sha256"],
+                           "outputs_sha256": subset["outputs"]["sha256"],
+                           "features": {item["id"]: digest(item["features"]) for item in items}}}
     return contract, subset, items, sources, Path(snapshot) / shard
 
 
@@ -441,26 +481,33 @@ def loaded_run(folder, kind, problems):
     import numpy as np
 
     try:
-        record = document(Path(folder) / "record.json")
+        record, found = hashed(Path(folder) / "record.json")
     except Exception as error:
         problems.append(f"the {kind} run has no readable record.json ({type(error).__name__})")
-        return None, {}
+        return None, {}, None
     if not isinstance(record, dict) or record.get("schema") != SCHEMA or record.get("implementation") != kind:
         problems.append(f"the {kind} run holds another record")
-        return None, {}
+        return None, {}, found
     files, arrays = record.get("arrays") if isinstance(record.get("arrays"), dict) else {}, {}
     for name in ARRAYS[kind]:
         path, entry = Path(folder) / f"{name}.npy", files.get(name)
+        if not isinstance(entry, dict) or not valid("count", entry.get("bytes")) or not isinstance(entry.get("sha256"),
+                                                                                                   str):
+            problems.append(f"the {kind} run records no size and SHA-256 of its {name}")
+            arrays[name] = None
+            continue
         try:
-            same = isinstance(entry, dict) and not os.path.islink(path) and path.is_file() \
-                and file_record(path) == {key: entry.get(key) for key in ("bytes", "sha256")}
-            arrays[name] = np.load(path, allow_pickle=False) if same else None
+            with open(regular(path, entry["bytes"]), "rb") as handle:
+                data = handle.read()
+            same = hashlib.sha256(data).hexdigest() == entry["sha256"]
+            arrays[name] = np.load(io.BytesIO(data), allow_pickle=False) if same else None
         except Exception as error:
             problems.append(f"the {kind} {name} cannot be read ({type(error).__name__})")
+            arrays[name] = None
             continue
         if arrays[name] is None:
-            problems.append(f"the {kind} {name} differ from the size and SHA-256 in their record")
-    return record, arrays
+            problems.append(f"the {kind} {name} differ from the SHA-256 in their record")
+    return record, arrays, found
 
 
 def tokens_or_padding(array, vocabulary, padded):
@@ -475,14 +522,15 @@ def tokens_or_padding(array, vocabulary, padded):
 def compare(original, model_class, contract_path):
     import numpy as np
 
-    config, problems = load_contract(contract_path)["config"], []
+    (contract, contract_sha256), problems = target_contract(contract_path), []
+    config = contract["config"]
     place = layout(config)
     expected = {"stops": config["eos_token_id"], "window": place["window"], "weights": WEIGHTS,
                 "layers": {"sliding": place["sliding"], "full": place["full"]},
                 "embed_scale": rounded_scale(config["hidden_size"])}
     folders = {"original": Path(original), "class": Path(model_class)}
     runs = {kind: loaded_run(folder, kind, problems) for kind, folder in folders.items()}
-    records, arrays = ({kind: value[index] for kind, value in runs.items()} for index in (0, 1))
+    records, arrays, hashes = ({kind: value[index] for kind, value in runs.items()} for index in (0, 1, 2))
     rows, steps = [], None
     if all(records.values()):
         first = records["original"]
@@ -491,7 +539,7 @@ def compare(original, model_class, contract_path):
                      if first.get(key) != value]
         if same_file(folders["original"] / "record.json", folders["class"] / "record.json"):
             problems.append("both runs read the same record.json")
-        if not isinstance(first.get("model"), dict) or first["model"].get("contract_sha256") != sha256(contract_path):
+        if not isinstance(first.get("model"), dict) or first["model"].get("contract_sha256") != contract_sha256:
             problems.append("the runs were made under another contract")
         rows, steps = first.get("rows"), first.get("steps")
         if not isinstance(rows, list) or not rows or not all(isinstance(row, dict) and set(row) == set(ROW)
@@ -537,7 +585,7 @@ def compare(original, model_class, contract_path):
                         "largest_projection_ratio": max(result["projection_ratio"] for result in results),
                         **{key: sum(result[key] for result in results)
                            for key in ("argmax_equal", "unrolled_equals_repeated", "cut_equals_original")}},
-            "records_sha256": {kind: sha256(folder / "record.json") for kind, folder in folders.items()}}
+            "records_sha256": hashes}
 
 
 def draft_rows(path, item):

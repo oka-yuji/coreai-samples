@@ -1,3 +1,4 @@
+import builtins
 import hashlib
 import io
 import json
@@ -6,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -20,6 +22,7 @@ try:
 except ImportError:
     torch = None
 
+from Tools.LLMEvaluation import layer1
 from Tools.Conversion.adapters.gemma4_31b import mtp
 from Tools.Conversion.adapters.gemma4_31b.assistant import SYNTHETIC, assistant_config, checkpoint_shapes
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
@@ -180,6 +183,46 @@ def inode(path):
     return status.st_dev, status.st_ino
 
 
+def bounded(call, pipe, seconds=3):
+    outcome = {}
+
+    def work():
+        try:
+            outcome["value"] = call()
+        except BaseException as error:
+            outcome["error"] = error
+
+    thread = threading.Thread(target=work, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    waited = thread.is_alive()
+    if waited:
+        try:
+            os.close(os.open(pipe, os.O_WRONLY | os.O_NONBLOCK))
+        except OSError:
+            pass
+        thread.join(5)
+    return waited, outcome
+
+
+def buffered_reads():
+    events = []
+
+    def opener(file, *arguments, **options):
+        status = os.fstat(file) if isinstance(file, int) else os.stat(file)
+        events.append((status.st_dev, status.st_ino))
+        return builtins.open(file, *arguments, **options)
+
+    return events, lambda: mock.patch.object(layer1, "open", new=opener, create=True)
+
+
+def piped(path):
+    saved = path.read_bytes()
+    path.unlink()
+    os.mkfifo(path)
+    return saved, inode(path)
+
+
 class PureTests(unittest.TestCase):
     def test_the_cut_keeps_the_drafts_up_to_and_with_the_first_stop_token(self):
         cases = {"no stop token": ([4, 5, 6], (1,), [4, 5, 6]), "a stop token first": ([1, 5, 6], (1,), [1]),
@@ -232,7 +275,8 @@ class PureTests(unittest.TestCase):
         self.assertEqual(mtp.layout(CONFIG), {"sliding": 10, "full": 11, "window": 1025})
 
     def test_the_assistant_contract_pins_the_two_files_that_are_read(self):
-        contract = mtp.load_assistant(RECIPE / "assistant.json")
+        contract, found = mtp.load_assistant(RECIPE / "assistant.json")
+        self.assertEqual(found, sha256(RECIPE / "assistant.json"))
         self.assertEqual((contract["model_id"], contract["revision"], sorted(contract["files"])),
                          ("google/gemma-4-31B-it-assistant", "627c5ec1458b9086b841a91e0512fd31fd2fbbf1",
                           ["config.json", "model.safetensors"]))
@@ -252,7 +296,7 @@ class PureTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "assistant.json"
             write_json(path, good)
-            self.assertEqual(mtp.load_assistant(path), good)
+            self.assertEqual(mtp.load_assistant(path), (good, sha256(path)))
             for label, contract in changes.items():
                 write_json(path, contract)
                 with self.subTest(change=label), self.assertRaisesRegex(ValueError, "assistant contract"):
@@ -273,7 +317,7 @@ class RecordTests(unittest.TestCase):
         self.contract = {"config": dict(CONFIG)}
 
     def items(self, choose=mtp.first_per_category):
-        return mtp.items_of(self.contract, self.records, self.inputs, self.outputs, choose)[1]
+        return mtp.items_of(self.contract, self.records, self.inputs, self.outputs, choose)[2]
 
     def test_the_items_take_the_tokens_and_the_feature_offsets_of_the_records(self):
         items = self.items()
@@ -563,7 +607,7 @@ class CompareTests(unittest.TestCase):
             with self.subTest(case=f"{name} changed after the record"):
                 result = mtp.compare(self.folder / "files/original", self.folder / "files/class", self.contract)
                 self.assertFalse(result["passed"])
-                self.assertIn(f"the class {name} differ from the size and SHA-256 in their record", result["problems"])
+                self.assertIn(f"the class {name} differ from the SHA-256 in their record", result["problems"])
         self.pair("again")
         with self.subTest(case="a run compared with itself"):
             self.assertFalse(mtp.compare(self.folder / "again/original", self.folder / "again/original",
@@ -574,12 +618,27 @@ class CompareTests(unittest.TestCase):
             result = mtp.compare(self.folder / "again/original", self.folder / "again/class", other)
             self.assertFalse(result["passed"])
             self.assertIn("the runs were made under another contract", result["problems"])
-        (self.folder / "again/class/record.json").unlink()
-        os.mkfifo(self.folder / "again/class/record.json")
-        with self.subTest(case="a record that is a named pipe"):
-            result = mtp.compare(self.folder / "again/original", self.folder / "again/class", self.contract)
-            self.assertFalse(result["passed"])
-            self.assertIn("the class run has no readable record.json (ValueError)", result["problems"])
+        for name, problem in {"record.json": "the class run has no readable record.json (ValueError)",
+                              "logits.npy": "the class logits cannot be read (ValueError)"}.items():
+            saved, _ = piped(self.folder / "again/class" / name)
+            with self.subTest(case=f"{name} as a named pipe"):
+                waited, outcome = bounded(lambda: mtp.compare(self.folder / "again/original", self.folder / "again/class",
+                                                              self.contract), self.folder / "again/class" / name)
+                self.assertFalse(waited)
+                self.assertFalse(outcome["value"]["passed"])
+                self.assertIn(problem, outcome["value"]["problems"])
+            (self.folder / "again/class" / name).unlink()
+            (self.folder / "again/class" / name).write_bytes(saved)
+        saved, _ = piped(self.contract)
+        with self.subTest(case="a target contract that is a named pipe"), \
+                mock.patch.object(mtp, "load_contract", wraps=load_contract) as load:
+            waited, outcome = bounded(lambda: mtp.compare(self.folder / "again/original", self.folder / "again/class",
+                                                          self.contract), self.contract)
+            self.assertFalse(waited)
+            self.assertIsInstance(outcome.get("error"), ValueError)
+            load.assert_not_called()
+        self.contract.unlink()
+        self.contract.write_bytes(saved)
 
     def test_compare_writes_only_its_result_as_json_and_exits_with_one_unless_it_passes(self):
         for label, change in {"passing": None, "failing": lambda arrays: arrays["class"]["repeated"].__setitem__(
@@ -592,6 +651,52 @@ class CompareTests(unittest.TestCase):
                 code = mtp.main()
             self.assertEqual(json.loads(printed.getvalue()), result)
             self.assertEqual(code, 0 if label == "passing" else 1)
+
+
+@unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+class ReadTests(unittest.TestCase):
+    def test_inputs_that_are_named_pipes_are_refused_without_waiting_or_reading_them(self):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder)
+        records, inputs, outputs = write_records(folder)
+        target, contract = write_target(folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
+        assistant, assistant_contract = write_assistant(folder, SYNTHETIC["assistant"], assistant_state())
+        level = {"rounds": 1, "tokens": 1, "tokens_per_round": 1.0}
+        write_json(records / "trajectories.json", {"per_round_on_teacher_path": {"mtp_fixed": {"7": {
+            name: level for name in ("alpha", "beta", "pooled")}}}})
+        (records / "drafters").mkdir()
+        write_json(records / "drafters/alpha-0010.json", {})
+        arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
+        commands = {"run": lambda output: mtp.run("class", *arguments, output),
+                    "acceptance": lambda output: mtp.acceptance(*arguments)}
+        cases = {"the target contract": (contract, ("run", "acceptance")),
+                 "the assistant contract": (assistant_contract, ("run", "acceptance")),
+                 "the index of the target": (target / mtp.INDEX, ("run",)),
+                 "the shard of the table": (target / SHARD, ("run",)),
+                 "the assistant configuration": (assistant / "config.json", ("run",)),
+                 "the assistant weights": (assistant / "model.safetensors", ("run",)),
+                 "subset.json": (records / "subset.json", ("run",)), "the input records": (inputs, ("run",)),
+                 "the output records": (outputs, ("run",)),
+                 "the features": (records / "tf/features/alpha-0002.safetensors", ("run",)),
+                 "trajectories.json": (records / "trajectories.json", ("acceptance",)),
+                 "a drafter record": (records / "drafters/alpha-0010.json", ("acceptance",))}
+        for label, (path, names) in cases.items():
+            saved, pipe = piped(path)
+            for name in names:
+                output = folder / f"out-{name}"
+                events, watched = buffered_reads()
+                with self.subTest(input=label, command=name), \
+                        mock.patch.object(mtp, "load_contract", wraps=load_contract) as load:
+                    with watched():
+                        waited, outcome = bounded(lambda: commands[name](output), path)
+                    self.assertFalse(waited)
+                    self.assertIsInstance(outcome.get("error"), ValueError)
+                    self.assertRegex(str(outcome["error"]), "is not a regular file")
+                    self.assertNotIn(pipe, events)
+                    self.assertFalse(output.exists())
+                    self.assertEqual(load.call_count, 0 if label == "the target contract" else 1)
+            path.unlink()
+            path.write_bytes(saved)
 
 
 class RefusalTests(unittest.TestCase):
