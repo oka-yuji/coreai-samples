@@ -456,8 +456,9 @@ def main():
     args.output.mkdir(parents=True)
     try:
         return begin(args, contract, kinds, taps)
-    except Exception as error:
-        write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "error": type(error).__name__})
+    except BaseException as error:
+        if not os.path.lexists(args.output / "failure.json"):
+            write_json(args.output / "failure.json", {"schema": SCHEMA, "passed": False, "error": type(error).__name__})
         raise
 
 

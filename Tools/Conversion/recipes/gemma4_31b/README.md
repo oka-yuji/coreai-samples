@@ -498,9 +498,11 @@ the float16 scales and the float16 minimums of every quantized weight as the ste
 the SHA-256 of each tensor in `export.json`.
 The asset summary does not give the tensors one by one, so these hashes are of the tensors that the step passed to the
 converter; the asset itself is checked through its operations and through the logits of the own engine below. The
-converter's work area `export/quantization/` is removed with `export/layers/`. An error after the step made `export/`,
-with either precision, leaves `export/failure.json` with the type of the error. The step starts only with seven bytes per
-weight element of the chosen layers plus 60 GiB free. `QuantizedAssetTests` in
+converter's work area `export/quantization/` is removed with `export/layers/`. An error or an interruption (Ctrl-C,
+`KeyboardInterrupt`) after the step made `export/`, with either precision, leaves `export/failure.json` with the type of
+the error; when the monitor stopped the step, its own `failure.json` with the reason stays and is not overwritten. A
+process ended by SIGTERM or SIGKILL, as the runner ends a step at its timeout, leaves no record. The step starts only
+with seven bytes per weight element of the chosen layers plus 60 GiB free. `QuantizedAssetTests` in
 `Tools/Conversion/tests/test_gemma4_31b_export.py` fixes the checks of a passing run. Their values: the fixed config,
 the Linear weights of the layers as the quantized tensors (41 for six layers, 410 for 60; the full-attention layers have
 no value projection), no `Skipping quantization.` from the converter, and as many `blockwise_shift_scale` operations
@@ -527,8 +529,8 @@ then restores each weight as uint8 × scale + minimum with the blocks widened to
 float16 (the dequantization of the converter), and puts it into the original implementation in
 float32. The other tensors are rounded to float16 as with `--weights float16`. `record.json` records the kind of the
 weights, the SHA-256 of `export.json`, the size and SHA-256 of `quantized.safetensors` and the number of tensors that
-it checked. An error after the folder exists, with either kind of weights, leaves `failure.json` with the type of the
-error:
+it checked. An error or an interruption after the folder exists, with either kind of weights, leaves `failure.json`
+with the type of the error:
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers context --layers 6 \

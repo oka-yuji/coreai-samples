@@ -803,15 +803,16 @@ class RestoredReferenceTests(unittest.TestCase):
             snapshot, contract = write_snapshot(folder, hidden_size=64)
             source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
             cases = {"8bit": ("original_model", source), "float16": ("verify_inputs", None)}
-            for weights, (target, export_folder) in cases.items():
-                output = folder / f"failed-{weights}"
-                with self.subTest(weights=weights), mock.patch.object(
-                        layers, target, side_effect=RuntimeError("private-example-sentinel")), \
-                        self.assertRaises(RuntimeError):
-                    layers.context(contract, snapshot, 6, output, weights, export_folder)
-                self.assertEqual(read_json(output / "failure.json"), {"schema": layers.CONTEXT_SCHEMA, "passed": False,
-                                                                       "weights": weights, "error": "RuntimeError"})
-                self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
+            for error in (RuntimeError("private-example-sentinel"), KeyboardInterrupt()):
+                for weights, (target, export_folder) in cases.items():
+                    output = folder / f"failed-{weights}-{type(error).__name__}"
+                    with self.subTest(weights=weights, error=type(error).__name__), mock.patch.object(
+                            layers, target, side_effect=error), self.assertRaises(type(error)):
+                        layers.context(contract, snapshot, 6, output, weights, export_folder)
+                    self.assertEqual(read_json(output / "failure.json"), {
+                        "schema": layers.CONTEXT_SCHEMA, "passed": False, "weights": weights,
+                        "error": type(error).__name__})
+                    self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
 
     def test_a_restored_reference_refuses_an_export_that_did_not_finish_did_not_pass_or_has_other_blocks(self):
         with tempfile.TemporaryDirectory() as folder:

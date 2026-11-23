@@ -318,7 +318,7 @@ def context(contract_path, snapshot, layers, output, weights, export=None):
     output.mkdir(parents=True)
     try:
         return written(contract, contract_path, snapshot, layers, output, weights, quantized, restored)
-    except Exception as error:
+    except BaseException as error:
         write_json(output / "failure.json", {"schema": CONTEXT_SCHEMA, "passed": False, "weights": weights,
                                              "error": type(error).__name__})
         raise

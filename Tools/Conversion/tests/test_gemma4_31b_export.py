@@ -454,12 +454,12 @@ class StartTests(unittest.TestCase):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(self.folder))
 
-    def main(self, argv, free=10**15):
+    def main(self, argv, free=10**15, supervised=None):
         usage = mock.Mock(free=free)
         with mock.patch.object(sys, "argv", argv), mock.patch.object(export, "weight_elements", return_value=ELEMENTS) as count, \
                 mock.patch.object(export.shutil, "disk_usage", return_value=usage), \
                 mock.patch.object(export, "verify_inputs") as verify, \
-                mock.patch.object(export, "supervise", return_value=0) as supervise:
+                mock.patch.object(export, "supervise", return_value=0, side_effect=supervised) as supervise:
             try:
                 return export.main(), count, verify, supervise
             except BaseException as error:
@@ -606,6 +606,36 @@ class StartTests(unittest.TestCase):
                                                              compression=config), free=required)
         self.assertEqual(code, 0)
         supervise.assert_called_once()
+
+
+    def test_an_interruption_after_the_output_is_made_is_recorded_without_overwriting_a_stop_of_the_monitor(self):
+        stop = {"schema": export.SCHEMA, "passed": False, "abort": "swap rose by 3 B, above 2 B"}
+
+        def interrupted(folder, schema, work, conclude):
+            raise KeyboardInterrupt
+
+        def stopped(folder, schema, work, conclude):
+            write_json(folder / "failure.json", stop)
+            return 1
+
+        def stopped_and_interrupted(folder, schema, work, conclude):
+            write_json(folder / "failure.json", stop)
+            raise KeyboardInterrupt
+
+        for precision, compression in (("fp16", None), ("8bit", RECIPE / "compression-8bit.yaml")):
+            output = self.folder / f"interrupted-{precision}"
+            with self.subTest(precision=precision), self.assertRaises(KeyboardInterrupt):
+                self.main(arguments(self.folder, output, precision=precision, compression=compression),
+                          supervised=interrupted)
+            self.assertEqual(read_json(output / "failure.json"),
+                             {"schema": export.SCHEMA, "passed": False, "error": "KeyboardInterrupt"})
+        output = self.folder / "stopped"
+        code, _, _, _ = self.main(arguments(self.folder, output), supervised=stopped)
+        self.assertEqual((code, read_json(output / "failure.json")), (1, stop))
+        output = self.folder / "stopped-and-interrupted"
+        with self.assertRaises(KeyboardInterrupt):
+            self.main(arguments(self.folder, output), supervised=stopped_and_interrupted)
+        self.assertEqual(read_json(output / "failure.json"), stop)
 
 
 class RecordTests(unittest.TestCase):
