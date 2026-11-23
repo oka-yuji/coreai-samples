@@ -641,7 +641,8 @@ def resync(target):
     write_json(target / "export.json", record)
 
 
-def complete_export(folder, contract, precision="fp16", functions=("main", "prefill"), quantized=None, **changes):
+def complete_export(folder, contract, precision="fp16", functions=("main", "prefill"), quantized=None, context=16896,
+                    **changes):
     pinned, name, eight_bit = load_contract(contract), export.name_of(6, functions, precision), precision == "8bit"
     config, kinds, compression = pinned["config"], layers.check_layers(pinned["config"], 6), "8bit" if eight_bit else None
     bundle = folder / export.BUNDLE
@@ -649,7 +650,7 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
     (bundle / f"{name}.aimodel/main.mlirb").write_bytes(MAIN_ASSET)
     (bundle / f"{name}.aimodel/main.hash").write_bytes(hashlib.sha256(MAIN_ASSET).digest())
     write_json(bundle / f"{name}.aimodel/metadata.json", {"assetVersion": "2.0"})
-    write_json(bundle / "metadata.json", export.metadata(pinned, name, 16896, compression, TAPS))
+    write_json(bundle / "metadata.json", export.metadata(pinned, name, context, compression, TAPS))
     (bundle / "tokenizer").mkdir()
     for item in TOKENIZER_FILES:
         shutil.copyfile(Path(contract).parent / "snapshot" / item, bundle / "tokenizer" / item)
@@ -665,11 +666,11 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
                "unreadable_samples": 0, "limits": {"swap_used_bytes": shared.SWAP_LIMIT_BYTES,
                                                    "free_percent": shared.FREE_PERCENT, "streak": shared.STREAK},
                "first": {"swap_used_bytes": 5, "free_bytes": {"volume": required}},
-               "peak": {"rss_bytes": 8192, "max_rss_bytes": 9, "swap_used_bytes": 5, "temporary_bytes": 0},
+               "peak": {"rss_bytes": 16384, "max_rss_bytes": 16384, "swap_used_bytes": 5, "temporary_bytes": 0},
                "lowest": {"free_percent": 50, "free_bytes": {"volume": export.MARGIN_BYTES}}}
     record = {"schema": export.SCHEMA, "passed": True, "problems": [], "checks": {"asset": True, "free_disk": True},
               "model": native.pinned_model(pinned, contract), "layers": 6, "layer_types": kinds,
-              "functions": list(functions), "context": 16896, "precision": export.PRECISIONS[precision],
+              "functions": list(functions), "context": context, "precision": export.PRECISIONS[precision],
               "compression_config": copy.deepcopy(export.QUANTIZATION) if eight_bit else None,
               "upstream_revision": pinned["upstream_revision"], "versions": dict.fromkeys(export.PACKAGES, "1.0.0b3"),
               "weights": {"tensors": 85, "elements": sum(elements.values()), "elements_by_dtype": elements,
@@ -682,12 +683,12 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
                         "dequantizations": export.dequantizations(names, kinds, functions, TAPS) if eight_bit else 0,
                         "float16_minus_weights": 4, **({"uint8_minus_weights": 128} if eight_bit else {})},
               "tokenizer": dict(pinned["tokenizer"]["files"]),
-              "metadata": export.metadata(pinned, name, 16896, compression, TAPS),
+              "metadata": export.metadata(pinned, name, context, compression, TAPS),
               "bundle": {"folder": export.BUNDLE, "name": name, "main_hash": hashlib.sha256(MAIN_ASSET).hexdigest()},
               "disk": {"weight_bytes": 2 * checkpoint, "estimated_write_bytes": export.WRITES[precision] * checkpoint,
                        "margin_bytes": export.MARGIN_BYTES, "required_free_bytes": required,
                        "free_before_bytes": required, "lowest_free_bytes": export.MARGIN_BYTES},
-              "resources": {"max_rss_bytes": 9, "lifetime_peak_footprint_bytes": 7, "monitor": monitor,
+              "resources": {"max_rss_bytes": 16384, "lifetime_peak_footprint_bytes": 7, "monitor": monitor,
                             "swap": {"first_bytes": 5, "peak_bytes": 5, "limit_increase_bytes": SWAP_INCREASE_LIMIT_BYTES,
                                      "increase_bytes": 0}},
               "timing": {**dict.fromkeys(steps, 1.0), "total_s": len(steps) + 1.0}, **changes}

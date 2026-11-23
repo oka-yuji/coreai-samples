@@ -1,7 +1,9 @@
 import contextlib
+import copy
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -21,7 +23,7 @@ except ImportError:
 from Tools.Conversion.adapters.gemma4_31b import export, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
-from Tools.Conversion.storage import digest, read_json, write_json
+from Tools.Conversion.storage import canonical, digest, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import (BUNDLE_DEFECTS, MAIN_ASSET, TEXT, complete_export,
                                                             write_contract)
 
@@ -64,7 +66,7 @@ record = {{"record": "logits", "token_count": len(ids), "start": start, "chunk":
           "shape": [len(ids) - start, values.shape[1]], "dtype": "float16", "byte_order": "little",
           "prefix_chunk": prefill, "prefix_calls": -(-start // prefill),
           "main_calls": -(-(len(ids) - start) // chunk), "main_hash": plan["main_hash"], "cached": True,
-          "non_finite_count": 0, "load_s": 0.1, "prefix_s": 0.0, "scoring_s": 0.2, "specialize_s": 0.0}}
+          "non_finite_count": 0, "load_s": 0.001, "prefix_s": 0.0, "scoring_s": 0.001, "specialize_s": 0.0}}
 if start:
     record["prefix_function"] = "prefill"
 record.update(change.get("record", {{}}))
@@ -215,6 +217,39 @@ class MeasureTests(unittest.TestCase):
         nan = lambda swift: swift.__setitem__((20, 7), np.nan)
         self.assertIn("finite", self.failing(self.measure(nan, known=(20,))))
 
+    def test_the_top_one_changes_of_every_measurement_come_with_the_differences_that_their_definition_gives(self):
+        generator, near = np.random.default_rng(5), native.NEAR_TIE
+        gaps = (0.0, near / 2, near, math.nextafter(near, 1), 0.0101, 0.02, 0.5)
+        pushes = (-1e-6, 0.0, 1e-7, 1e-6, 1e-3, 0.3)
+        flipped = tight = 0
+        for trial in range(400):
+            rows = int(generator.integers(1, 12))
+            reference = generator.normal(size=(rows, 6)).astype(np.float32)
+            swift = reference.copy()
+            for row in range(rows):
+                gap = gaps[int(generator.integers(len(gaps)))]
+                reference[row, :2] = 10.0, 10.0 - gap
+                swift[row] = reference[row]
+                if generator.random() < 0.7:
+                    push = gap / 2 + pushes[int(generator.integers(len(pushes)))]
+                    swift[row, 0] -= push
+                    swift[row, 1] += push
+            swift = swift.astype(np.float32 if trial % 2 else np.float16)
+            known = generator.random(rows) < (0.0, 0.3)[trial % 2]
+            result = native.measure(swift, reference, np.arange(rows), known)
+            changes, outside, largest = sum(result["top1_mismatches"].values()), result["top1_mismatches"]["outside"], \
+                result["max_abs_logit"]
+            with self.subTest(trial=trial):
+                self.assertEqual(native.measured_problems(result, 6), [])
+                if changes:
+                    self.assertGreater(largest, 0)
+                if outside:
+                    self.assertGreater(largest, near / 2)
+            flipped += bool(changes)
+            tight += bool(outside) and largest < near
+        self.assertGreater(flipped, 100)
+        self.assertGreater(tight, 5)
+
     def test_every_measurement_holds_the_relations_of_its_construction_and_each_broken_number_is_named(self):
         generator = np.random.default_rng(3)
         for trial in range(24):
@@ -246,6 +281,9 @@ class MeasureTests(unittest.TestCase):
             "the top-1 changes outnumber the rows outside the known rows",
             "the largest difference of the known rows is not a number exactly when every value is finite and a row is "
             "known")
+        zero = "the top-1 changes come with no largest difference above zero"
+        half = "the top-1 changes outside the near tie come with no largest difference above half of the near tie"
+        shaped = "the known rows are not recorded as a count and a largest difference"
         cases = {"more non-finite values than the rows hold": ({"non_finite": 40 * VOCABULARY + 1, **unmeasured}, [counts]),
                  "a negative count of non-finite reference values": ({"reference_non_finite": -1, **unmeasured}, [counts]),
                  "more constant rows than rows": ({"constant_rows": 41}, ["the constant rows are not a count of the rows"]),
@@ -260,10 +298,32 @@ class MeasureTests(unittest.TestCase):
                      {"top1_mismatches": {"near_tie": 30, "outside": 9}}, [outnumbered]),
                  "no largest difference of the known rows": ({"known": {"rows": 2, "max_abs_logit": None}}, [marked]),
                  "a largest difference of the known rows without a known row": (
-                     {"known": {"rows": 0, "max_abs_logit": 0.5}}, [marked])}
+                     {"known": {"rows": 0, "max_abs_logit": 0.5}}, [marked]),
+                 "a top-1 change near a tie with no largest difference": (
+                     {"top1_mismatches": {"near_tie": 1, "outside": 0}, "max_abs_logit": 0.0}, [zero]),
+                 "a top-1 change near a tie with the smallest largest difference above zero": (
+                     {"top1_mismatches": {"near_tie": 1, "outside": 0}, "max_abs_logit": math.nextafter(0.0, 1)}, []),
+                 "a top-1 change outside the near tie with half of the near tie as the largest difference": (
+                     {"top1_mismatches": {"near_tie": 0, "outside": 1}, "max_abs_logit": native.NEAR_TIE / 2}, [half]),
+                 "a top-1 change outside the near tie with the next number above half of the near tie": (
+                     {"top1_mismatches": {"near_tie": 0, "outside": 1},
+                      "max_abs_logit": math.nextafter(native.NEAR_TIE / 2, 1)}, []),
+                 "a largest difference of another type": ({"max_abs_logit": "0.5"}, [largest]),
+                 "constant rows of another type": ({"constant_rows": "41"}, ["the constant rows are not a count of the rows"]),
+                 "known rows of another type": ({"known": [2, None]}, [shaped]),
+                 "a count of known rows of another type": ({"known": {"rows": "2", "max_abs_logit": None}}, [shaped]),
+                 "a largest difference of the known rows of another type": (
+                     {"known": {"rows": 2, "max_abs_logit": "6.0"}}, [marked]),
+                 "known rows given as nothing": ({"known": None}, [shaped])}
         for label, (change, expected) in cases.items():
             with self.subTest(case=label):
                 self.assertEqual(native.measured_problems({**base, **change}, VOCABULARY), expected)
+        held = "the non-finite values are more than the reference record holds for their input"
+        counted = {**base, "non_finite": 3, "reference_non_finite": 2, "max_abs_logit": None,
+                   "known": {"rows": 2, "max_abs_logit": None}}
+        for bounds, expected in (((None, None), []), ((3, 2), []), ((2, 2), [held]), ((3, 1), [held]), ((0, 0), [held])):
+            with self.subTest(bounds=bounds):
+                self.assertEqual(native.measured_problems(counted, VOCABULARY, bounds), expected)
         effect = {key: value for key, value in self.measure().items() if key not in ("constant_rows", "known", "checks")}
         self.assertEqual(native.measured_problems(effect, VOCABULARY), [])
         self.assertEqual(native.measured_problems({**effect, "top1_mismatches": {"near_tie": 41, "outside": 0}}, VOCABULARY),
@@ -423,7 +483,7 @@ class CompareTests(unittest.TestCase):
         self.assertEqual({name for name, entry in conditions.items() if not entry["passed"]}, {"window-c2", "window-c4"})
 
     def test_a_verifier_record_with_a_missing_wrong_or_non_finite_field_fails_only_its_condition(self):
-        result = self.run_compare({"window-c2": {"replace": [['"load_s": 0.1', '"load_s": 1e999']]},
+        result = self.run_compare({"window-c2": {"replace": [['"load_s": 0.001', '"load_s": 1e999']]},
                                    "window-c4": {"drop": ["cached"]}, "prefix-c1": {"record": {"main_calls": "300"}},
                                    "tail": {"record": {"extra": "dropped"}}})
         self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
@@ -439,7 +499,7 @@ class CompareTests(unittest.TestCase):
         huge = str(10**400)
         result = self.run_compare({"short-c1": {"record": {"non_finite_count": 1}},
                                    "window-c1": {"replace": [['"non_finite_count": 0', '"non_finite_count": ' + huge]]},
-                                   "tail": {"replace": [['"load_s": 0.1', '"load_s": ' + huge]]}})
+                                   "tail": {"replace": [['"load_s": 0.001', '"load_s": ' + huge]]}})
         self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
         conditions = self.conditions(result)
         self.assertEqual({name: entry["problems"] for name, entry in conditions.items() if not entry["passed"]},
@@ -467,7 +527,7 @@ class CompareTests(unittest.TestCase):
                    "window-c2": {"stdout": "not a record"}, "window-c4": {"no_output": True},
                    "window-c8": {"set": [[100, 5, 30.0]]}, "capacity-2048": {"set": [[2, 3, float("nan")]]},
                    "capacity-4096": {"constant": [4]}, "prefix-c1": {"drop": ["cached"]},
-                   "capacity-8192": {"record": {"cached": False, "specialize_s": 0.05}}}
+                   "capacity-8192": {"record": {"cached": False, "specialize_s": 0.0005}}}
         conditions = self.conditions(self.run_compare(changes))
         for name, entry in conditions.items():
             with self.subTest(condition=name):
@@ -476,6 +536,11 @@ class CompareTests(unittest.TestCase):
         measured, stopped = conditions["tail"], conditions["window-c1"]
         sized, counted = conditions["short-c26"], conditions["short-c1"]
         verifier = measured["verifier"]
+        steps, shorter = verifier["load_s"] + verifier["prefix_s"] + verifier["scoring_s"], {
+            key: value for key, value in stopped["verifier"].items() if key != "scoring_s"}
+        took = "the condition took less time than the verifier recorded for its steps"
+        fields = "the verifier record holds a field or a value that the verifier does not write"
+        shape = "the known rows are not recorded as a count and a largest difference"
         cases = {
             "a field that the comparison does not write": (measured, {"extra": 1},
                                                            ["the condition holds other fields than the comparison writes on "
@@ -511,7 +576,7 @@ class CompareTests(unittest.TestCase):
                 conditions["window-c8"], {"verifier": {**conditions["window-c8"]["verifier"], "prefix_function": "main"}},
                 ["the verifier record differs from the reads of the condition"]),
             "a specialization of a cached asset": (
-                measured, {"verifier": {**verifier, "specialize_s": 0.05}},
+                measured, {"verifier": {**verifier, "specialize_s": 0.0005}},
                 ["the verifier recorded a specialization of the asset that it found in the cache"]),
             "a specialization longer than the loading": (
                 measured, {"verifier": {**verifier, "cached": False, "specialize_s": verifier["load_s"] + 1}},
@@ -529,15 +594,74 @@ class CompareTests(unittest.TestCase):
                 ["the verifier counted other non-finite values than the file exactly when the condition records a problem"]),
             "a third count of top-1 changes": (
                 measured, {"top1_mismatches": {**measured["top1_mismatches"], "other": 0}},
-                ["the top-1 changes are not the two counts of the comparison"])}
+                ["the top-1 changes are not the two counts of the comparison"]),
+            "a top-1 change without a largest difference in a condition": (
+                measured, {"top1_mismatches": {"near_tie": 1, "outside": 0}, "max_abs_logit": 0.0},
+                ["the top-1 changes come with no largest difference above zero"]),
+            "a condition that took less time than its verifier recorded": (
+                measured, {"seconds": math.nextafter(steps, 0)}, [took]),
+            "a condition that took as long as its verifier recorded": (measured, {"seconds": steps}, []),
+            "a verifier that recorded some of its steps within the time of the condition": (
+                stopped, {"verifier": shorter, "seconds": shorter["load_s"] + shorter["prefix_s"]}, []),
+            "a verifier that recorded some of its steps beyond the time of the condition": (
+                stopped, {"verifier": shorter, "seconds": math.nextafter(shorter["load_s"] + shorter["prefix_s"], 0)},
+                [took]),
+            "a verifier that did not find the asset in its cache and recorded no specialization": (
+                measured, {"verifier": {**verifier, "cached": False, "specialize_s": 0.0}},
+                ["the verifier recorded no specialization of the asset that it did not find in the cache"]),
+            "a verifier that did not find the asset in its cache and recorded the smallest specialization": (
+                measured, {"verifier": {**verifier, "cached": False, "specialize_s": math.nextafter(0.0, 1)}}, []),
+            "a time of the verifier of another type": (measured, {"verifier": {**verifier, "load_s": "1"}}, [fields]),
+            "a verifier record that is no record": (stopped, {"verifier": []}, [fields]),
+            "problems of another type": (measured, {"problems": "x"},
+                                         ["the problems of the condition are not a list of texts"]),
+            "checks of another type": (measured, {"checks": []}, ["the condition records other checks than its numbers give"]),
+            "a time of the condition of another type": (stopped, {"seconds": "4"},
+                                                        ["the condition records no time of the verifier"]),
+            "a size of the logits file of another type": (
+                measured, {"output": {**measured["output"], "bytes": "3"}},
+                ["the condition records no size of its logits file"]),
+            "a record of the logits file that is no record": (
+                measured, {"output": []}, ["the condition records no size of its logits file"]),
+            "known rows of another type": (measured, {"known": []}, [shape]),
+            "known rows given as nothing": (measured, {"known": None}, [shape])}
         for label, (entry, change, expected) in cases.items():
             with self.subTest(case=label):
                 self.assertEqual(native.condition_problems({**entry, **change}, self.config, MAIN_HASH, True), expected)
+        uncounted = {**measured, "reference_non_finite": 1, "max_abs_logit": None, "passed": False,
+                     "checks": {"finite": False, "no_constant_rows": True, "max_abs_logit": False, "top1": True}}
+        held = "the non-finite values are more than the reference record holds for their input"
+        for bound, expected in ((None, []), (1, []), (0, [held])):
+            with self.subTest(case="a condition that counted a non-finite value of a reference that holds", bound=bound):
+                self.assertEqual(native.condition_problems(uncounted, self.config, MAIN_HASH, True, bound), expected)
         zero = {**measured, "verifier": {**verifier, "prefix_chunk": 0}}
         with self.subTest(case="a prefill chunk of zero, which the reads of the condition are not computed for"), \
                 mock.patch.object(native, "call_lengths", side_effect=AssertionError):
             self.assertEqual(native.condition_problems(zero, self.config, MAIN_HASH, True),
                              ["the verifier record differs from the reads of the condition"])
+
+    def test_a_condition_record_with_a_field_of_another_type_is_named_and_never_raises(self):
+        changes = {"short-c26": {"rows": -1}, "window-c1": {"exit": 1}, "window-c2": {"stdout": "not a record"},
+                   "window-c4": {"no_output": True}}
+        conditions, fixed = self.conditions(self.run_compare(changes)), set(native.FIELDS[:6])
+        for name in ("window-c4", "window-c2", "window-c1", "short-c26", "window-c8", "tail"):
+            entry = conditions[name]
+            paths = [(key,) for key in entry if key not in fixed]
+            paths += [(key, inner) for key, value in entry.items() if key not in fixed and isinstance(value, dict)
+                      for inner in value]
+            for path in paths:
+                for value in (None, "x", [], {}, True, -1):
+                    changed = copy.deepcopy(entry)
+                    target = changed
+                    for part in path[:-1]:
+                        target = target[part]
+                    if canonical(target[path[-1]]) == canonical(value):
+                        continue
+                    target[path[-1]] = value
+                    with self.subTest(condition=name, path=path, value=value):
+                        found = native.condition_problems(changed, self.config, MAIN_HASH, True)
+                        if name == "tail" and path != ("output", "sha256"):
+                            self.assertTrue(found)
 
     def test_a_condition_record_that_is_not_json_is_reset_and_the_other_conditions_are_kept(self):
         measure = native.measure
@@ -950,6 +1074,9 @@ class CompareTests(unittest.TestCase):
                      "the disk record does not have the keys that the export writes"),
                  "a swap record with a key that the export does not write": (
                      False, swap(extra=1), "the swap record does not have the keys that the export writes"),
+                 "a resident memory that ps gave the monitor above the peak resident memory that it read": (
+                     False, monitored("peak", rss_bytes=17408),
+                     "the resident memory that ps gave the monitor is above the peak resident memory that it read"),
                  "the version of a package that the export does not record": (
                      False, lambda record: record["versions"].update(numpy="2.0"),
                      "the export recorded the versions of other packages than it records"),
@@ -1001,6 +1128,15 @@ class CompareTests(unittest.TestCase):
                 arrange(folder)
             with self.subTest(case=label):
                 self.assertEqual(native.load_export(folder, contract, self.contract)[3], [expected])
+
+    def test_an_export_whose_context_limit_is_below_the_longest_condition_is_named(self):
+        contract, message = load_contract(self.contract), "the export recorded a context limit below the longest condition"
+        self.assertEqual(native.LONGEST, 16896)
+        for context, expected in ((native.LONGEST - 1, [message]), (native.LONGEST, []), (native.LONGEST + 1, [])):
+            folder = self.folder / f"context-{context}"
+            complete_export(folder, self.contract, context=context)
+            with self.subTest(context=context):
+                self.assertEqual(native.load_export(folder, contract, self.contract)[3], expected)
 
     def test_an_export_folder_that_did_not_finish_stops_before_the_verifier_runs(self):
         def recorded_as_true():

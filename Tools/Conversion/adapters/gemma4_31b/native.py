@@ -36,6 +36,7 @@ CRITERIA = {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE}
 KNOWN_CALL = {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST}
 PREFILL_CHUNKS = (2048, 4096)
 FLOAT16_BYTES = 2
+LONGEST = max(length for _, _, length, _, _ in CONDITIONS)
 TOP1 = ("near_tie", "outside")
 FIELDS = ("name", "input", "tokens", "start", "chunk", "rows", "problems", "checks", "passed")
 PATHS = (("seconds",), ("verifier",), ("output",),
@@ -166,41 +167,82 @@ def logits_bytes(rows, vocabulary):
     return rows * vocabulary * FLOAT16_BYTES
 
 
-def measured_problems(entry, vocabulary):
-    rows, top, known = entry["rows"], entry["top1_mismatches"], entry.get("known")
+def texts(value):
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def measured_types(entry):
+    top, known = entry["top1_mismatches"], entry.get("known")
     counts, largest = (entry["non_finite"], entry["reference_non_finite"]), entry["max_abs_logit"]
-    finite, marked = counted(*counts) and not any(counts), known["rows"] if known else 0
-    tallied = isinstance(top, dict) and set(top) == set(TOP1) and counted(*top.values())
+    shaped = "known" not in entry or isinstance(known, dict) and set(known) == {"rows", "max_abs_logit"} \
+        and counted(known["rows"])
+    typed = {
+        "the non-finite values are not counts of the values of the rows": counted(*counts),
+        "the constant rows are not a count of the rows": "constant_rows" not in entry or counted(entry["constant_rows"]),
+        "the largest difference is not a number exactly when every value is finite":
+            largest is None or valid("number", largest),
+        "the top-1 changes are not the two counts of the comparison":
+            isinstance(top, dict) and set(top) == set(TOP1) and counted(*top.values()),
+        "the known rows are not recorded as a count and a largest difference": shaped,
+        "the largest difference of the known rows is not a number exactly when every value is finite and a row is known":
+            not shaped or "known" not in entry or known["max_abs_logit"] is None or valid("number", known["max_abs_logit"])}
+    return [message for message, holds in typed.items() if not holds]
+
+
+def measured_problems(entry, vocabulary, held=(None, None)):
+    found = measured_types(entry)
+    if found:
+        return found
+    rows, top, known, largest = entry["rows"], entry["top1_mismatches"], entry.get("known"), entry["max_abs_logit"]
+    counts = (entry["non_finite"], entry["reference_non_finite"])
+    finite, marked, changes = not any(counts), known["rows"] if known else 0, sum(top.values())
+    numeric = finite and largest is not None
     formulas = {
         "the non-finite values are not counts of the values of the rows":
-            counted(*counts) and all(value <= rows * vocabulary for value in counts),
-        "the constant rows are not a count of the rows":
-            "constant_rows" not in entry or counted(entry["constant_rows"]) and entry["constant_rows"] <= rows,
-        "the largest difference is not a number exactly when every value is finite":
-            valid("number", largest) if finite else largest is None,
+            all(value <= rows * vocabulary for value in counts),
+        "the non-finite values are more than the reference record holds for their input":
+            all(bound is None or value <= bound for value, bound in zip(counts, held)),
+        "the constant rows are not a count of the rows": "constant_rows" not in entry or entry["constant_rows"] <= rows,
+        "the largest difference is not a number exactly when every value is finite": (largest is not None) == finite,
         "the largest difference is not 0 without a row outside the known rows":
-            largest is None or not counted(marked) or marked < rows or largest == 0,
-        "the top-1 changes are not the two counts of the comparison": tallied,
-        "the top-1 changes outnumber the rows outside the known rows":
-            not tallied or not counted(marked) or sum(top.values()) <= rows - marked,
+            largest is None or marked < rows or largest == 0,
+        "the top-1 changes outnumber the rows outside the known rows": changes <= rows - marked,
         "the largest difference of the known rows is not a number exactly when every value is finite and a row is known":
-            known is None or (valid("number", known["max_abs_logit"]) if finite and counted(marked) and marked
-                              else known["max_abs_logit"] is None)}
+            known is None or (known["max_abs_logit"] is not None) == (finite and marked > 0),
+        "the top-1 changes come with no largest difference above zero": not numeric or not changes or largest > 0,
+        "the top-1 changes outside the near tie come with no largest difference above half of the near tie":
+            not numeric or not top["outside"] or largest > NEAR_TIE / 2}
     return [message for message, holds in formulas.items() if not holds]
 
 
-def condition_problems(entry, config, main_hash, prefill):
+def condition_problems(entry, config, main_hash, prefill, held=None):
     fields = [set(FIELDS).union(*PATHS[:index]) for index in range(len(PATHS) + 1)]
     if set(entry) not in fields:
         return ["the condition holds other fields than the comparison writes on its paths"]
     reached, problems, verifier = fields.index(set(entry)), entry["problems"], entry.get("verifier")
-    measured, read = reached == len(PATHS), reached > 2
+    measured, read, ran = reached == len(PATHS), reached > 2, reached > 1
+    typed = {
+        "the problems of the condition are not a list of texts": texts(problems),
+        "the condition records other checks than its numbers give": isinstance(entry["checks"], dict),
+        "the condition records no time of the verifier": reached < 1 or valid("seconds", entry["seconds"]),
+        "the verifier record holds a field or a value that the verifier does not write":
+            not ran or isinstance(verifier, dict)
+            and all(key in VERIFIER and valid(VERIFIER[key], value) for key, value in verifier.items()),
+        "the verifier record misses a field that the verifier writes":
+            not read or isinstance(verifier, dict) and set(VERIFIER) - OPTIONAL <= set(verifier),
+        "the condition records no size of its logits file":
+            not read or isinstance(entry["output"], dict) and valid("count", entry["output"].get("bytes"))}
+    found = [message for message, holds in typed.items() if not holds] + (measured_types(entry) if measured else [])
+    if found:
+        return found
+    numbers = measured_problems(entry, config["vocab_size"], (None, held)) if measured else []
     chunk = verifier.get("prefix_chunk") if read else None
     expected = expected_verifier(entry, config, main_hash, prefill, chunk) if chunk in PREFILL_CHUNKS else {}
     known = len(known_rows(entry["start"], entry["tokens"], entry["chunk"]))
+    steps = [verifier[key] for key in ("load_s", "prefix_s", "scoring_s") if ran and key in verifier]
     formulas = {
         "the condition records other checks than its numbers give":
-            canonical(entry["checks"]) == canonical(verdicts(entry) if measured else {}),
+            bool(numbers) or canonical(entry["checks"]) == canonical(verdicts(entry) if measured else {}),
         "the condition records another verdict than its checks and problems give":
             canonical(entry["passed"]) == canonical(condition_passed(entry)),
         "the condition records no problem on a path that stops before its numbers": measured or bool(problems),
@@ -208,21 +250,19 @@ def condition_problems(entry, config, main_hash, prefill):
             reached not in (0, 3) or len(problems) == 1,
         "the condition records more problems than the count of the verifier after its numbers":
             not measured or len(problems) <= 1,
-        "the condition records no time of the verifier": reached < 1 or valid("seconds", entry["seconds"]),
-        "the verifier record holds a field or a value that the verifier does not write":
-            verifier is None or isinstance(verifier, dict)
-            and all(key in VERIFIER and valid(VERIFIER[key], value) for key, value in verifier.items()),
-        "the verifier record misses a field that the verifier writes":
-            not read or set(VERIFIER) - OPTIONAL <= set(verifier),
+        "the condition took less time than the verifier recorded for its steps": not ran or sum(steps) <= entry["seconds"],
         "the verifier record differs from the reads of the condition":
             not read or verifier.get("prefix_chunk") in PREFILL_CHUNKS
             and canonical({key: verifier.get(key) for key in expected}) == canonical(expected)
             and ("prefix_function" in verifier) == (entry["start"] > 0),
         "the verifier recorded a specialization of the asset that it found in the cache":
-            verifier is None or verifier.get("cached") is not True or "specialize_s" not in verifier
+            not ran or verifier.get("cached") is not True or "specialize_s" not in verifier
             or verifier["specialize_s"] == 0,
+        "the verifier recorded no specialization of the asset that it did not find in the cache":
+            not ran or verifier.get("cached") is not False or "specialize_s" not in verifier
+            or verifier["specialize_s"] > 0,
         "the verifier recorded a longer specialization than its loading":
-            verifier is None or not all(key in verifier for key in ("specialize_s", "load_s"))
+            not ran or not all(key in verifier for key in ("specialize_s", "load_s"))
             or verifier["specialize_s"] <= verifier["load_s"],
         "the logits file does not hold the rows of the condition exactly when they were measured":
             not read or (canonical(entry["output"]["bytes"]) == canonical(logits_bytes(entry["rows"], config["vocab_size"])))
@@ -231,8 +271,7 @@ def condition_problems(entry, config, main_hash, prefill):
             not measured or canonical(entry["known"]["rows"]) == canonical(known),
         "the verifier counted other non-finite values than the file exactly when the condition records a problem":
             not measured or (canonical(verifier["non_finite_count"]) == canonical(entry["non_finite"])) == (not problems)}
-    return [message for message, holds in formulas.items() if not holds] \
-        + (measured_problems(entry, config["vocab_size"]) if measured else [])
+    return [message for message, holds in formulas.items() if not holds] + numbers
 
 
 def verdicts(entry):
@@ -405,6 +444,7 @@ def relation_problems(record, precision):
         problems.append("the export recorded no swap increase within its limit")
     lowest, started = (mapping(mapping(monitor, key), "free_bytes") for key in ("lowest", "first"))
     samples, total, percent = monitor.get("samples"), timing.get("total_s"), mapping(monitor, "lowest").get("free_percent")
+    readings = [mapping(monitor, "peak").get(key) for key in ("rss_bytes", "max_rss_bytes")]
     steps = [*STEPS, *(QUANTIZING_STEPS if precision == "8bit" else ()), "total_s"]
     seconds = all(valid("seconds", value) for value in timing.values())
     uint8, float16, layouts = by_dtype.get("torch.uint8", 0), by_dtype.get("torch.float16"), \
@@ -449,9 +489,9 @@ def relation_problems(record, precision):
             samples != 1 or canonical(lowest) == canonical(started),
         "the resident memory that ps gave the monitor is not in KiB":
             not valid("count", mapping(monitor, "peak").get("rss_bytes")) or monitor["peak"]["rss_bytes"] % 1024 == 0,
-        "the monitor recorded no positive resident memory":
-            all(valid("count", value) and value > 0
-                for value in (mapping(monitor, "peak").get(key) for key in ("rss_bytes", "max_rss_bytes"))),
+        "the monitor recorded no positive resident memory": all(valid("count", value) and value > 0 for value in readings),
+        "the resident memory that ps gave the monitor is above the peak resident memory that it read":
+            not all(valid("count", value) for value in readings) or readings[0] <= readings[1],
         "the lowest free memory percentage of the monitor is not a percentage":
             valid("count", percent) and percent <= 100,
         "the times are not those of the steps of the export":
@@ -484,6 +524,8 @@ def load_export(folder, contract, contract_path):
         problems.append("the export was made with another converter checkout than the contract pins")
     if not valid("count", record.get("context")):
         problems.append("the export recorded no valid context limit")
+    elif record["context"] < LONGEST:
+        problems.append("the export recorded a context limit below the longest condition")
     problems += layer_problems(record, contract, "export")
     if canonical(record.get("model")) != canonical(pinned_model(contract, contract_path)):
         problems.append("the export recorded another model or contract")

@@ -14,7 +14,7 @@ from .export import QUANTIZATION, SCHEMA as EXPORT_SCHEMA
 from .layers import CONDITIONS, CONTEXT_SCHEMA, RESTORED, compare as compare_layers
 from .native import (CRITERIA, KNOWN_CALL, PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER, comparison_passed,
                      condition_problems, correspondence, load_export, load_reference, measured_problems,
-                     reference_record_problems)
+                     reference_record_problems, texts, valid)
 from .prepare import load_contract
 from .summary import HEX, REPOSITORY, SHARD, count, flag, matched, optional, word
 
@@ -162,19 +162,15 @@ def condition(entry):
     return {key: show(entry[key]) for key, show in SHOWN.items() if key in entry}
 
 
-def texts(value):
-    return isinstance(value, list) and all(isinstance(item, str) for item in value)
-
-
 def fixed(entries):
     return canonical([[entry[key] for key in CONDITION_KEYS] for entry in entries])
 
 
-def compared(record, folder, exported_record, config):
+def compared(record, folder, exported_record, config, context):
     if record.get("schema") != COMPARISON_SCHEMA:
         raise PipelineError(f"Expected a {COMPARISON_SCHEMA} comparison")
-    if not texts(record["problems"]) or not all(texts(entry["problems"]) for entry in record["conditions"]):
-        raise PipelineError("Each comparison and each of its conditions must record its problems as a list of texts")
+    if not texts(record["problems"]):
+        raise PipelineError("Each comparison must record its problems as a list of texts")
     if canonical(record["criteria"]) != canonical(CRITERIA):
         raise PipelineError("Each comparison must record the fixed criteria")
     if canonical(record["known_call"]) != canonical(KNOWN_CALL):
@@ -184,7 +180,8 @@ def compared(record, folder, exported_record, config):
     if (record["verifier"] is None) != bool(record["problems"]):
         raise PipelineError("Each comparison must record its verifier exactly when it has no problems")
     for entry in record["conditions"]:
-        if condition_problems(entry, config, exported_record["bundle"]["main_hash"], "prefill" in exported_record["functions"]):
+        if condition_problems(entry, config, exported_record["bundle"]["main_hash"], "prefill" in exported_record["functions"],
+                              context["inputs"][entry["input"]]["logits"]["non_finite"]):
             raise PipelineError("Each condition must hold the fields and numbers that the comparison writes on its paths")
         if "output" in entry and canonical(entry["output"]) != canonical(file_hash(folder / f"{entry['name']}.f16")):
             raise PipelineError("Each condition must record the size and SHA-256 of its logits file")
@@ -222,11 +219,13 @@ def model_class(record, exports):
                        for name, entry in record["inputs"].items()}}
 
 
-def timed(report, manifest, stage):
+def timed(report, manifest, stage, record):
     stages = [[entry[key] for key in TIMES] for entry in report["stages"]]
+    spent = (record.get("timing") or {}).get("total_s")
     return all(prepare + execute <= total for prepare, execute, total in stages) \
         and sum(total for *_, total in stages) <= report["elapsed_s"] \
-        and canonical(manifest.get("execute_s")) == canonical(stage.get("execute_s"))
+        and canonical(manifest.get("execute_s")) == canonical(stage.get("execute_s")) \
+        and (not valid("seconds", spent) or spent <= stage["execute_s"])
 
 
 def paired(reports, exports, comparisons, context, reference_hash):
@@ -248,9 +247,9 @@ def paired(reports, exports, comparisons, context, reference_hash):
                 != (1, "completed", report["run_id"], "export") \
                 or manifest["outputs"]["artifacts"]["tree"].get("export/export.json") != {"bytes": size, "sha256": digest}:
             raise PipelineError("Each export record must be the output that the run of its stage recorded")
-        if not timed(report, manifest, stage):
+        if not timed(report, manifest, stage, record):
             raise PipelineError("Each report must record the times of its stages within its run and the time of its export "
-                                "that the manifest recorded")
+                                "that the manifest recorded and that the export record fits in")
         if (comparison.get("export") or {}).get("sha256") != digest \
                 or (comparison.get("reference") or {}).get("sha256") != reference_hash:
             raise PipelineError("Each comparison must be made from the export record given with it and the reference")
@@ -290,7 +289,8 @@ def effected(record, context, reference_hash, config):
         raise PipelineError("The effect must record the fixed criteria")
     if fixed(record["conditions"]) != canonical(FIXED):
         raise PipelineError("The effect must be measured on the twelve fixed conditions in order")
-    if any(set(entry) != {*CONDITION_KEYS, *KEPT} or measured_problems(entry, config["vocab_size"])
+    if any(set(entry) != {*CONDITION_KEYS, *KEPT}
+           or measured_problems(entry, config["vocab_size"], (context["inputs"][entry["input"]]["logits"]["non_finite"], None))
            for entry in record["conditions"]):
         raise PipelineError("The effect must hold the numbers that the comparison of the two references gives")
     return {"rounded_sha256": matched(record["rounded"]["sha256"], HEX[64]), "layers": count(record["restored"]["layers"]),
@@ -308,7 +308,7 @@ def project(reports, exports, comparisons, folders, context, layered, effect, co
     classes = {} if effect is not None else {"model_class": model_class(layered, exports)}
     return {"schema": schema, "scope": SCOPES[schema], "reference": reference(context), **classes,
             "assets": [{"pipeline": pipeline.project(report), "export": exported(record),
-                        "comparison": compared(result, folder, record, config)}
+                        "comparison": compared(result, folder, record, config, context)}
                        for report, record, result, folder in zip(reports, exports, comparisons, folders, strict=True)],
             **({} if effect is None else {"effect": effect})}
 

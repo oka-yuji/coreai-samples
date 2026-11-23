@@ -564,12 +564,29 @@ of five kinds, and each kind has one rule:
   verdict differs is refused.
 - A measured number (a difference, a count of non-finite values or of top-1 changes, a time, a memory, disk or swap
   reading) is copied. The summary does not compute it from the arrays again, so it does not check the number itself; it
-  checks the range of the number and the relations that its writer gives it, for example that a count does not exceed
-  the values it counts and that the times of the steps do not exceed the time that holds them.
+  checks its type and the relations of the table below, which its writer gives it. The readers of the records return the
+  problems of a field of another type alone, and evaluate no relation on it.
 - A hash is checked when it leads to a file that the summary reads (the files of the bundle, `quantized.safetensors`,
   the records and the logits files of the reference and of the comparison, the contract) and copied when it does not
   (the SHA-256 of the verifier and, for 8 bits, of the record of the rounded reference of `effect`).
 - A version of a package is copied, for exactly the packages that its writer records.
+
+| Relation of measured numbers | Why it holds |
+|---|---|
+| A count of non-finite values or of constant rows is at most the values or rows that it counts. The largest difference is a number exactly when every value is finite, and 0 when every row is a known row | `measure` counts over the rows that it compares, and takes the largest difference over the rows that are not known, from 0 |
+| The non-finite values that a condition counts in the reference, or that the effect counts in the restored reference, are at most those that the record of the reference holds for the same input | The comparison and the effect read a subset of the rows that the reference kept, and the reference counts over all of them |
+| A top-1 change in a row that is not known comes with a largest difference above 0 | Rows with equal logits have the same argmax, so a counted row differs somewhere, and the largest difference is taken over the same rows |
+| A top-1 change outside the near tie comes with a largest difference above `NEAR_TIE` / 2 | The largest reference logit `y_b` is more than `NEAR_TIE` above every other; if the argmax of the other side is `a`, not `b`, then `x_a >= x_b` and `y_b - y_a > NEAR_TIE`, so `(x_a - y_a) - (x_b - y_b) > NEAR_TIE` and one of the two differences is above `NEAR_TIE` / 2 |
+| The time of a condition is at least the sum of the steps that its verifier recorded. `specialize_s` is 0 when the asset was in the cache, above 0 when it was not, and within `load_s` | `loadS`, `prefixS` and `scoringS` are consecutive intervals of the process of `coreai-verify` (`PositionLogits.swift`), and `specialize_s` is measured inside the load (`Engine.resolveModel`) |
+| The time of an export is at most the `execute_s` of the stage that ran it. Times that make up another time (the steps of a stage, the stages of a run, the steps of an export or of a reference) do not exceed it | The runner measures around the process of the step, and the export reads its time inside that process |
+| The resident memory that `ps` gave the monitor is at most the peak that `getrusage` gave it. The context limit of an export is at least the 16,896 tokens of the longest condition | `ru_maxrss` is the peak of the resident size that `ps` reads at each sample, and the comparison reads up to 16,896 tokens |
+
+It does not check the measured numbers themselves, the number of tensors of the PyTorch model (`weights.tensors`, which
+would need a copy of the structure of the model class), the SHA-256 of the files that it does not read (the verifier and
+the record of the rounded reference) or the values of the versions. It also leaves unchecked what no writer relates to
+another number: the peak footprint of the process (a different measure from the resident size), the counts of the
+constants that the asset stores (`Int32`, `UInt32`, `UInt64`) and an upper bound for the time of a condition (the
+verifier is stopped after 1,800 s, and the checks after it add to the time).
 
 Where it prints a mapping of a record key by key, a constant or the reader of the record (`load_export`,
 `load_reference`, `reference_record_problems`, `condition_problems`, `measured_problems`) fixes the set of keys. It
