@@ -1,5 +1,6 @@
 import contextlib
 import copy
+import gc
 import hashlib
 import io
 import json
@@ -12,6 +13,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+import weakref
 
 try:
     import numpy as np
@@ -673,6 +675,23 @@ class RestoredRunTests(unittest.TestCase):
                 mock.patch.object(layer1_anchor, "swap_used", return_value=5), \
                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             return layer1_anchor.main()
+
+    def test_restoring_takes_every_quantized_tensor_out_of_the_mapping_and_keeps_no_reference_to_it(self):
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            model, _, _ = layer1_anchor.model_for(self.snapshot, 6, "cpu")
+        names = sorted({key.rsplit(".", 1)[0] for key in self.tensors})
+        parts = ("quantized_data", "scale", "minval")
+        expected = {name: layers.restore(*(self.tensors[f"{name}.{part}"] for part in parts)) for name in names}
+        restored = {name: tuple(self.tensors[f"{name}.{part}"].clone() for part in parts) for name in names}
+        watched = [weakref.ref(tensor) for values in restored.values() for tensor in values]
+        layer1_anchor.restore_into(model, restored, "cpu")
+        gc.collect()
+        self.assertEqual(restored, {})
+        self.assertEqual([reference() for reference in watched], [None] * len(watched))
+        for name, value in expected.items():
+            with self.subTest(weight=name):
+                parameter = model.get_parameter(layers.PREFIX + name.removeprefix("model."))
+                self.assertTrue(torch.equal(parameter.data, value))
 
     def test_the_scored_rows_with_weights_restored_from_the_quantized_tensors_match_the_plain_float32_forward(self):
         self.assertEqual((self.main("--weights", "8bit", "--export", str(self.export)),
