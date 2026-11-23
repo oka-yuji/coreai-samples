@@ -1,6 +1,6 @@
 # Gemma 4 31B quality evaluation
 
-The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, scores output records with the rules of §6.7 (issue #668, and issue #670 for code), and compares the scored baseline and candidate of a pair to give the verdict of §7 and its report (issue #671). Running models belongs to other child issues.
+The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-contract.md) `G31-QC-v1` (issue #666, parent #658). This folder fixes them in machine-readable form before any candidate is measured, scores output records with the rules of §6.7 (issue #668, and issue #670 for code), and compares the scored baseline and candidate of a pair to give the verdict of §7 and its report (issue #671). It also writes the forced input of layer 1 (§4, issue #697). Running models belongs to other child issues.
 
 | File | Contents |
 |---|---|
@@ -11,6 +11,7 @@ The rules are in the [quality contract](../../docs/specs/gemma4-31b-quality-cont
 | `scoring.py` | The scoring rules of §6.7, the record checks and `score` |
 | `execution.py` | Code scoring: the code read from an output and its program run in an isolated child process |
 | `comparison.py` | The paired comparison and the verdicts of §7, the report and `compare` |
+| `layer1.py` | The layer 1 items, bands and forced input of §4 and `forced` |
 | `tests/` | Unit tests, the scoring specification examples (`examples.json`), the expected scoring results derived by hand from §6.7 (`scoring_cases.json`) and the expected comparison results derived by hand from §7 (`comparison_cases.json`) |
 
 ## Commands
@@ -185,6 +186,42 @@ The critical failures are `runtime_error` and `non_finite_logits` of a candidate
 | `contract` | The contract version and the SHA-256 of `contract.json` |
 | `runs` | The two run records |
 | `substitute_reason` | The text of `--substitute-reason`, or `null` |
+
+## Layer 1 forced input
+
+`forced` writes the forced input of contract §4 from the input records and the finished run of the `reference` role on the primary set. It uses only the standard library and loads no model.
+
+```sh
+python3 -m Tools.LLMEvaluation forced \
+  --inputs .local/conversion/gemma4_31b/evaluation/G31-QC-v1-primary-inputs \
+  --run .local/conversion/gemma4_31b/evaluation/runs/G31-QC-v1-primary-reference \
+  --output .local/conversion/gemma4_31b/evaluation/new-forced
+```
+
+| Option | Value |
+|---|---|
+| `--inputs` | The folder with `inputs.jsonl` and `inputs.json` of `Tools.Conversion.adapters.gemma4_31b.inputs` |
+| `--run` | The finished run folder of `Tools.Conversion.adapters.gemma4_31b.baseline`, with `run.json`, `progress.json` and `outputs.jsonl` |
+| `--output` | A new folder |
+
+The items follow `layer1.items` of `contract.json`: per category of `sets/primary.json`, the first items in ascending id order, as many as `per_category` or, for a member of `families`, its count. For an item with P input tokens and the generated tokens G (`output_ids`, followed by `stop_token` when the run stopped on one), R = min(`layer1.positions.max_per_item`, len(G)) rows are scored, and row i is the output at position P − 1 + i, which predicts G[i].
+
+`forced.jsonl` holds one record per item, in the order of the choice:
+
+| Field | Value |
+|---|---|
+| `id` | The item id |
+| `input_sha256` | The `input_sha256` of the input record |
+| `tokens` | The token ids to read: the input followed by the first R − 1 tokens of G |
+| `tokens_sha256` | SHA-256 of `tokens` written in decimal and joined by commas, as UTF-8 (the `tokens_sha256` of `coreai-verify`) |
+| `start` | P − 1, the first scored position |
+| `rows` | R |
+| `input_tokens` | P, which gives the band of the item |
+| `targets` | The first R tokens of G; row i predicts `targets[i]` |
+
+`forced.json` holds `contract` (the version and SHA-256 of `contract.json`), `set`, `inputs` (the count and SHA-256 of `inputs.jsonl`), `run` (the `id` of `run.json` and the SHA-256 of `outputs.jsonl`), `forced` (the count and SHA-256 of `forced.jsonl`), `bands` (the items per band of `layer1.bands`, by `input_tokens`) and `categories` (the items per category).
+
+`inconsistencies` in `layer1.py` checks that the fields of a forced record agree with each other (`ForcedRecordTests` in `tests/test_layer1.py`); `forced` applies it to every record it writes. `make` builds the records and both files in memory with every check, and `forced` writes them; the comparison calls `make` on the same input records and run and requires the forced input to be equal to it byte for byte. `forced` first runs the checks of `validate`. It refuses an existing output, also a link, before it reads the input records or the run, and it reads each of their files through `file_bytes`, which opens it without waiting and reads it only when it is a regular file. It writes nothing when the contract, the input records and the run do not belong together, or when a chosen item cannot be forced; `RefusalTests` in `tests/test_layer1.py` fixes these cases, and `ForcedInputTests` the records. The forced records hold the token ids of public data text, so keep them under `.local/`. The comparison of the logits of two implementations on this input is in the [Gemma 4 31B recipe](../Conversion/recipes/gemma4_31b/README.md#layer-1-comparison).
 
 ## Data
 
