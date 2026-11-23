@@ -39,6 +39,8 @@ import hashlib, json, os, sys
 from pathlib import Path
 
 plan = json.loads(Path(__file__).with_suffix(".json").read_text())
+with Path(plan["launches"]).open("a") as launches:
+    launches.write(" ".join(sys.argv[1:2]) + "\\n")
 arguments = dict(zip(sys.argv[2::2], sys.argv[3::2]))
 ids = json.loads(Path(arguments["--tokens"]).read_text())
 start, chunk = int(arguments["--start"]), int(arguments["--chunk"])
@@ -256,19 +258,25 @@ class AnchorRunTests(unittest.TestCase):
                                             "environment": {"python": "3.11.9", "packages": {}, "os_build": "26A1"}})
         self.records = made(VOCABULARY)
         self.forced = write_forced(self.folder / "forced", self.records)
+        self.loads = []
 
-    def main(self, command, *extra, loader=None, monitor=None, original=None, verify=None, output="out", device="cpu"):
+    def main(self, command, *extra, loader=None, monitor=None, original=None, verify=None, output="out", device="cpu",
+             watcher=None):
         argv = ["layer1_anchor", command, "--model", str(self.contract), "--snapshot", str(self.folder / "snapshot"),
                 "--prepare", str(self.folder / "prepare"), "--forced", str(self.forced), "--layers", "6",
                 "--output", str(self.folder / output), *extra]
-        loaded = lambda *arguments: (copy.deepcopy(self.model), {"after_load": dict(MEMORY)}, True)
-        observed = lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, monitor or OBSERVED)
+
+        def loaded(*arguments):
+            self.loads.append(arguments)
+            return (loader or (lambda *values: (copy.deepcopy(self.model), {"after_load": dict(MEMORY)}, True)))(*arguments)
+
+        observed = watcher or (lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, monitor or OBSERVED))
         placed = lambda path: {**load_contract(path), "reference": {**load_contract(path)["reference"], "device": device}}
         with mock.patch.object(sys, "argv", argv), mock.patch.object(reference, "ReferenceMonitor", observed), \
                 mock.patch.object(layer1_anchor, "load_contract", side_effect=placed), \
                 mock.patch.object(reference, "memory", return_value=dict(MEMORY)), \
                 mock.patch.object(reference, "verify_inputs", side_effect=verify, return_value={}) as verified, \
-                mock.patch.object(layer1_anchor, "model_for", side_effect=loader or loaded) as model_for, \
+                mock.patch.object(layer1_anchor, "model_for", side_effect=loaded) as model_for, \
                 mock.patch.object(layers, "original_model", side_effect=original), \
                 mock.patch.object(layer1_anchor, "swap_used", return_value=5), \
                 contextlib.redirect_stdout(io.StringIO()):
@@ -357,6 +365,7 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(str(outcome.get("error")), "ready.json is not a regular file")
         self.assertEqual(sorted(path.name for path in self.folder.iterdir()),
                          ["forced", "model.json", "other", "prepare", "taken"])
+        self.assertEqual(self.loads, [])
 
     def test_the_agreement_passes_only_when_the_original_gives_the_same_rows_with_an_item_beyond_the_window(self):
         plain, changed = rounded_copy(self.model), rounded_copy(self.model)
@@ -442,13 +451,13 @@ class CandidateRunTests(unittest.TestCase):
                          "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
                          "bundle": {"folder": export.BUNDLE, "name": "asset", "main_hash": MAIN_HASH, "files": files}}
         write_json(self.export / "export.json", self.exported)
-        self.verifier, self.calls = self.folder / "verifier", self.folder / "calls.txt"
+        self.verifier, self.calls, self.launches = self.folder / "verifier", self.folder / "calls.txt", self.folder / "launches.txt"
 
     def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH):
         prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
                   for record in self.records}
         plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": main_hash,
-                "prefix": prefix}
+                "prefix": prefix, "launches": str(self.launches)}
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
@@ -537,6 +546,7 @@ class CandidateRunTests(unittest.TestCase):
             layer1_candidate.run(self.export, self.forced, self.folder, self.folder / "unlaunched", self.contract)
         self.assertFalse((self.folder / "other-forced").exists() or (self.folder / "unlaunched").exists())
         self.assertEqual(self.called(), [])
+        self.assertFalse(self.launches.exists())
 
     @unittest.skipIf(not GEMMA4, "Transformers with Gemma 4 and PyTorch are required to write the quantized tensors")
     def test_an_8bit_export_gives_the_role_w8(self):
