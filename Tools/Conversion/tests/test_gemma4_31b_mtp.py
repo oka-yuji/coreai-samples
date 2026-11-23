@@ -478,7 +478,10 @@ class RecordTests(unittest.TestCase):
                    "a negative margin": lambda record: record["mtp"][0]["fixed"]["margins"].__setitem__(0, -0.5),
                    "a draft beyond the vocabulary": lambda record: record["mtp"][1]["fixed"]["tokens"].__setitem__(
                        0, CONFIG["vocab_size"]),
-                   "another input length": lambda record: record.update(P=21)}
+                   "another input length": lambda record: record.update(P=21),
+                   "an input length as a float": lambda record: record.update(P=20.0),
+                   "a teacher length as a float": lambda record: record.update(T=10.0),
+                   "an input length as text": lambda record: record.update(P="20")}
         for label, change in changes.items():
             record = {"id": item["id"], "P": 20, "T": 10, "mtp": json.loads(json.dumps(rows))}
             change(record)

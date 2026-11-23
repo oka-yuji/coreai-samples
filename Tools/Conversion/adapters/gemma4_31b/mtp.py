@@ -639,7 +639,8 @@ def draft_rows(path, item, vocabulary):
     record = document(path)
     rows = record.get("mtp") if isinstance(record, dict) else None
     if not isinstance(rows, list) or record.get("id") != item["id"] \
-            or (record.get("P"), record.get("T")) != (len(item["input_ids"]), len(item["teacher"])):
+            or not valid("count", record.get("P")) or not valid("count", record.get("T")) \
+            or (record["P"], record["T"]) != (len(item["input_ids"]), len(item["teacher"])):
         raise ValueError(f"{Path(path).name} is not the drafter record of {item['id']}")
     found, wrong = {}, 0
     for row in rows:
