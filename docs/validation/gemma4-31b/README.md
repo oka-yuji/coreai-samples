@@ -918,3 +918,163 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <restor
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   > docs/validation/gemma4-31b/8bit-first-layers-20261123.json
 ~~~
+
+## MTP drafter class (#704)
+
+This section copies the numbers of the drafter class of the recipe for the MTP drafter
+`google/gemma-4-31B-it-assistant` ([MTP drafter](../../../Tools/Conversion/recipes/gemma4_31b/README.md#mtp-drafter)):
+its comparison with the drafter of the original implementation on the features that #691 recorded, the accepted drafts
+on the teacher path, and the export of a synthetic drafter. The class is the drafter in PyTorch; no Core AI asset of the
+real weights was made or run here.
+[`mtp-drafter-comparison-20261123.json`](mtp-drafter-comparison-20261123.json) and
+[`mtp-drafter-acceptance-20261123.json`](mtp-drafter-acceptance-20261123.json) are the JSON results that
+`mtp.py compare` and `acceptance` print, and [`mtp-drafter-export-20261123.json`](mtp-drafter-export-20261123.json) is
+the `export.json` that `mtp.py export` writes. They hold item ids, positions, numbers, hashes, versions and fixed names
+(the export also the synthetic configuration), and no token sequences, text, local paths, commands or environment
+variables; the run folders and arrays stay in the local work directory.
+
+### Conditions
+
+- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a). The runs of both drafters, the comparison and the
+  accepted drafts held the shared machine lock in one session (2026-11-23 19:24:00 to 19:34:18 JST, on AC power), the
+  export in an earlier one (14:30:08 to 14:41:56 JST, with the battery at 100% at both ends). Each session took the lock
+  only when it was free and no `coreai-verify`, `coreai-chat` or demo-app process was running; the times below are those
+  of single runs, not timing measurements.
+- Commit 977309b1 with no local changes; the export at commit 15d35fd8, whose drafter class, synthetic configuration
+  and export function are those of 977309b1. The reference environment of the recipe (torch 2.15.0,
+  transformers 5.16.1) ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers
+  5.12.1, coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted
+  drafts and the export.
+- `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`) and the embedding table
+  of `model-00001-of-00002.safetensors` of the pinned target, every tensor rounded to float16 and computed in float32
+  on the CPU. The features are those of #691: the original implementation in BF16 on MPS under teacher forcing with the
+  reference outputs of 48 items of the primary set. Seven draft steps, stop tokens 1, 106 and 50.
+- The arrays of both runs and every compared value equal those of the runs made before the tools checked their inputs
+  as they do now; only the times, the memory and the hashes of the records differ.
+
+### Drafter class and original drafter
+
+On a synthetic assistant (`OneStepTests` and `UnrolledTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py`,
+against the drafter of Transformers 5.12.1), the logits and the `post_projection` output of one step were within 1e-4 of
+those of the original drafter (the bound these tests assert) at positions 1, 1,024, 1,025, 1,026, 4,000 and 16,895 and
+with large values at both sides of the window edge, and the unrolled drafts of 1, 2 and 7 steps were those of the
+original generator. `BuildTests` requires `assistant_config` to refuse 11 of 46 configurations at boundary values,
+builds both drafters from the other 35, and requires finite outputs of one step, and non-finite ones from a non-finite
+hidden state. On the real weights the comparison passed for 47 rows of 13 items, the first item of each category:
+
+| Item | Anchors a (output index) | w | Largest absolute logit difference | Largest projection ratio |
+|---|---|---|---:|---:|
+| `ja-choice-0001` | 91 (0) | 91 | 1.14e-05 | 3.40e-07 |
+| `ja-reading-0001` | 156 (0), 157 (1) | 156, 157 | 1.53e-05 | 3.24e-07 |
+| `code-gen-he-0001` | 176 (0), 239 (63), 303 (127), 366 (190) | 176, 239, 303, 366 | 1.53e-05 | 3.82e-07 |
+| `code-gen-mbpp-0001` | 202 (0), 225 (23), 248 (46), 271 (69) | 202, 225, 248, 271 | 1.53e-05 | 2.26e-07 |
+| `code-fix-0001` | 242 (0), 257 (15), 272 (30), 287 (45) | 242, 257, 272, 287 | 9.54e-06 | 1.90e-07 |
+| `extract-ja-0001` | 137 (0), 172 (35), 208 (71), 243 (106) | 137, 172, 208, 243 | 1.53e-05 | 2.46e-07 |
+| `long-ja-4k-0001` | 3,647 (0), 3,648 (1), 3,649 (2), 3,650 (3) | 1,025 | 1.14e-05 | 2.36e-07 |
+| `long-ja-16k-0001` | 14,875 (0), 14,876 (1), 14,878 (3), 14,879 (4) | 1,025 | 9.54e-06 | 3.89e-07 |
+| `synth-extract-0001` | 209 (0), 294 (85), 380 (171), 465 (256) | 209, 294, 380, 465 | 1.91e-05 | 3.72e-07 |
+| `synth-format-0001` | 120 (0), 129 (9), 138 (18), 147 (27) | 120, 129, 138, 147 | 6.68e-06 | 3.15e-07 |
+| `free-ja-0001` | 28 (0), 113 (85), 198 (170), 283 (255) | 28, 113, 198, 283 | 1.14e-05 | 2.98e-07 |
+| `synth-long-4k-0001` | 3,791 (0), 3,804 (13), 3,817 (26), 3,830 (39) | 1,025 | 1.14e-05 | 3.35e-07 |
+| `synth-long-16k-0001` | 15,345 (0), 15,372 (27), 15,399 (54), 15,426 (81) | 1,025 | 1.14e-05 | 3.36e-07 |
+
+The comparison passes when every row has a largest absolute logit difference of at most 1e-3, a projection ratio (the
+largest absolute difference of the `post_projection` output over its largest absolute value in the original drafter) of
+at most 1e-3, and unrolled drafts equal to one step repeated (the JSON lists the two bounds as `criteria` and the three
+checks of each row in `rows[].checks`); no row has an original `post_projection` output that is all zero. `compare`
+checked both records against what it built from the fixed inputs: the two contracts, the pins of the index and of the
+shard with the embedding table and of the two files of the assistant, `subset.json` with the input and output records
+that it pins, the features of the 13 items hashed again, the 47 rows of the fixed selection, the stop tokens, window,
+layers, embedding scale, weight rounding, seven steps and the schema name; the package versions, times and memory of the
+runs only had to be present. At all 47 rows the unrolled drafts of seven steps were those of one step repeated seven
+times; the argmax was the same and the unrolled drafts cut after the first stop token were the drafts of the original
+generator, which are records, not criteria. `ja-choice-0001` has one output token, so its four anchors are one. The run
+of the original drafter took 28.7 s (7.0 s after the files to read were hashed), that of the class 39.1 s (19.4 s);
+kernel lifetime footprint peak 28,484,473,640 B and 31,658,892,304 B.
+
+### Accepted drafts on the teacher path
+
+The class drafted seven tokens at each of the 4,462 anchors of the 48 items; a round accepts the leading drafts, up to
+and including the first stop token, that match the reference output and adds one token of the target. The rounds and the
+tokens of every category are those of #691 (the fixed position with seven drafts: `trajectories.json` of its records,
+whose tokens per round §4.5 of its conclusion shows to two places), which the per-anchor records of #691 also gave
+again:
+
+| Category | Items | Anchors | Rounds | Tokens | Tokens per round | #691: rounds, tokens, tokens per round | Anchors with another accepted count | Largest #691 margin there |
+|---|---:|---:|---:|---:|---:|---|---:|---:|
+| ja-choice | 4 | 4 | 4 | 8 | 2.0000 | 4, 8, 2.0000 | 0 | |
+| ja-reading | 4 | 16 | 4 | 20 | 5.0000 | 4, 20, 5.0000 | 0 | |
+| code-gen-he | 4 | 585 | 82 | 589 | 7.1829 | 82, 589, 7.1829 | 2 | 0.125 |
+| code-gen-mbpp | 4 | 748 | 113 | 751 | 6.6460 | 113, 751, 6.6460 | 4 | 0.125 |
+| code-fix | 4 | 259 | 39 | 263 | 6.7436 | 39, 263, 6.7436 | 0 | |
+| extract-ja | 6 | 559 | 75 | 563 | 7.5067 | 75, 563, 7.5067 | 0 | |
+| long-ja-4k | 2 | 6 | 2 | 8 | 4.0000 | 2, 8, 4.0000 | 0 | |
+| long-ja-16k | 1 | 5 | 1 | 6 | 6.0000 | 1, 6, 6.0000 | 0 | |
+| synth-extract | 4 | 732 | 96 | 736 | 7.6667 | 96, 736, 7.6667 | 0 | |
+| synth-format | 6 | 176 | 58 | 181 | 3.1207 | 58, 181, 3.1207 | 0 | |
+| free-ja | 4 | 1,020 | 348 | 1,023 | 2.9397 | 348, 1,023, 2.9397 | 13 | 0.125 |
+| synth-long-4k | 3 | 171 | 27 | 174 | 6.4444 | 27, 174, 6.4444 | 1 | 0.0 |
+| synth-long-16k | 2 | 181 | 41 | 182 | 4.4390 | 41, 182, 4.4390 | 1 | 0.0 |
+| all | 48 | 4,462 | 890 | 4,504 | 5.0607 | 890, 4,504, 5.0607 | 21 | 0.125 |
+
+At 21 anchors the number of accepted drafts differs from that of the records of #691, counted up to seven drafts; at the
+first draft that differs, the top-two logit margin that #691 recorded in BF16 was at most 0.125 at each of the 21
+(`synth-long-4k` and `synth-long-16k` have one differing anchor each, with the margin 0.0; the JSON holds the largest
+margin of each category, not one per anchor). These are records, not criteria. The accepted counts of the records of
+#691, computed again from their drafts and the reference outputs, equal the recorded ones at all 4,462 anchors, and the
+tokens per round of `trajectories.json` are its tokens over its rounds rounded to four places in the 14 rows (13
+categories and pooled) of its fixed-position level with seven drafts, which the tool reads. The run took 548.3 s (525 s
+of drafting); kernel lifetime footprint peak 65,812,085,752 B.
+
+### Export of a synthetic drafter
+
+`mtp.py export --steps 7 --context 16896 --seed 11 --output <new folder>` converted the class with the random weights of
+`SYNTHETIC` (vocabulary 301, hidden size 32, target width 48; the PyTorch model holds 74,372 float16 elements in 49
+tensors: 74,368 in 45 parameters and 4 in the 4 buffers `layer_scalar`) in 72.4 s, and every asset passed its
+inspection:
+
+| Asset | Functions | Bytes | `main.mlirb` | Float16 | `argmax` | `gather_nd` | Conversion |
+|---|---|---:|---:|---:|---:|---:|---:|
+| One step | `draft_1` | 175,724 | 175,587 | 72,839 | 1 | 4 | 5.3 s |
+| Unrolled | `draft_7` | 235,331 | 235,194 | 74,375 | 7 | 10 | 29.4 s |
+| Both functions | `draft_1`, `draft_7` | 249,409 | 249,272 | 74,375 | 8 | 11 | 35.0 s |
+
+The inputs of both functions are `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 48], `position_ids` int32
+[1, 1], `k_sliding` and `v_sliding` float16 [1, 1, 2, ?, 16] and `k_full` and `v_full` float16 [1, 1, 1, ?, 32]; the
+output is `draft_tokens` int32 [1, 1] or [1, 7], and there are no states. `Float16` is the number of Float16 elements
+that an asset stores (`storage_types` of its summary), a total over the asset and not over a function. The asset with
+both functions holds the Float16 count of the unrolled asset alone. The one-step asset holds 1,536 Float16 elements
+fewer, as many as the weight of `post_projection` has (48 × 32), whose output one step does not read. Each count is 3
+above the elements of the model that the functions of the asset use: 74,372 for the unrolled asset and for the asset
+with both functions, 74,372 − 1,536 = 72,836 for the one-step asset.
+
+### Limits
+
+- PyTorch in float32 on the CPU with the weights rounded to float16; no Core AI asset of the real drafter, no FP16 or
+  8-bit numerics of the drafter, no timing.
+- The features are those of the original implementation in BF16 on MPS, not of the Core AI target, and the accepted
+  drafts are teacher forcing on the reference outputs, not generation.
+- The synthetic checks compare with the drafter of the converter environment (Transformers 5.12.1); the comparison on
+  the real weights is with Transformers 5.16.1.
+- The export is of a synthetic drafter; the size of the asset of the real drafter is not known from it.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| `record.json` of the run of the original drafter | `8c87bd62f3fe96c42a813b23061ca6c86233383bce15faa9f1fad89ff20d2b80` |
+| `record.json` of the run of the class | `04ea4763d7c026894a0f723644b716e95a5e3342331147781309d8a0ef0503c6` |
+| `subset.json` of #691 | `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9` |
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp compare \
+  --original <run of the original drafter> --model-class <run of the class> \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
+  --snapshot <target snapshot> --records <records of #691> --inputs <inputs.jsonl> --outputs <outputs.jsonl> --steps 7 \
+  > docs/validation/gemma4-31b/mtp-drafter-comparison-20261123.json
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
+  acceptance --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json --snapshot <target snapshot> \
+  --assistant-snapshot <assistant snapshot> --records <records of #691> --inputs <inputs.jsonl> \
+  --outputs <outputs.jsonl> --steps 7 > docs/validation/gemma4-31b/mtp-drafter-acceptance-20261123.json
+~~~
