@@ -1,0 +1,1180 @@
+{
+  "schema": "gemma4-31b-8bit-summary/1",
+  "scope": "8-bit export of the first layers with the outputs for speculation, the comparison of its logits with the FP32 reference restored from the same quantized weights, and the effect of the quantization against the FP32 reference with float16-rounded weights; not a quality evaluation.",
+  "reference": {
+    "weights": "8bit",
+    "quantized": {
+      "export_sha256": "ce5a3eb725214faac782150e2606476b666da7a1c7ec43cbcea889d6aec7b025",
+      "file": {
+        "bytes": 3294771912,
+        "sha256": "5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833"
+      },
+      "tensors": 123
+    },
+    "implementation": "original",
+    "layers": 6,
+    "layer_types": {
+      "full_attention": 1,
+      "sliding_attention": 5
+    },
+    "model": {
+      "id": "google/gemma-4-31B-it",
+      "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+      "contract_sha256": "8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531",
+      "weights_sha256": {
+        "model-00001-of-00002.safetensors": "eeef8791537bc04f110967c513149e037d2a9ae97d49add7291ebfa62806bbfa",
+        "model-00002-of-00002.safetensors": "018912220f559f7025d60333e0996183cd538aa77ad6f4988a89ce47be681f10"
+      }
+    },
+    "embed_scale": 73.5,
+    "chunk": 1024,
+    "versions": {
+      "numpy": "2.4.6",
+      "safetensors": "0.8.0",
+      "torch": "2.15.0",
+      "transformers": "5.16.1"
+    },
+    "inputs": {
+      "context": {
+        "positions": 16896,
+        "tokens_sha256": "73d46e7359d93e9d7d66e2bd690764021320ee4801bde538e5d9e76f407309b5",
+        "rows": 1428,
+        "calls": 17,
+        "seconds": 46.49140012450516,
+        "logits": {
+          "bytes": 1497366656,
+          "sha256": "7328ab67bf4f5b9052bf262ed0d154815a77addd9ed91c88a4a193716f143ee3",
+          "dtype": "float32",
+          "shape": [
+            1428,
+            262144
+          ],
+          "non_finite": 0
+        }
+      },
+      "short": {
+        "positions": 26,
+        "tokens_sha256": "3067fb987b33e81073d6facfd4ffe128ce8a9bbc03405c97f592a6041d5818af",
+        "rows": 26,
+        "calls": 1,
+        "seconds": 0.25277824979275465,
+        "logits": {
+          "bytes": 27263104,
+          "sha256": "c834d47504133ecc62faaf25512074e91e129d05d9d7709bae0d58d47a529024",
+          "dtype": "float32",
+          "shape": [
+            26,
+            262144
+          ],
+          "non_finite": 0
+        }
+      }
+    },
+    "timing": {
+      "input_hash_s": 25.01344187464565,
+      "load_s": 2.3305155420675874,
+      "total_s": 74.74717620760202
+    },
+    "memory": {
+      "lifetime_peak_footprint_bytes": 51208721272,
+      "max_rss_bytes": 51240747008
+    }
+  },
+  "assets": [
+    {
+      "pipeline": {
+        "schema": "coreai-conversion-summary/1",
+        "status": "completed",
+        "verification": "not_configured",
+        "scope": "Fixed-input conversion check; not model production qualification.",
+        "stages": [
+          {
+            "index": 0,
+            "role": "prepare",
+            "status": "executed",
+            "prepare_s": 23.780609999783337,
+            "execute_s": 27.038568540476263,
+            "total_s": 76.26780037488788
+          },
+          {
+            "index": 1,
+            "role": "export",
+            "status": "executed",
+            "prepare_s": 23.165083750151098,
+            "execute_s": 79.80740241706371,
+            "total_s": 133.35624741762877
+          }
+        ],
+        "elapsed_s": 213.46569291688502
+      },
+      "export": {
+        "quantized": {
+          "layers": 41,
+          "skipped": 0,
+          "warnings_enabled": true,
+          "file": {
+            "bytes": 3294771912,
+            "sha256": "5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833"
+          },
+          "tensors": 123
+        },
+        "passed": true,
+        "checks": {
+          "asset": true,
+          "free_disk": true
+        },
+        "problems": 0,
+        "model": {
+          "id": "google/gemma-4-31B-it",
+          "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+          "contract_sha256": "8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531",
+          "weights_sha256": {
+            "model-00001-of-00002.safetensors": "eeef8791537bc04f110967c513149e037d2a9ae97d49add7291ebfa62806bbfa",
+            "model-00002-of-00002.safetensors": "018912220f559f7025d60333e0996183cd538aa77ad6f4988a89ce47be681f10"
+          }
+        },
+        "layers": 6,
+        "layer_types": {
+          "full_attention": 1,
+          "sliding_attention": 5
+        },
+        "functions": [
+          "main",
+          "prefill"
+        ],
+        "context": 16896,
+        "precision": "8bit",
+        "upstream_revision": "c8e00c01800ba6ad324707007f7af358efc980a4",
+        "versions": {
+          "coreai-core": "1.0.0b3",
+          "coreai-models": "0.1.0",
+          "coreai-opt": "0.4.0",
+          "coreai-torch": "0.4.3",
+          "safetensors": "0.7.0",
+          "torch": "2.9.0",
+          "transformers": "5.12.1"
+        },
+        "weights": {
+          "tensors": 208,
+          "elements": 4521138950,
+          "elements_by_dtype": {
+            "torch.float16": 1592466182,
+            "torch.uint8": 2928672768
+          },
+          "quantized_layouts": 41
+        },
+        "asset": {
+          "functions": {
+            "main": {
+              "inputs": {
+                "input_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                },
+                "position_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                }
+              },
+              "outputs": {
+                "hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    5376
+                  ]
+                },
+                "logits": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    262144
+                  ]
+                },
+                "tap_hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    26880
+                  ]
+                }
+              },
+              "states": {
+                "keyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                },
+                "slidingKeyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "slidingValueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "valueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                }
+              }
+            },
+            "prefill": {
+              "inputs": {
+                "input_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                },
+                "position_ids": {
+                  "dtype": "int32",
+                  "shape": [
+                    1,
+                    null
+                  ]
+                }
+              },
+              "outputs": {
+                "tap_hidden_states": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    null,
+                    26880
+                  ]
+                }
+              },
+              "states": {
+                "keyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                },
+                "slidingKeyCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "slidingValueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    5,
+                    1,
+                    16,
+                    null,
+                    256
+                  ]
+                },
+                "valueCache": {
+                  "dtype": "float16",
+                  "shape": [
+                    1,
+                    1,
+                    4,
+                    null,
+                    512
+                  ]
+                }
+              }
+            }
+          },
+          "output_order": {
+            "main": [
+              "logits",
+              "hidden_states",
+              "tap_hidden_states"
+            ],
+            "prefill": [
+              "tap_hidden_states"
+            ]
+          },
+          "storage_types": {
+            "Float16": 1592466186,
+            "Float32": 386,
+            "Int32": 148,
+            "UInt32": 29,
+            "UInt64": 1,
+            "UInt8": 2930049024
+          },
+          "float16_minus_weights": 4,
+          "uint8_minus_weights": 1376256,
+          "dequantizations": 77
+        },
+        "tokenizer": {
+          "chat_template.jinja": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4",
+          "tokenizer.json": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f",
+          "tokenizer_config.json": "9f4fec4b1dc6ecddf8f4a92e9caea5971c0e67d81309f3f9066a2bee8c362633"
+        },
+        "metadata": {
+          "name": "gemma4_31b_l6_8bit_main_prefill",
+          "vocab_size": 262144,
+          "max_context_length": 16896,
+          "hf_model_id": "google/gemma-4-31B-it",
+          "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475",
+          "compression": "8bit",
+          "tap_layers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "tap_convention": "layers-passed:before-final-norm:ascending"
+        },
+        "bundle": {
+          "name": "gemma4_31b_l6_8bit_main_prefill",
+          "main_hash": "4284357701f6269241428ff43323cb69bec24790ecc6e06edf43912d304dc98d",
+          "bytes": 6145898332,
+          "files": {
+            "gemma4_31b_l6_8bit_main_prefill.aimodel/main.hash": {
+              "bytes": 32,
+              "sha256": "a6c171313264a86146b12af10d8fff26e1833a531fb2d12e66162a0992118ca7"
+            },
+            "gemma4_31b_l6_8bit_main_prefill.aimodel/main.mlirb": {
+              "bytes": 6113706114,
+              "sha256": "4284357701f6269241428ff43323cb69bec24790ecc6e06edf43912d304dc98d"
+            },
+            "gemma4_31b_l6_8bit_main_prefill.aimodel/metadata.json": {
+              "bytes": 105,
+              "sha256": "e9eb9bec4f9923ff0261657417e4ede9b77cd996fcdb817c6620d42212cd512b"
+            },
+            "metadata.json": {
+              "bytes": 690,
+              "sha256": "4e9dc687aa4057f105166810df3c1d8a01c8acb8ecd66ce4393684815b72d90d"
+            },
+            "tokenizer/chat_template.jinja": {
+              "bytes": 18683,
+              "sha256": "ae53464bf3be25802b3a5b37def7fd89667067d7577049b3b2d74c4d8de4c6d4"
+            },
+            "tokenizer/tokenizer.json": {
+              "bytes": 32169626,
+              "sha256": "cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f"
+            },
+            "tokenizer/tokenizer_config.json": {
+              "bytes": 3082,
+              "sha256": "9f4fec4b1dc6ecddf8f4a92e9caea5971c0e67d81309f3f9066a2bee8c362633"
+            }
+          }
+        },
+        "disk": {
+          "estimated_write_bytes": 30366678314,
+          "free_before_bytes": 308499034112,
+          "lowest_free_bytes": 287105204224,
+          "margin_bytes": 64424509440,
+          "required_free_bytes": 94791187754,
+          "weight_bytes": 8676193804
+        },
+        "timing": {
+          "bundle_hash_s": 2.3058887077495456,
+          "convert_s": 33.84477787464857,
+          "input_hash_s": 23.377493457868695,
+          "inspect_s": 0.03578274976462126,
+          "load_s": 4.652337707579136,
+          "quantize_s": 3.220596667379141,
+          "save_s": 5.680314208380878,
+          "tensors_s": 3.291962292045355,
+          "total_s": 77.06013895757496
+        },
+        "resources": {
+          "max_rss_bytes": 20349681664,
+          "lifetime_peak_footprint_bytes": 11581915624,
+          "swap": {
+            "first_bytes": 13435404288,
+            "increase_bytes": 0,
+            "limit_increase_bytes": 2000000000,
+            "peak_bytes": 13435404288
+          },
+          "monitor": {
+            "samples": 16,
+            "interval_s": 5,
+            "aborts": 0,
+            "failed": false,
+            "unreadable_samples": 0,
+            "peak_rss_bytes": 20337491968,
+            "lowest_free_percent": 91
+          }
+        }
+      },
+      "comparison": {
+        "passed": true,
+        "problems": 0,
+        "criteria": {
+          "max_abs_logit": 2.0,
+          "near_tie": 0.01
+        },
+        "known_call": {
+          "ends": [
+            97,
+            112
+          ],
+          "shortest": 8
+        },
+        "verifier_sha256": "6205024972ae4a034b507ed5f27039e5d08a450fee213d8aec2803acc376b620",
+        "main_hash": "4284357701f6269241428ff43323cb69bec24790ecc6e06edf43912d304dc98d",
+        "conditions": [
+          {
+            "name": "short-c1",
+            "input": "short",
+            "tokens": 26,
+            "start": 0,
+            "chunk": 1,
+            "rows": 26,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5160493850708008,
+            "top1_mismatches": {
+              "near_tie": 25,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 9.1997779160738,
+            "output": {
+              "bytes": 13631488,
+              "sha256": "7fed7394dccbde7b5bf0c6edbd161d6a8ec6416ec7e82753f314994f09951d26"
+            },
+            "verifier": {
+              "cached": false,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 26,
+              "non_finite_count": 0,
+              "load_s": 8.481565709,
+              "prefix_s": 1.4208e-05,
+              "scoring_s": 0.6172498750000001,
+              "specialize_s": 6.620565208
+            }
+          },
+          {
+            "name": "short-c26",
+            "input": "short",
+            "tokens": 26,
+            "start": 0,
+            "chunk": 26,
+            "rows": 26,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5213775634765625,
+            "top1_mismatches": {
+              "near_tie": 25,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 2.0629211254417896,
+            "output": {
+              "bytes": 13631488,
+              "sha256": "77a7054efaa36486e900c61b8fac3678977becde278c915bf621ccfd4f9a4b0a"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 1,
+              "non_finite_count": 0,
+              "load_s": 1.8717450000000002,
+              "prefix_s": 4.667e-06,
+              "scoring_s": 0.13282975,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c1",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 1,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9258527755737305,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 25.809758000075817,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "e0be08126082bce4a4c7e5e82692d96cbfcc55e70835fd0fe2ce4ec3e44e9774"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 1300,
+              "non_finite_count": 0,
+              "load_s": 1.866931375,
+              "prefix_s": 6.167e-06,
+              "scoring_s": 23.858768583,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c2",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 2,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9844465255737305,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 13.921621332876384,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "0b86bf19b4ff1a45fe70ab8ae9fd2d1ac9ca95a6281374ad928a162480cadb0b"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 650,
+              "non_finite_count": 0,
+              "load_s": 1.925953167,
+              "prefix_s": 4.791e-06,
+              "scoring_s": 11.912920625,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c4",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 4,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9531965255737305,
+            "top1_mismatches": {
+              "near_tie": 1266,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 7.734542291611433,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "fc5e87679c55e93dd0d4f1541fc3098c3c4e63b77b8b2de2a5047b903851accb"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 325,
+              "non_finite_count": 0,
+              "load_s": 1.9120985,
+              "prefix_s": 4.3750000000000005e-06,
+              "scoring_s": 5.726303041,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "window-c8",
+            "input": "context",
+            "tokens": 1300,
+            "start": 0,
+            "chunk": 8,
+            "rows": 1300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9022212624549866,
+            "top1_mismatches": {
+              "near_tie": 1250,
+              "outside": 0
+            },
+            "known": {
+              "rows": 16,
+              "max_abs_logit": 4.379023551940918
+            },
+            "seconds": 6.55604995880276,
+            "output": {
+              "bytes": 681574400,
+              "sha256": "0a306541deb9293c2c9a9bfecda057d3575e9fe0211c4ea670be758095ff51a3"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": null,
+              "prefix_calls": 0,
+              "main_calls": 163,
+              "non_finite_count": 0,
+              "load_s": 1.896147875,
+              "prefix_s": 4.417e-06,
+              "scoring_s": 4.5746635,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "prefix-c1",
+            "input": "context",
+            "tokens": 1300,
+            "start": 1000,
+            "chunk": 1,
+            "rows": 300,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.8316555023193359,
+            "top1_mismatches": {
+              "near_tie": 294,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 8.034083290956914,
+            "output": {
+              "bytes": 157286400,
+              "sha256": "1e3d7003bc24de27206320e86494b14036c652b9225dcdb4b679da368c8b6b3f"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 1,
+              "main_calls": 300,
+              "non_finite_count": 0,
+              "load_s": 1.889041625,
+              "prefix_s": 0.443320417,
+              "scoring_s": 5.608945792,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-2048",
+            "input": "context",
+            "tokens": 2056,
+            "start": 2040,
+            "chunk": 4,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5825481414794922,
+            "top1_mismatches": {
+              "near_tie": 15,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 3.1406680829823017,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "51d9146660210f61c8f8ee255f36dee8235e5f8ef4ebf6da606ff76b69975744"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 1,
+              "main_calls": 4,
+              "non_finite_count": 0,
+              "load_s": 1.971900583,
+              "prefix_s": 0.9151644590000001,
+              "scoring_s": 0.16419233300000002,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-4096",
+            "input": "context",
+            "tokens": 4104,
+            "start": 4088,
+            "chunk": 8,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.6115875244140625,
+            "top1_mismatches": {
+              "near_tie": 14,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 4.826059125363827,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "f260c6754728baa676163fe39913d3456c1aad3f4c690321e8109082975963bc"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 1,
+              "main_calls": 2,
+              "non_finite_count": 0,
+              "load_s": 2.618195417,
+              "prefix_s": 1.9543094170000002,
+              "scoring_s": 0.17240508300000001,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-8192",
+            "input": "context",
+            "tokens": 8200,
+            "start": 8184,
+            "chunk": 2,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.7609968185424805,
+            "top1_mismatches": {
+              "near_tie": 16,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 6.4280924163758755,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "4f909e89f76e1b235cf1870943cc45a5b2936d96d069ae872928723cfc3ff729"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 2,
+              "main_calls": 8,
+              "non_finite_count": 0,
+              "load_s": 1.9363715830000001,
+              "prefix_s": 4.08796225,
+              "scoring_s": 0.31231162500000004,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "capacity-16384",
+            "input": "context",
+            "tokens": 16392,
+            "start": 16376,
+            "chunk": 4,
+            "rows": 16,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.5534477233886719,
+            "top1_mismatches": {
+              "near_tie": 15,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 11.063682708889246,
+            "output": {
+              "bytes": 8388608,
+              "sha256": "d9f9df111a461d653040a3a8b3c335fa5898f3a6c9ec70c6f176399bb1d78c54"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 4,
+              "main_calls": 4,
+              "non_finite_count": 0,
+              "load_s": 1.925408833,
+              "prefix_s": 8.743790083,
+              "scoring_s": 0.29057700000000003,
+              "specialize_s": 0
+            }
+          },
+          {
+            "name": "tail",
+            "input": "context",
+            "tokens": 16896,
+            "start": 16832,
+            "chunk": 1,
+            "rows": 64,
+            "non_finite": 0,
+            "reference_non_finite": 0,
+            "constant_rows": 0,
+            "passed": true,
+            "problems": 0,
+            "checks": {
+              "finite": true,
+              "max_abs_logit": true,
+              "no_constant_rows": true,
+              "top1": true
+            },
+            "max_abs_logit": 0.9131350517272949,
+            "top1_mismatches": {
+              "near_tie": 61,
+              "outside": 0
+            },
+            "known": {
+              "rows": 0,
+              "max_abs_logit": null
+            },
+            "seconds": 13.081414625048637,
+            "output": {
+              "bytes": 33554432,
+              "sha256": "3d34c4101fdf5b07e0f58828d95d81a3e9eb4d51e86ab9c2831e572e87932e2d"
+            },
+            "verifier": {
+              "cached": true,
+              "prefix_function": "prefill",
+              "prefix_calls": 5,
+              "main_calls": 64,
+              "non_finite_count": 0,
+              "load_s": 1.995425334,
+              "prefix_s": 9.58534975,
+              "scoring_s": 1.398815208,
+              "specialize_s": 0
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "effect": {
+    "rounded_sha256": "d3e52e7ae6d6c1728c03c9e104c39e0677b1725e7f24f955b863c4d31904abc1",
+    "layers": 6,
+    "criteria": {
+      "near_tie": 0.01
+    },
+    "conditions": [
+      {
+        "name": "short-c1",
+        "input": "short",
+        "tokens": 26,
+        "start": 0,
+        "chunk": 1,
+        "rows": 26,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 2.80029296875,
+        "top1_mismatches": {
+          "near_tie": 0,
+          "outside": 0
+        }
+      },
+      {
+        "name": "short-c26",
+        "input": "short",
+        "tokens": 26,
+        "start": 0,
+        "chunk": 26,
+        "rows": 26,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 2.80029296875,
+        "top1_mismatches": {
+          "near_tie": 0,
+          "outside": 0
+        }
+      },
+      {
+        "name": "window-c1",
+        "input": "context",
+        "tokens": 1300,
+        "start": 0,
+        "chunk": 1,
+        "rows": 1300,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 5.262735366821289,
+        "top1_mismatches": {
+          "near_tie": 8,
+          "outside": 0
+        }
+      },
+      {
+        "name": "window-c2",
+        "input": "context",
+        "tokens": 1300,
+        "start": 0,
+        "chunk": 2,
+        "rows": 1300,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 5.262735366821289,
+        "top1_mismatches": {
+          "near_tie": 8,
+          "outside": 0
+        }
+      },
+      {
+        "name": "window-c4",
+        "input": "context",
+        "tokens": 1300,
+        "start": 0,
+        "chunk": 4,
+        "rows": 1300,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 5.262735366821289,
+        "top1_mismatches": {
+          "near_tie": 8,
+          "outside": 0
+        }
+      },
+      {
+        "name": "window-c8",
+        "input": "context",
+        "tokens": 1300,
+        "start": 0,
+        "chunk": 8,
+        "rows": 1300,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 5.262735366821289,
+        "top1_mismatches": {
+          "near_tie": 8,
+          "outside": 0
+        }
+      },
+      {
+        "name": "prefix-c1",
+        "input": "context",
+        "tokens": 1300,
+        "start": 1000,
+        "chunk": 1,
+        "rows": 300,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 5.262735366821289,
+        "top1_mismatches": {
+          "near_tie": 1,
+          "outside": 0
+        }
+      },
+      {
+        "name": "capacity-2048",
+        "input": "context",
+        "tokens": 2056,
+        "start": 2040,
+        "chunk": 4,
+        "rows": 16,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 2.6135353446006775,
+        "top1_mismatches": {
+          "near_tie": 0,
+          "outside": 0
+        }
+      },
+      {
+        "name": "capacity-4096",
+        "input": "context",
+        "tokens": 4104,
+        "start": 4088,
+        "chunk": 8,
+        "rows": 16,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 2.059541702270508,
+        "top1_mismatches": {
+          "near_tie": 0,
+          "outside": 0
+        }
+      },
+      {
+        "name": "capacity-8192",
+        "input": "context",
+        "tokens": 8200,
+        "start": 8184,
+        "chunk": 2,
+        "rows": 16,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 1.8698737621307373,
+        "top1_mismatches": {
+          "near_tie": 0,
+          "outside": 0
+        }
+      },
+      {
+        "name": "capacity-16384",
+        "input": "context",
+        "tokens": 16392,
+        "start": 16376,
+        "chunk": 4,
+        "rows": 16,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 2.4466819763183594,
+        "top1_mismatches": {
+          "near_tie": 0,
+          "outside": 0
+        }
+      },
+      {
+        "name": "tail",
+        "input": "context",
+        "tokens": 16896,
+        "start": 16832,
+        "chunk": 1,
+        "rows": 64,
+        "non_finite": 0,
+        "reference_non_finite": 0,
+        "max_abs_logit": 2.711918830871582,
+        "top1_mismatches": {
+          "near_tie": 0,
+          "outside": 0
+        }
+      }
+    ]
+  }
+}

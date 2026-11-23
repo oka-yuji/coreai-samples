@@ -62,6 +62,7 @@
         "--functions", "$functions",
         "--taps", "$taps",
         "--context", "$context",
+        "--precision", "fp16",
         "--output", "$out/export"
       ],
       "cwd": "$repo",
@@ -69,6 +70,7 @@
         "$adapters/export.py",
         "$adapters/model.py",
         "$adapters/layers.py",
+        "$adapters/anchor.py",
         "$adapters/compare.py",
         "$adapters/prepare.py",
         "$adapters/reference.py",
