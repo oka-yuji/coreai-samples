@@ -546,7 +546,7 @@ def draft_rows(path, item):
     if not isinstance(rows, list) or record.get("id") != item["id"] \
             or (record.get("P"), record.get("T")) != (len(item["input_ids"]), len(item["teacher"])):
         raise ValueError(f"{Path(path).name} is not the drafter record of {item['id']}")
-    found = {}
+    found, wrong = {}, 0
     for row in rows:
         fixed = row.get("fixed") if isinstance(row, dict) else None
         if not isinstance(fixed, dict) or not all(valid("count", row.get(key)) for key in ("a", "j")) \
@@ -556,9 +556,14 @@ def draft_rows(path, item):
                 or not all(valid("count", token) for token in fixed["tokens"]) \
                 or not all(valid("seconds", margin) for margin in fixed["margins"]):
             raise ValueError(f"{Path(path).name} holds a malformed row")
-        found[row["j"]] = fixed
+        accepted = matches(fixed["tokens"], item["teacher"][row["j"] + 1:])
+        wrong += accepted != fixed["accepted"]
+        found[row["j"]] = {**fixed, "accepted": accepted}
     if set(found) != set(range(len(item["teacher"]) - 1)):
         raise ValueError(f"{Path(path).name} does not hold one row per anchor")
+    if wrong:
+        raise ValueError(f"{Path(path).name} records accepted counts that its drafts and the teacher do not give at "
+                         f"{wrong} anchors")
     return found
 
 

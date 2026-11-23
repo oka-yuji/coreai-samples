@@ -385,10 +385,11 @@ class RecordTests(unittest.TestCase):
 
     def test_the_drafter_records_and_the_rounds_of_691_are_read_only_in_their_form(self):
         item = self.items()[0]
-        rows = [{"a": 20 + j, "j": j, "fixed": {"accepted": 1, "tokens": [3, 4], "margins": [0.5, 0.0]}} for j in range(9)]
+        rows = [{"a": 20 + j, "j": j, "fixed": {"accepted": 0, "tokens": [0, 0], "margins": [0.5, 0.0]}} for j in range(9)]
+        rows[0]["fixed"].update(accepted=2, tokens=item["teacher"][1:3])
         path = self.folder / "drafter.json"
         write_json(path, {"id": item["id"], "P": 20, "T": 10, "mtp": rows})
-        self.assertEqual(sorted(mtp.draft_rows(path, item)), list(range(9)))
+        self.assertEqual([row["accepted"] for row in mtp.draft_rows(path, item).values()], [2] + [0] * 8)
         changes = {"a missing anchor": lambda record: record["mtp"].pop(),
                    "an anchor off its output index": lambda record: record["mtp"][0].update(a=21),
                    "a boolean accepted count": lambda record: record["mtp"][0]["fixed"].update(accepted=True),
@@ -401,6 +402,13 @@ class RecordTests(unittest.TestCase):
             write_json(path, record)
             with self.subTest(change=label), self.assertRaises(ValueError):
                 mtp.draft_rows(path, item)
+        skipped = json.loads(json.dumps(rows))
+        skipped[1]["fixed"]["accepted"] = 1
+        self.assertEqual(mtp.simulate([row["fixed"]["accepted"] for row in skipped], 10, 7),
+                         mtp.simulate([row["fixed"]["accepted"] for row in rows], 10, 7))
+        write_json(path, {"id": item["id"], "P": 20, "T": 10, "mtp": skipped})
+        with self.assertRaisesRegex(ValueError, "accepted counts that its drafts and the teacher do not give at 1 anchors"):
+            mtp.draft_rows(path, item)
         level = {"alpha": {"rounds": 2, "tokens": 5, "tokens_per_round": 2.5},
                  "pooled": {"rounds": 2, "tokens": 5, "tokens_per_round": 2.5}}
         write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": level}}})

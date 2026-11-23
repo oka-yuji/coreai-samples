@@ -394,6 +394,13 @@ class RunTests(unittest.TestCase):
             record = read_json(path)
             record["mtp"][2]["fixed"]["accepted"] += 1
             write_json(path, record)
+            with self.assertRaisesRegex(ValueError, "beta-0001.json records accepted counts"):
+                mtp.acceptance(*arguments, 7)
+            fixed = record["mtp"][2]["fixed"]
+            count = 2 if fixed["accepted"] - 1 != 2 else 1
+            teacher = next(item["teacher"] for item in items if item["id"] == "beta-0001")
+            fixed.update(accepted=count, tokens=teacher[3:3 + count], margins=[0.5] * count)
+            write_json(path, record)
             result = mtp.acceptance(*arguments, 7)
             self.assertEqual(len(result["problems"]), 2)
             self.assertEqual([result["categories"][name]["anchors_with_other_acceptance"] for name in ("alpha", "beta",
