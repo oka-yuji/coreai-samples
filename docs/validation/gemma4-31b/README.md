@@ -723,9 +723,9 @@ text, local paths, commands or environment variables; the run folders and arrays
 ### Conditions
 
 - Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power. The four runs held the shared machine
-  lock in one session (2026-11-23 12:25:53 to 12:36:53 JST) and no other model process ran; the times below are records,
+  lock in one session (2026-11-23 13:18:16 to 13:29:33 JST) and no other model process ran; the times below are records,
   not measurements.
-- Commit 12b82c08 with no local changes. The reference environment of the recipe (torch 2.15.0, transformers 5.16.1)
+- Commit bf93cdc9 with no local changes. The reference environment of the recipe (torch 2.15.0, transformers 5.16.1)
   ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers 5.12.1,
   coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted drafts and
   the export.
@@ -762,8 +762,8 @@ The criteria are a largest absolute logit difference below 1e-3 and a projection
 of the `post_projection` output over its largest absolute value in the original drafter) below 1e-3. At all 47 rows the
 argmax was the same, the unrolled drafts of seven steps were those of one step repeated seven times, and the unrolled
 drafts cut after the first stop token were the drafts of the original generator. `ja-choice-0001` has one output token,
-so its four anchors are one. The run of the original drafter took 27.7 s (6.5 s after the files to read were hashed),
-that of the class 37.2 s (18.2 s); kernel lifetime footprint peak 28,253,917,872 B and 31,668,821,056 B.
+so its four anchors are one. The run of the original drafter took 28.8 s (6.8 s after the files to read were hashed),
+that of the class 39.6 s (18.5 s); kernel lifetime footprint peak 28,254,687,944 B and 31,665,740,816 B.
 
 ### Accepted drafts on the teacher path
 
@@ -791,19 +791,19 @@ of #691 also gave again:
 
 At 21 anchors the number of accepted drafts differs from the records of #691; at the first draft that differs, the
 top-two logit margin that #691 recorded in BF16 was at most 0.125 (0.0 at two anchors). These are records, not criteria.
-The run took 522.4 s (500 s of drafting); kernel lifetime footprint peak 60,470,930,752 B.
+The run took 536.8 s (513 s of drafting); kernel lifetime footprint peak 60,542,610,968 B.
 
 ### Export of a synthetic drafter
 
 `mtp.py export --steps 7 --context 16896 --seed 11` converted the class with the random weights of `SYNTHETIC`
-(vocabulary 301, hidden size 32, target width 48, 74,372 float16 parameter elements) in 71.9 s, and every asset passed
+(vocabulary 301, hidden size 32, target width 48, 74,372 float16 parameter elements) in 70.6 s, and every asset passed
 its inspection:
 
 | Asset | Functions | Bytes | `main.mlirb` | Float16 | `argmax` | `gather_nd` | Conversion |
 |---|---|---:|---:|---:|---:|---:|---:|
-| One step | `draft_1` | 175,730 | 175,593 | 72,839 | 1 | 4 | 5.5 s |
-| Unrolled | `draft_7` | 235,337 | 235,200 | 74,375 | 7 | 10 | 29.7 s |
-| Both functions | `draft_1`, `draft_7` | 249,415 | 249,278 | 74,375 | 8 | 11 | 34.2 s |
+| One step | `draft_1` | 175,733 | 175,596 | 72,839 | 1 | 4 | 5.1 s |
+| Unrolled | `draft_7` | 235,338 | 235,201 | 74,375 | 7 | 10 | 28.7 s |
+| Both functions | `draft_1`, `draft_7` | 249,416 | 249,279 | 74,375 | 8 | 11 | 34.3 s |
 
 The inputs of both functions are `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 48], `position_ids` int32
 [1, 1], `k_sliding` and `v_sliding` float16 [1, 1, 2, ?, 16] and `k_full` and `v_full` float16 [1, 1, 1, ?, 32]; the
@@ -825,8 +825,8 @@ weight of `post_projection`, whose output one step does not read. The counts are
 
 | File | SHA-256 |
 |---|---|
-| `record.json` of the run of the original drafter | `8c408bf65dae599c6f0264f5ce581fccea188908769de3051ae0eb759ae18b9e` |
-| `record.json` of the run of the class | `49710560740beb3deabcab39cbe3bdc1593aaa58fc40d03c0030df4e5ffcbc9c` |
+| `record.json` of the run of the original drafter | `ec5b4e16fee9dad440c23534f8ea669b6285ffa5bd9043e5e860664abdc82415` |
+| `record.json` of the run of the class | `b86c073cd21ade0a636d3b783d84042531555aec4784d48d606b1de117813d56` |
 | `subset.json` of #691 | `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9` |
 
 ~~~sh

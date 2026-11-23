@@ -269,8 +269,8 @@
     }
   },
   "memory": {
-    "lifetime_peak_footprint_bytes": 60470930752,
-    "max_rss_bytes": 60539977728
+    "lifetime_peak_footprint_bytes": 60542610968,
+    "max_rss_bytes": 60616392704
   },
   "model": {
     "contract_sha256": "8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531",
@@ -496,8 +496,8 @@
     106
   ],
   "timing": {
-    "drafts_s": 499.84356633294374,
-    "load_s": 1.747752457857132
+    "drafts_s": 512.8472299594432,
+    "load_s": 1.7838896252214909
   },
   "versions": {
     "coreai-core": "1.0.0b3",
