@@ -113,8 +113,10 @@ def ratio(model_class, original):
     import numpy as np
 
     x, y = (np.asarray(array, dtype=np.float64) for array in (model_class, original))
-    scale = float(np.abs(y).max())
-    return float(np.abs(x - y).max()) / scale if np.isfinite(x).all() and np.isfinite(y).all() and scale > 0 else None
+    if not np.isfinite(x).all() or not np.isfinite(y).all():
+        return None
+    difference, scale = float(np.abs(x - y).max()), float(np.abs(y).max())
+    return difference / scale if scale > 0 else 0.0 if difference == 0 else None
 
 
 def check_steps(steps):
@@ -593,12 +595,13 @@ def compare(original, model_class, contract_path, assistant_path, snapshot, reco
                         "first_step_unlike_original": None if kept == drafted else matches(kept, drafted),
                         "checks": {"max_abs_logit": within(difference, LOGIT_LIMIT), "projection": within(projection, RATIO),
                                    "unrolled_equals_repeated": unrolled == repeated}})
+    ratios = [result["projection_ratio"] for result in results]
     return {"schema": COMPARISON, "passed": all(all(result["checks"].values()) for result in results), "problems": [],
             "criteria": {"max_abs_logit": LOGIT_LIMIT, "projection_ratio": RATIO}, "steps": steps,
             "stops": expected["stops"], "window": place["window"], "rows": results,
             "summary": {"rows": len(results), "items": len({result["id"] for result in results}),
                         "max_abs_logit": max(result["max_abs_logit"] for result in results),
-                        "largest_projection_ratio": max(result["projection_ratio"] for result in results),
+                        "largest_projection_ratio": None if None in ratios else max(ratios),
                         **{key: sum(result[key] for result in results)
                            for key in ("argmax_equal", "unrolled_equals_repeated", "cut_equals_original")}},
             "records_sha256": hashes}

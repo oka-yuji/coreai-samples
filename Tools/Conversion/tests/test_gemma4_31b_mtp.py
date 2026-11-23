@@ -263,6 +263,7 @@ class PureTests(unittest.TestCase):
         self.assertFalse(mtp.within(math.nextafter(mtp.RATIO, 1.0), mtp.RATIO))
         self.assertFalse(mtp.within(None, mtp.RATIO))
         self.assertEqual(mtp.ratio([1.0, -4.5, 2.0], [1.5, -4.0, 2.0]), 0.5 / 4.0)
+        self.assertEqual(mtp.ratio([0.0, -0.0], [0.0, 0.0]), 0.0)
         for label, (model_class, original) in {"a zero original": ([1.0], [0.0]), "a NaN": ([float("nan")], [1.0]),
                                                "an infinity": ([1.0], [float("inf")])}.items():
             with self.subTest(case=label):
@@ -601,6 +602,27 @@ class CompareTests(unittest.TestCase):
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual([(row["cut_equals_original"], row["first_step_unlike_original"]) for row in result["rows"]],
                          [(True, None)] * 2 + [(False, 1)] + [(True, None)] * 5)
+
+    def test_a_zero_original_projection_passes_only_with_a_zero_class_projection_and_the_summary_holds_either(self):
+        def zero(value):
+            def change(arrays):
+                arrays["original"]["projected"][3] = 0.0
+                arrays["class"]["projected"][3] = 0.0
+                arrays["class"]["projected"][3, 4] = value
+            return change
+
+        for label, (value, passed, row, largest) in {"a zero class projection": (0.0, True, 0.0, 0.0),
+                                                     "a class projection that is not zero": (1e-30, False, None, None)
+                                                     }.items():
+            result = self.pair(label.replace(" ", "-"), zero(value))
+            with self.subTest(case=label):
+                self.assertEqual(result["problems"], [])
+                self.assertEqual(result["passed"], passed)
+                self.assertEqual(result["rows"][3]["projection_ratio"], row)
+                self.assertEqual([entry["checks"]["projection"] for entry in result["rows"]],
+                                 [True] * 3 + [passed] + [True] * 4)
+                self.assertEqual(result["summary"]["largest_projection_ratio"], largest)
+                json.dumps(result, allow_nan=False)
 
     def test_each_criterion_fails_just_beyond_its_limit(self):
         def logits(value):
