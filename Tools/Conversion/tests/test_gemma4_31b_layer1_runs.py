@@ -676,22 +676,86 @@ class RestoredRunTests(unittest.TestCase):
                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             return layer1_anchor.main()
 
-    def test_restoring_takes_every_quantized_tensor_out_of_the_mapping_and_keeps_no_reference_to_it(self):
+    def pieces(self):
+        digests = read_json(self.export / "export.json")["quantized"]["tensors"]
+        names = sorted({key.rsplit(".", 1)[0] for key in digests})
+        return self.export / layers.QUANTIZED, digests, layers.checkpoint_shapes(self.snapshot, names), names
+
+    def watched_reads(self):
+        real, alive, events = layers.quantized_weights, [], []
+
+        def read(path, digests, shapes):
+            gc.collect()
+            events.append(("weights", path, digests, shapes, (self.folder / "out").exists(),
+                           sum(ref() is not None for ref in alive)))
+            found = real(path, digests, shapes)
+            alive.extend(weakref.ref(tensor) for parts in found.values() for tensor in parts)
+            return found
+
+        return mock.patch.object(layers, "quantized_weights", side_effect=read), events, alive
+
+    def restored_model(self):
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             model, _, _ = layer1_anchor.model_for(self.snapshot, 6, "cpu")
-        names = sorted({key.rsplit(".", 1)[0] for key in self.tensors})
-        parts = ("quantized_data", "scale", "minval")
-        expected = {name: layers.restore(*(self.tensors[f"{name}.{part}"] for part in parts)) for name in names}
-        restored = {name: tuple(self.tensors[f"{name}.{part}"].clone() for part in parts) for name in names}
-        watched = [weakref.ref(tensor) for values in restored.values() for tensor in values]
-        layer1_anchor.restore_into(model, restored, "cpu")
+        path, digests, shapes, _ = self.pieces()
+        patched, events, alive = self.watched_reads()
+        with patched:
+            layer1_anchor.restore_into(model, path, digests, shapes, "cpu")
         gc.collect()
-        self.assertEqual(restored, {})
-        self.assertEqual([reference() for reference in watched], [None] * len(watched))
-        for name, value in expected.items():
+        return model, events, alive
+
+    def test_restoring_reads_the_quantized_tensors_of_one_weight_at_a_time_in_the_order_of_the_names(self):
+        _, events, _ = self.restored_model()
+        path, digests, shapes, names = self.pieces()
+        self.assertEqual([(event[1], event[2], event[3]) for event in events],
+                         [(path, digests, {name: shapes[name]}) for name in names])
+
+    def test_restoring_replaces_exactly_the_quantized_weights_with_the_values_that_restore_gives(self):
+        model, _, _ = self.restored_model()
+        names = self.pieces()[3]
+        for name in names:
             with self.subTest(weight=name):
-                parameter = model.get_parameter(layers.PREFIX + name.removeprefix("model."))
-                self.assertTrue(torch.equal(parameter.data, value))
+                expected = layers.restore(*(self.tensors[f"{name}.{part}"] for part in layers.PARTS))
+                self.assertTrue(torch.equal(model.get_parameter(layers.PREFIX + name.removeprefix("model.")).data,
+                                            expected))
+        self.assertEqual({name for name, parameter in model.named_parameters() if parameter.dtype == torch.float16},
+                         {layers.PREFIX + name.removeprefix("model.") for name in names})
+
+    def test_restoring_keeps_no_reference_to_the_tensors_of_a_weight_once_it_reads_the_next_weight_or_ends(self):
+        _, events, alive = self.restored_model()
+        names = self.pieces()[3]
+        self.assertEqual([event[5] for event in events], [0] * len(names))
+        self.assertEqual([ref() for ref in alive], [None] * (3 * len(names)))
+
+    def test_the_tensors_are_checked_one_weight_at_a_time_before_the_folder_is_made_and_the_model_is_loaded(self):
+        patched, events, _ = self.watched_reads()
+        real = layer1_anchor.model_for
+
+        def loading(*arguments):
+            events.append(("model",))
+            return real(*arguments)
+
+        with patched, mock.patch.object(layer1_anchor, "model_for", side_effect=loading):
+            code = self.main("--weights", "8bit", "--export", str(self.export))
+        _, _, shapes, names = self.pieces()
+        count = len(names)
+        self.assertEqual(code, 0)
+        self.assertEqual([event[0] for event in events], ["weights"] * count + ["model"] + ["weights"] * count)
+        weights = [event for event in events if event[0] == "weights"]
+        self.assertEqual([event[3] for event in weights], [{name: shapes[name]} for name in names] * 2)
+        self.assertEqual([event[4] for event in weights], [False] * count + [True] * count)
+        self.assertEqual([event[5] for event in weights], [0] * (2 * count))
+
+    def test_a_tensor_that_differs_from_its_record_in_the_last_weight_is_refused_before_the_folder_is_made(self):
+        record = read_json(self.export / "export.json")
+        key = sorted(record["quantized"]["tensors"])[-1]
+        record["quantized"]["tensors"][key] = "0" * 64
+        write_json(self.export / "export.json", record)
+        with mock.patch.object(layer1_anchor, "model_for") as model_for, self.assertRaises(ValueError) as refused:
+            self.main("--weights", "8bit", "--export", str(self.export))
+        self.assertIn(f"The SHA-256 of {key} differs", str(refused.exception))
+        model_for.assert_not_called()
+        self.assertFalse((self.folder / "out").exists())
 
     def test_the_scored_rows_with_weights_restored_from_the_quantized_tensors_match_the_plain_float32_forward(self):
         self.assertEqual((self.main("--weights", "8bit", "--export", str(self.export)),
