@@ -773,9 +773,22 @@ class CompareTests(unittest.TestCase):
                      max_rss_bytes=8), "the peak resident memory is below that of the monitor"),
                  "a monitor that stopped the export": (False, lambda record: record["resources"]["monitor"].update(
                      aborts=1), "the monitor did not run under the fixed limits without stopping"),
+                 "a monitor with first and peak readings and no sample": (False, lambda record: record["resources"][
+                     "monitor"].update(samples=0), "the monitor recorded no sample"),
+                 "more samples than the interval of the monitor allows in the time of the export": (
+                     False, lambda record: record["resources"]["monitor"].update(samples=100),
+                     "the monitor recorded more samples than its interval allows in the time of the export"),
+                 "a monitor record with a key that the monitor does not write": (
+                     False, lambda record: record["resources"]["monitor"].update(extra=1),
+                     "the monitor record does not have the keys that the monitor writes"),
+                 "a peak resident memory of the monitor of zero": (False, monitored("peak", rss_bytes=0),
+                                                                  "the monitor recorded no positive resident memory"),
+                 "a lowest free memory percentage above 100": (
+                     False, lambda record: record["resources"]["monitor"]["lowest"].update(free_percent=101),
+                     "the lowest free memory percentage of the monitor is not a percentage"),
                  "the time of a step that the export does not take": (False, lambda record: record["timing"].update(
                      quantize_s=1.0), "the times are not those of the steps of the export"),
-                 "a total time shorter than its steps": (False, lambda record: record["timing"].update(total_s=1.0),
+                 "a total time shorter than its steps": (False, lambda record: record["timing"].update(total_s=5.0),
                                                          "the total time is shorter than its steps"),
                  "float16 elements other than the checkpoint holds": (False, float16, weights),
                  "8-bit float16 elements other than the checkpoint and the quantized weights give": (True, float16,

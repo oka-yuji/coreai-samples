@@ -34,6 +34,8 @@ STEPS = ("input_hash_s", "load_s", "convert_s", "save_s", "inspect_s", "bundle_h
 QUANTIZING_STEPS = ("quantize_s", "tensors_s")
 MONITOR = {"interval_s": INTERVAL_S, "abort": None, "aborts": 0, "failure": None, "unreadable_samples": 0,
            "limits": {"swap_used_bytes": SWAP_LIMIT_BYTES, "free_percent": FREE_PERCENT, "streak": STREAK}}
+READINGS = {"first": {"swap_used_bytes", "free_bytes"}, "peak": {"rss_bytes", "max_rss_bytes", "swap_used_bytes",
+                                                                  "temporary_bytes"}, "lowest": {"free_percent", "free_bytes"}}
 VERIFIER = {"record": "text", "token_count": "count", "start": "count", "chunk": "count", "tokens_sha256": "text",
             "shape": "shape", "dtype": "text", "byte_order": "text", "main_calls": "count", "main_hash": "text",
             "prefix_function": "text", "prefix_calls": "count", "prefix_chunk": "count", "cached": "flag",
@@ -249,6 +251,7 @@ def relation_problems(record, precision):
     if not valid("count", increase) or increase > SWAP_INCREASE_LIMIT_BYTES:
         problems.append("the export recorded no swap increase within its limit")
     lowest, started = (mapping(mapping(monitor, key), "free_bytes") for key in ("lowest", "first"))
+    samples, total, percent = monitor.get("samples"), timing.get("total_s"), mapping(monitor, "lowest").get("free_percent")
     steps = [*STEPS, *(QUANTIZING_STEPS if precision == "8bit" else ()), "total_s"]
     seconds = all(valid("seconds", value) for value in timing.values())
     uint8, float16, layouts = by_dtype.get("torch.uint8", 0), by_dtype.get("torch.float16"), \
@@ -275,6 +278,18 @@ def relation_problems(record, precision):
         "the monitor did not run under the fixed limits without stopping":
             canonical({key: monitor.get(key) for key in MONITOR}) == canonical(MONITOR)
             and canonical(mapping(monitor, "peak").get("temporary_bytes")) == canonical(0),
+        "the monitor record does not have the keys that the monitor writes":
+            set(monitor) == {*MONITOR, "samples", *READINGS}
+            and all(set(mapping(monitor, key)) == keys for key, keys in READINGS.items()),
+        "the monitor recorded no sample":
+            valid("count", samples) and samples > 0,
+        "the monitor recorded more samples than its interval allows in the time of the export":
+            not (valid("count", samples) and valid("seconds", total)) or samples <= total / INTERVAL_S + 1,
+        "the monitor recorded no positive resident memory":
+            all(valid("count", value) and value > 0
+                for value in (mapping(monitor, "peak").get(key) for key in ("rss_bytes", "max_rss_bytes"))),
+        "the lowest free memory percentage of the monitor is not a percentage":
+            valid("count", percent) and percent <= 100,
         "the times are not those of the steps of the export":
             sorted(timing) == sorted(steps) and seconds,
         "the total time is shorter than its steps":
