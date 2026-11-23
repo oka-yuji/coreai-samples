@@ -539,9 +539,13 @@ from the folders of the two runs, and of each export with its report and its com
   --report <report.json> --export <export.json> --comparison <comparison.json> [...]
 ~~~
 
-It stops and prints no summary when a check on the records fails, including that each `export.json` is the output
-that the manifest of its stage recorded, that the two runs, the reference and every export are of the contract
-`model.json`, and that the two runs are of the layers and tap layers of every export. A comparison that fails a
+It stops and prints no summary when a check on the records fails, including that each `export.json` is the output that
+the manifest of its stage recorded and lists the bundle files (and for 8 bits `quantized.safetensors`) of that manifest,
+that the two runs, the reference and every export are of the contract `model.json` of the repository, that the two runs
+are of the layers and tap layers of every export, that the reference is of the layers of every export and uses its kind
+of weights (restored from its quantized tensors for 8 bits, with the SHA-256 of its record, the size and SHA-256 of
+`quantized.safetensors` and the number of tensors, through `correspondence` of `native.py`), and that each comparison
+records the layers, the functions and the asset of its export and the layers of the reference. A comparison that fails a
 criterion is printed with `passed` false, as a failed condition of the own engine is; `SummaryTests` in
 `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-in-the-first-six-layers-695).
@@ -646,7 +650,9 @@ and minimum of every quantized weight. `EffectTests` in `Tools/Conversion/tests/
 `fp16_summary` summarizes 8-bit records
 with the restored reference as `--reference` and the output of `effect` as `--effect`, and without `--original` and
 `--model-class`, which only FP16 records take; it stops with its fixed error when an input of the other precision is
-given or one of its own is missing. `QuantizedSummaryTests` fixes these checks. The published record is
+given or one of its own is missing, and when the effect is not of the layers of the restored reference, does not compare
+a rounded reference of these layers or was not measured on the conditions of each comparison. `QuantizedSummaryTests`
+fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).
 
 ## Terms

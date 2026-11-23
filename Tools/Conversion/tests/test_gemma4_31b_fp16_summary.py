@@ -33,7 +33,7 @@ def context_record(contract_sha256="b" * 64):
              "logits": {"bytes": 10, "sha256": "f" * 64, "dtype": "float32", "shape": [26, 262144], "non_finite": 0}}
     return {"schema": layers.CONTEXT_SCHEMA, "implementation": "original", "layers": 6, "layer_types": KINDS,
             "model": {**MODEL, "contract_sha256": contract_sha256},
-            "weights": "every checkpoint tensor rounded to float16", "embed_scale": 73.5, "chunk": 1024,
+            "weights": layers.WEIGHTS, "embed_scale": 73.5, "chunk": 1024,
             "versions": {"torch": "2.15.0"}, "inputs": {"short": entry, "context": {**entry, "positions": 16896}},
             "timing": {"total_s": 60.0}, "memory": {"max_rss_bytes": 10, "lifetime_peak_footprint_bytes": None}}
 
@@ -112,10 +112,13 @@ class Records(unittest.TestCase):
     def run_files(self, label, record=None, origin=None, stage_role="export", manifest=None):
         artifacts = self.folder / label / "artifacts"
         write_json(artifacts / "export/export.json", record or export_record(self.contract_sha256))
-        data = (artifacts / "export/export.json").read_bytes()
+        data, written = (artifacts / "export/export.json").read_bytes(), read_json(artifacts / "export/export.json")
         recorded = {"version": 1, "key": "0" * 64, "status": "completed", "run_id": origin or label, "stage": "export",
                     "outputs": {"required": ["export"], "artifacts": {"tree": {
-                        "export": {"directory": True},
+                        "export": {"directory": True}, "export/bundle": {"directory": True},
+                        **{f"export/bundle/{name}": dict(entry) for name, entry in written["bundle"]["files"].items()},
+                        **({"export/quantized.safetensors": dict(written["quantized"]["file"])}
+                           if "quantized" in written else {}),
                         "export/export.json": {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}}}}}
         if manifest:
             manifest(recorded)
@@ -237,6 +240,13 @@ class SummaryTests(Records):
         self.assertEqual({key for key, passed in compared["inputs"]["short"]["checks"].items() if not passed},
                          {"max_abs_logit"})
 
+    def test_an_fp16_summary_refuses_a_reference_of_other_weights_than_the_rounded_ones(self):
+        run = self.run_files("first")
+        self.assertEqual(self.summarize(run)[0], 0)
+        write_json(self.reference, {**context_record(self.contract_sha256), "weights": "every checkpoint tensor in bfloat16"})
+        write_json(run[2], comparison_record(sha256(run[1]), sha256(self.reference)))
+        self.assertEqual(self.summarize(run), (1, ""))
+
     def test_free_text_in_a_shareable_field_is_rejected(self):
         changes = [lambda record: record["bundle"]["files"].update({f"/{SENTINEL}/main.mlirb": {"bytes": 1, "sha256": "4" * 64}}),
                    lambda record: record["bundle"]["files"].update({"../main.mlirb": {"bytes": 1, "sha256": "4" * 64}}),
@@ -347,22 +357,28 @@ def quantized_record(contract_sha256="b" * 64):
     return record
 
 
-def restored_record(contract_sha256="b" * 64):
+def restored_record(contract_sha256="b" * 64, export_sha256="a" * 64):
+    record = quantized_record(contract_sha256)
     return {**context_record(contract_sha256), "weights": layers.RESTORED,
-            "quantized": {"export_sha256": "a" * 64, "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 123}}
+            "quantized": {"export_sha256": export_sha256, "file": record["quantized"]["file"],
+                          "tensors": len(record["quantized"]["tensors"])}}
 
 
 def effect_record(reference_hash, **changes):
     entry = {"name": "tail", "input": "context", "tokens": 16896, "start": 16832, "chunk": 1, "rows": 64, "non_finite": 0,
              "reference_non_finite": 0, "max_abs_logit": 4.14, "top1_mismatches": {"near_tie": 2, "outside": 1}}
+    first = {**entry, "name": "short-c1", "input": "short", "tokens": 26, "start": 0, "rows": 26}
     return {"schema": effect.SCHEMA, "problems": [], "restored": {"sha256": reference_hash, "layers": 6},
-            "rounded": {"sha256": "9" * 64, "layers": 6}, "criteria": {"near_tie": 0.01}, "conditions": [entry], **changes}
+            "rounded": {"sha256": "9" * 64, "layers": 6}, "criteria": {"near_tie": 0.01}, "conditions": [first, entry],
+            **changes}
 
 
 class QuantizedSummaryTests(Records):
     def setUp(self):
         super().setUp()
-        write_json(self.reference, restored_record(self.contract_sha256))
+        write_json(self.folder / "default-export.json", quantized_record(self.contract_sha256))
+        self.export_sha256 = sha256(self.folder / "default-export.json")
+        write_json(self.reference, restored_record(self.contract_sha256, self.export_sha256))
         self.effect = self.folder / "effect.json"
         write_json(self.effect, effect_record(sha256(self.reference)))
 
@@ -387,11 +403,11 @@ class QuantizedSummaryTests(Records):
         self.assertEqual((asset["asset"]["uint8_minus_weights"], asset["asset"]["float16_minus_weights"],
                           asset["asset"]["dequantizations"]), (128, 4, 77))
         self.assertEqual(result["reference"]["weights"], "8bit")
-        self.assertEqual(result["reference"]["quantized"], {"export_sha256": "a" * 64,
-                                                            "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 123})
+        self.assertEqual(result["reference"]["quantized"], {"export_sha256": self.export_sha256,
+                                                            "file": {"bytes": 3, "sha256": "7" * 64}, "tensors": 1})
         self.assertEqual(result["effect"]["rounded_sha256"], "9" * 64)
-        self.assertEqual(result["effect"]["conditions"][0]["top1_mismatches"], {"near_tie": 2, "outside": 1})
-        self.assertEqual(result["effect"]["conditions"][0]["max_abs_logit"], 4.14)
+        self.assertEqual(result["effect"]["conditions"][1]["top1_mismatches"], {"near_tie": 2, "outside": 1})
+        self.assertEqual(result["effect"]["conditions"][1]["max_abs_logit"], 4.14)
 
     def test_free_text_in_a_shareable_field_is_rejected(self):
         changes = [lambda record: record["quantized"]["file"].update(sha256=SENTINEL),
@@ -426,6 +442,81 @@ class QuantizedSummaryTests(Records):
         self.assertEqual(self.summarize(self.run_files("mixed"), fp16), (1, ""))
         self.assertEqual(self.summarize(fp16), (1, ""))
         self.assertEqual(self.summarize(self.run_files("paired"))[0], 0)
+
+    def test_an_8bit_summary_refuses_records_that_do_not_correspond_to_each_other(self):
+        reference = read_json(self.reference)
+
+        def rewrite(path, change):
+            record = read_json(path)
+            change(record)
+            write_json(path, record)
+
+        def twelve(run):
+            rewrite(self.reference, lambda record: record.update(layers=12, layer_types=TEXT["layer_types"]))
+            rewrite(run[2], lambda record: record["reference"].update(sha256=sha256(self.reference), layers=12))
+            write_json(self.effect, effect_record(sha256(self.reference), restored={"sha256": sha256(self.reference),
+                                                                                    "layers": 12},
+                                                  rounded={"sha256": "9" * 64, "layers": 12}))
+
+        def referenced(change):
+            def apply(run):
+                rewrite(self.reference, change)
+                rewrite(run[2], lambda record: record["reference"].update(sha256=sha256(self.reference)))
+                write_json(self.effect, effect_record(sha256(self.reference)))
+            return apply
+
+        def compared(change):
+            return lambda run: rewrite(run[2], change)
+
+        def effected(**changes):
+            return lambda run: write_json(self.effect, effect_record(sha256(self.reference), **changes))
+
+        def manifested(change):
+            return lambda run: rewrite(run[0].parent / "manifest.json",
+                                       lambda record: change(record["outputs"]["artifacts"]["tree"]))
+
+
+        effect_entries = effect_record("0" * 64)["conditions"]
+        cases = {"a restored reference of twelve layers": twelve,
+                 "a restored reference of another quantized file": referenced(
+                     lambda record: record["quantized"]["file"].update(sha256="0" * 64)),
+                 "a reference restored for another export record": referenced(
+                     lambda record: record["quantized"].update(export_sha256="0" * 64)),
+                 "a reference restored from another number of tensors": referenced(
+                     lambda record: record["quantized"].update(tensors=2)),
+                 "a reference of the rounded weights": referenced(lambda record: record.update(weights=layers.WEIGHTS)),
+                 "a comparison of a reference of twelve layers": compared(
+                     lambda record: record["reference"].update(layers=12)),
+                 "a comparison of an export of twelve layers": compared(lambda record: record["export"].update(layers=12)),
+                 "a comparison of other functions": compared(
+                     lambda record: record["export"].update(functions=["main", "prefill"])),
+                 "a comparison of another asset": compared(lambda record: record["export"].update(main_hash="0" * 64)),
+                 "an effect on a restored reference of twelve layers": effected(
+                     restored={"sha256": sha256(self.reference), "layers": 12}),
+                 "an effect with a rounded reference of twelve layers": effected(rounded={"sha256": "9" * 64, "layers": 12}),
+                 "an effect on other conditions": effected(conditions=[effect_entries[0], {**effect_entries[1],
+                                                                                          "start": 16831}]),
+                 "a manifest of another bundle file": manifested(
+                     lambda tree: tree["export/bundle/gemma4_31b_l6_8bit_main.aimodel/main.mlirb"].update(bytes=5)),
+                 "a manifest of one more bundle file": manifested(
+                     lambda tree: tree.update({"export/bundle/notes.txt": {"bytes": 1, "sha256": "0" * 64}})),
+                 "a manifest of another quantized file": manifested(
+                     lambda tree: tree["export/quantized.safetensors"].update(sha256="0" * 64)),
+                 "a reference of another contract than the repository": referenced(
+                     lambda record: record["model"].update(contract_sha256="2" * 64))}
+        self.assertEqual(self.summarize(self.run_files("consistent"))[0], 0)
+        for index, (label, change) in enumerate(cases.items()):
+            write_json(self.reference, reference)
+            write_json(self.effect, effect_record(sha256(self.reference)))
+            run = self.run_files(f"case-{index}")
+            change(run)
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize(run), (1, ""))
+        write_json(self.reference, reference)
+        run = self.run_files("other-contract", record=quantized_record("2" * 64))
+        referenced(lambda record: record["quantized"].update(export_sha256=sha256(run[1])))(run)
+        with self.subTest(case="an export of another contract than the repository"):
+            self.assertEqual(self.summarize(run), (1, ""))
 
     def test_an_8bit_summary_needs_no_run_of_the_model_class_and_stops_when_one_is_given(self):
         run, missing = self.run_files("first"), str(self.folder / "missing-run")
