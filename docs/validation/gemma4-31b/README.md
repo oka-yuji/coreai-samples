@@ -714,19 +714,20 @@ This section copies the numbers of the drafter class of the recipe for the MTP d
 its comparison with the drafter of the original implementation on the features that #691 recorded, the accepted drafts
 on the teacher path, and the export of a synthetic drafter. The class is the drafter in PyTorch; no Core AI asset of the
 real weights was made or run here.
-[`mtp-drafter-comparison-20261123.json`](mtp-drafter-comparison-20261123.json),
-[`mtp-drafter-acceptance-20261123.json`](mtp-drafter-acceptance-20261123.json) and
-[`mtp-drafter-export-20261123.json`](mtp-drafter-export-20261123.json) are the JSON results of `mtp.py compare`,
-`acceptance` and `export`. They hold item ids, positions, numbers, hashes, versions and fixed names (the export also
-the synthetic configuration), and no token sequences, text, local paths, commands or environment variables; the run
-folders and arrays stay in the local work directory.
+[`mtp-drafter-comparison-20261123.json`](mtp-drafter-comparison-20261123.json) and
+[`mtp-drafter-acceptance-20261123.json`](mtp-drafter-acceptance-20261123.json) are the JSON results that
+`mtp.py compare` and `acceptance` print, and [`mtp-drafter-export-20261123.json`](mtp-drafter-export-20261123.json) is
+the `export.json` that `mtp.py export` writes. They hold item ids, positions, numbers, hashes, versions and fixed names
+(the export also the synthetic configuration), and no token sequences, text, local paths, commands or environment
+variables; the run folders and arrays stay in the local work directory.
 
 ### Conditions
 
-- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power. The runs of both drafters, the
-  comparison and the accepted drafts held the shared machine lock in one session (2026-11-23 19:24:00 to 19:34:18 JST),
-  the export in an earlier one (14:30:08 to 14:41:56 JST), and no other model process ran; the times below are records,
-  not measurements.
+- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a). The runs of both drafters, the comparison and the
+  accepted drafts held the shared machine lock in one session (2026-11-23 19:24:00 to 19:34:18 JST, on AC power), the
+  export in an earlier one (14:30:08 to 14:41:56 JST, with the battery at 100% at both ends). Each session took the lock
+  only when it was free and no `coreai-verify`, `coreai-chat` or demo-app process was running; the times below are those
+  of single runs, not timing measurements.
 - Commit 977309b1 with no local changes; the export at commit 15d35fd8, whose drafter class, synthetic configuration
   and export function are those of 977309b1. The reference environment of the recipe (torch 2.15.0,
   transformers 5.16.1) ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers
@@ -742,12 +743,12 @@ folders and arrays stay in the local work directory.
 ### Drafter class and original drafter
 
 On a synthetic assistant (`OneStepTests` and `UnrolledTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py`,
-against the drafter of Transformers 5.12.1), the logits and the `post_projection` output of one step were within 1e-4
-of those of the original drafter (the bound these tests assert) at positions 1, 1,024, 1,025, 1,026, 4,000 and 16,895
-and with large values at both sides of the window edge, and the unrolled drafts of 1, 2 and 7 steps were those of the
-original generator. `BuildTests` builds both drafters from configurations at boundary values and requires finite
-outputs of one step, and non-finite ones from a non-finite hidden state. On the real weights the comparison passed for
-47 rows of 13 items, the first item of each category:
+against the drafter of Transformers 5.12.1), the logits and the `post_projection` output of one step were within 1e-4 of
+those of the original drafter (the bound these tests assert) at positions 1, 1,024, 1,025, 1,026, 4,000 and 16,895 and
+with large values at both sides of the window edge, and the unrolled drafts of 1, 2 and 7 steps were those of the
+original generator. `BuildTests` requires `assistant_config` to refuse 11 of 46 configurations at boundary values,
+builds both drafters from the other 35, and requires finite outputs of one step, and non-finite ones from a non-finite
+hidden state. On the real weights the comparison passed for 47 rows of 13 items, the first item of each category:
 
 | Item | Anchors a (output index) | w | Largest absolute logit difference | Largest projection ratio |
 |---|---|---|---:|---:|
@@ -765,23 +766,27 @@ outputs of one step, and non-finite ones from a non-finite hidden state. On the 
 | `synth-long-4k-0001` | 3,791 (0), 3,804 (13), 3,817 (26), 3,830 (39) | 1,025 | 1.14e-05 | 3.35e-07 |
 | `synth-long-16k-0001` | 15,345 (0), 15,372 (27), 15,399 (54), 15,426 (81) | 1,025 | 1.14e-05 | 3.36e-07 |
 
-The criteria are a largest absolute logit difference of at most 1e-3 and a projection ratio (the largest absolute
-difference of the `post_projection` output over its largest absolute value in the original drafter) of at most 1e-3;
-no row has an original `post_projection` output that is all zero.
-`compare` checked both records against what it built from the fixed inputs: the two contracts, the pins of the index
-and of the shard with the embedding table, `subset.json` and the features of the 13 items hashed again, the 47 rows of
-the fixed selection and seven steps. At all 47 rows the argmax was the same, the unrolled drafts of seven steps were
-those of one step repeated seven times, and the unrolled drafts cut after the first stop token were the drafts of the
-original generator. `ja-choice-0001` has one output token, so its four anchors are one. The run of the original drafter
-took 28.7 s (7.0 s after the files to read were hashed), that of the class 39.1 s (19.4 s); kernel lifetime footprint
-peak 28,484,473,640 B and 31,658,892,304 B.
+The comparison passes when every row has a largest absolute logit difference of at most 1e-3, a projection ratio (the
+largest absolute difference of the `post_projection` output over its largest absolute value in the original drafter) of
+at most 1e-3, and unrolled drafts equal to one step repeated (the JSON lists the two bounds as `criteria` and the three
+checks of each row in `rows[].checks`); no row has an original `post_projection` output that is all zero. `compare`
+checked both records against what it built from the fixed inputs: the two contracts, the pins of the index and of the
+shard with the embedding table and of the two files of the assistant, `subset.json` with the input and output records
+that it pins, the features of the 13 items hashed again, the 47 rows of the fixed selection, the stop tokens, window,
+layers, embedding scale, weight rounding, seven steps and the schema name; the package versions, times and memory of the
+runs only had to be present. At all 47 rows the unrolled drafts of seven steps were those of one step repeated seven
+times; the argmax was the same and the unrolled drafts cut after the first stop token were the drafts of the original
+generator, which are records, not criteria. `ja-choice-0001` has one output token, so its four anchors are one. The run
+of the original drafter took 28.7 s (7.0 s after the files to read were hashed), that of the class 39.1 s (19.4 s);
+kernel lifetime footprint peak 28,484,473,640 B and 31,658,892,304 B.
 
 ### Accepted drafts on the teacher path
 
-The class drafted seven tokens at each of the 4,462 anchors of the 48 items; a round accepts the drafts, up to the first
-stop token, that match the reference output and adds one token of the target. The rounds and the tokens of every
-category are those of #691 (the fixed position with seven drafts in §4.5 of its conclusion), which the per-anchor records
-of #691 also gave again:
+The class drafted seven tokens at each of the 4,462 anchors of the 48 items; a round accepts the leading drafts, up to
+and including the first stop token, that match the reference output and adds one token of the target. The rounds and the
+tokens of every category are those of #691 (the fixed position with seven drafts: `trajectories.json` of its records,
+whose tokens per round §4.5 of its conclusion shows to two places), which the per-anchor records of #691 also gave
+again:
 
 | Category | Items | Anchors | Rounds | Tokens | Tokens per round | #691: rounds, tokens, tokens per round | Anchors with another accepted count | Largest #691 margin there |
 |---|---:|---:|---:|---:|---:|---|---:|---:|
@@ -800,18 +805,21 @@ of #691 also gave again:
 | synth-long-16k | 2 | 181 | 41 | 182 | 4.4390 | 41, 182, 4.4390 | 1 | 0.0 |
 | all | 48 | 4,462 | 890 | 4,504 | 5.0607 | 890, 4,504, 5.0607 | 21 | 0.125 |
 
-At 21 anchors the number of accepted drafts differs from the records of #691; at the first draft that differs, the
-top-two logit margin that #691 recorded in BF16 was at most 0.125 (0.0 at two anchors). These are records, not criteria.
-The accepted counts of the records of #691, computed again from their drafts and the reference outputs, equal the
-recorded ones at all 4,462 anchors, and the tokens per round of `trajectories.json` are its tokens over its rounds
-rounded to four places in all 14 rows. The run took 548.3 s (525 s of drafting); kernel lifetime footprint peak
-65,812,085,752 B.
+At 21 anchors the number of accepted drafts differs from that of the records of #691, counted up to seven drafts; at the
+first draft that differs, the top-two logit margin that #691 recorded in BF16 was at most 0.125 at each of the 21
+(`synth-long-4k` and `synth-long-16k` have one differing anchor each, with the margin 0.0; the JSON holds the largest
+margin of each category, not one per anchor). These are records, not criteria. The accepted counts of the records of
+#691, computed again from their drafts and the reference outputs, equal the recorded ones at all 4,462 anchors, and the
+tokens per round of `trajectories.json` are its tokens over its rounds rounded to four places in the 14 rows (13
+categories and pooled) of its fixed-position level with seven drafts, which the tool reads. The run took 548.3 s (525 s
+of drafting); kernel lifetime footprint peak 65,812,085,752 B.
 
 ### Export of a synthetic drafter
 
 `mtp.py export --steps 7 --context 16896 --seed 11 --output <new folder>` converted the class with the random weights of
-`SYNTHETIC` (vocabulary 301, hidden size 32, target width 48, 74,372 float16 parameter elements) in 72.4 s, and every
-asset passed its inspection:
+`SYNTHETIC` (vocabulary 301, hidden size 32, target width 48; the PyTorch model holds 74,372 float16 elements in 49
+tensors: 74,368 in 45 parameters and 4 in the 4 buffers `layer_scalar`) in 72.4 s, and every asset passed its
+inspection:
 
 | Asset | Functions | Bytes | `main.mlirb` | Float16 | `argmax` | `gather_nd` | Conversion |
 |---|---|---:|---:|---:|---:|---:|---:|
@@ -821,9 +829,12 @@ asset passed its inspection:
 
 The inputs of both functions are `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 48], `position_ids` int32
 [1, 1], `k_sliding` and `v_sliding` float16 [1, 1, 2, ?, 16] and `k_full` and `v_full` float16 [1, 1, 1, ?, 32]; the
-output is `draft_tokens` int32 [1, 1] or [1, 7], and there are no states. The asset with both functions holds the
-Float16 count of the unrolled asset alone. The one-step asset holds 1,536 Float16 elements fewer, the size of the
-weight of `post_projection`, whose output one step does not read. The counts are totals over each asset.
+output is `draft_tokens` int32 [1, 1] or [1, 7], and there are no states. `Float16` is the number of Float16 elements
+that an asset stores (`storage_types` of its summary), a total over the asset and not over a function. The asset with
+both functions holds the Float16 count of the unrolled asset alone. The one-step asset holds 1,536 Float16 elements
+fewer, as many as the weight of `post_projection` has (48 × 32), whose output one step does not read. Each count is 3
+above the elements of the model that the functions of the asset use: 74,372 for the unrolled asset and for the asset
+with both functions, 74,372 − 1,536 = 72,836 for the one-step asset.
 
 ### Limits
 
