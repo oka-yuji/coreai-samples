@@ -538,15 +538,24 @@ class ExportTests(unittest.TestCase):
             def summary(self, include_statistics):
                 return SimpleNamespace(operation_distribution=[])
 
+        named = {f"draft_{steps}": [drafter.OUTPUT] for steps in (1, 7)}
         with tempfile.TemporaryDirectory() as folder, \
                 mock.patch.object(drafter, "export", lambda models, context: Program()), \
-                mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset",
-                           lambda path: {"functions": {}, "output_order": {}}), \
                 mock.patch("coreai.runtime._AIModelAsset", Asset):
-            record = mtp.export_synthetic(Path(folder) / "export", 7, 16896, SEED)
+            with mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset",
+                            lambda path: {"functions": {}, "output_order": named}):
+                ordered = mtp.export_synthetic(Path(folder) / "ordered", 7, 16896, SEED)
+            self.assertFalse(ordered["passed"])
+            self.assertTrue(all(entry["problems"][0].startswith("the asset has the functions []")
+                                for entry in ordered["assets"].values()))
+            with mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset",
+                            lambda path: {"functions": {}, "output_order": {}}):
+                record = mtp.export_synthetic(Path(folder) / "export", 7, 16896, SEED)
             with mock.patch("sys.argv", ["mtp", "export", "--output", str(Path(folder) / "main"), "--steps", "7",
                                          "--context", "16896", "--seed", str(SEED)]), \
-                    mock.patch("sys.stdout", new_callable=io.StringIO):
+                    mock.patch("sys.stdout", new_callable=io.StringIO), \
+                    mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset",
+                               lambda path: {"functions": {}, "output_order": {}}):
                 code = mtp.main()
         self.assertFalse(record["passed"])
         self.assertEqual(sorted(record["assets"]), ["both", "one_step", "unrolled"])
