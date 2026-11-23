@@ -1,6 +1,7 @@
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -299,6 +300,19 @@ class RecordTests(unittest.TestCase):
             with self.subTest(change=label), self.assertRaises(ValueError):
                 self.items()
 
+    def test_records_that_are_named_pipes_are_refused_without_waiting_for_a_writer(self):
+        item = self.items()[0]
+        paths = {"subset.json": (self.records / "subset.json", lambda path: mtp.subset_record(path)),
+                 "a drafter record": (self.folder / "drafter.json", lambda path: mtp.draft_rows(path, item)),
+                 "trajectories.json": (self.folder / "trajectories.json", lambda path: mtp.published(path, 7, ["alpha"])),
+                 "the assistant contract": (self.folder / "assistant.json", mtp.load_assistant)}
+        for label, (path, read) in paths.items():
+            if path.exists():
+                path.unlink()
+            os.mkfifo(path)
+            with self.subTest(record=label), self.assertRaisesRegex(ValueError, "not a regular file"):
+                read(path)
+
     def test_the_subset_record_holds_its_counts_and_unique_ids_of_its_categories(self):
         subset = read_json(self.records / "subset.json")
         changes = {"a repeated id": lambda record: record["items"].append(dict(record["items"][0])),
@@ -476,6 +490,12 @@ class CompareTests(unittest.TestCase):
             result = mtp.compare(self.folder / "again/original", self.folder / "again/class", other)
             self.assertFalse(result["passed"])
             self.assertIn("the runs were made under another contract", result["problems"])
+        (self.folder / "again/class/record.json").unlink()
+        os.mkfifo(self.folder / "again/class/record.json")
+        with self.subTest(case="a record that is a named pipe"):
+            result = mtp.compare(self.folder / "again/original", self.folder / "again/class", self.contract)
+            self.assertFalse(result["passed"])
+            self.assertIn("the class run has no readable record.json (ValueError)", result["problems"])
 
     def test_compare_writes_only_its_result_as_json_and_exits_with_one_unless_it_passes(self):
         for label, change in {"passing": None, "failing": lambda arrays: arrays["class"]["repeated"].__setitem__(

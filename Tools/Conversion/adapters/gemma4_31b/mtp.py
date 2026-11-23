@@ -9,9 +9,9 @@ import stat
 import sys
 import time
 
-from Tools.LLMEvaluation.layer1 import file_bytes, strict_records
+from Tools.LLMEvaluation.layer1 import file_bytes, strict, strict_records
 from Tools.LLMEvaluation.scoring import generated, partition
-from ...storage import read_json, write_json
+from ...storage import write_json
 from ..pinned import sha256
 from .baseline import read_inputs
 from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, below, ratios, rounded_scale, same_file
@@ -34,6 +34,10 @@ ROW = {"id": "text", "category": "text", "anchor": "count", "output_index": "cou
 LEVEL = {"rounds": "count", "tokens": "count", "tokens_per_round": "seconds"}
 ARRAYS = {"original": ("logits", "projected", "drafts"), "class": ("logits", "projected", "drafts", "repeated")}
 SAME = ("steps", "stops", "window", "layers", "model", "assistant", "records", "weights", "embed_scale", "rows")
+
+
+def document(path):
+    return strict(file_bytes(path))
 
 
 def cut(tokens, stops):
@@ -67,7 +71,7 @@ def check_steps(steps):
 
 
 def load_assistant(path):
-    contract = read_json(path)
+    contract = document(path)
     files = contract.get("files") if isinstance(contract, dict) else None
     if not isinstance(files, dict) or set(contract) != {"model_id", "revision", "files"} \
             or set(files) != set(ASSISTANT_FILES) or not isinstance(contract["model_id"], str) \
@@ -100,7 +104,7 @@ def layout(config):
 
 
 def subset_record(path):
-    record = read_json(path)
+    record = document(path)
     counts, items = (record.get(key) if isinstance(record, dict) else None for key in ("counts", "items"))
     if not isinstance(counts, dict) or set(record) != {"inputs", "outputs", "rule", "counts", "items", "total"} \
             or not isinstance(items, list) \
@@ -224,7 +228,7 @@ def checkpoint(path, expected, every):
 
 def target_table(snapshot, contract):
     files = verified(snapshot, contract["files"], (INDEX,))
-    places = read_json(Path(snapshot) / INDEX).get("weight_map")
+    places = document(Path(snapshot) / INDEX).get("weight_map")
     shard = places.get(TABLE) if isinstance(places, dict) else None
     if not isinstance(shard, str) or not shard.endswith(".safetensors") or shard not in contract["files"]:
         raise ValueError("The index of the target does not place the embedding table in a pinned shard")
@@ -239,7 +243,7 @@ def original_drafter(assistant, table, config):
     from transformers.models.gemma4_assistant.configuration_gemma4_assistant import Gemma4AssistantConfig
     from transformers.models.gemma4_assistant.modeling_gemma4_assistant import Gemma4AssistantForCausalLM
 
-    settings = Gemma4AssistantConfig(**read_json(Path(assistant) / "config.json"))
+    settings = Gemma4AssistantConfig(**document(Path(assistant) / "config.json"))
     settings._attn_implementation = "eager"
     with torch.device("meta"):
         model = Gemma4AssistantForCausalLM(settings)
@@ -265,7 +269,7 @@ def class_drafter(assistant, table, config, steps):
 
     from . import drafter
 
-    settings = drafter.assistant_config(read_json(Path(assistant) / "config.json"),
+    settings = drafter.assistant_config(document(Path(assistant) / "config.json"),
                                         {key: config[key] for key in drafter.TARGET})
     with torch.device("meta"):
         model = drafter.Gemma4AssistantDrafter(settings, steps)
@@ -410,7 +414,7 @@ def loaded_run(folder, kind, problems):
     import numpy as np
 
     try:
-        record = read_json(Path(folder) / "record.json")
+        record = document(Path(folder) / "record.json")
     except Exception as error:
         problems.append(f"the {kind} run has no readable record.json ({type(error).__name__})")
         return None, {}
@@ -510,7 +514,7 @@ def compare(original, model_class, contract_path):
 
 
 def draft_rows(path, item):
-    record = read_json(path)
+    record = document(path)
     rows = record.get("mtp") if isinstance(record, dict) else None
     if not isinstance(rows, list) or record.get("id") != item["id"] \
             or (record.get("P"), record.get("T")) != (len(item["input_ids"]), len(item["teacher"])):
@@ -532,7 +536,7 @@ def draft_rows(path, item):
 
 
 def published(path, steps, categories):
-    record = read_json(path)
+    record = document(path)
     level = (((record.get("per_round_on_teacher_path") or {}).get("mtp_fixed") or {}).get(str(steps))
              if isinstance(record, dict) else None)
     if not isinstance(level, dict) or set(level) != {*categories, "pooled"} \
