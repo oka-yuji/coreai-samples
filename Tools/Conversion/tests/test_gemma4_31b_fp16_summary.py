@@ -513,6 +513,15 @@ class QuantizedSummaryTests(Records):
     def options(self):
         return ["--rounded", str(self.rounded)]
 
+    def given_effect(self):
+        computed = effect.effect(self.reference.parent, self.rounded, self.contract)
+        self.assertEqual(computed["problems"], [])
+
+        def given(restored, rounded, contract):
+            return {**computed, "restored": {**computed["restored"], "sha256": sha256(restored / "record.json")}}
+
+        return lambda: mock.patch.object(fp16_summary, "quantization_effect", side_effect=given)
+
     def test_the_summary_keeps_numbers_hashes_and_fixed_words_and_drops_paths_and_free_text(self):
         code, output = self.summarize(self.run_files("first"))
         self.assertEqual(code, 0, self.errors)
@@ -605,7 +614,7 @@ class QuantizedSummaryTests(Records):
         self.assertEqual(self.summarize(self.run_files("paired"))[0], 0)
 
     def test_an_8bit_summary_refuses_records_that_do_not_correspond_to_each_other(self):
-        reference = read_json(self.reference)
+        reference, given = read_json(self.reference), self.given_effect()
 
         def twelve(run):
             config = load_contract(self.contract)["config"]
@@ -652,6 +661,8 @@ class QuantizedSummaryTests(Records):
             change(run)
             with self.subTest(case=label):
                 self.assertEqual(self.summarize(run), (1, ""))
+            with self.subTest(case=label + ", with the effect of the references that were not changed"), given():
+                self.assertEqual(self.summarize(run), (1, ""))
         write_json(self.reference, reference)
         run = self.run_files("other-contract", change=lambda record: record["model"].update(contract_sha256="2" * 64))
         self.referenced(lambda record: record["quantized"].update(export_sha256=sha256(run[1])), run)
@@ -659,7 +670,7 @@ class QuantizedSummaryTests(Records):
             self.assertEqual(self.summarize(run), (1, ""))
 
     def test_an_8bit_summary_takes_fixed_values_from_the_tools_and_computes_the_verdicts_again(self):
-        reference = read_json(self.reference)
+        reference, given = read_json(self.reference), self.given_effect()
 
         def conditions(change):
             def apply(record):
@@ -779,6 +790,8 @@ class QuantizedSummaryTests(Records):
             run = self.run_files(f"fixed-{index}")
             change(run)
             with self.subTest(case=label):
+                self.assertEqual(self.summarize(run), (1, ""))
+            with self.subTest(case=label + ", with the effect of the references that were not changed"), given():
                 self.assertEqual(self.summarize(run), (1, ""))
         for index, (label, change) in enumerate(exports.items()):
             reference_record(self.reference.parent, self.contract, layers.RESTORED, quantized=reference["quantized"])
@@ -1021,6 +1034,22 @@ class QuantizedSummaryTests(Records):
 
         with mock.patch.object(fp16_summary, "quantization_effect", side_effect=other):
             self.assertEqual(self.summarize(run), (1, ""))
+
+    def test_the_summary_stops_when_the_reader_of_the_reference_reports_a_problem_or_holds_another_record(self):
+        run, original = self.run_files("first"), fp16_summary.load_reference
+        self.assertEqual(self.summarize(run)[0], 0)
+
+        def reported(*arguments):
+            record, hashed, arrays, found = original(*arguments)
+            return record, hashed, arrays, [*found, "the reference holds a problem"]
+
+        def replaced(*arguments):
+            record, hashed, arrays, found = original(*arguments)
+            return record, "0" * 64, arrays, found
+
+        for label, reader in {"a problem that the reader reports": reported, "another record than the one given": replaced}.items():
+            with self.subTest(case=label), mock.patch.object(fp16_summary, "load_reference", side_effect=reader):
+                self.assertEqual(self.summarize(run), (1, ""))
 
     def test_the_summary_measures_a_condition_with_the_function_that_the_comparison_writes_with(self):
         run = self.run_files("first")
