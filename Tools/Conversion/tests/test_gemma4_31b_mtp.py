@@ -1045,6 +1045,20 @@ class CompareTests(unittest.TestCase):
 @mock.patch.object(mtp, "SUBSET", FIXED)
 @mock.patch.object(mtp, "RECORDS", FIXTURE_RECORDS)
 class ReadTests(unittest.TestCase):
+    def test_a_file_without_a_known_size_is_hashed_only_when_it_is_a_regular_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            (folder / "file").write_bytes(b"abc")
+            self.assertEqual(mtp.digest(folder / "file"), {"bytes": 3, "sha256": hashlib.sha256(b"abc").hexdigest()})
+            os.mkfifo(folder / "pipe")
+            (folder / "folder").mkdir()
+            for name in ("pipe", "folder"):
+                with self.subTest(kind=name):
+                    waited, outcome = bounded(lambda: mtp.digest(folder / name), folder / name)
+                    self.assertFalse(waited)
+                    self.assertIsInstance(outcome.get("error"), ValueError)
+                    self.assertRegex(str(outcome["error"]), "is not a regular file")
+
     def test_a_target_contract_that_changes_between_its_two_reads_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
             path = write_contract(folder, {name: {"bytes": 1, "sha256": "0" * 64} for name in TOKENIZER_FILES})
