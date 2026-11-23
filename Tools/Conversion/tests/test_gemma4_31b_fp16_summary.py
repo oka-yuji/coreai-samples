@@ -399,7 +399,9 @@ class QuantizedSummaryTests(Records):
                    lambda record: record.update(compression_config={"quantization": SENTINEL}),
                    lambda record: record["quantized"].update(warnings_enabled="yes"),
                    lambda record: record["quantized"].update(layers=SENTINEL),
-                   lambda record: record["quantized"].update(tensors=[SENTINEL])]
+                   lambda record: record["quantized"].update(tensors=[SENTINEL]),
+                   lambda record: record["compression_config"]["module_type_configs"]["torch.nn.modules.linear.Linear"][
+                       "op_state_spec"]["weight"]["granularity"].update(axis=True)]
         for index, change in enumerate(changes):
             record = quantized_record(self.contract_sha256)
             change(record)

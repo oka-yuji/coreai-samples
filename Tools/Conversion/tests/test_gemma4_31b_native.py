@@ -571,7 +571,10 @@ class CompareTests(unittest.TestCase):
                  "a weight left out of the record of the weights": (True, self.weights(
                      lambda quantized: quantized["layers"].pop())),
                  "tensors of another weight": (True, self.weights(lambda quantized: quantized["tensors"].update(
-                     {"embed_tokens.weight.scale": "1" * 64})))}
+                     {"embed_tokens.weight.scale": "1" * 64}))),
+                 "a reference whose tensor count is a float": (True, lambda: edit(
+                     self.reference / "record.json", lambda record: record["quantized"].update(
+                         tensors=float(record["quantized"]["tensors"]))))}
         for label, (eight_bit, change) in cases.items():
             with self.subTest(case=label):
                 backups = {path: path.read_bytes() for path in (self.reference / "record.json", self.export / "export.json")}

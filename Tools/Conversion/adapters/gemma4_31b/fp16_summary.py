@@ -5,7 +5,7 @@ import re
 import sys
 
 from ... import summary as pipeline
-from ...storage import PipelineError
+from ...storage import PipelineError, canonical
 from .anchor import read
 from .anchor_summary import signed
 from .compare import CONTRACT
@@ -95,7 +95,8 @@ def quantization(record):
 
 def exported(record):
     eight_bit = record.get("precision") == "8bit"
-    if record.get("schema") != EXPORT_SCHEMA or record["compression_config"] != (QUANTIZATION if eight_bit else None):
+    if record.get("schema") != EXPORT_SCHEMA \
+            or canonical(record["compression_config"]) != canonical(QUANTIZATION if eight_bit else None):
         raise PipelineError(f"Expected an uncompressed {EXPORT_SCHEMA} record or one of the fixed 8-bit config")
     metadata, bundle, resources = record["metadata"], record["bundle"], record["resources"]
     monitor = resources["monitor"]

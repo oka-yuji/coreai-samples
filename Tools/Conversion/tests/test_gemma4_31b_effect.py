@@ -124,6 +124,8 @@ class EffectTests(unittest.TestCase):
         cases = {"one tensor less": {"export_sha256": "1" * 64, "file": {"bytes": 1, "sha256": "2" * 64}, "tensors": 122},
                  "no hash of the export record": {"file": {"bytes": 1, "sha256": "2" * 64}, "tensors": 123},
                  "free text as the hash": {"export_sha256": "private", "file": {}, "tensors": 123},
+                 "a tensor count as a float": {"export_sha256": "1" * 64, "file": {"bytes": 1, "sha256": "2" * 64},
+                                               "tensors": 123.0},
                  "a list": ["tensors"]}
         for label, quantized in cases.items():
             restored = self.write(label.replace(" ", "-"), layers.RESTORED, self.arrays, quantized=quantized)

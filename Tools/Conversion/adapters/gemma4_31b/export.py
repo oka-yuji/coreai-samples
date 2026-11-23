@@ -13,7 +13,7 @@ import struct
 import sys
 import time
 
-from ...storage import PipelineError, file_hash, write_json
+from ...storage import PipelineError, canonical, file_hash, write_json
 from ..pinned import sha256
 from .layers import BLOCK, FULL, OUTPUTS, PREFIX, QUANTIZED, SLIDING, check_layers, check_taps, tensor_sha256
 from .prepare import TOKENIZER_FILES, load_contract
@@ -127,7 +127,7 @@ def quantization_problems(record, kinds, functions, taps):
     problems, quantized = [], record["quantized"]
     if tuple(functions) != FUNCTIONS["main,prefill"]:
         problems.append(f"an 8-bit asset has the functions main and prefill, not {list(functions)}")
-    if record["compression_config"] != QUANTIZATION:
+    if canonical(record["compression_config"]) != canonical(QUANTIZATION):
         problems.append(f"the export was given {shown(record['compression_config'])}, not the fixed 8-bit config")
     names, expected = sorted(entry["name"] for entry in quantized["layers"]), sorted(quantized_names(kinds))
     if names != expected:

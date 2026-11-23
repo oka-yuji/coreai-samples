@@ -18,7 +18,8 @@ def checked(record):
     quantized = record.get("quantized")
     return isinstance(quantized, dict) and isinstance(quantized.get("export_sha256"), str) \
         and HEX[64].fullmatch(quantized["export_sha256"]) is not None \
-        and quantized.get("tensors") == len(PARTS) * len(quantized_names(record["layer_types"]))
+        and type(quantized.get("tensors")) is int \
+        and quantized["tensors"] == len(PARTS) * len(quantized_names(record["layer_types"]))
 
 
 def effect(restored, rounded, contract_path=CONTRACT):

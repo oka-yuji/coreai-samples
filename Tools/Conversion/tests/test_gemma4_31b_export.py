@@ -368,7 +368,9 @@ class QuantizedAssetTests(unittest.TestCase):
                  "uint4 weights": lambda config: linear(config)["op_state_spec"]["weight"].update(dtype="torch.uint4"),
                  "blocks of 64": lambda config: linear(config)["op_state_spec"]["weight"]["granularity"].update(block_size=64),
                  "graph execution": lambda config: config.update(execution_mode="graph"),
-                 "a global config": lambda config: config.update(global_config=copy.deepcopy(linear(config)))}
+                 "a global config": lambda config: config.update(global_config=copy.deepcopy(linear(config))),
+                 "the block axis given as true": lambda config: linear(config)["op_state_spec"]["weight"]["granularity"]
+                 .update(axis=True)}
         for label, change in cases.items():
             with self.subTest(case=label):
                 self.assertTrue(quantized_problems(quantization_config(change)))

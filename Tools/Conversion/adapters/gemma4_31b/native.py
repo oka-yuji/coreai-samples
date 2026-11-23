@@ -248,7 +248,8 @@ def correspondence(exported, export_hash, reference):
     if precision != "8bit":
         return []
     quantized = quantized_entry(exported)
-    if quantized is None or reference.get("quantized") != {"export_sha256": export_hash, **quantized}:
+    expected = {"export_sha256": export_hash, **(quantized or {})}
+    if quantized is None or canonical(reference.get("quantized")) != canonical(expected):
         return ["the reference was not restored from the quantized tensors of this export"]
     return []
 
