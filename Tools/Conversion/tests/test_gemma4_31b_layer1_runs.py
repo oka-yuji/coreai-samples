@@ -21,16 +21,44 @@ try:
 except ImportError:
     torch = None
 
-from Tools.Conversion.adapters.gemma4_31b import anchor, layer1_anchor, layers, reference
-from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
+from Tools.Conversion.adapters.gemma4_31b import anchor, export, layer1_anchor, layer1_candidate, layers, native, reference
+from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_anchor import (GEMMA4, MEMORY, OBSERVED, RECIPE, VOCABULARY, WINDOW,
                                                             ReadyMonitor, tiny_model)
-from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT
+from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
+from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, model_record
 
 EVALUATION = Path(__file__).resolve().parents[2] / "LLMEvaluation/contract.json"
 LENGTHS = ((5, 1), (9, 3), (23, 10), (40, 30))
+FAKE = """#!{python}
+import hashlib, json, sys
+from pathlib import Path
+
+plan = json.loads(Path(__file__).with_suffix(".json").read_text())
+arguments = dict(zip(sys.argv[2::2], sys.argv[3::2]))
+ids = json.loads(Path(arguments["--tokens"]).read_text())
+start, chunk = int(arguments["--start"]), int(arguments["--chunk"])
+name = Path(arguments["--output"]).stem
+change = plan["changes"].get(name, {{}})
+with Path(plan["calls"]).open("a") as calls:
+    calls.write(name + "\\n")
+rows = len(ids) - start
+if not change.get("no_output"):
+    size = (rows + change.get("rows", 0)) * plan["vocabulary"] * 2
+    Path(arguments["--output"]).write_bytes((name.encode() * size)[:size])
+record = {{"record": "logits", "token_count": len(ids), "start": start, "chunk": chunk,
+          "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
+          "shape": [rows, plan["vocabulary"]], "dtype": "float16", "byte_order": "little",
+          "main_calls": -(-rows // chunk), "main_hash": plan["main_hash"], "cached": True, "non_finite_count": 0,
+          "load_s": 0.1, "prefix_s": 0.0, "scoring_s": 0.2, "specialize_s": 0.0, **plan["prefix"][name]}}
+record.update(change.get("record", {{}}))
+for key in change.get("drop", []):
+    record.pop(key)
+print(change.get("stdout", json.dumps(record)))
+sys.exit(change.get("exit", 0))
+"""
 
 
 def tokens_sha256(ids):
@@ -319,6 +347,130 @@ class AnchorRunTests(unittest.TestCase):
         record = read_json(self.folder / "same/run.json")
         self.assertEqual([item["shapes"] for item in record["items"]], [[[1, VOCABULARY]] * 2, [[10, VOCABULARY]] * 2])
         self.assertLess(max(item["max_abs_difference"] for item in record["items"]), anchor.LIMIT)
+
+
+class CandidateRunTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.contract = write_contract(self.folder, dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64}))
+        self.vocabulary = TEXT["vocab_size"]
+        self.records = made(self.vocabulary, [(index % 7 + 3, index % 5 + 1) for index in range(10)])
+        self.forced = write_forced(self.folder / "forced", self.records)
+        self.export = self.folder / "export"
+        bundle = self.export / export.BUNDLE
+        (bundle / "asset.aimodel").mkdir(parents=True)
+        (bundle / "asset.aimodel/main.hash").write_bytes(bytes.fromhex(MAIN_HASH))
+        (bundle / "metadata.json").write_text("{}")
+        files = {path.relative_to(bundle).as_posix(): {"bytes": path.stat().st_size, "sha256": sha256(path)}
+                 for path in sorted(bundle.rglob("*")) if path.is_file()}
+        self.exported = {"schema": export.SCHEMA, "passed": True, "layers": 6, "precision": "float16", "context": 64,
+                         "layer_types": layers.check_layers(load_contract(self.contract)["config"], 6),
+                         "functions": ["main", "prefill"], "model": model_record(self.contract),
+                         "bundle": {"folder": export.BUNDLE, "name": "asset", "main_hash": MAIN_HASH, "files": files}}
+        write_json(self.export / "export.json", self.exported)
+        self.verifier, self.calls = self.folder / "verifier", self.folder / "calls.txt"
+
+    def run_candidate(self, changes=None, output="out"):
+        prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
+                  for record in self.records}
+        plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": MAIN_HASH,
+                "prefix": prefix}
+        self.verifier.write_text(FAKE.format(python=sys.executable))
+        self.verifier.chmod(0o755)
+        self.verifier.with_suffix(".json").write_text(json.dumps(plan))
+        with contextlib.redirect_stdout(io.StringIO()):
+            return layer1_candidate.run(self.export, self.forced, self.verifier, self.folder / output, self.contract)
+
+    def called(self):
+        return self.calls.read_text().split() if self.calls.exists() else []
+
+    def test_every_item_is_read_by_one_launch_and_the_handoff_lists_its_file(self):
+        result = self.run_candidate()
+        out = self.folder / "out"
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual(read_json(out / "run.json"), result)
+        self.assertEqual(self.called(), [record["id"] for record in self.records])
+        handoff = read_json(out / "logits.json")
+        self.assertEqual({key: handoff[key] for key in ("schema", "role", "weights", "forced_sha256")},
+                         {"schema": layer1_anchor.LOGITS, "role": "fp16", "weights": f"asset main.hash {MAIN_HASH}",
+                          "forced_sha256": sha256(self.forced / "forced.jsonl")})
+        self.assertEqual(len(handoff["items"]), len(self.records))
+        for entry, record in zip(handoff["items"], self.records):
+            with self.subTest(item=record["id"]):
+                self.assertEqual(entry, {"id": record["id"], "file": f"{record['id']}.f16", "dtype": "float16",
+                                         "shape": [record["rows"], self.vocabulary], "sha256": sha256(out / entry["file"]),
+                                         "tokens_sha256": record["tokens_sha256"]})
+                self.assertEqual(json.loads((out / f"{record['id']}.tokens.json").read_text()), record["tokens"])
+        with mock.patch.object(sys, "argv", ["layer1_candidate", "--export", "e", "--forced", "f", "--verifier", "v",
+                                             "--output", "o"]), \
+                mock.patch.object(layer1_candidate, "run", return_value={**result, "passed": False}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(layer1_candidate.main(), 1)
+
+    def test_a_failing_item_is_recorded_as_a_problem_and_the_other_items_are_still_read(self):
+        ids = [record["id"] for record in self.records]
+        other = 2048 if native.prefill_chunk() == 4096 else 4096
+        changes = {ids[0]: {"exit": 1}, ids[1]: {"record": {"tokens_sha256": "0" * 64}},
+                   ids[2]: {"record": {"shape": [1, self.vocabulary]}}, ids[3]: {"rows": -1},
+                   ids[4]: {"stdout": "not a record"}, ids[5]: {"drop": ["cached"]},
+                   ids[6]: {"record": {"main_hash": "cd" * 32}}, ids[7]: {"record": {"prefix_chunk": other}},
+                   ids[8]: {"no_output": True}}
+        result = self.run_candidate(changes)
+        out = self.folder / "out"
+        self.assertFalse(result["passed"])
+        self.assertEqual(read_json(out / "run.json"), result)
+        self.assertEqual(self.called(), ids)
+        self.assertEqual([entry["id"] for entry in read_json(out / "logits.json")["items"]], ids[9:])
+        failing = {entry["id"]: entry["problems"] for entry in result["items"] if entry["problems"]}
+        self.assertEqual(set(failing), set(ids[:9]))
+        self.assertEqual(failing[ids[0]], ["the verifier exited with 1"])
+        self.assertEqual(failing[ids[4]], ["the verifier did not print one JSON object"])
+        self.assertEqual(failing[ids[5]], ["the verifier record is malformed (cached)"])
+        self.assertEqual(failing[ids[8]], ["the item could not be run (FileNotFoundError)"])
+        self.assertTrue(failing[ids[3]][0].startswith("the logits file holds"))
+        self.assertEqual(len(result["problems"]), sum(map(len, failing.values())))
+
+    def test_an_export_or_forced_input_that_does_not_fit_is_refused_before_anything_is_written_or_launched(self):
+        def summary(value):
+            return {**value, "forced": {**value["forced"], "sha256": "0" * 64}}
+
+        cases = {"not passed": {"passed": False}, "another precision": {"precision": "4bit"},
+                 "a shorter context": {"context": 8}, "a context of true": {"context": True},
+                 "another main hash": {"bundle": {**self.exported["bundle"], "main_hash": "cd" * 32}}}
+        for label, change in cases.items():
+            write_json(self.export / "export.json", {**self.exported, **change})
+            with self.subTest(case=label), self.assertRaisesRegex(ValueError, "export is refused"):
+                self.run_candidate(output=label)
+            self.assertFalse((self.folder / label).exists())
+        write_json(self.export / "export.json", self.exported)
+        self.forced = write_forced(self.folder / "other", self.records, summary)
+        with self.assertRaisesRegex(ValueError, "forced.json is not the summary"):
+            self.run_candidate(output="other-forced")
+        self.forced = self.folder / "forced"
+        (self.folder / "taken").mkdir()
+        with self.assertRaises(FileExistsError):
+            self.run_candidate(output="taken")
+        with self.assertRaises(FileNotFoundError):
+            layer1_candidate.run(self.export, self.forced, self.folder / "absent", self.folder / "unlaunched", self.contract)
+        self.assertFalse((self.folder / "other-forced").exists() or (self.folder / "unlaunched").exists())
+        self.assertEqual(self.called(), [])
+
+    def test_a_stopped_run_still_records_the_items_that_were_read(self):
+        attempted = layer1_candidate.attempted
+        calls = []
+
+        def stopping(*arguments):
+            calls.append(arguments[0]["id"])
+            if len(calls) == 3:
+                raise KeyboardInterrupt
+            return attempted(*arguments)
+
+        with mock.patch.object(layer1_candidate, "attempted", side_effect=stopping), self.assertRaises(KeyboardInterrupt):
+            self.run_candidate()
+        record, handoff = read_json(self.folder / "out/run.json"), read_json(self.folder / "out/logits.json")
+        self.assertEqual((record["passed"], [entry["id"] for entry in record["items"]]), (False, calls[:2]))
+        self.assertEqual([entry["id"] for entry in handoff["items"]], calls[:2])
 
 
 if __name__ == "__main__":
