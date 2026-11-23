@@ -307,6 +307,42 @@ class ContractTests(unittest.TestCase):
                 drafter.Gemma4AssistantDrafter(config, steps)
 
 
+def boundaries():
+    cases = []
+
+    def case(label, text=None, top=None, target=None):
+        document = copy.deepcopy(ASSISTANT)
+        document["text_config"].update(text or {})
+        document.update(top or {})
+        cases.append((label, document, {**TARGET, **(target or {})}))
+
+    for name, values in {"hidden_size": (1, 3, 33, 1024), "intermediate_size": (1, 3, 33, 4096),
+                         "num_attention_heads": (1, 2, 3, 64), "rms_norm_eps": (1e-30, 1.0, 1e6)}.items():
+        for value in values:
+            case(f"{name} {value}", {name: value})
+    for name, values in {"num_key_value_heads": (1, 3, 4, 8), "num_global_key_value_heads": (1, 3, 4, 8),
+                         "head_dim": (1, 2, 17, 256), "global_head_dim": (1, 2, 33, 512),
+                         "sliding_window": (1, 3, 1024, 32768), "vocab_size": (1, 3, 65537)}.items():
+        for value in values:
+            case(f"{name} {value}", {name: value}, target={name: value})
+    for count in (1, 2, 3, 16):
+        case(f"{count} layers", {"num_hidden_layers": count, "num_kv_shared_layers": count,
+                                 "layer_types": [assistant.SLIDING] * (count - 1) + [assistant.FULL]})
+    for width in (1, 3, 33, 1024):
+        case(f"backbone width {width}", top={"backbone_hidden_size": width}, target={"hidden_size": width})
+    return cases
+
+
+def found_for(config, position=3):
+    generator = torch.Generator().manual_seed(5)
+    return SimpleNamespace(token=torch.zeros(1, 1, dtype=torch.int32),
+                           hidden=torch.randn(1, 1, config.backbone_hidden_size, generator=generator), position=position,
+                           sliding=[torch.randn(1, 1, config.num_key_value_heads, position, config.head_dim,
+                                                generator=generator) for _ in range(2)],
+                           full=[torch.randn(1, 1, config.num_global_key_value_heads, position, config.global_head_dim,
+                                             generator=generator) for _ in range(2)])
+
+
 def recorded_setup(folder):
     state = drafter.synthetic(SEED, 1).state_dict()
     records, inputs, outputs = write_records(folder)
@@ -341,6 +377,40 @@ def reference_records(arguments, steps):
         name: {"rounds": rounds, "tokens": tokens, "tokens_per_round": round(tokens / rounds, 4)}
         for name, (rounds, tokens) in totals.items()}}}})
     return items
+
+
+class BuildTests(unittest.TestCase):
+    def test_a_configuration_is_refused_by_the_checks_or_builds_both_drafters_that_compute_one_step(self):
+        refused, built = [], []
+        for label, document, target in boundaries():
+            with self.subTest(case=label):
+                try:
+                    config = assistant.assistant_config(document, target)
+                except ValueError:
+                    refused.append(label)
+                    continue
+                model = drafter.Gemma4AssistantDrafter(config, 1).eval()
+                self.assertEqual({name: list(tensor.shape) for name, tensor in model.state_dict().items()
+                                  if name != "target_embed.weight"}, assistant.checkpoint_shapes(config))
+                found = found_for(config)
+                with torch.no_grad():
+                    logits, projected = model.outputs(*ours(found, config.sliding_window + 1))
+                self.assertEqual((tuple(logits.shape), tuple(projected.shape)),
+                                 ((1, 1, config.vocab_size), (1, 1, config.backbone_hidden_size)))
+                self.assertTrue(bool(torch.isfinite(logits).all() and torch.isfinite(projected).all()))
+                settings = Gemma4AssistantConfig(**copy.deepcopy(document))
+                settings._attn_implementation = "eager"
+                original_model = Gemma4AssistantForCausalLM(settings).eval()
+                embed = Gemma4TextScaledWordEmbedding(target["vocab_size"], target["hidden_size"], 0,
+                                                      embed_scale=target["hidden_size"] ** 0.5)
+                their_logits, their_hidden = theirs(original_model, embed, found)
+                self.assertEqual((tuple(their_logits.shape), tuple(their_hidden.shape)),
+                                 ((1, 1, config.vocab_size), (1, 1, config.backbone_hidden_size)))
+                built.append(label)
+        self.assertEqual(refused, ["num_attention_heads 1", "num_attention_heads 3", "num_key_value_heads 3",
+                                   "num_key_value_heads 8", "num_global_key_value_heads 3", "num_global_key_value_heads 8",
+                                   "head_dim 1", "head_dim 17", "global_head_dim 1", "global_head_dim 33", "1 layers"])
+        self.assertEqual((len(built), len(refused) + len(built)), (35, len(boundaries())))
 
 
 class RunTests(unittest.TestCase):

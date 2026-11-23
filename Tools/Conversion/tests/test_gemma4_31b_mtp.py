@@ -292,6 +292,10 @@ class PureTests(unittest.TestCase):
             with self.subTest(key=name, value=value), self.assertRaisesRegex(ValueError, name if target is
                                                                              SYNTHETIC["target"] else "target"):
                 assistant_config(document, target)
+        for name, value in (("head_dim", 17), ("global_head_dim", 33), ("head_dim", 1)):
+            document = {**SYNTHETIC["assistant"], "text_config": {**SYNTHETIC["assistant"]["text_config"], name: value}}
+            with self.subTest(key=name, odd=value), self.assertRaisesRegex(ValueError, "head widths that RoPE cannot"):
+                assistant_config(document, {**SYNTHETIC["target"], name: value})
         missing = {key: value for key, value in SYNTHETIC["assistant"]["text_config"].items() if key != "rms_norm_eps"}
         with self.assertRaisesRegex(ValueError, "rms_norm_eps"):
             assistant_config({**SYNTHETIC["assistant"], "text_config": missing}, SYNTHETIC["target"])

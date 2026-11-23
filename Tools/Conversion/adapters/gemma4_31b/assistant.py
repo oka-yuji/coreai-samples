@@ -69,6 +69,7 @@ def assistant_config(document, target):
             len(kinds) != layers or any(kind not in (SLIDING, FULL) for kind in kinds) or SLIDING not in kinds
             or FULL not in kinds,
         "query heads that are not a multiple of the key and value heads": heads % kv or heads % global_kv,
+        "head widths that RoPE cannot split into two halves": text["head_dim"] % 2 or text["global_head_dim"] % 2,
         **{f"another {name} than the target {target_name}": found[name] != target[target_name]
            for name, target_name in shared.items()}}
     if any(unsupported.values()):
