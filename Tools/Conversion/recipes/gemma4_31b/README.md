@@ -601,10 +601,11 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
   49 of the sliding-window states) at the w = min(a, 1,025) positions a − w to a − 1; `k_full` and `v_full`
   [1, 1, 4, n, 512], those of the last full-attention layer (layer 59, slot 9) at all n = a positions 0 to a − 1. The
   keys are the stored ones, after `k_norm` and RoPE. The class has no mask: the caller cuts the ranges. `outputs` and
-  `forward` check their inputs first and stop with `ValueError` (`The drafter inputs differ from the contract`) for
-  another shape or type: `hidden_states`, the keys and the values must be in the dtype of the weights of the class
-  (float16 in the export), the keys and the values of one shape, with w from 1 to `sliding_window + 1` and n from 1
-  without an upper limit.
+  `forward` check their inputs first and stop with `ValueError` (`The drafter inputs differ from the contract`) for a
+  tensor of another shape, dtype or number of dimensions (an argument that is not a tensor fails earlier, with
+  `AttributeError`): `hidden_states`, the keys and the values must be in the dtype of the weights of the class (float16
+  in the export), the keys and the values of one shape, with w from 1 to `sliding_window + 1` and n from 1 without an
+  upper limit.
 - A token enters as its row of the target table times 73.5 (the BF16 value of √5376). The query uses position a at every
   step of a round. The logits are the product with the assistant's own embedding over the whole vocabulary, without a
   soft cap.
@@ -614,14 +615,17 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
   `mtp.py` keeps the drafts up to and including the first stop token, where the original generator stops. The output of
   `post_projection` is no output of the function: the hidden state of the next round comes from the target.
 - `export(drafters, context)` stages one function `draft_<steps>` per drafter with the steps of `staged` in `export.py`,
-  so the drafters need different `steps` (the same `steps` twice stops with `ValueError`: `A program with
-  entrypoint_name='draft_1' is already staged`). w (declared from 1 to `sliding_window + 1`, that is 1,025 for the
-  assistant of the 31B model) and n (declared from 1 to `context`) are the dynamic dimensions of its inputs, which take
-  the dtype of the weights of the class (float16 in `mtp.py export`). It traces each function with example inputs of 5
-  sliding-window positions and 9 full-attention positions, so `sliding_window` must be at least 4 and `context` at least
-  9: with less, the example lies outside the declared range and the converter stops with `RuntimeError` (`Your model
-  failed to export: 5 not in range [2, 4]` for a window of 3, `9 not in range [2, 8]` for a `context` of 8, with
-  `coreai-torch` 0.4.3). The assistant of the 31B model (window 1,024) and the synthetic model of `mtp.py export`
+  so the drafters need different `steps`: the converter refuses two functions of one name (seen for two drafters of 1, 2
+  and 7 steps, each a `ValueError`: `A program with entrypoint_name='draft_1' is already staged`). w (declared from 1 to
+  `sliding_window + 1`, that is 1,025 for the assistant of the 31B model) and n (declared from 1 to `context`) are the
+  dynamic dimensions of its inputs, which take the dtype of the weights of the class (float16 in `mtp.py export`). It
+  traces each function with example inputs of 5 sliding-window positions and 9 full-attention positions, so
+  `sliding_window` must be at least 4 and `context` at least 9. With less, `export` stops with an error from
+  `torch.export` or the converter and returns nothing. Seen with torch 2.9.0 and `coreai-torch` 0.4.3: windows 1 to 3
+  and a `context` of 2 to 8 stop with `RuntimeError` (for example `Your model failed to export: 5 not in range [2, 4]`
+  for a window of 3 and `9 not in range [2, 8]` for a `context` of 8), and a `context` of 1, 0 or −1 stops earlier with
+  `AssertionError` (for 1: `Cannot create Dim with inconsistent min=1, max=1`), which `torch.export.Dim` raises before
+  the converter is called. The assistant of the 31B model (window 1,024) and the synthetic model of `mtp.py export`
   (window 1,024, `--context` above 1,025) meet both bounds.
 
 ### Comparison with the original drafter
