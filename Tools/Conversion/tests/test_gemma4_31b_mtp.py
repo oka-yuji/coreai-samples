@@ -506,6 +506,11 @@ class RecordTests(unittest.TestCase):
             with self.subTest(change=label), self.assertRaisesRegex(ValueError, f"tokens per round .*{name}"):
                 mtp.published(path, 7, ["alpha", "beta"])
         changed = json.loads(json.dumps(level))
+        changed["alpha"].update(rounds=2, tokens=2, tokens_per_round=True)
+        write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": changed}}})
+        with self.assertRaisesRegex(ValueError, "tokens per round .*alpha"):
+            mtp.published(path, 7, ["alpha", "beta"])
+        changed = json.loads(json.dumps(level))
         changed["alpha"].update(rounds=True)
         write_json(path, {"per_round_on_teacher_path": {"mtp_fixed": {"7": changed}}})
         with self.assertRaisesRegex(ValueError, "no per-round values"):
