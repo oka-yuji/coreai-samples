@@ -1,5 +1,7 @@
 import copy
+import io
 import itertools
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -414,6 +416,18 @@ class RunTests(unittest.TestCase):
             write_json(path, record)
             result = mtp.acceptance(*arguments, 7)
             self.assertEqual(len(result["problems"]), 2)
+            stopped = {"schema", "problems", "steps", "stops", "position", "window", "model", "assistant", "records",
+                       "weights"}
+            with mock.patch.object(mtp, "loaded_features", side_effect=OSError("a message with details")):
+                failed = mtp.acceptance(*arguments, 7)
+                with mock.patch("sys.argv", ["mtp", "acceptance", "--model", str(arguments[0]), "--assistant",
+                                             str(arguments[1]), "--snapshot", str(arguments[2]), "--assistant-snapshot",
+                                             str(arguments[3]), "--records", str(arguments[4]), "--inputs",
+                                             str(arguments[5]), "--outputs", str(arguments[6]), "--steps", "7"]), \
+                        mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
+                    code = mtp.main()
+            self.assertEqual((failed["problems"], set(failed)), (["the acceptance stopped with OSError"], stopped))
+            self.assertEqual((json.loads(printed.getvalue()), code), (failed, 1))
             self.assertEqual([result["categories"][name]["anchors_with_other_acceptance"] for name in ("alpha", "beta",
                                                                                                         "pooled")],
                              [0, 1, 1])

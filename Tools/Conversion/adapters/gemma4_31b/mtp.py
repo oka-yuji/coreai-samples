@@ -545,8 +545,6 @@ def canonical(value):
 
 
 def compare(original, model_class, contract_path, assistant_path, snapshot, records, steps):
-    import numpy as np
-
     check_steps(steps)
     (contract, contract_sha256), (assistant, assistant_sha256) = target_contract(contract_path), load_assistant(
         assistant_path)
@@ -561,6 +559,17 @@ def compare(original, model_class, contract_path, assistant_path, snapshot, reco
                              {entry["id"]: digest(feature_path(records, entry["id"])) for entry in chosen}),
                 "weights": WEIGHTS, "embed_scale": rounded_scale(config["hidden_size"]), "rows": rows}
     folders, problems = {"original": Path(original), "class": Path(model_class)}, []
+    try:
+        return compared(folders, expected, config, steps, problems)
+    except Exception as error:
+        return {"schema": COMPARISON, "passed": False,
+                "problems": problems + [f"the comparison stopped with {type(error).__name__}"]}
+
+
+def compared(folders, expected, config, steps, problems):
+    import numpy as np
+
+    rows = expected["rows"]
     runs = {kind: loaded_run(folder, kind, problems) for kind, folder in folders.items()}
     found, arrays, hashes = ({kind: value[index] for kind, value in runs.items()} for index in (0, 1, 2))
     for kind, record in found.items():
@@ -601,7 +610,7 @@ def compare(original, model_class, contract_path, assistant_path, snapshot, reco
     ratios = [result["projection_ratio"] for result in results]
     return {"schema": COMPARISON, "passed": all(all(result["checks"].values()) for result in results), "problems": [],
             "criteria": {"max_abs_logit": LOGIT_LIMIT, "projection_ratio": RATIO}, "steps": steps,
-            "stops": expected["stops"], "window": place["window"], "rows": results,
+            "stops": expected["stops"], "window": expected["window"], "rows": results,
             "summary": {"rows": len(results), "items": len({result["id"] for result in results}),
                         "max_abs_logit": max(result["max_abs_logit"] for result in results),
                         "largest_projection_ratio": None if None in ratios else max(ratios),
@@ -666,50 +675,57 @@ def acceptance(contract_path, assistant_path, snapshot, assistant_snapshot, reco
     config, place, stops = contract["config"], layout(contract["config"]), set(contract["config"]["eos_token_id"])
     reference = published(Path(records) / "trajectories.json", steps, subset["counts"])
     drafts = {item["id"]: draft_rows(Path(records) / "drafters" / f"{item['id']}.json", item) for item in items}
-    started = time.perf_counter()
-    model = class_drafter(assistant_snapshot, table(shard, config), config, steps)
-    loaded = time.perf_counter()
-    totals = {name: {"items": 0, "anchors": 0, "rounds": 0, "tokens": 0, "reference_rounds": 0, "reference_tokens": 0,
-                     "margins": []} for name in [*subset["counts"], "pooled"]}
-    for item in items:
-        features, prompt, length = loaded_features(item), len(item["input_ids"]), len(item["teacher"])
-        ours, theirs, margins = [], [], []
-        for anchor in range(prompt, prompt + length - 1):
-            with torch.no_grad():
-                tokens = cut(model(*row_inputs(item, features, anchor, place["window"])["arguments"])[0].tolist(), stops)
-            fixed = drafts[item["id"]][anchor - prompt]
-            ours.append(matches(tokens, item["teacher"][anchor - prompt + 1:anchor - prompt + 1 + steps]))
-            theirs.append(min(fixed["accepted"], steps))
-            if ours[-1] != theirs[-1]:
-                step = matches(tokens, fixed["tokens"])
-                margins.append(fixed["margins"][step] if step < len(fixed["margins"]) else None)
-        del features
-        counted = (simulate(ours, length, steps), simulate(theirs, length, steps))
-        for name in (item["category"], "pooled"):
-            entry = totals[name]
-            entry.update(items=entry["items"] + 1, anchors=entry["anchors"] + length - 1,
-                         rounds=entry["rounds"] + counted[0][0], tokens=entry["tokens"] + counted[0][1],
-                         reference_rounds=entry["reference_rounds"] + counted[1][0],
-                         reference_tokens=entry["reference_tokens"] + counted[1][1], margins=entry["margins"] + margins)
-    problems = [f"{name}: the drafter records of #691 give {entry['reference_rounds']} rounds and "
-                f"{entry['reference_tokens']} tokens, not the {reference[name]['rounds']} and "
-                f"{reference[name]['tokens']} of trajectories.json" for name, entry in totals.items()
-                if (entry["reference_rounds"], entry["reference_tokens"])
-                != (reference[name]["rounds"], reference[name]["tokens"])]
-    categories = {}
-    for name, entry in totals.items():
-        known = [margin for margin in entry["margins"] if margin is not None]
-        per_round = entry["tokens"] / entry["rounds"] if entry["rounds"] else None
-        categories[name] = {"items": entry["items"], "anchors": entry["anchors"], "rounds": entry["rounds"],
-                            "tokens": entry["tokens"], "tokens_per_round": per_round, "reference": dict(reference[name]),
-                            "anchors_with_other_acceptance": len(entry["margins"]),
-                            "reference_margins_at_the_first_other_draft": {
-                                "known": len(known), "largest": max(known) if known else None,
-                                "at_most_0.25": sum(margin <= 0.25 for margin in known)}}
-    return {"schema": ACCEPTANCE, "problems": problems, "steps": steps, "stops": sorted(stops), "position": "fixed",
-            "window": place["window"], **sources, "weights": WEIGHTS, "categories": categories,
-            "versions": versions("class"), "timing": {"load_s": loaded - started, "drafts_s": time.perf_counter() - loaded},
-            "memory": memory()}
+    started, problems = time.perf_counter(), []
+    result = {"schema": ACCEPTANCE, "problems": problems, "steps": steps, "stops": sorted(stops), "position": "fixed",
+              "window": place["window"], **sources, "weights": WEIGHTS}
+    try:
+        model = class_drafter(assistant_snapshot, table(shard, config), config, steps)
+        loaded = time.perf_counter()
+        totals = {name: {"items": 0, "anchors": 0, "rounds": 0, "tokens": 0, "reference_rounds": 0,
+                         "reference_tokens": 0, "margins": []} for name in [*subset["counts"], "pooled"]}
+        for item in items:
+            features, prompt, length = loaded_features(item), len(item["input_ids"]), len(item["teacher"])
+            ours, theirs, margins = [], [], []
+            for anchor in range(prompt, prompt + length - 1):
+                with torch.no_grad():
+                    tokens = cut(model(*row_inputs(item, features, anchor, place["window"])["arguments"])[0].tolist(),
+                                 stops)
+                fixed = drafts[item["id"]][anchor - prompt]
+                ours.append(matches(tokens, item["teacher"][anchor - prompt + 1:anchor - prompt + 1 + steps]))
+                theirs.append(min(fixed["accepted"], steps))
+                if ours[-1] != theirs[-1]:
+                    step = matches(tokens, fixed["tokens"])
+                    margins.append(fixed["margins"][step] if step < len(fixed["margins"]) else None)
+            del features
+            counted = (simulate(ours, length, steps), simulate(theirs, length, steps))
+            for name in (item["category"], "pooled"):
+                entry = totals[name]
+                entry.update(items=entry["items"] + 1, anchors=entry["anchors"] + length - 1,
+                             rounds=entry["rounds"] + counted[0][0], tokens=entry["tokens"] + counted[0][1],
+                             reference_rounds=entry["reference_rounds"] + counted[1][0],
+                             reference_tokens=entry["reference_tokens"] + counted[1][1],
+                             margins=entry["margins"] + margins)
+        problems += [f"{name}: the drafter records of #691 give {entry['reference_rounds']} rounds and "
+                     f"{entry['reference_tokens']} tokens, not the {reference[name]['rounds']} and "
+                     f"{reference[name]['tokens']} of trajectories.json" for name, entry in totals.items()
+                     if (entry["reference_rounds"], entry["reference_tokens"])
+                     != (reference[name]["rounds"], reference[name]["tokens"])]
+        categories = {}
+        for name, entry in totals.items():
+            known = [margin for margin in entry["margins"] if margin is not None]
+            categories[name] = {"items": entry["items"], "anchors": entry["anchors"], "rounds": entry["rounds"],
+                                "tokens": entry["tokens"],
+                                "tokens_per_round": entry["tokens"] / entry["rounds"] if entry["rounds"] else None,
+                                "reference": dict(reference[name]),
+                                "anchors_with_other_acceptance": len(entry["margins"]),
+                                "reference_margins_at_the_first_other_draft": {
+                                    "known": len(known), "largest": max(known) if known else None,
+                                    "at_most_0.25": sum(margin <= 0.25 for margin in known)}}
+        result.update(categories=categories, versions=versions("class"),
+                      timing={"load_s": loaded - started, "drafts_s": time.perf_counter() - loaded}, memory=memory())
+    except Exception as error:
+        problems.append(f"the acceptance stopped with {type(error).__name__}")
+    return result
 
 
 def expected_function(config, steps):

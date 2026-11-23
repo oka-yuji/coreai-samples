@@ -620,6 +620,67 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(result["problems"], ["the class logits are not one array"])
         json.dumps(result, allow_nan=False)
 
+    def test_any_content_of_the_runs_gives_a_result_with_its_problems_that_json_can_hold(self):
+        def saved(array):
+            buffer = io.BytesIO()
+            np.save(buffer, array, allow_pickle=True)
+            return buffer.getvalue()
+
+        logits, vocabulary = self.arrays["class"]["logits"], CONFIG["vocab_size"]
+        files = {"a pickled object array": ("logits", saved(np.array([{"a": 1}], dtype=object)),
+                                            "the class logits cannot be read (ValueError)"),
+                 "a zero-dimensional array": ("logits", saved(np.float32(1.0)),
+                                              f"the class logits are float32 [], not float32 [8, {vocabulary}]"),
+                 "an empty array": ("logits", saved(logits[:0]),
+                                    f"the class logits are float32 [0, {vocabulary}], not float32 [8, {vocabulary}]"),
+                 "an array of another row count": ("logits", saved(logits[:7]), f"the class logits are float32 "
+                                                   f"[7, {vocabulary}], not float32 [8, {vocabulary}]"),
+                 "projections that are all NaN": ("projected", saved(np.full((8, CONFIG["hidden_size"]), np.nan,
+                                                                             np.float32)),
+                                                  "the class projected hold non-finite values"),
+                 "drafts as text": ("drafts", saved(np.full((8, 3), "a")), "the class drafts are <U1 [8, 3], not int32 "
+                                    "[8, 3]")}
+        for label, (name, data, problem) in files.items():
+            name_of = label.replace(" ", "-")
+            self.pair(name_of)
+            self.replaced(name_of, "class", name, data)
+            result = self.compare(name_of)
+            with self.subTest(case=label):
+                self.assertFalse(result["passed"])
+                self.assertIn(problem, result["problems"])
+                json.dumps(result, allow_nan=False)
+
+        def huge(arrays):
+            arrays["original"]["logits"][0] = -np.finfo(np.float32).max
+            arrays["class"]["logits"][0] = np.finfo(np.float32).max
+
+        def zero(arrays):
+            for kind in mtp.IMPLEMENTATIONS:
+                arrays[kind]["projected"][:] = 0.0
+
+        for label, (change, passed) in {"logits at the largest float32 values": (huge, False),
+                                        "projections that are all zero": (zero, True)}.items():
+            result = self.pair(label.replace(" ", "-"), change)
+            with self.subTest(case=label):
+                self.assertEqual((result["passed"], result["problems"]), (passed, []))
+                self.assertTrue(math.isfinite(result["summary"]["max_abs_logit"]))
+                json.dumps(result, allow_nan=False)
+        self.pair("listed")
+        write_json(self.folder / "listed/class/record.json", [])
+        self.assertEqual(self.compare("listed")["problems"], ["the class run holds another record"])
+        self.pair("unexpected")
+        with mock.patch.object(mtp, "cut", side_effect=RuntimeError("a message with details")):
+            result = self.compare("unexpected")
+            arguments = ["mtp", "compare", "--original", str(self.folder / "unexpected/original"), "--model-class",
+                         str(self.folder / "unexpected/class"), "--model", str(self.folder / "model.json"),
+                         "--assistant", str(self.folder / "assistant.json"), "--snapshot", str(self.folder / "target"),
+                         "--records", str(self.folder / "records"), "--steps", "3"]
+            with mock.patch("sys.argv", arguments), mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
+                code = mtp.main()
+        self.assertEqual(result, {"schema": mtp.COMPARISON, "passed": False,
+                                  "problems": ["the comparison stopped with RuntimeError"]})
+        self.assertEqual((json.loads(printed.getvalue()), code), (result, 1))
+
     def test_a_zero_original_projection_passes_only_with_a_zero_class_projection_and_the_summary_holds_either(self):
         def zero(value):
             def change(arrays):
