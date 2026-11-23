@@ -56,6 +56,6 @@ struct FunctionInput: Equatable {
     }
 
     private static func isFileName(_ file: String) -> Bool {
-        !file.isEmpty && file != "." && file != ".." && !file.contains("/") && !file.contains("\u{0}")
+        !file.isEmpty && file != "." && file != ".." && !file.utf8.contains(0x2F) && !file.utf8.contains(0)
     }
 }

@@ -13,11 +13,12 @@ import Testing
         defer { fixture.remove() }
         let source = FakeFunctionSource()
         let error = await #expect(throws: FunctionError.self) { try await fixture.run(source, folderMode: 0) }
-        guard case .cannot(let action, _) = try #require(error) else {
+        guard case .cannot(let action, let reason) = try #require(error) else {
             Issue.record("The error is not a refusal to write: \(String(describing: error))")
             return
         }
         #expect(action == "write the failure record")
+        #expect(!reason.contains("could not be removed"))
         #expect(source.calls == ["describe"])
         #expect(!FunctionFixture.exists(fixture.output))
     }

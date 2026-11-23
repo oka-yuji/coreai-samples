@@ -28,8 +28,11 @@ enum FunctionRun {
         do {
             try FunctionFailureRecord(kind: .incomplete).write(to: output)
         } catch {
-            rmdir(path)
-            throw FunctionError.cannot("write the failure record", error.localizedDescription)
+            var reason = error.localizedDescription
+            if rmdir(path) != 0 {
+                reason += "; the output folder could not be removed: \(String(cString: strerror(errno)))"
+            }
+            throw FunctionError.cannot("write the failure record", reason)
         }
         var stage = FunctionFailureRecord.Kind.load
         do {
@@ -73,7 +76,7 @@ enum FunctionRun {
 
     private static func fileName(for name: String) throws -> String {
         let file = name + ".bin"
-        guard !name.isEmpty, !name.contains("/"), !name.contains("\u{0}"), file.utf8.count <= Int(NAME_MAX) else {
+        guard !name.isEmpty, !name.utf8.contains(0x2F), !name.utf8.contains(0), file.utf8.count <= Int(NAME_MAX) else {
             throw FunctionError.unusableOutputName(name)
         }
         return file

@@ -130,10 +130,11 @@ import Testing
     }
 
     @Test(
-        "A file that is not the name of a file in the folder of the inputs file is rejected: empty, with a slash or a NUL character, or a dot or two",
+        "A file that is not the name of a file in the folder of the inputs file is rejected: empty, with a slash (also one that a combining mark follows) or a NUL character, or a dot or two",
         arguments: [
             #""""#, #""/a.bin""#, #""/""#, #""../a.bin""#, #""a/../b.bin""#, #""a/..""#, #""..""#, #"".""#,
             #""./a.bin""#, #""sub/a.bin""#, #""a/""#, #""a/b/c.bin""#, #""a\u0000b""#, #""\u0000""#,
+            #""a/\u0301b""#, #""/\u0301""#, #""a\u0000\u0301""#,
         ])
     func rejectsAFileThatIsNotAFileName(file: String) throws {
         #expect(
@@ -142,8 +143,10 @@ import Testing
     }
 
     @Test(
-        "A file that is a name with dots, spaces or a leading dot is read as it is",
-        arguments: ["a.bin", "..a", "a..", "a..b", ".hidden", "...", "a b.bin", "-a", "~"])
+        "A file that is a name with dots, spaces, a leading dot or a combining mark is read as it is",
+        arguments: [
+            "a.bin", "..a", "a..", "a..b", ".hidden", "...", "a b.bin", "-a", "~", ".\u{0301}", "e\u{0301}.bin",
+        ])
     func readsAFileName(file: String) throws {
         #expect(try FunctionInput.read(list(entry(file: #""\#(file)""#))).map(\.file) == [file])
     }

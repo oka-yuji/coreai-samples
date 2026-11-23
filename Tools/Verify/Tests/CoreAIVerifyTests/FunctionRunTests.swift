@@ -52,18 +52,20 @@ import Testing
         #expect(!FunctionFixture.exists(fixture.output))
     }
 
-    @Test("An input file that is named through a link to another folder is rejected before the asset is opened")
-    func rejectsAFileThroughAFolderLink() async throws {
+    @Test(
+        "An input file that is named through a link to another folder is rejected before the asset is opened, also when a combining mark follows the slash",
+        arguments: ["keys.bin", "\u{0301}keys.bin"])
+    func rejectsAFileThroughAFolderLink(name: String) async throws {
         let fixture = try FunctionFixture()
         defer { fixture.remove() }
         let elsewhere = fixture.url("elsewhere")
         try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: false)
         let keys = FunctionFixture.inputs[2]
-        try FunctionFixture.data(keys).write(to: elsewhere.appending(path: "keys.bin"))
+        try FunctionFixture.data(keys).write(to: elsewhere.appending(path: name))
         try FileManager.default.createSymbolicLink(at: fixture.url("link"), withDestinationURL: elsewhere)
         try fixture.writeList(
             Array(FunctionFixture.inputs.dropLast())
-                + [FunctionInput(name: keys.name, dtype: keys.dtype, shape: keys.shape, file: "link/keys.bin")])
+                + [FunctionInput(name: keys.name, dtype: keys.dtype, shape: keys.shape, file: "link/" + name)])
         let source = FakeFunctionSource()
         let error = await #expect(throws: FunctionError.self) { try await fixture.run(source) }
         guard case .invalidList(let reason) = try #require(error) else {
@@ -375,9 +377,13 @@ import Testing
     }
 
     @Test(
-        "An output name that cannot be a file name is rejected after the call, before any output file is written, with a failure record of the kind write",
-        arguments: ["a/b", "", "x\u{0}y", "/abs", String(repeating: "a", count: 252)])
-    func rejectsAnUnusableOutputName(name: String) async throws {
+        "An output name that cannot be a file name, native or bridged from Objective-C, is rejected after the call, before any output file is written, with a failure record of the kind write",
+        arguments: [
+            "a/b", "", "x\u{0}y", "/abs", "a/\u{0301}b", "/\u{0301}", "x\u{0}\u{0301}",
+            String(repeating: "a", count: 252),
+        ], [false, true])
+    func rejectsAnUnusableOutputName(text: String, bridged: Bool) async throws {
+        let name = bridged ? NSString(string: text) as String : text
         let fixture = try FunctionFixture()
         defer { fixture.remove() }
         let valid = FunctionTensor(name: "ok", dtype: .int32, shape: [1], data: FunctionFixture.integers([1]))

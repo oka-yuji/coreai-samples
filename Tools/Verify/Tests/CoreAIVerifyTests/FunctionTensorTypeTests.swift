@@ -28,7 +28,9 @@ import Testing
             "NDArray (Int32, 1 \u{D7})", "NDArray (Int32, \u{D7} 1)", "NDArray (Int32, 1 x 1)",
             "NDArray (Int32, 1 \u{D7} a)",
             "NDArray (Int32, 1 \u{D7} -1)", "NDArray (Int32, 1 \u{D7} +1)", "NDArray (Int32, 1 \u{D7} 1.5)",
-            "NDArray (Int32, 1 \u{D7} ??)",
+            "NDArray (Int32, 1 \u{D7} ??)", "NDArray (Int32, 1 \u{D7}\u{0301} 2)",
+            "NDArray (Int32,\u{0301} 1 \u{D7} 2)",
+            "NDArray (Int32, 1 \u{D7} 2)\u{0301}",
         ])
     func rejectsOtherTexts(text: String) {
         #expect(FunctionTensorType(typeName: text) == nil)
