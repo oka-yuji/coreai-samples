@@ -10,7 +10,8 @@ with dynamic shapes, with a tool that compares the first layers of that class wi
 FP32 ([Converter environment and model class](#converter-environment-and-model-class)). A second recipe,
 `recipe-fp16.json`, exports the first layers to a dynamic-shape FP16 Core AI bundle with the outputs that the drafters
 of speculative decoding read, and compares the logits of the own engine with an FP32 reference of the same layers
-([FP16 export of the first layers](#fp16-export-of-the-first-layers)).
+([FP16 export of the first layers](#fp16-export-of-the-first-layers)). A model class of the MTP drafter is compared with
+the original drafter in FP32 ([MTP drafter](#mtp-drafter)).
 
 - `model.json`: the contract. It pins the size and SHA-256 of all twelve files of the revision, the main
   text configuration values (60 layers as five sliding-window layers followed by one full-attention layer,
@@ -19,6 +20,7 @@ of speculative decoding read, and compares the logits of the own engine with an 
   tied embeddings, BOS 2 and stop tokens 1, 106 and 50), the distributed tokenizer files, the reference
   precision and the upstream converter revision `c8e00c01800ba6ad324707007f7af358efc980a4` of the converter
   environment. A snapshot that differs fails; the contract is not adjusted to the files.
+- `assistant.json`: the revision of the MTP drafter and the size and SHA-256 of the two files of it that are read.
 - `fixtures.json`: the twelve diagnostic cases (Japanese and English conversations, code, JSON extraction,
   a long Japanese input built from numbered paragraphs, a one-word turn and a raw continuation). All text
   is self-written.
@@ -408,7 +410,8 @@ synthetic model.
 
 ### Tests
 
-The tests of the model class are in `Tools/Conversion/tests/export_gemma4_31b_model.py`. The default pattern of
+The tests of the model class are in `Tools/Conversion/tests/export_gemma4_31b_model.py`, those of the drafter class in
+`Tools/Conversion/tests/export_gemma4_31b_drafter.py`. The default pattern of
 `unittest discover` (`test*.py`) does not collect them; run them in the converter environment, where
 `test_gemma4_31b_layers.py` also runs, and run every `test_gemma4_31b_*.py` in the reference environment:
 
@@ -541,6 +544,105 @@ that the manifest of its stage recorded, that the two runs, the reference and ev
 criterion is printed with `passed` false, as a failed condition of the own engine is; `SummaryTests` in
 `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-in-the-first-six-layers-695).
+
+## MTP drafter
+
+`adapters/gemma4_31b/drafter.py` defines `Gemma4AssistantDrafter`, a model class of the MTP drafter
+[google/gemma-4-31B-it-assistant](https://huggingface.co/google/gemma-4-31B-it-assistant) for a macOS export with
+dynamic shapes. It imports the converter, so it runs only in the converter environment. `adapters/gemma4_31b/mtp.py`
+compares it in FP32 with the drafter of the reference environment (Transformers 5.16.1) on the features that #691
+recorded, follows the accepted drafts on the teacher path, and exports a synthetic drafter. `assistant.json` pins the
+revision `627c5ec1458b9086b841a91e0512fd31fd2fbbf1` and the size and SHA-256 of the two files that are read,
+`config.json` and `model.safetensors`. The runs check them, and the index and the shard of `model.json` that hold the
+embedding table of the target, before they create a folder or read a weight.
+
+### Drafter class
+
+- `Gemma4AssistantDrafter(assistant_config(<config.json>, <target>), steps)`: the target is the values of `model.json`
+  that the drafter reads (`TARGET`), and `steps`, the number of drafts, has no default. `assistant_config` stops with
+  `ValueError` for a configuration that the class does not cover.
+- Inputs, in this order: `input_ids` int32 [1, 1], the last confirmed token at position a; `hidden_states`
+  [1, 1, 5376], the output of the final norm of the target at position a − 1; `position_ids` int32 [1, 1], the value a;
+  `k_sliding` and `v_sliding` [1, 1, 16, w, 256], the keys and values of the last sliding-window layer of the target
+  (layer 58, slot 49 of the sliding-window states) at the last w = min(a, 1,025) confirmed positions; `k_full` and
+  `v_full` [1, 1, 4, n, 512], those of the last full-attention layer (layer 59, slot 9) at all n = a confirmed
+  positions. The keys are the stored ones, after `k_norm` and RoPE. The class has no mask: the caller cuts the ranges.
+- A token enters as its row of the target table times 73.5 (the BF16 value of √5376). The query uses position a at every
+  step of a round. The logits are the product with the assistant's own embedding over the whole vocabulary, without a
+  soft cap.
+- `outputs(...)` returns the logits [1, 1, 262144] and the output of `post_projection` [1, 1, 5376] of one step.
+  `forward(...)` returns `draft_tokens` int32 [1, steps]: each step reads the argmax token and the `post_projection`
+  output of the step before, with the same keys, values and position. Steps after a stop token are computed;
+  `cut` in `mtp.py` keeps the drafts up to the first stop token, where the original generator stops. The output of
+  `post_projection` is no output of the function: the hidden state of the next round comes from the target.
+- `export(drafters, context)` stages one function `draft_<steps>` per drafter with the steps of `staged` in `export.py`;
+  w (1 to 1,025) and n (1 to `context`) are its dynamic dimensions.
+
+### Comparison with the original drafter
+
+Run both implementations under the shared machine lock, which the tools do not take themselves, then compare them:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp run --implementation original \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --assistant-snapshot .local/conversion/models/google--gemma-4-31B-it-assistant --records <records of #691> \
+  --inputs <inputs.jsonl> --outputs <outputs.jsonl> --steps 7 --output <new folder>/original
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp run \
+  --implementation class <the same arguments> --output <new folder>/class
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp compare \
+  --original <new folder>/original --model-class <new folder>/class \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json > <new folder>/comparison.json
+~~~
+
+- `--records` is the record folder of #691: `subset.json` (48 items of the primary set of the quality contract with
+  the SHA-256 of their input and output records) and `tf/features/<id>.safetensors` (the BF16 features of the original
+  implementation under teacher forcing: `postnorm`, the output of the final norm, and the keys and values `k58`, `v58`,
+  `k59` and `v59`). `--inputs` and `--outputs` are the input records and the outputs of the reference run of the set.
+- Rows: the first item of each category in the numeric order of the ids, and in each item the anchors at the first
+  output token, at a third and two thirds of the output and at the last output token, without repeats.
+- Every checkpoint tensor is rounded to float16 and computed in float32 on the CPU. The original implementation gets the
+  sliding-window keys and values of every recorded position up to a − 1 and keeps the last 1,025 with its own mask; its
+  drafts come from its MTP generator `SinglePositionMultiTokenCandidateGenerator` with the stop tokens of `model.json`.
+- `run` writes into a new folder `logits.npy`, `projected.npy`, `drafts.npy` (the generator drafts, padded with −1, or
+  the unrolled drafts of the class), `repeated.npy` (the class only: `outputs` repeated `steps` times) and last
+  `record.json`, or `failure.json` with the name of the error when it stops after making the folder.
+- `compare` passes when every row has a largest absolute logit difference below 1e-3, a largest absolute difference of
+  the `post_projection` output below 1e-3 times its largest absolute value in the original implementation, and unrolled
+  drafts equal to the repeated ones. It also records per row whether the argmax is the same and whether the cut
+  unrolled drafts equal the generator drafts. It prints its JSON result, and the exit code is 0 only when it passed.
+
+`CompareTests`, `RecordTests` and `RefusalTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix the records and
+the criteria; `OneStepTests`, `UnrolledTests`, `ContractTests` and `RunTests` in
+`Tools/Conversion/tests/export_gemma4_31b_drafter.py` compare the class with the original drafter of the converter
+environment on a synthetic assistant (limit 1e-4), with positions 1 to 16,895 and the window edge.
+
+### Accepted drafts on the teacher path
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
+  acceptance <the arguments of run without --implementation and --output> > <new file>.json
+~~~
+
+It drafts with the unrolled class at every anchor of the 48 items, cuts after the first stop token and counts the
+drafts that match the teacher, the reference output. Along the teacher path, a round accepts at most `steps` drafts and
+adds one token of the target; per category it prints the rounds, the tokens and the tokens per round, next to those of
+#691 (`drafters/<id>.json` and `trajectories.json` of `--records`), the anchors whose accepted drafts differ from the
+records of #691, and the top-two margin that #691 recorded at the first draft that differs. `problems` lists categories
+where the per-anchor records of #691 do not give their `trajectories.json`. The values are records, not criteria.
+
+### Export of a synthetic drafter
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp export \
+  --steps 7 --context 16896 --seed 11 --output <new folder>
+~~~
+
+It converts the class with random weights of `SYNTHETIC` in FP16 as one step (`draft_1`), unrolled (`draft_<steps>`) and
+both functions in one asset, inspects each asset and writes `export.json` with the functions, their inputs and outputs,
+the storage types, the operations and the sizes. The exit code is 0 only when every asset has the expected functions,
+names, shapes and dynamic positions. `ExportTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py` runs it.
+The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-class-704).
 
 ## Terms
 

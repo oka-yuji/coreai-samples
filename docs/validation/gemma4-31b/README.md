@@ -706,3 +706,133 @@ The caches took 21,660,884 KiB (`resources.bin` 22,163,497,512 B) and 16,962,064
   --report <report.json> --export <export.json> --comparison <comparison.json> \
   > docs/validation/gemma4-31b/taps-first-layers-20261123.json
 ~~~
+
+## MTP drafter class (#704)
+
+This section copies the numbers of the drafter class of the recipe for the MTP drafter
+`google/gemma-4-31B-it-assistant` ([MTP drafter](../../../Tools/Conversion/recipes/gemma4_31b/README.md#mtp-drafter)):
+its comparison with the drafter of the original implementation on the features that #691 recorded, the accepted drafts
+on the teacher path, and the export of a synthetic drafter. The class is the drafter in PyTorch; no Core AI asset of the
+real weights was made or run here.
+[`mtp-drafter-comparison-20261123.json`](mtp-drafter-comparison-20261123.json),
+[`mtp-drafter-acceptance-20261123.json`](mtp-drafter-acceptance-20261123.json) and
+[`mtp-drafter-export-20261123.json`](mtp-drafter-export-20261123.json) are the JSON results of `mtp.py compare`,
+`acceptance` and `export`. They hold item ids, positions, numbers, hashes, versions and fixed names, and no token ids,
+text, local paths, commands or environment variables; the run folders and arrays stay in the local work directory.
+
+### Conditions
+
+- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power. The four runs held the shared machine
+  lock in one session (2026-11-23 12:25:53 to 12:36:53 JST) and no other model process ran; the times below are records,
+  not measurements.
+- Commit 12b82c08 with no local changes. The reference environment of the recipe (torch 2.15.0, transformers 5.16.1)
+  ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers 5.12.1,
+  coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted drafts and
+  the export.
+- `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`) and the embedding table
+  of `model-00001-of-00002.safetensors` of the pinned target, every tensor rounded to float16 and computed in float32
+  on the CPU. The features are those of #691: the original implementation in BF16 on MPS under teacher forcing with the
+  reference outputs of 48 items of the primary set. Seven draft steps, stop tokens 1, 106 and 50.
+
+### Drafter class and original drafter
+
+On a synthetic assistant (`OneStepTests` and `UnrolledTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py`,
+against the drafter of Transformers 5.12.1), the logits and the `post_projection` output of one step were equal to those
+of the original drafter, a largest absolute difference of 0.0, at positions 1, 1,024, 1,025, 1,026, 4,000 and 16,895 and
+with large values at both sides of the window edge, and the unrolled drafts of 1, 2 and 7 steps were those of the
+original generator. On the real weights the comparison passed for 47 rows of 13 items, the first item of each category:
+
+| Item | Anchors a (output index) | w | Largest absolute logit difference | Largest projection ratio |
+|---|---|---|---:|---:|
+| `ja-choice-0001` | 91 (0) | 91 | 1.14e-05 | 3.40e-07 |
+| `ja-reading-0001` | 156 (0), 157 (1) | 156, 157 | 1.53e-05 | 3.24e-07 |
+| `code-gen-he-0001` | 176 (0), 239 (63), 303 (127), 366 (190) | 176, 239, 303, 366 | 1.53e-05 | 3.82e-07 |
+| `code-gen-mbpp-0001` | 202 (0), 225 (23), 248 (46), 271 (69) | 202, 225, 248, 271 | 1.53e-05 | 2.26e-07 |
+| `code-fix-0001` | 242 (0), 257 (15), 272 (30), 287 (45) | 242, 257, 272, 287 | 9.54e-06 | 1.90e-07 |
+| `extract-ja-0001` | 137 (0), 172 (35), 208 (71), 243 (106) | 137, 172, 208, 243 | 1.53e-05 | 2.46e-07 |
+| `long-ja-4k-0001` | 3,647 (0), 3,648 (1), 3,649 (2), 3,650 (3) | 1,025 | 1.14e-05 | 2.36e-07 |
+| `long-ja-16k-0001` | 14,875 (0), 14,876 (1), 14,878 (3), 14,879 (4) | 1,025 | 9.54e-06 | 3.89e-07 |
+| `synth-extract-0001` | 209 (0), 294 (85), 380 (171), 465 (256) | 209, 294, 380, 465 | 1.91e-05 | 3.72e-07 |
+| `synth-format-0001` | 120 (0), 129 (9), 138 (18), 147 (27) | 120, 129, 138, 147 | 6.68e-06 | 3.15e-07 |
+| `free-ja-0001` | 28 (0), 113 (85), 198 (170), 283 (255) | 28, 113, 198, 283 | 1.14e-05 | 2.98e-07 |
+| `synth-long-4k-0001` | 3,791 (0), 3,804 (13), 3,817 (26), 3,830 (39) | 1,025 | 1.14e-05 | 3.35e-07 |
+| `synth-long-16k-0001` | 15,345 (0), 15,372 (27), 15,399 (54), 15,426 (81) | 1,025 | 1.14e-05 | 3.36e-07 |
+
+The criteria are a largest absolute logit difference below 1e-3 and a projection ratio (the largest absolute difference
+of the `post_projection` output over its largest absolute value in the original drafter) below 1e-3. At all 47 rows the
+argmax was the same, the unrolled drafts of seven steps were those of one step repeated seven times, and the unrolled
+drafts cut after the first stop token were the drafts of the original generator. `ja-choice-0001` has one output token,
+so its four anchors are one. The run of the original drafter took 27.7 s (6.5 s after the files to read were hashed),
+that of the class 37.2 s (18.2 s); kernel lifetime footprint peak 28,253,917,872 B and 31,668,821,056 B.
+
+### Accepted drafts on the teacher path
+
+The class drafted seven tokens at each of the 4,462 anchors of the 48 items; a round accepts the drafts, up to the first
+stop token, that match the reference output and adds one token of the target. The rounds and the tokens of every
+category are those of #691 (the fixed position with seven drafts in §4.5 of its conclusion), which the per-anchor records
+of #691 also gave again:
+
+| Category | Items | Anchors | Rounds | Tokens | Tokens per round | #691: rounds, tokens, tokens per round | Anchors with another accepted count | Largest #691 margin there |
+|---|---:|---:|---:|---:|---:|---|---:|---:|
+| ja-choice | 4 | 4 | 4 | 8 | 2.0000 | 4, 8, 2.0000 | 0 | |
+| ja-reading | 4 | 16 | 4 | 20 | 5.0000 | 4, 20, 5.0000 | 0 | |
+| code-gen-he | 4 | 585 | 82 | 589 | 7.1829 | 82, 589, 7.1829 | 2 | 0.125 |
+| code-gen-mbpp | 4 | 748 | 113 | 751 | 6.6460 | 113, 751, 6.6460 | 4 | 0.125 |
+| code-fix | 4 | 259 | 39 | 263 | 6.7436 | 39, 263, 6.7436 | 0 | |
+| extract-ja | 6 | 559 | 75 | 563 | 7.5067 | 75, 563, 7.5067 | 0 | |
+| long-ja-4k | 2 | 6 | 2 | 8 | 4.0000 | 2, 8, 4.0000 | 0 | |
+| long-ja-16k | 1 | 5 | 1 | 6 | 6.0000 | 1, 6, 6.0000 | 0 | |
+| synth-extract | 4 | 732 | 96 | 736 | 7.6667 | 96, 736, 7.6667 | 0 | |
+| synth-format | 6 | 176 | 58 | 181 | 3.1207 | 58, 181, 3.1207 | 0 | |
+| free-ja | 4 | 1,020 | 348 | 1,023 | 2.9397 | 348, 1,023, 2.9397 | 13 | 0.125 |
+| synth-long-4k | 3 | 171 | 27 | 174 | 6.4444 | 27, 174, 6.4444 | 1 | 0.0 |
+| synth-long-16k | 2 | 181 | 41 | 182 | 4.4390 | 41, 182, 4.4390 | 1 | 0.0 |
+| all | 48 | 4,462 | 890 | 4,504 | 5.0607 | 890, 4,504, 5.0607 | 21 | 0.125 |
+
+At 21 anchors the number of accepted drafts differs from the records of #691; at the first draft that differs, the
+top-two logit margin that #691 recorded in BF16 was at most 0.125 (0.0 at two anchors). These are records, not criteria.
+The run took 522.4 s (500 s of drafting); kernel lifetime footprint peak 60,470,930,752 B.
+
+### Export of a synthetic drafter
+
+`mtp.py export --steps 7 --context 16896 --seed 11` converted the class with the random weights of `SYNTHETIC`
+(vocabulary 301, hidden size 32, target width 48, 74,372 float16 parameter elements) in 71.9 s, and every asset passed
+its inspection:
+
+| Asset | Functions | Bytes | `main.mlirb` | Float16 | `argmax` | `gather_nd` | Conversion |
+|---|---|---:|---:|---:|---:|---:|---:|
+| One step | `draft_1` | 175,730 | 175,593 | 72,839 | 1 | 4 | 5.5 s |
+| Unrolled | `draft_7` | 235,337 | 235,200 | 74,375 | 7 | 10 | 29.7 s |
+| Both functions | `draft_1`, `draft_7` | 249,415 | 249,278 | 74,375 | 8 | 11 | 34.2 s |
+
+The inputs of both functions are `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 48], `position_ids` int32
+[1, 1], `k_sliding` and `v_sliding` float16 [1, 1, 2, ?, 16] and `k_full` and `v_full` float16 [1, 1, 1, ?, 32]; the
+output is `draft_tokens` int32 [1, 1] or [1, 7], and there are no states. The asset with both functions holds the
+Float16 count of the unrolled asset alone. The one-step asset holds 1,536 Float16 elements fewer, the size of the
+weight of `post_projection`, whose output one step does not read. The counts are totals over each asset.
+
+### Limits
+
+- PyTorch in float32 on the CPU with the weights rounded to float16; no Core AI asset of the real drafter, no FP16 or
+  8-bit numerics of the drafter, no timing.
+- The features are those of the original implementation in BF16 on MPS, not of the Core AI target, and the accepted
+  drafts are teacher forcing on the reference outputs, not generation.
+- The synthetic checks compare with the drafter of the converter environment (Transformers 5.12.1); the comparison on
+  the real weights is with Transformers 5.16.1.
+- The export is of a synthetic drafter; the size of the asset of the real drafter is not known from it.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| `record.json` of the run of the original drafter | `8c408bf65dae599c6f0264f5ce581fccea188908769de3051ae0eb759ae18b9e` |
+| `record.json` of the run of the class | `49710560740beb3deabcab39cbe3bdc1593aaa58fc40d03c0030df4e5ffcbc9c` |
+| `subset.json` of #691 | `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9` |
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp compare \
+  --original <run of the original drafter> --model-class <run of the class> \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json > docs/validation/gemma4-31b/mtp-drafter-comparison-20261123.json
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
+  acceptance <the arguments of run> > docs/validation/gemma4-31b/mtp-drafter-acceptance-20261123.json
+~~~
