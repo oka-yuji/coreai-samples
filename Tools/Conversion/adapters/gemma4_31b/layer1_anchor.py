@@ -18,7 +18,9 @@ AGREEMENT = "gemma4-31b-layer1-agreement/1"
 LOGITS = "gemma4-31b-layer1-logits/1"
 ROLE, SET = "anchor", "primary"
 ITEM = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
-WEIGHTS = {"float16": "every checkpoint tensor rounded to float16"}
+WEIGHTS = {"float16": "every checkpoint tensor rounded to float16",
+           "8bit": ("the quantized Linear weights restored from the quantized tensors {file} of the export {export}, "
+                    "every other checkpoint tensor rounded to float16")}
 PASSING = ("anchor_cpu", "original_cpu")
 RECORDED = (("anchor_run", "anchor_cpu"), ("original_eager_cpu", "original_cpu"), ("original_run", "original_cpu"),
             ("anchor_run", "original_run"))
@@ -84,6 +86,11 @@ def rounded(model):
     return anchor.scaled(anchor.resident(model, "float16"), anchor.embed_scale(model, "bfloat16"))
 
 
+def restore_into(model, restored, device):
+    for name, parts in restored.items():
+        model.get_parameter(layers.PREFIX + name.removeprefix("model.")).data = layers.restore(*parts).to(device)
+
+
 def scored(model, record, weights, device, block):
     import torch
 
@@ -130,6 +137,7 @@ def run(record, args, records):
     device, started = record["device"], time.perf_counter()
     try:
         model, record["loading"], record["checks"]["loading_clean"] = model_for(args.snapshot, args.layers, device)
+        restore_into(model, args.restored, device)
         record["timing"]["load_s"] = time.perf_counter() - started
         weights = rounded(model)
         record["compute"]["embed_scale"] = float(weights(anchor.SCALE))
@@ -266,6 +274,7 @@ def main():
                              help="Distinct item ids of the forced input, separated by commas, in the order to run.")
         if name == "run":
             command.add_argument("--weights", choices=tuple(WEIGHTS), required=True)
+            command.add_argument("--export", type=Path, help="The export whose quantized tensors give the 8bit weights.")
     args = parser.parse_args()
     if os.path.lexists(args.output):
         raise FileExistsError(f"The {args.command} must be written to a new folder: {args.output}")
@@ -277,6 +286,15 @@ def main():
     args.vocabulary, args.window = contract["config"]["vocab_size"], contract["config"]["sliding_window"]
     hashes, records = forced(args.forced, args.vocabulary)
     records = selected(records, args.items)
+    args.restored, quantized = {}, None
+    if args.command == "run" and (args.weights == "8bit") != (args.export is not None):
+        raise ValueError("Give --export exactly for the weights restored from its quantized tensors")
+    if args.command == "run" and args.export is not None:
+        quantized, digests = layers.quantized_export(args.export, contract, args.model, kinds)
+        names = sorted({key.rsplit(".", 1)[0] for key in digests})
+        args.restored = layers.quantized_weights(args.export / layers.QUANTIZED, digests,
+                                                 layers.checkpoint_shapes(args.snapshot, names))
+        quantized["tensors"] = len(digests)
     started = time.perf_counter()
     verified = reference.verify_inputs(args.snapshot, contract)
     hashed = time.perf_counter() - started
@@ -284,11 +302,12 @@ def main():
     record = header(schema, args, contract, ready, verified, hashes, records, kinds)
     record["timing"]["input_hash_s"] = hashed
     if args.command == "run":
+        kind = WEIGHTS[args.weights].format(**{"file": quantized["file"]["sha256"], "export": quantized["export_sha256"]}
+                                            if quantized else {})
         record.update(role=ROLE, weights=(f"{contract['model_id']} at {contract['revision']}, the first {args.layers} "
-                                          f"layers, the final norm and the head: {WEIGHTS[args.weights]}, computed in "
-                                          "float32"),
+                                          f"layers, the final norm and the head: {kind}, computed in float32"),
                       compute={"weights": args.weights, "compute": "float32", "attention_rows": anchor.ROWS,
-                               "embed_scale": None})
+                               "embed_scale": None}, quantized=quantized)
     args.output.mkdir(parents=True)
 
     def conclude(result, observed, began):

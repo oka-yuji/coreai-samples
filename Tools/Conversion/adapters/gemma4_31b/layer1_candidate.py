@@ -95,9 +95,6 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
     vocabulary = contract["config"]["vocab_size"]
     exported, export_hash, facts, problems = native.load_export(Path(export_folder), contract, contract_path)
     precision, context, name = exported.get("precision"), exported.get("context"), (exported.get("bundle") or {}).get("name")
-    role = ROLES.get(precision) if isinstance(precision, str) else None
-    if role is None:
-        problems.append(f"the export precision is not one of {sorted(ROLES)}")
     if not native.valid("text", name):
         problems.append("the export record has no bundle name")
     hashes, records = forced(forced_folder, vocabulary)
@@ -106,7 +103,7 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
     if problems:
         raise ValueError(f"The export is refused for this forced input: {'; '.join(problems)}")
     data = layer1.file_bytes(verifier)
-    verifier_hash = hashlib.sha256(data).hexdigest()
+    role, verifier_hash = ROLES[precision], hashlib.sha256(data).hexdigest()
     weights = f"{name} main.hash {facts['main_hash']}"
     output.mkdir(parents=True)
     result = {"schema": SCHEMA, "role": role, "weights": weights, "passed": False,

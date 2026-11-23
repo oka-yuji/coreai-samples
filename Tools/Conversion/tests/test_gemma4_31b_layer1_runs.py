@@ -24,10 +24,11 @@ except ImportError:
 from Tools.Conversion.adapters.gemma4_31b import anchor, export, layer1_anchor, layer1_candidate, layers, native, reference
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
-from Tools.Conversion.storage import read_json, write_json
+from Tools.Conversion.storage import file_hash, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_anchor import (GEMMA4, MEMORY, OBSERVED, RECIPE, VOCABULARY, WINDOW,
                                                             ReadyMonitor, tiny_model)
-from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
+from Tools.Conversion.tests.test_gemma4_31b_layers import (TEXT, float16_restore, quantized_tensors, write_contract,
+                                                            write_export, write_snapshot)
 from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, model_record
 from Tools.LLMEvaluation.tests.test_layer1 import bounded, inode, release, replaced, touched, watched
 
@@ -435,17 +436,18 @@ class CandidateRunTests(unittest.TestCase):
         (bundle / "metadata.json").write_text("{}")
         files = {path.relative_to(bundle).as_posix(): {"bytes": path.stat().st_size, "sha256": sha256(path)}
                  for path in sorted(bundle.rglob("*")) if path.is_file()}
-        self.exported = {"schema": export.SCHEMA, "passed": True, "layers": 6, "precision": "float16", "context": 64,
-                         "layer_types": layers.check_layers(load_contract(self.contract)["config"], 6),
+        self.exported = {"schema": export.SCHEMA, "passed": True, "problems": [], "layers": 6, "precision": "float16",
+                         "context": 64, "layer_types": layers.check_layers(load_contract(self.contract)["config"], 6),
                          "functions": ["main", "prefill"], "model": model_record(self.contract),
+                         "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
                          "bundle": {"folder": export.BUNDLE, "name": "asset", "main_hash": MAIN_HASH, "files": files}}
         write_json(self.export / "export.json", self.exported)
         self.verifier, self.calls = self.folder / "verifier", self.folder / "calls.txt"
 
-    def run_candidate(self, changes=None, output="out"):
+    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH):
         prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
                   for record in self.records}
-        plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": MAIN_HASH,
+        plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": main_hash,
                 "prefix": prefix}
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
@@ -536,6 +538,14 @@ class CandidateRunTests(unittest.TestCase):
         self.assertFalse((self.folder / "other-forced").exists() or (self.folder / "unlaunched").exists())
         self.assertEqual(self.called(), [])
 
+    @unittest.skipIf(not GEMMA4, "Transformers with Gemma 4 and PyTorch are required to write the quantized tensors")
+    def test_an_8bit_export_gives_the_role_w8(self):
+        self.export = write_export(self.folder / "export-8bit", self.contract,
+                                   quantized_tensors({**TEXT, "hidden_size": 64}), context=64)
+        result = self.run_candidate(main_hash=bytes(32).hex(), output="w8")
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual((result["role"], read_json(self.folder / "w8/logits.json")["role"]), ("w8", "w8"))
+
     def test_a_stopped_run_still_records_the_items_that_were_read(self):
         attempted = layer1_candidate.attempted
         calls = []
@@ -551,6 +561,98 @@ class CandidateRunTests(unittest.TestCase):
         record, handoff = read_json(self.folder / "out/run.json"), read_json(self.folder / "out/logits.json")
         self.assertEqual((record["passed"], [entry["id"] for entry in record["items"]]), (False, calls[:2]))
         self.assertEqual([entry["id"] for entry in handoff["items"]], calls[:2])
+
+
+
+@unittest.skipIf(not GEMMA4 or np is None, "Transformers with Gemma 4, PyTorch and NumPy are required for the runs")
+class RestoredRunTests(unittest.TestCase):
+    TEXT = {**TEXT, "hidden_size": 64}
+
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.snapshot, self.contract = write_snapshot(self.folder, hidden_size=64)
+        self.tensors = quantized_tensors(self.TEXT)
+        self.export = write_export(self.folder / "export", self.contract, self.tensors)
+        (self.folder / "prepare").mkdir()
+        write_json(self.folder / "prepare/ready.json", {"ready": True, "contract_sha256": sha256(self.contract),
+                                                        "environment": {"python": "3.11.9", "packages": {},
+                                                                        "os_build": "26A1"}})
+        self.records = made(TEXT["vocab_size"])
+        self.forced = write_forced(self.folder / "forced", self.records)
+
+    def main(self, *extra, output="out"):
+        argv = ["layer1_anchor", "run", "--model", str(self.contract), "--snapshot", str(self.snapshot), "--prepare",
+                str(self.folder / "prepare"), "--forced", str(self.forced), "--layers", "6",
+                "--output", str(self.folder / output), *extra]
+        observed = lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, OBSERVED)
+        placed = lambda path: {**load_contract(path), "reference": {**load_contract(path)["reference"], "device": "cpu"}}
+        with mock.patch.object(sys, "argv", argv), mock.patch.object(reference, "ReferenceMonitor", observed), \
+                mock.patch.object(layer1_anchor, "load_contract", side_effect=placed), \
+                mock.patch.object(reference, "memory", return_value=dict(MEMORY)), \
+                mock.patch.object(reference, "verify_inputs", return_value={}), \
+                mock.patch.object(layer1_anchor, "swap_used", return_value=5), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return layer1_anchor.main()
+
+    def test_the_scored_rows_with_weights_restored_from_the_quantized_tensors_match_the_plain_float32_forward(self):
+        self.assertEqual((self.main("--weights", "8bit", "--export", str(self.export)),
+                          self.main("--weights", "float16", output="rounded")), (0, 0))
+        out = self.folder / "out"
+        handoff, record = read_json(out / "logits.json"), read_json(out / "run.json")
+        self.assertEqual(record["quantized"], {"export_sha256": sha256(self.export / "export.json"),
+                                               "file": file_hash(self.export / layers.QUANTIZED),
+                                               "tensors": len(self.tensors)})
+        self.assertIn(f"quantized tensors {file_hash(self.export / layers.QUANTIZED)['sha256']} of the export "
+                      f"{sha256(self.export / 'export.json')}", handoff["weights"])
+        model, _, _ = layers.original_model(self.snapshot, 6)
+        model.set_attn_implementation("sdpa")
+        with torch.no_grad():
+            for name, parameter in model.named_parameters():
+                if f"{name}.quantized_data" in self.tensors:
+                    parameter.copy_(float16_restore(*(self.tensors[f"{name}.{part}"]
+                                                      for part in ("quantized_data", "scale", "minval"))).float())
+            rounded = read_json(self.folder / "rounded/logits.json")
+            for entry, other, item in zip(handoff["items"], rounded["items"], self.records, strict=True):
+                values = np.frombuffer((out / entry["file"]).read_bytes(), dtype="<f4").reshape(entry["shape"])
+                expected = model(torch.tensor([item["tokens"]]), use_cache=False).logits[0].numpy()
+                start = item["start"]
+                self.assertLessEqual(float(np.abs(values - expected[start:start + item["rows"]]).max()), anchor.LIMIT)
+                kept = np.frombuffer((self.folder / "rounded" / other["file"]).read_bytes(), dtype="<f4")
+                self.assertGreater(float(np.abs(values.reshape(-1) - kept).max()), 0.1)
+
+    def test_an_export_or_quantized_tensors_that_do_not_fit_are_refused_before_the_folder_is_made(self):
+        def edited(label, change):
+            folder = write_export(self.folder / label, self.contract, self.tensors)
+            change(folder)
+            return folder
+
+        def digest(folder):
+            record = read_json(folder / "export.json")
+            name = sorted(record["quantized"]["tensors"])[0]
+            record["quantized"]["tensors"][name] = "0" * 64
+            write_json(folder / "export.json", record)
+
+        def flipped(folder):
+            data = bytearray((folder / layers.QUANTIZED).read_bytes())
+            data[-1] ^= 1
+            (folder / layers.QUANTIZED).write_bytes(bytes(data))
+
+        cases = {"not passed": write_export(self.folder / "failed", self.contract, self.tensors, passed=False),
+                 "not 8bit": write_export(self.folder / "half", self.contract, {}, precision="float16",
+                                          quantized=None),
+                 "another tensor digest": edited("digest", digest), "a changed tensor file": edited("flipped", flipped)}
+        with mock.patch.object(layer1_anchor, "model_for") as model_for:
+            for label, folder in cases.items():
+                with self.subTest(case=label), self.assertRaises(ValueError):
+                    self.main("--weights", "8bit", "--export", str(folder), output=label)
+                self.assertFalse((self.folder / f"{label}").is_dir() and (self.folder / label / "run.json").exists())
+            for label, extra in (("no export", ("--weights", "8bit")),
+                                 ("an export of rounded weights", ("--weights", "float16", "--export", str(self.export)))):
+                with self.subTest(case=label), self.assertRaisesRegex(ValueError, "--export exactly"):
+                    self.main(*extra, output=label)
+            model_for.assert_not_called()
+        self.assertEqual(sorted(path.name for path in self.folder.iterdir() if (path / "run.json").exists()), [])
 
 
 if __name__ == "__main__":
