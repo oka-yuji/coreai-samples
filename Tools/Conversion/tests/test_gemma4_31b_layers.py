@@ -160,7 +160,8 @@ class InputTests(unittest.TestCase):
                         output = Path(folder) / f"{implementation}-{count}"
                         with self.subTest(implementation=implementation, layers=count):
                             with self.assertRaisesRegex(ValueError, "must end with a full-attention layer"):
-                                layers.run(implementation, contract, Path(folder) / "snapshot", count, "1", output)
+                                layers.run(implementation, contract, Path(folder) / "snapshot", count, "1", output,
+                                           "float16", None)
                             self.assertFalse(output.exists())
             verify.assert_not_called()
             original_model.assert_not_called()
@@ -189,7 +190,8 @@ class InputTests(unittest.TestCase):
                         output = Path(folder) / f"{implementation}-{taps or 'none'}"
                         with self.subTest(implementation=implementation, taps=taps):
                             with self.assertRaisesRegex(ValueError, "tap layers"):
-                                layers.run(implementation, contract, Path(folder) / "snapshot", 6, taps, output)
+                                layers.run(implementation, contract, Path(folder) / "snapshot", 6, taps, output,
+                                           "float16", None)
                             self.assertFalse(output.exists())
             verify.assert_not_called()
             original_model.assert_not_called()
@@ -323,7 +325,7 @@ class CompareTests(unittest.TestCase):
             before = state(output)
             with self.subTest(output=label):
                 with mock.patch.object(layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
-                    layers.run("original", self.contract, self.folder / "snapshot", 6, "1", output)
+                    layers.run("original", self.contract, self.folder / "snapshot", 6, "1", output, "float16", None)
                 verify.assert_not_called()
                 self.assertEqual(state(output), before)
 
@@ -572,7 +574,7 @@ class OriginalRunTests(unittest.TestCase):
             reference.load_state_dict({name: tensor.to(torch.bfloat16).to(torch.float16).float()
                                        for name, tensor in reference.state_dict().items()})
             taps = (1, 6, 7, 12)
-            record = layers.run("original", contract, snapshot, 12, "1,6,7,12", Path(folder) / "all")
+            record = layers.run("original", contract, snapshot, 12, "1,6,7,12", Path(folder) / "all", "float16", None)
             self.assertEqual(record["tap_layers"], list(taps))
             for name in layers.INPUTS:
                 ids = layers.tokens(name, config)
@@ -593,7 +595,7 @@ class OriginalRunTests(unittest.TestCase):
                     self.assertEqual(record["inputs"][name]["tokens_sha256"], digest(ids))
                     self.assertFalse(np.array_equal(expected["hidden_states"].numpy(), last[0][0].numpy()))
             self.assertEqual(record["embed_scale"], 6.9375)
-            first = layers.run("original", contract, snapshot, 6, "1,2,3,4,5", Path(folder) / "first")
+            first = layers.run("original", contract, snapshot, 6, "1,2,3,4,5", Path(folder) / "first", "float16", None)
             self.assertEqual((first["layer_types"], first["tap_layers"]), (TEXT["layer_types"][:6], [1, 2, 3, 4, 5]))
             self.assertEqual(read_json(Path(folder) / "first/record.json"), first)
 
@@ -606,10 +608,10 @@ class OriginalRunTests(unittest.TestCase):
             data[-1] ^= 1
             with mock.patch.object(layers, "original_model") as load:
                 with self.assertRaises(FileExistsError):
-                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "used")
+                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "used", "float16", None)
                 shard.write_bytes(data)
                 with self.assertRaises(ValueError):
-                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed")
+                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed", "float16", None)
             load.assert_not_called()
             self.assertEqual(list((Path(folder) / "changed").iterdir()), [])
 
@@ -882,6 +884,57 @@ class RestoredReferenceTests(unittest.TestCase):
                         layers.context(contract, snapshot, 6, output, "8bit", source)
                     load.assert_not_called()
                     self.assertFalse(os.path.lexists(output))
+
+    def test_a_run_of_the_original_implementation_reads_the_restored_weights_and_records_the_tensors(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            source = write_export(folder / "export", contract, tensors)
+            record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "restored", "8bit", source)
+            self.assertEqual(read_json(folder / "restored/record.json"), record)
+            self.assertEqual(record["weights"], layers.RESTORED)
+            self.assertEqual(record["quantized"], {"export_sha256": sha256(source / "export.json"),
+                                                   "file": file_hash(source / layers.QUANTIZED), "tensors": 123})
+            rounded = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "rounded", "float16", None)
+            self.assertEqual(rounded["weights"], layers.WEIGHTS)
+            self.assertNotIn("quantized", rounded)
+            model, _, _ = layers.original_model(snapshot, 6)
+            with torch.no_grad():
+                for name, parameter in model.named_parameters():
+                    if f"{name}.quantized_data" in tensors:
+                        parameter.copy_(float16_restore(*(tensors[f"{name}.{part}"] for part in
+                                                          ("quantized_data", "scale", "minval"))).float())
+            ids = layers.tokens("short", load_contract(contract)["config"])
+            expected = layers.outputs(model, "original", ids, [[0, len(ids)]], (1, 2, 3, 4, 5, 6))
+            for output, array in expected.items():
+                with self.subTest(output=output):
+                    restored = np.load(folder / f"restored/short.{output}.npy")
+                    np.testing.assert_array_equal(restored, array)
+                    self.assertGreater(float(np.abs(restored - np.load(folder / f"rounded/short.{output}.npy")).max()),
+                                       1e-3)
+
+    def test_a_run_refuses_other_weights_before_it_reads_the_contract_and_an_existing_output_before_the_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            for label, (implementation, weights, given) in {"8bit without an export": ("original", "8bit", None),
+                                                            "float16 with an export": ("original", "float16", source),
+                                                            "8bit for the model class": ("class", "8bit", source),
+                                                            "another kind of weights": ("original", "bfloat16", None)
+                                                            }.items():
+                output = folder / label.replace(" ", "-")
+                with self.subTest(case=label), mock.patch.object(layers, "load_contract") as load, \
+                        self.assertRaises(ValueError):
+                    layers.run(implementation, contract, snapshot, 6, "1", output, weights, given)
+                load.assert_not_called()
+                self.assertFalse(os.path.lexists(output))
+            (folder / "used").mkdir()
+            with mock.patch.object(layers, "quantized_export") as restored, self.assertRaises(FileExistsError):
+                layers.run("original", contract, snapshot, 6, "1", folder / "used", "8bit", source)
+            restored.assert_not_called()
+            self.assertEqual(list((folder / "used").iterdir()), [])
 
 
 if __name__ == "__main__":

@@ -167,11 +167,23 @@ def outputs(model, implementation, ids, bounds, taps):
     return {name: tensor[0].float().numpy() for name, tensor in zip(OUTPUTS, found)}
 
 
-def run(implementation, contract_path, snapshot, layers, taps, output):
+def run(implementation, contract_path, snapshot, layers, taps, output, weights, export):
+    if weights not in WEIGHT_KINDS or (weights == "8bit") != (export is not None) \
+            or (weights == "8bit" and implementation != "original"):
+        raise ValueError("Give an export exactly for the weights restored from its quantized tensors, which only the "
+                         "original implementation reads")
     contract = load_contract(contract_path)
     config = contract["config"]
-    check_layers(config, layers)
+    kinds = check_layers(config, layers)
     taps = check_taps(taps, layers)
+    quantized, restored = {}, {}
+    if export is not None:
+        if os.path.lexists(output):
+            raise FileExistsError(f"The outputs must be written to a new folder: {output}")
+        quantized, digests = quantized_export(export, contract, contract_path, kinds)
+        names = sorted({key.rsplit(".", 1)[0] for key in digests})
+        restored = quantized_weights(export / QUANTIZED, digests, checkpoint_shapes(snapshot, names))
+        quantized["tensors"] = len(digests)
     import numpy as np
 
     output.mkdir(parents=True)
@@ -180,6 +192,7 @@ def run(implementation, contract_path, snapshot, layers, taps, output):
     hashed = time.perf_counter()
     model, scale, layer_types = (original_model(snapshot, layers) if implementation == "original"
                                  else class_model(snapshot, layers, taps, contract))
+    apply(model, restored)
     loaded = time.perf_counter()
     inputs = {}
     for name in INPUTS:
@@ -199,7 +212,7 @@ def run(implementation, contract_path, snapshot, layers, taps, output):
               "tap_layers": list(taps),
               "model": {"id": contract["model_id"], "revision": contract["revision"],
                         "contract_sha256": sha256(contract_path), "verified_before_loading": verified},
-              "weights": WEIGHTS, "embed_scale": scale,
+              "weights": WEIGHT_KINDS[weights], **({"quantized": quantized} if quantized else {}), "embed_scale": scale,
               "upstream_revision": contract["upstream_revision"] if implementation == "class" else None,
               "versions": {name: importlib.metadata.version(name) for name in packages}, "inputs": inputs,
               "timing": {"input_hash_s": hashed - started, "load_s": loaded - hashed,
@@ -481,6 +494,9 @@ def main():
     runner.add_argument("--taps", required=True, help="Ascending distinct counts of layers, separated by commas.")
     for name in ("model", "snapshot", "output"):
         runner.add_argument(f"--{name}", type=Path, required=True)
+    runner.add_argument("--weights", choices=tuple(WEIGHT_KINDS), required=True,
+                        help="float16, or 8bit with --export for the original implementation.")
+    runner.add_argument("--export", type=Path)
     checker = commands.add_parser("compare")
     for name in ("original", "model-class"):
         checker.add_argument(f"--{name}", type=Path, required=True)
@@ -495,7 +511,8 @@ def main():
     contexts.add_argument("--export", type=Path)
     args = parser.parse_args()
     if args.command in ("run", "context"):
-        record = (run(args.implementation, args.model, args.snapshot, args.layers, args.taps, args.output)
+        record = (run(args.implementation, args.model, args.snapshot, args.layers, args.taps, args.output, args.weights,
+                      args.export)
                   if args.command == "run"
                   else context(args.model, args.snapshot, args.layers, args.output, args.weights, args.export))
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
