@@ -211,19 +211,19 @@
           "UInt64": 1
         }
       },
-      "bytes": 249416,
+      "bytes": 249409,
       "files": {
         "both.aimodel/main.hash": {
           "bytes": 32,
-          "sha256": "ea6ec028b8266531f98a46e5bb6b4545e8bfebda5c4f5a7b4dc6177692f43962"
+          "sha256": "868a98cf15d26ed5fd0aa48f7e31e4087f98057d457852801bb9af719a652d3b"
         },
         "both.aimodel/main.mlirb": {
-          "bytes": 249279,
-          "sha256": "f6cdb0537313ef3d13a9aadd2b4e5651e37a082278dde385d4500bd206915c56"
+          "bytes": 249272,
+          "sha256": "67cfb322e7d2edb4d4ebb78e469d76c7994e25fe0d9e8daaf86b0f6a3f5c086c"
         },
         "both.aimodel/metadata.json": {
           "bytes": 105,
-          "sha256": "5454eb247ab81ab840790324b285da49527e7b0f7aea00464fbb253f783eb902"
+          "sha256": "0ca8705660165d04033add8b847a31a46e624404e3545bad1db4bc10061acebb"
         }
       },
       "functions": [
@@ -232,8 +232,8 @@
       ],
       "problems": [],
       "timing": {
-        "convert_s": 34.344232958741486,
-        "save_s": 0.03294670768082142
+        "convert_s": 35.00895175058395,
+        "save_s": 0.03440712485462427
       },
       "weights": [
         {
@@ -386,19 +386,19 @@
           "UInt64": 1
         }
       },
-      "bytes": 175733,
+      "bytes": 175724,
       "files": {
         "one_step.aimodel/main.hash": {
           "bytes": 32,
-          "sha256": "28e3778995dacabcb3f53dda5f78281d1f0d00916bfcadb0a87de2cfc805f7c0"
+          "sha256": "17d94e6febff90928aa3984d4f3604820961e5420b4d0de0cac0f6320c95c451"
         },
         "one_step.aimodel/main.mlirb": {
-          "bytes": 175596,
-          "sha256": "3a5da29030533b29582293ac5100dc556efe064f1d9c31585317416ae09b11fd"
+          "bytes": 175587,
+          "sha256": "199738e5810a48b7a0f546417718cd69bf93c7c50ad3b70690d8a5087f757b6b"
         },
         "one_step.aimodel/metadata.json": {
           "bytes": 105,
-          "sha256": "2abd13156b580e32c12045444b04df4c06d7aee987d73e4120a4448bd107d859"
+          "sha256": "f8ed0e4c02f38f4baafa79009f6b2e731d661da007572fbb0a228046c5072787"
         }
       },
       "functions": [
@@ -406,8 +406,8 @@
       ],
       "problems": [],
       "timing": {
-        "convert_s": 5.086660125292838,
-        "save_s": 0.01601612474769354
+        "convert_s": 5.345891833305359,
+        "save_s": 0.015518667176365852
       },
       "weights": [
         {
@@ -552,19 +552,19 @@
           "UInt64": 1
         }
       },
-      "bytes": 235338,
+      "bytes": 235331,
       "files": {
         "unrolled.aimodel/main.hash": {
           "bytes": 32,
-          "sha256": "8c1c8c3fa235706f5085248684491ea31cf28948eb0374f69a1c33fdfab31440"
+          "sha256": "38fd11b6f9e188bfd0d97d331528a9839871ecdc7afcabe7ee72ed76d3e0372d"
         },
         "unrolled.aimodel/main.mlirb": {
-          "bytes": 235201,
-          "sha256": "365f10e666cd70711ad1225b02a696233750d08f6a55de66cd0a40d25a854788"
+          "bytes": 235194,
+          "sha256": "dd19c4e089107fcd521e4010403578a4fe37b50012d911df8ea82d6420674c3e"
         },
         "unrolled.aimodel/metadata.json": {
           "bytes": 105,
-          "sha256": "8dc7cfeed913d3ca3744411ae58e04232cf64bbebe1f8c6470f397b76e76a5be"
+          "sha256": "9359eade81959cdd75786eccdc533c867bc93529de9c8a02f17d16c6a87e32f3"
         }
       },
       "functions": [
@@ -572,8 +572,8 @@
       ],
       "problems": [],
       "timing": {
-        "convert_s": 28.720819500274956,
-        "save_s": 0.028964083641767502
+        "convert_s": 29.44661441538483,
+        "save_s": 0.0305142505094409
       },
       "weights": [
         {
