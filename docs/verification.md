@@ -211,8 +211,10 @@ The model-free checks are `swift test --package-path Tools/Verify -c release --f
 ```bash
 cd Tools/Verify
 swift build -c release
-.build/release/coreai-verify function --model <asset>.aimodel --function draft_7 --inputs <folder>/inputs.json --output <new folder> --repeat 3
+.build/release/coreai-verify function --model drafter.aimodel --function draft_7 --inputs inputs/inputs.json --output out --repeat 3
 ```
+
+The example runs in a folder that holds `drafter.aimodel`, which is `unrolled.aimodel` or `both.aimodel` of the [synthetic drafter export](../Tools/Conversion/recipes/gemma4_31b/README.md#export-of-a-synthetic-drafter) run with `--steps 7` (both have the function `draft_7`), and the folder `inputs` with `inputs.json` and the data files that it names.
 
 | Option | Meaning |
 |---|---|
@@ -227,11 +229,18 @@ The inputs file is a JSON object with exactly the key `inputs`, an array with on
 ```json
 {"inputs": [
   {"name": "input_ids", "dtype": "int32", "shape": [1, 1], "file": "input_ids.bin"},
-  {"name": "k_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "k_full.bin"}
+  {"name": "hidden_states", "dtype": "float16", "shape": [1, 1, 48], "file": "hidden_states.bin"},
+  {"name": "position_ids", "dtype": "int32", "shape": [1, 1], "file": "position_ids.bin"},
+  {"name": "k_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "k_sliding.bin"},
+  {"name": "v_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "v_sliding.bin"},
+  {"name": "k_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "k_full.bin"},
+  {"name": "v_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "v_full.bin"}
 ]}
 ```
 
-`dtype` is `int32`, `float16` or `float32`. `shape` is a non-empty array of integers from 1, written as integers: `1.0` and `1e0`, 0, negative numbers, booleans and strings are rejected. `file` is a relative path from the folder of the inputs file, without a `..` component, that names a file of the elements as little-endian values in row-major order and no header, so exactly the product of the shape times the width of the dtype (2 bytes for `float16`, 4 for `int32` and `float32`). NumPy writes one with `array.astype("<f2").tofile(path)`.
+These are all seven inputs of `draft_7`, for 5 positions of the sliding-window keys and values and 9 of the full-attention ones; their files have 4, 96, 4, 320, 320, 576 and 576 bytes.
+
+`dtype` is `int32`, `float16` or `float32`. `shape` is a non-empty array of integers from 1, written as integers: `1.0` and `1e0`, 0, negative numbers, booleans and strings are rejected. `file` is the name of a file in the folder of the inputs file: not empty, with no `/` and no NUL character, and not `.` or `..`. The file holds the elements as little-endian values in row-major order and no header, so exactly the product of the shape times the width of the dtype (2 bytes for `float16`, 4 for `int32` and `float32`). The NumPy dtypes are `"<i4"` for `int32`, `"<f2"` for `float16` and `"<f4"` for `float32`: `array.astype("<f2").tofile(path)` writes a file and `np.fromfile(path, dtype="<f2").reshape(shape)` reads one. A member name that is written twice in one object is not detected.
 
 The command rejects these cases before it specializes the asset. It says which one, stops, and does not make the output folder:
 
@@ -248,16 +257,16 @@ After the checks the command makes the output folder (when it cannot, for exampl
 
 | File | Content |
 |---|---|
-| `<output name>.bin` | One file for each output of the last call, in the order of the outputs of the function: the elements as little-endian values in row-major order and no header, read by NumPy with `np.fromfile(path, dtype="<i4").reshape(shape)`. An output name that cannot make a file name (empty, with `/` or a NUL character, or a file name over 255 bytes) is rejected after the calls and before any file is written. |
+| `<output name>.bin` | One file for each output of the last call, in the order of the outputs of the function: the elements as little-endian values in row-major order and no header, in the dtype that the record gives for the output (the NumPy dtypes are above). An output name that cannot make a file name (empty, with `/` or a NUL character, or a file name over 255 bytes) is rejected after the calls and before any file is written. |
 | `function.json` | The record described below, the same line that standard output gets. |
-| `failure.json` | Left when the run did not succeed, as described below. |
+| `failure.json` | Written first and removed when the run succeeds; its presence means that the run did not succeed, as described below. |
 
 The record is one JSON line with `record` set to `function`:
 
 | Key | Content |
 |---|---|
 | `byte_order` | `little` |
-| `main_hash` | The `main.hash` of the asset in hex, the SHA-256 of `main.mlirb`; absent when the file is missing |
+| `main_hash` | The `main.hash` of the asset in hex, the SHA-256 of `main.mlirb`; absent when the file is missing or is not a regular file (a link, a folder and a named pipe are not) |
 | `function` | The name of the function |
 | `inputs` | One entry for each input in the order of the inputs file: `name`, `dtype`, `shape`, `bytes` (the product of the shape times the width of the dtype, the size of the file) and `sha256` of the bytes of the file |
 | `outputs` | One entry for each output: the same keys and `file`, the name of its file in the output folder |
@@ -265,11 +274,15 @@ The record is one JSON line with `record` set to `function`:
 | `call_s` | The seconds of each call, in order |
 | `repeat_identical`, `repeat_differing_calls` | Whether every call returned the outputs of the first call, and the numbers of the calls (from 2) whose name, dtype, shape or bytes differ from the first call's |
 
-When a call returns outputs that differ from the first call's, the command writes the files of the last call and `function.json` with `repeat_identical` false, adds `failure.json` with the kind `repeat_mismatch`, prints the record and ends with the exit code 1.
+The command writes `failure.json` with the kind `incomplete` as its first act on the output folder. When it cannot, it removes the folder that it made, says why and stops before it loads the model. Afterwards:
 
-Once the output folder exists, every other way to stop leaves `failure.json` and no `function.json`. Its content is one JSON line, `{"kind": ..., "record": "function-failure"}`, and nothing else: `kind` is `load` (specialization or loading the function), `call`, `write` (the outputs and the record, including a rejected output name) or `cancelled`. The command writes it as well as it can, and throws the error again after that.
+- A run that succeeds writes `function.json` and then removes `failure.json`. When it cannot remove it, the run fails.
+- When a call returns outputs that differ from the first call's, the command writes the files of the last call and `function.json` with `repeat_identical` false, replaces `failure.json` with one of the kind `repeat_mismatch`, prints the record and ends with the exit code 1.
+- Any other failure replaces `failure.json` with one of the kind `load` (specialization or loading the function), `call`, `write` (the outputs, the record or the removal of the failure record, including a rejected output name) or `cancelled`, and throws the error again. The command checks whether its task was cancelled before it loads the function, before each call and before it writes the outputs. When the replacement itself fails, for example because the disk is full, `failure.json` keeps the kind `incomplete`.
 
-The model-free checks are `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"`. They check the inputs file, the comparison with the description of the function, the data files, the record and the failure record with a fake in place of the model, and the conversion of tensors with the SDK's `NDArray`. A run on an asset is a separate check.
+So there is one rule: when `failure.json` is in the output folder, the run did not succeed. A run that is stopped without a trace, for example because its process is killed, also leaves the kind `incomplete`. The file is one JSON line, `{"kind": ..., "record": "function-failure"}`, and nothing else.
+
+The model-free checks are `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"`. They check the inputs file, the comparison with the description of the function, the data files, the record, the failure record and the stop on cancellation with a fake in place of the model, and the conversion of tensors with the SDK's `NDArray`. A run on an asset is a separate check.
 
 ## Measurement fields and boundaries
 

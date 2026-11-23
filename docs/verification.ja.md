@@ -210,8 +210,10 @@ item ごとに、エンジンを空にし、入力を `prefill` で読み(バン
 ```bash
 cd Tools/Verify
 swift build -c release
-.build/release/coreai-verify function --model <asset>.aimodel --function draft_7 --inputs <folder>/inputs.json --output <new folder> --repeat 3
+.build/release/coreai-verify function --model drafter.aimodel --function draft_7 --inputs inputs/inputs.json --output out --repeat 3
 ```
+
+この例は、`drafter.aimodel`([合成の drafter の書き出し](../Tools/Conversion/recipes/gemma4_31b/README.md#export-of-a-synthetic-drafter)を `--steps 7` で流して得る `unrolled.aimodel` か `both.aimodel`。どちらにも関数 `draft_7` があります)と、`inputs.json` とそれが指すデータのファイルを入れた `inputs` のフォルダがあるフォルダで流します。
 
 | 指定 | 意味 |
 |---|---|
@@ -226,11 +228,18 @@ swift build -c release
 ```json
 {"inputs": [
   {"name": "input_ids", "dtype": "int32", "shape": [1, 1], "file": "input_ids.bin"},
-  {"name": "k_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "k_full.bin"}
+  {"name": "hidden_states", "dtype": "float16", "shape": [1, 1, 48], "file": "hidden_states.bin"},
+  {"name": "position_ids", "dtype": "int32", "shape": [1, 1], "file": "position_ids.bin"},
+  {"name": "k_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "k_sliding.bin"},
+  {"name": "v_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "v_sliding.bin"},
+  {"name": "k_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "k_full.bin"},
+  {"name": "v_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "v_full.bin"}
 ]}
 ```
 
-`dtype` は `int32`・`float16`・`float32` のどれかです。`shape` は、1 以上の整数の、空でない配列で、整数の書き方で書きます。`1.0` と `1e0`、0、負の数、真偽値、文字列は断ります。`file` は、入力の一覧のフォルダからの相対パスで、`..` の成分を持ちません。ファイルの中身は、要素を little-endian の値で、行優先の順に、ヘッダなしで並べたもので、大きさは形の積に型の幅(`float16` は 2 バイト、`int32` と `float32` は 4 バイト)を掛けた値とちょうど同じです。NumPy では `array.astype("<f2").tofile(path)` で書けます。
+これは `draft_7` の 7 つの入力の全部で、sliding window の key と value が 5 位置、full attention のものが 9 位置の場合です。ファイルの大きさは 4、96、4、320、320、576、576 バイトです。
+
+`dtype` は `int32`・`float16`・`float32` のどれかです。`shape` は、1 以上の整数の、空でない配列で、整数の書き方で書きます。`1.0` と `1e0`、0、負の数、真偽値、文字列は断ります。`file` は、入力の一覧と同じフォルダの中のファイルの名前です。空でなく、`/` と NUL 文字を含まず、`.` と `..` でないものに限ります。ファイルの中身は、要素を little-endian の値で、行優先の順に、ヘッダなしで並べたもので、大きさは形の積に型の幅(`float16` は 2 バイト、`int32` と `float32` は 4 バイト)を掛けた値とちょうど同じです。NumPy の dtype は、`int32` が `"<i4"`、`float16` が `"<f2"`、`float32` が `"<f4"` で、`array.astype("<f2").tofile(path)` で書け、`np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。同じ名前のメンバーが 1 つのオブジェクトに 2 回現れる場合は、検出しません。
 
 次の場合は、特殊化の前に、どれかを言って止まり、出力のフォルダを作りません:
 
@@ -247,16 +256,16 @@ swift build -c release
 
 | ファイル | 内容 |
 |---|---|
-| `<出力の名前>.bin` | 最後の呼び出しの出力ごとに 1 つ(関数の出力の順)。要素を little-endian の値で、行優先の順に、ヘッダなしで並べたもので、NumPy では `np.fromfile(path, dtype="<i4").reshape(shape)` で読めます。ファイル名にできない出力の名前(空、`/` か NUL 文字を含む、ファイル名が 255 バイトを超える)は、呼び出しの後、ファイルを書く前に断ります。 |
+| `<出力の名前>.bin` | 最後の呼び出しの出力ごとに 1 つ(関数の出力の順)。要素を little-endian の値で、行優先の順に、ヘッダなしで並べたもので、型は記録がその出力について書く `dtype` です(NumPy の dtype は上のとおり)。ファイル名にできない出力の名前(空、`/` か NUL 文字を含む、ファイル名が 255 バイトを超える)は、呼び出しの後、ファイルを書く前に断ります。 |
 | `function.json` | 下の記録。標準出力に出す行と同じものです。 |
-| `failure.json` | 成功しなかったときに残ります(下)。 |
+| `failure.json` | 最初に書き、実行が成功したときに消します。在れば、その実行は成功していません(下)。 |
 
 記録は `record` が `function` の JSON の 1 行です:
 
 | 鍵 | 内容 |
 |---|---|
 | `byte_order` | `little` |
-| `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いときは無い |
+| `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いとき、通常のファイルでないとき(リンク・フォルダ・名前付きパイプ)は無い |
 | `function` | 関数の名前 |
 | `inputs` | 入力ごとに 1 つ(入力の一覧の順): `name`・`dtype`・`shape`・`bytes`(形の積に型の幅を掛けた値で、ファイルの大きさ)・ファイルの中身の `sha256` |
 | `outputs` | 出力ごとに 1 つ: 同じ鍵と、出力のフォルダの中のファイル名 `file` |
@@ -264,11 +273,15 @@ swift build -c release
 | `call_s` | 呼び出しごとの秒数(順) |
 | `repeat_identical`、`repeat_differing_calls` | どの呼び出しも最初の呼び出しと同じ出力を返したか。違った呼び出しの番号(2 から)。名前・型・形・byte のどれかが違えば違いです |
 
-最初の呼び出しと違う出力を返した呼び出しがあるときは、最後の呼び出しのファイルと、`repeat_identical` が偽の `function.json` を書き、種類 `repeat_mismatch` の `failure.json` を足し、記録を出して、終了コード 1 で終わります。
+出力のフォルダに最初にすることは、種類 `incomplete` の `failure.json` を書くことです。書けないときは、作ったフォルダを消し、理由を言って、モデルを読む前に止まります。そのあとは次のとおりです:
 
-出力のフォルダを作った後は、ほかのどの止まり方でも、`failure.json` を残し、`function.json` は残しません。中身は `{"kind": ..., "record": "function-failure"}` の 1 行だけです。`kind` は `load`(特殊化と関数の読み込み)・`call`・`write`(出力と記録の書き込み。断った出力の名前を含む)・`cancelled` のどれかです。書けるだけ書き、そのあとで誤りを投げ直します。
+- 成功する実行は、`function.json` を書いてから `failure.json` を消します。消せないときは、実行が失敗します。
+- 最初の呼び出しと違う出力を返した呼び出しがあるときは、最後の呼び出しのファイルと、`repeat_identical` が偽の `function.json` を書き、`failure.json` を種類 `repeat_mismatch` のものに替え、記録を出して、終了コード 1 で終わります。
+- それ以外の失敗は、`failure.json` を種類 `load`(特殊化と関数の読み込み)・`call`・`write`(出力・記録・失敗の記録の除去の書き込み。断った出力の名前を含む)・`cancelled` のものに替え、誤りを投げ直します。task が取り消されたかは、関数を読む前、各呼び出しの前、出力を書く前に確かめます。替えること自体が失敗したとき(例えば容量が足りないとき)は、`failure.json` は種類 `incomplete` のまま残ります。
 
-モデルの要らない確認は `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"` です。入力の一覧、関数の記述との照合、データのファイル、記録と失敗の記録を、モデルの代わりの偽の実装で確かめ、テンソルの変換を SDK の `NDArray` で確かめます。資産での実行は別の確認です。
+決まりは 1 つです: 出力のフォルダに `failure.json` が在れば、その実行は成功していません。process が止められるなど、跡を残さずに止まった実行も、種類 `incomplete` を残します。中身は `{"kind": ..., "record": "function-failure"}` の 1 行だけです。
+
+モデルの要らない確認は `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"` です。入力の一覧、関数の記述との照合、データのファイル、記録・失敗の記録・取消での停止を、モデルの代わりの偽の実装で確かめ、テンソルの変換を SDK の `NDArray` で確かめます。資産での実行は別の確認です。
 
 ## 計測項目と境界
 
