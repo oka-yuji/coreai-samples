@@ -380,18 +380,24 @@ of either implementation for two fixed inputs, `short` (26 tokens) and `long` (1
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
-  --implementation original --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
-  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/original
+  --implementation original --layers 6 --taps 1,2,3,4,5 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output <new folder>/original
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers \
-  run --implementation class --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
-  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/class
+  run --implementation class --layers 6 --taps 1,2,3,4,5 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output <new folder>/class
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers compare \
   --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
 ~~~
 
 `run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
 layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses
-any other before it creates the folder or reads a weight. It writes `<input>.<output>.npy` for both inputs and the
+any other before it creates the folder or reads a weight. `--weights float16` rounds every checkpoint tensor to
+float16. `--weights 8bit --export <export folder>`, for the original implementation only, puts in the weights restored
+from the quantized tensors of an 8-bit export, as `context` does
+([FP32 reference restored from the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), refuses
+an existing output before it reads the export, and records `weights` and `quantized` as `context` does. It writes `<input>.<output>.npy` for both inputs and the
 three outputs and, last, `record.json` into a new folder. The original implementation reads each input in one call;
 its tap layer i is entry i of `output_hidden_states`, except for the last layer, whose entry the original
 implementation replaces with the output of the final norm: that tap is the output of the last layer, taken with a
@@ -630,6 +636,57 @@ with the restored reference as `--reference` and the output of `effect` as `--ef
 `--model-class`, which only FP16 records take; it stops with its fixed error when an input of the other precision is
 given or one of its own is missing. `QuantizedSummaryTests` fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).
+
+## Outputs for speculation read by the own engine
+
+`speculation` compares the outputs for speculation that `coreai-verify logits` reads from an export with
+`--main-output` and `--prefill-output` (`hidden_states` and `tap_hidden_states` of `main`, `tap_hidden_states` of
+`prefill`) with a run of `layers.py` of the original implementation that holds the output of every layer, with the
+weights of the export: `--weights float16` for an FP16 export, and `--weights 8bit --export <the same export folder>`
+for an 8-bit export. Start both under the shared machine lock, which they do not take themselves:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
+  --implementation original --layers 6 --taps 1,2,3,4,5,6 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output <new folder>
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.speculation \
+  --export <artifacts of the export step>/export --reference <folder of the run> \
+  --verifier Tools/Verify/.build/release/coreai-verify --output <new folder>
+~~~
+
+It refuses an existing output before it reads anything, and stops without writing anything when its inputs cannot be
+compared. It runs `coreai-verify` once per condition, in a new process, and stops each call after 1,800 s:
+
+| Condition | Tokens | `--start` | `--chunk` | Compared rows |
+|---|---|---:|---:|---|
+| `short-c1`, `short-c8` | `short` (26) | 0 | 1, 8 | `main` 0 to 25 |
+| `long-main` | `long` (1,400) | 0 | 1,400 | `main` 0 to 1,399 |
+| `long-prefill` | `long` (1,400) | 1,100 | 1 | `prefill` 0 to 1,099, `main` 1,100 to 1,399 |
+
+`long-main` reads the input in one `main` call, the call that `Engine.callLengths(from:count:)` gives for 1,400
+tokens from position 0. `long-prefill` reads the first 1,100 positions, past the window of 1,024, with the `prefill`
+function and the rest with `main` one token at a time.
+
+For each output, and for `tap_hidden_states` for each of its tap layers, a condition passes with:
+
+| Check | Value |
+|---|---|
+| Mixup | the sum over the rows of the squared differences from the reference of the same layer is at most 1/2 of the sum from every other layer of the reference (1 to the layer count); for `hidden_states`, from the final norm at most 1/2 of the sum from the last layer before the norm |
+| Cosine | the cosine of every row with the reference of the same layer (for `hidden_states`, the final norm) at least 0.99, and their median at least 0.999 |
+| Finite | no non-finite value |
+
+`SectionTests` and `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_speculation.py` fix these values and the
+checks on the inputs, the record of `coreai-verify` and its files. Into the new folder it writes, for every condition,
+`<condition>.tokens.json`, the logits (`<condition>.f16`), the outputs (`<condition>.hidden_states.f16`,
+`<condition>.tap_hidden_states.f16` and, for `long-prefill`, `<condition>.prefill.tap_hidden_states.f16`) and the
+standard error of `coreai-verify` (`<condition>.log`), and last `comparison.json`: for every output its rows, width,
+SHA-256 and non-finite values with their rows, and for an output without them the sums of squares by layer of the
+reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
+below 0.99, and the checks. An
+error or an interruption after the folder exists leaves `failure.json` with the type of the error. It prints a short
+summary, and the exit code is 0 only when the comparison passed. The specialization cache that `coreai-verify` makes
+stays in place; remove it yourself.
 
 ## Terms
 
