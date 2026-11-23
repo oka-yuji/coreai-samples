@@ -524,6 +524,28 @@ class RunTests(unittest.TestCase):
 
 
 class ExportTests(unittest.TestCase):
+    def test_assets_without_functions_do_not_pass(self):
+        class Program:
+            def save_asset(self, path):
+                Path(path).mkdir()
+
+        class Asset:
+            def __init__(self, path):
+                self.path = path
+
+            def summary(self, include_statistics):
+                return SimpleNamespace(operation_distribution=[])
+
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.object(drafter, "export", lambda models, context: Program()), \
+                mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset",
+                           lambda path: {"functions": {}, "output_order": {}}), \
+                mock.patch("coreai.runtime._AIModelAsset", Asset):
+            record = mtp.export_synthetic(Path(folder) / "export", 7, 16896, SEED)
+        self.assertFalse(record["passed"])
+        self.assertEqual(sorted(record["assets"]), ["both", "one_step", "unrolled"])
+        self.assertTrue(all(entry["problems"] for entry in record["assets"].values()))
+
     def test_the_one_step_and_the_unrolled_drafter_convert_with_their_names_shapes_and_dynamic_positions(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / "export"

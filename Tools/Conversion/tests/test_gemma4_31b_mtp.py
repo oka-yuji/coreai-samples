@@ -1125,6 +1125,49 @@ class RefusalTests(unittest.TestCase):
                     write_json(target / mtp.INDEX, {"metadata": {}, "weight_map": {mtp.TABLE: SHARD}})
 
     @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+    def test_empty_inputs_of_each_command_are_refused_or_give_a_result_that_did_not_pass(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            records, inputs, outputs = write_records(folder)
+            target, contract = write_target(folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
+            assistant, assistant_contract = write_assistant(folder, SYNTHETIC["assistant"], assistant_state())
+            arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
+            write_json(records / "trajectories.json", {})
+            with self.subTest(input="an empty trajectories.json"), self.assertRaisesRegex(ValueError, "trajectories.json"):
+                mtp.acceptance(*arguments)
+            level = {"rounds": 1, "tokens": 1, "tokens_per_round": 1.0}
+            write_json(records / "trajectories.json", {"per_round_on_teacher_path": {"mtp_fixed": {"7": {
+                name: level for name in ("alpha", "beta", "pooled")}}}})
+            (records / "drafters").mkdir()
+            with self.subTest(input="an empty folder of drafter records"), self.assertRaises(FileNotFoundError):
+                mtp.acceptance(*arguments)
+            for name in ("original", "class"):
+                (folder / name).mkdir()
+            for label, record in {"empty run folders": None, "empty records": {}}.items():
+                if record is not None:
+                    for name in ("original", "class"):
+                        write_json(folder / name / "record.json", record)
+                result = mtp.compare(folder / "original", folder / "class", contract, assistant_contract, target, records,
+                                     7)
+                with self.subTest(input=label):
+                    self.assertFalse(result["passed"])
+                    self.assertTrue(result["problems"])
+            for path in (inputs, outputs):
+                saved = path.read_bytes()
+                path.write_bytes(b"")
+                with self.subTest(input=f"an empty {path.name}"), self.assertRaisesRegex(ValueError, "SHA-256"):
+                    mtp.run("class", *arguments, folder / "out")
+                path.write_bytes(saved)
+            (records / "tf/features").rename(records / "tf/kept")
+            (records / "tf/features").mkdir()
+            with self.subTest(input="an empty folder of features", command="run"), self.assertRaises(FileNotFoundError):
+                mtp.run("class", *arguments, folder / "out")
+            with self.subTest(input="an empty folder of features", command="compare"), \
+                    self.assertRaises(FileNotFoundError):
+                mtp.compare(folder / "original", folder / "class", contract, assistant_contract, target, records, 7)
+            self.assertFalse((folder / "out").exists())
+
+    @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
     def test_an_empty_or_another_subset_is_refused_by_every_command_before_any_tensor_is_read(self):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
