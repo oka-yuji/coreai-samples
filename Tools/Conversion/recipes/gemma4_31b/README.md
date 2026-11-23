@@ -603,13 +603,14 @@ step run again on the record (`check_asset`), with each number that the export d
 the quantized weights; the recorded differences of the storage counts follow from them; the disk record follows the rule
 of the free disk; the swap record, the lowest free disk and the peak resident memory follow from the monitor, which ran
 under its fixed limits and did not stop the export, whose record has the keys that the monitor writes, at least one
-sample and no more samples than its interval allows in the time of the export, a positive resident memory and a free
-memory percentage of at most 100, and the swap increase stays within its limit; the times are those of the steps of the
-export and their total is not shorter than them); and for 8 bits exactly the Linear weights of the layers as uint8 with
-float16 scales and minimums in blocks of [1, 32] and no zero point, their tensors, and the size and SHA-256 of
-`quantized.safetensors`. Before it creates its folder, it also checks each tensor against its SHA-256 in `export.json`,
-its weight against the shape in the checkpoint, whose index and files must be regular files, and its scales and minimums
-against exactly [rows, columns / 32]. It
+sample and no more samples than its interval allows in the time of the export, with one sample its peak swap and its
+lowest free disk those of that sample, a positive resident memory that ps gave in KiB and a free memory percentage of at
+most 100, and the swap increase stays within its limit; the times are those of the steps of the export and their total
+is not shorter than them); and for 8 bits exactly the Linear weights of the layers as uint8 with float16 scales and
+minimums in blocks of [1, 32] and no zero point, their tensors, and the size and SHA-256 of `quantized.safetensors`.
+Before it creates its folder, it also checks each tensor against its SHA-256 in `export.json`, its weight against the
+shape in the checkpoint, whose index and files must be regular files, and its scales and minimums against exactly [rows,
+columns / 32]. It
 then restores each weight as uint8 × scale + minimum with the blocks widened to the weight and each operation rounded to
 float16 (the dequantization of the converter), and puts it into the original implementation in
 float32. The other tensors are rounded to float16 as with `--weights float16`. `record.json` records the kind of the

@@ -665,7 +665,7 @@ def complete_export(folder, contract, precision="fp16", functions=("main", "pref
                "unreadable_samples": 0, "limits": {"swap_used_bytes": shared.SWAP_LIMIT_BYTES,
                                                    "free_percent": shared.FREE_PERCENT, "streak": shared.STREAK},
                "first": {"swap_used_bytes": 5, "free_bytes": {"volume": required}},
-               "peak": {"rss_bytes": 8, "max_rss_bytes": 9, "swap_used_bytes": 5, "temporary_bytes": 0},
+               "peak": {"rss_bytes": 8192, "max_rss_bytes": 9, "swap_used_bytes": 5, "temporary_bytes": 0},
                "lowest": {"free_percent": 50, "free_bytes": {"volume": export.MARGIN_BYTES}}}
     record = {"schema": export.SCHEMA, "passed": True, "problems": [], "checks": {"asset": True, "free_disk": True},
               "model": native.pinned_model(pinned, contract), "layers": 6, "layer_types": kinds,

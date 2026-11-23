@@ -285,6 +285,13 @@ def relation_problems(record, precision):
             valid("count", samples) and samples > 0,
         "the monitor recorded more samples than its interval allows in the time of the export":
             not (valid("count", samples) and valid("seconds", total)) or samples <= total / INTERVAL_S + 1,
+        "the monitor recorded one sample and another peak swap than that sample":
+            samples != 1 or canonical(mapping(monitor, "peak").get("swap_used_bytes"))
+            == canonical(mapping(monitor, "first").get("swap_used_bytes")),
+        "the monitor recorded one sample and another lowest free disk than that sample":
+            samples != 1 or canonical(lowest) == canonical(started),
+        "the resident memory that ps gave the monitor is not in KiB":
+            not valid("count", mapping(monitor, "peak").get("rss_bytes")) or monitor["peak"]["rss_bytes"] % 1024 == 0,
         "the monitor recorded no positive resident memory":
             all(valid("count", value) and value > 0
                 for value in (mapping(monitor, "peak").get(key) for key in ("rss_bytes", "max_rss_bytes"))),

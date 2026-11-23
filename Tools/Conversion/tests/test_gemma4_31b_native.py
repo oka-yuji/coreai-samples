@@ -749,6 +749,17 @@ class CompareTests(unittest.TestCase):
             monitored("peak", swap_used_bytes=limit + 1)(record)
             swap(first_bytes=0, peak_bytes=limit + 1, increase_bytes=0)(record)
 
+        def single(swap_peak, free):
+            def change(record):
+                monitored("first", swap_used_bytes=7)(record)
+                monitored("peak", swap_used_bytes=swap_peak)(record)
+                swap(first_bytes=7, peak_bytes=swap_peak, increase_bytes=swap_peak - 7)(record)
+                record["resources"]["monitor"]["samples"] = 1
+                lowest = record["resources"]["monitor"]["first"]["free_bytes"]["volume"] if free is None else free
+                record["resources"]["monitor"]["lowest"]["free_bytes"]["volume"] = lowest
+                record["disk"]["lowest_free_bytes"] = lowest
+            return change
+
         def float16(record):
             record["weights"]["elements_by_dtype"]["torch.float16"] += 2
             record["weights"]["elements"] += 2
@@ -758,6 +769,8 @@ class CompareTests(unittest.TestCase):
                                  "the first swap of the record is not that of the monitor",
                                  "the peak swap of the record is not that of the monitor")
         weights = "the weight elements do not follow from the checkpoint size and the quantized elements"
+        one_swap, one_free = ("the monitor recorded one sample and another peak swap than that sample",
+                              "the monitor recorded one sample and another lowest free disk than that sample")
         cases = {"a swap above its limit recorded as no increase": (False, review, increase),
                  "a swap increase other than the peak less the first swap": (False, swap(increase_bytes=1), increase),
                  "a first swap other than that of the monitor": (False, swap(first_bytes=4, increase_bytes=1), first),
@@ -783,6 +796,12 @@ class CompareTests(unittest.TestCase):
                      "the monitor record does not have the keys that the monitor writes"),
                  "a peak resident memory of the monitor of zero": (False, monitored("peak", rss_bytes=0),
                                                                   "the monitor recorded no positive resident memory"),
+                 "one sample with a peak swap above it and a lowest free disk below it": (
+                     False, single(9, export.MARGIN_BYTES), [one_swap, one_free]),
+                 "one sample with a peak swap above it": (False, single(9, None), one_swap),
+                 "one sample with a lowest free disk below it": (False, single(7, export.MARGIN_BYTES), one_free),
+                 "a resident memory of the monitor that is not a whole number of KiB": (
+                     False, monitored("peak", rss_bytes=8193), "the resident memory that ps gave the monitor is not in KiB"),
                  "a lowest free memory percentage above 100": (
                      False, lambda record: record["resources"]["monitor"]["lowest"].update(free_percent=101),
                      "the lowest free memory percentage of the monitor is not a percentage"),
@@ -806,7 +825,8 @@ class CompareTests(unittest.TestCase):
                 shutil.copytree(self.export, folder)
                 edit(folder / "export.json", change)
                 with self.subTest(case=label):
-                    self.assertEqual(native.load_export(folder, contract, self.contract)[3], [expected])
+                    self.assertEqual(native.load_export(folder, contract, self.contract)[3],
+                                     expected if isinstance(expected, list) else [expected])
 
     def test_the_export_reader_names_each_defect_of_the_record_and_of_its_folder(self):
         contract = load_contract(self.contract)
