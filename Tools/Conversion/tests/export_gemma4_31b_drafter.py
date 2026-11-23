@@ -235,25 +235,30 @@ class ContractTests(unittest.TestCase):
     def test_inputs_off_the_contract_are_refused_by_both_forms(self):
         good = list(ours(self.found))
         kv, heads = TEXT["num_key_value_heads"], TEXT["head_dim"]
-        changes = {"anchor token of two positions": (0, good[0].repeat(1, 2)),
-                   "anchor token as int64": (0, good[0].long()),
-                   "hidden state of another width": (1, torch.zeros(1, 1, BACKBONE + 1)),
-                   "hidden state in float16": (1, good[1].half()),
-                   "position as int64": (2, good[2].long()),
-                   "position of two values": (2, good[2].repeat(1, 2)),
-                   "sliding keys wider than the window": (3, torch.zeros(1, 1, kv, WINDOW + 1, heads)),
-                   "sliding keys without a position": (3, torch.zeros(1, 1, kv, 0, heads)),
-                   "sliding values shorter than the keys": (4, good[4][..., 1:, :]),
-                   "sliding keys of the full-attention layers": (3, good[5]),
-                   "sliding keys with the heads of the full-attention layers": (
-                       3, torch.zeros(1, 1, TEXT["num_global_key_value_heads"], WINDOW, heads)),
-                   "full keys of the sliding-window layers": (5, good[3]),
-                   "full keys without the slot dimension": (5, good[5][0]),
-                   "full keys without a position": (5, torch.zeros(1, 1, 1, 0, TEXT["global_head_dim"])),
-                   "full values in float16": (6, good[6].half())}
-        for label, (index, value) in changes.items():
-            arguments = good.copy()
-            arguments[index] = value
+        sliding, full = (3, 4), (5, 6)
+        changes = {"anchor token of two positions": {0: good[0].repeat(1, 2)},
+                   "anchor token as int64": {0: good[0].long()},
+                   "hidden state of another width": {1: torch.zeros(1, 1, BACKBONE + 1)},
+                   "hidden state in float16": {1: good[1].half()},
+                   "position as int64": {2: good[2].long()},
+                   "position of two values": {2: good[2].repeat(1, 2)},
+                   "sliding keys and values wider than the window": dict.fromkeys(
+                       sliding, torch.zeros(1, 1, kv, WINDOW + 1, heads)),
+                   "sliding keys and values without a position": dict.fromkeys(sliding, torch.zeros(1, 1, kv, 0, heads)),
+                   "sliding values shorter than the keys": {4: good[4][..., 1:, :]},
+                   "sliding keys and values of the full-attention layers": dict(zip(sliding, good[5:7])),
+                   "sliding keys and values with the heads of the full-attention layers": dict.fromkeys(
+                       sliding, torch.zeros(1, 1, TEXT["num_global_key_value_heads"], WINDOW, heads)),
+                   "full keys and values of the sliding-window layers": dict(zip(full, good[3:5])),
+                   "full keys and values with another rank": {5: good[5][..., None], 6: good[6][..., None]},
+                   "full keys and values without a position": dict.fromkeys(
+                       full, torch.zeros(1, 1, 1, 0, TEXT["global_head_dim"])),
+                   "full values in float16": {6: good[6].half()}}
+        with torch.no_grad():
+            self.model(*good)
+            self.model.outputs(*good)
+        for label, change in changes.items():
+            arguments = [change.get(index, value) for index, value in enumerate(good)]
             for form in ("forward", "outputs"):
                 with self.subTest(change=label, form=form), self.assertRaisesRegex(ValueError, "differ from the contract"):
                     getattr(self.model, form)(*arguments)
