@@ -6,6 +6,7 @@ import math
 import os
 from pathlib import Path
 import shutil
+import stat
 import tempfile
 import threading
 import unittest
@@ -156,7 +157,11 @@ def tensor_reads():
     class Watched:
         def __init__(self, path, *arguments, **options):
             status = os.stat(path)
-            self.name, self.opened = (status.st_dev, status.st_ino), real(path, *arguments, **options)
+            self.name = status.st_dev, status.st_ino
+            if not stat.S_ISREG(status.st_mode):
+                events.append((self.name, None))
+                raise OSError(f"the watched safetensors open was refused for the pipe or folder {Path(path).name}")
+            self.opened = real(path, *arguments, **options)
 
         def __enter__(self):
             self.handle = self.opened.__enter__()
@@ -781,24 +786,29 @@ class ReadTests(unittest.TestCase):
             saved, pipe = piped(path)
             for name in names:
                 output = folder / f"out-{name}"
-                events, watched = buffered_reads()
+                (events, watched), (tensors, opened) = buffered_reads(), tensor_reads()
                 with self.subTest(input=label, command=name), \
                         mock.patch.object(mtp, "load_contract", wraps=load_contract) as load:
-                    with watched():
+                    with watched(), opened():
                         waited, outcome = bounded(lambda: commands[name](output), path)
                     self.assertFalse(waited)
                     self.assertIsInstance(outcome.get("error"), ValueError)
                     self.assertRegex(str(outcome["error"]), "is not a regular file")
                     self.assertNotIn(pipe, events)
+                    self.assertEqual(tensors, [])
                     self.assertFalse(output.exists())
                     self.assertEqual(load.call_count, 0 if label == "the target contract" else 1)
             path.unlink()
             path.write_bytes(saved)
         item = mtp.items_of(load_contract(contract), records, inputs, outputs, mtp.first_per_category)[2][0]
         piped(item["features"])
-        waited, outcome = bounded(lambda: mtp.loaded_features(item), item["features"])
+        tensors, opened = tensor_reads()
+        with opened():
+            waited, outcome = bounded(lambda: mtp.loaded_features(item), item["features"])
         self.assertFalse(waited)
-        self.assertRegex(str(outcome.get("error")), "is not a regular file")
+        self.assertIsInstance(outcome.get("error"), ValueError)
+        self.assertRegex(str(outcome["error"]), "is not a regular file")
+        self.assertEqual(tensors, [])
 
 
 class RefusalTests(unittest.TestCase):
