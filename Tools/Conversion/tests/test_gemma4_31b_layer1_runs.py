@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import random
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -73,6 +74,57 @@ sys.exit(change.get("exit", 0))
 
 def tokens_sha256(ids):
     return hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest()
+
+
+SIGINT_STATE = """
+import _thread
+import json
+import signal
+import sys
+
+from Tools.Conversion.adapters.gemma4_31b import layer1_anchor
+
+if sys.argv[1] == "called":
+    layer1_anchor.interruptible()
+state = {"handler_is_default": signal.getsignal(signal.SIGINT) is signal.default_int_handler, "interrupted": False}
+try:
+    _thread.interrupt_main()
+    for _ in range(100000):
+        pass
+except KeyboardInterrupt:
+    state["interrupted"] = True
+print(json.dumps(state))
+"""
+
+SIGINT_SUPERVISED = """
+import sys
+import time
+from pathlib import Path
+
+from Tools.Conversion.adapters.gemma4_31b import layer1_anchor, reference
+from Tools.Conversion.adapters.jev27b import monitor as shared
+
+folder, steps = Path(sys.argv[1]), []
+shared.INTERVAL_S, shared.KILL_AFTER_S = 0.05, 60
+shared.swap_used, shared.free_percent = (lambda: 0), (lambda: 50)
+reference.ReferenceMonitor.verdict = lambda self: "the test stops the run" if self.samples >= 3 else None
+layer1_anchor.interruptible()
+
+
+def work():
+    try:
+        for _ in range(100):
+            time.sleep(0.05)
+            steps.append(1)
+    except BaseException as error:
+        return type(error).__name__
+    return None
+
+
+code = reference.supervise(folder, "test/1", work, lambda result, observed, started: 0)
+(folder / "steps").write_text(str(len(steps)))
+sys.exit(code)
+"""
 
 
 def forced_record(name, inputs, generated):
@@ -312,6 +364,16 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(record["forced"]["items"], [item["id"] for item in self.records])
         self.assertEqual({item["id"]: item["swap_used_bytes"] for item in record["items"]},
                          {item["id"]: {"before": 5, "after": 5} for item in self.records})
+
+    def test_an_interrupt_is_made_effective_just_before_the_supervision_starts(self):
+        for command, extra in (("run", ("--weights", "float16")), ("agreement", ("--items", "ja-choice-0001"))):
+            events = []
+            with self.subTest(command=command), \
+                    mock.patch.object(layer1_anchor, "interruptible", side_effect=lambda: events.append("interruptible")), \
+                    mock.patch.object(reference, "supervise",
+                                      side_effect=lambda *arguments: events.append("supervise") or 0):
+                code, _, _ = self.main(command, *extra, output=command)
+                self.assertEqual((code, events), (0, ["interruptible", "supervise"]))
 
     def test_the_chosen_items_run_in_their_order(self):
         code, _, _ = self.main("run", "--weights", "float16", "--items", "ja-choice-0004,ja-choice-0002")
@@ -627,6 +689,16 @@ class CandidateRunTests(unittest.TestCase):
             self.run_candidate(main_hash=bytes(32).hex(), output="unknown")
         self.assertFalse((self.folder / "unknown").exists() or self.launches.exists())
 
+    def test_an_interrupt_is_made_effective_before_the_items_are_read(self):
+        events, result = [], {"passed": True, "items": [], "problems": []}
+        argv = ["layer1_candidate", "--export", "e", "--forced", "f", "--verifier", "v", "--output", "o"]
+        with mock.patch.object(sys, "argv", argv), \
+                mock.patch.object(layer1_candidate, "interruptible", side_effect=lambda: events.append("interruptible")), \
+                mock.patch.object(layer1_candidate, "run", side_effect=lambda *arguments: events.append("run") or result), \
+                contextlib.redirect_stdout(io.StringIO()):
+            code = layer1_candidate.main()
+        self.assertEqual((code, events), (0, ["interruptible", "run"]))
+
     def test_a_stopped_run_still_records_the_items_that_were_read(self):
         attempted = layer1_candidate.attempted
         calls = []
@@ -643,6 +715,33 @@ class CandidateRunTests(unittest.TestCase):
         self.assertEqual((record["passed"], [entry["id"] for entry in record["items"]]), (False, calls[:2]))
         self.assertEqual([entry["id"] for entry in handoff["items"]], calls[:2])
 
+
+class InterruptTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+
+    def ignoring_sigint(self, *arguments):
+        return subprocess.run([sys.executable, "-c", *arguments], cwd=Path(__file__).resolve().parents[3],
+                              capture_output=True, text=True, timeout=120,
+                              preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_IGN))
+
+    def test_a_process_that_started_with_sigint_ignored_gets_the_python_handler_only_from_interruptible(self):
+        states = {}
+        for mode in ("called", "not called"):
+            process = self.ignoring_sigint(SIGINT_STATE, mode)
+            self.assertEqual(process.returncode, 0, process.stderr)
+            states[mode] = json.loads(process.stdout)
+        self.assertEqual(states, {"called": {"handler_is_default": True, "interrupted": True},
+                                  "not called": {"handler_is_default": False, "interrupted": False}})
+
+    def test_a_stop_of_the_monitor_ends_a_supervised_run_that_started_with_sigint_ignored_and_leaves_the_record(self):
+        process = self.ignoring_sigint(SIGINT_SUPERVISED, str(self.folder))
+        self.assertEqual(process.returncode, 1, process.stderr)
+        failure = read_json(self.folder / "failure.json")
+        self.assertEqual((failure["schema"], failure["passed"], failure["abort"]),
+                         ("test/1", False, "the test stops the run"))
+        self.assertLess(int((self.folder / "steps").read_text()), 50)
 
 
 @unittest.skipIf(not GEMMA4 or np is None, "Transformers with Gemma 4, PyTorch and NumPy are required for the runs")
@@ -676,22 +775,86 @@ class RestoredRunTests(unittest.TestCase):
                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             return layer1_anchor.main()
 
-    def test_restoring_takes_every_quantized_tensor_out_of_the_mapping_and_keeps_no_reference_to_it(self):
+    def pieces(self):
+        digests = read_json(self.export / "export.json")["quantized"]["tensors"]
+        names = sorted({key.rsplit(".", 1)[0] for key in digests})
+        return self.export / layers.QUANTIZED, digests, layers.checkpoint_shapes(self.snapshot, names), names
+
+    def watched_reads(self):
+        real, alive, events = layers.quantized_weights, [], []
+
+        def read(path, digests, shapes):
+            gc.collect()
+            events.append(("weights", path, digests, shapes, (self.folder / "out").exists(),
+                           sum(ref() is not None for ref in alive)))
+            found = real(path, digests, shapes)
+            alive.extend(weakref.ref(tensor) for parts in found.values() for tensor in parts)
+            return found
+
+        return mock.patch.object(layers, "quantized_weights", side_effect=read), events, alive
+
+    def restored_model(self):
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             model, _, _ = layer1_anchor.model_for(self.snapshot, 6, "cpu")
-        names = sorted({key.rsplit(".", 1)[0] for key in self.tensors})
-        parts = ("quantized_data", "scale", "minval")
-        expected = {name: layers.restore(*(self.tensors[f"{name}.{part}"] for part in parts)) for name in names}
-        restored = {name: tuple(self.tensors[f"{name}.{part}"].clone() for part in parts) for name in names}
-        watched = [weakref.ref(tensor) for values in restored.values() for tensor in values]
-        layer1_anchor.restore_into(model, restored, "cpu")
+        path, digests, shapes, _ = self.pieces()
+        patched, events, alive = self.watched_reads()
+        with patched:
+            layer1_anchor.restore_into(model, path, digests, shapes, "cpu")
         gc.collect()
-        self.assertEqual(restored, {})
-        self.assertEqual([reference() for reference in watched], [None] * len(watched))
-        for name, value in expected.items():
+        return model, events, alive
+
+    def test_restoring_reads_the_quantized_tensors_of_one_weight_at_a_time_in_the_order_of_the_names(self):
+        _, events, _ = self.restored_model()
+        path, digests, shapes, names = self.pieces()
+        self.assertEqual([(event[1], event[2], event[3]) for event in events],
+                         [(path, digests, {name: shapes[name]}) for name in names])
+
+    def test_restoring_replaces_exactly_the_quantized_weights_with_the_values_that_restore_gives(self):
+        model, _, _ = self.restored_model()
+        names = self.pieces()[3]
+        for name in names:
             with self.subTest(weight=name):
-                parameter = model.get_parameter(layers.PREFIX + name.removeprefix("model."))
-                self.assertTrue(torch.equal(parameter.data, value))
+                expected = layers.restore(*(self.tensors[f"{name}.{part}"] for part in layers.PARTS))
+                self.assertTrue(torch.equal(model.get_parameter(layers.PREFIX + name.removeprefix("model.")).data,
+                                            expected))
+        self.assertEqual({name for name, parameter in model.named_parameters() if parameter.dtype == torch.float16},
+                         {layers.PREFIX + name.removeprefix("model.") for name in names})
+
+    def test_restoring_keeps_no_reference_to_the_tensors_of_a_weight_once_it_reads_the_next_weight_or_ends(self):
+        _, events, alive = self.restored_model()
+        names = self.pieces()[3]
+        self.assertEqual([event[5] for event in events], [0] * len(names))
+        self.assertEqual([ref() for ref in alive], [None] * (3 * len(names)))
+
+    def test_the_tensors_are_checked_one_weight_at_a_time_before_the_folder_is_made_and_the_model_is_loaded(self):
+        patched, events, _ = self.watched_reads()
+        real = layer1_anchor.model_for
+
+        def loading(*arguments):
+            events.append(("model",))
+            return real(*arguments)
+
+        with patched, mock.patch.object(layer1_anchor, "model_for", side_effect=loading):
+            code = self.main("--weights", "8bit", "--export", str(self.export))
+        _, _, shapes, names = self.pieces()
+        count = len(names)
+        self.assertEqual(code, 0)
+        self.assertEqual([event[0] for event in events], ["weights"] * count + ["model"] + ["weights"] * count)
+        weights = [event for event in events if event[0] == "weights"]
+        self.assertEqual([event[3] for event in weights], [{name: shapes[name]} for name in names] * 2)
+        self.assertEqual([event[4] for event in weights], [False] * count + [True] * count)
+        self.assertEqual([event[5] for event in weights], [0] * (2 * count))
+
+    def test_a_tensor_that_differs_from_its_record_in_the_last_weight_is_refused_before_the_folder_is_made(self):
+        record = read_json(self.export / "export.json")
+        key = sorted(record["quantized"]["tensors"])[-1]
+        record["quantized"]["tensors"][key] = "0" * 64
+        write_json(self.export / "export.json", record)
+        with mock.patch.object(layer1_anchor, "model_for") as model_for, self.assertRaises(ValueError) as refused:
+            self.main("--weights", "8bit", "--export", str(self.export))
+        self.assertIn(f"The SHA-256 of {key} differs", str(refused.exception))
+        model_for.assert_not_called()
+        self.assertFalse((self.folder / "out").exists())
 
     def test_the_scored_rows_with_weights_restored_from_the_quantized_tensors_match_the_plain_float32_forward(self):
         self.assertEqual((self.main("--weights", "8bit", "--export", str(self.export)),

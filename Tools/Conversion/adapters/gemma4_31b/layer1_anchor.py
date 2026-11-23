@@ -3,6 +3,7 @@ import hashlib
 import os
 from pathlib import Path
 import re
+import signal
 import sys
 import time
 
@@ -23,6 +24,10 @@ WEIGHTS = {"float16": "every checkpoint tensor rounded to float16",
 PASSING = ("anchor_cpu", "original_cpu")
 RECORDED = (("anchor_run", "anchor_cpu"), ("original_eager_cpu", "original_cpu"), ("original_run", "original_cpu"),
             ("anchor_run", "original_run"))
+
+
+def interruptible():
+    signal.signal(signal.SIGINT, signal.default_int_handler)
 
 
 def frozen():
@@ -85,10 +90,10 @@ def rounded(model):
     return anchor.scaled(anchor.resident(model, "float16"), anchor.embed_scale(model, "bfloat16"))
 
 
-def restore_into(model, restored, device):
-    while restored:
-        name, parts = restored.popitem()
-        model.get_parameter(layers.PREFIX + name.removeprefix("model.")).data = layers.restore(*parts).to(device)
+def restore_into(model, path, digests, shapes, device):
+    for name, shape in sorted(shapes.items()):
+        weight = layers.restore(*layers.quantized_weights(path, digests, {name: shape})[name]).to(device)
+        model.get_parameter(layers.PREFIX + name.removeprefix("model.")).data = weight
 
 
 def scored(model, record, weights, device, block):
@@ -137,7 +142,8 @@ def run(record, args, records):
     device, started = record["device"], time.perf_counter()
     try:
         model, record["loading"], record["checks"]["loading_clean"] = model_for(args.snapshot, args.layers, device)
-        restore_into(model, args.restored, device)
+        if args.restored:
+            restore_into(model, *args.restored, device)
         record["timing"]["load_s"] = time.perf_counter() - started
         weights = rounded(model)
         record["compute"]["embed_scale"] = float(weights(anchor.SCALE))
@@ -288,7 +294,7 @@ def main():
     args.vocabulary, args.window = contract["config"]["vocab_size"], contract["config"]["sliding_window"]
     hashes, records = forced(args.forced, args.vocabulary)
     records = selected(records, args.items)
-    args.restored, quantized = {}, None
+    args.restored, quantized = (), None
     if args.command == "run" and (args.weights == "8bit") != (args.export is not None):
         raise ValueError("Give --export exactly for the weights restored from its quantized tensors")
     started = time.perf_counter()
@@ -297,8 +303,10 @@ def main():
     if args.command == "run" and args.export is not None:
         quantized, digests = layers.quantized_export(args.export, contract, args.model, kinds)
         names = sorted({key.rsplit(".", 1)[0] for key in digests})
-        args.restored = layers.quantized_weights(args.export / layers.QUANTIZED, digests,
-                                                 layers.checkpoint_shapes(args.snapshot, names))
+        shapes, path = layers.checkpoint_shapes(args.snapshot, names), args.export / layers.QUANTIZED
+        for name in names:
+            layers.quantized_weights(path, digests, {name: shapes[name]})
+        args.restored = path, digests, shapes
         quantized["tensors"] = len(digests)
     work, schema = (run, SCHEMA) if args.command == "run" else (agreement, AGREEMENT)
     record = header(schema, args, contract, ready, verified, hashes, records, kinds)
@@ -317,6 +325,7 @@ def main():
         result["timing"]["total_s"] = time.perf_counter() - began
         return recorded(args.output, result)
 
+    interruptible()
     return reference.supervise(args.output, schema, lambda: work(record, args, records), conclude)
 
 
