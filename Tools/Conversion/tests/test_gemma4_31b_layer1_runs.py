@@ -455,7 +455,7 @@ class AnchorRunTests(unittest.TestCase):
 
         def rows(key, records):
             calls.append(key)
-            return [np.full((item["rows"], VOCABULARY), 1.0 + offsets[key], dtype=np.float32) for item in records]
+            return [np.full((item["rows"], VOCABULARY), offsets[key], dtype=np.float64) for item in records]
 
         anchored = lambda args, records, device: (rows(("anchor", device), records), {"after_load": dict(MEMORY)}, True)
         originals = lambda model, records, device, attention: rows(("original", device, attention), records)
@@ -477,6 +477,17 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual([item["recorded"] for item in record["items"]],
                          [{"anchor_run - anchor_cpu": 0.25, "original_eager_cpu - original_cpu": 0.5,
                            "original_run - original_cpu": 0.75, "anchor_run - original_run": 0.5}] * 2)
+        for label, difference, passed in (("at the limit", anchor.LIMIT, True),
+                                          ("above the limit", np.nextafter(anchor.LIMIT, 1.0), False)):
+            offsets[("original", "cpu", "sdpa")] = difference
+            with mock.patch.object(layer1_anchor, "anchor_rows", side_effect=anchored), \
+                    mock.patch.object(layer1_anchor, "original_rows", side_effect=originals):
+                code, _, _ = self.main("agreement", "--items", "ja-choice-0003", device="mps", output=label,
+                                       original=lambda *arguments: (None, 6.9375, kinds))
+            record = read_json(self.folder / label / "run.json")
+            with self.subTest(case=label):
+                self.assertEqual((code == 0, record["checks"]["agreement"]), (passed, passed))
+                self.assertEqual(record["items"][0]["max_abs_difference"], difference)
 
 
 class CandidateRunTests(unittest.TestCase):
