@@ -574,6 +574,13 @@ class CompareTests(unittest.TestCase):
                 export_sha256=sha256(self.export / "export.json")))
         return edited
 
+    def test_the_reader_names_an_8bit_export_of_main_only_when_it_cannot_inspect_the_asset_again(self):
+        self.quantized(functions=["main"])
+        edit(self.export / "export.json", lambda record: record["asset"].pop("storage_types"))
+        self.assertEqual(native.load_export(self.export, load_contract(self.contract), self.contract)[3],
+                         ["the export record does not hold a complete inspection of its asset",
+                          "an 8-bit export recorded other functions than main and prefill"])
+
     def test_an_8bit_export_is_compared_with_the_reference_restored_from_its_quantized_tensors(self):
         self.quantized()
         result = self.run_compare()

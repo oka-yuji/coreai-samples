@@ -923,6 +923,7 @@ class RestoredReferenceTests(unittest.TestCase):
                 self.assertFalse(os.path.lexists(output))
             index = snapshot / "model.safetensors.index.json"
             saved = index.read_bytes()
+            shutil.copyfile(snapshot / SHARD, folder / "shard.safetensors")
             for label, content in {"a list": [], "a weight map that is a list": {"weight_map": []},
                                    "a shard outside the snapshot": {"weight_map": {
                                        key: "../shard.safetensors" for key in read_json(index)["weight_map"]}}}.items():
