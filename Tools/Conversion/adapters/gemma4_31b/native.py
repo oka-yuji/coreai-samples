@@ -15,12 +15,12 @@ from ...storage import PipelineError, canonical, digest, write_json
 from ..pinned import sha256
 from .anchor import parse, read
 from .compare import BLOCK_ROWS, CONTRACT
-from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, PRECISIONS, SCHEMA as EXPORT_SCHEMA, check_asset, metadata, name_of,
-                     quantized_names)
+from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PRECISIONS, SCHEMA as EXPORT_SCHEMA, WRITES, check_asset,
+                     metadata, name_of, quantized_names, required_bytes)
 from .layers import (CONDITIONS, CONTEXT_SCHEMA, PARTS, QUANTIZED, WEIGHT_KINDS, check_layers, check_taps, joined,
                      kept_rows, tokens)
 from .prepare import TOKENIZER_FILES, load_contract
-from .reference import LOADED_FILES
+from .reference import LOADED_FILES, SWAP_INCREASE_LIMIT_BYTES
 
 SCHEMA = "gemma4-31b-native-comparison/1"
 MAX_ABS_LOGIT = 2.0
@@ -216,6 +216,30 @@ def arguments(record, contract):
     return kinds, tuple(functions), context, taps, precision
 
 
+def relation_problems(record, precision):
+    weights, asset, disk = record["weights"], record["asset"], record["disk"]
+    by_dtype, storage, problems = weights["elements_by_dtype"], asset["storage_types"], []
+    if not all(valid("count", value) for value in (weights["elements"], *by_dtype.values(), *storage.values())) \
+            or sum(by_dtype.values()) != weights["elements"]:
+        problems.append("the element counts of the weights do not add up")
+    differences = {"float16_minus_weights": storage.get("Float16", 0) - by_dtype.get("torch.float16", 0),
+                   **({"uint8_minus_weights": storage.get("UInt8", 0) - by_dtype.get("torch.uint8", 0)}
+                      if precision == "8bit" else {})}
+    if canonical({key: asset.get(key) for key in differences}) != canonical(differences):
+        problems.append("the recorded differences of the storage counts and the weights do not follow from them")
+    checkpoint, free = disk.get("weight_bytes"), disk.get("free_before_bytes")
+    rule = None if not valid("count", checkpoint) or checkpoint % 2 else {
+        "estimated_write_bytes": WRITES[precision] * (checkpoint // 2), "margin_bytes": MARGIN_BYTES,
+        "required_free_bytes": required_bytes(checkpoint // 2, precision)}
+    if rule is None or canonical({key: disk.get(key) for key in rule}) != canonical(rule) or not valid("count", free) \
+            or free < rule["required_free_bytes"]:
+        problems.append("the disk record does not follow the rule of the free disk")
+    increase = mapping(mapping(record, "resources"), "swap").get("increase_bytes")
+    if not valid("count", increase) or increase > SWAP_INCREASE_LIMIT_BYTES:
+        problems.append("the export recorded no swap increase within its limit")
+    return problems
+
+
 def load_export(folder, contract, contract_path):
     path = folder / "export.json"
     entry, data = regular_file(path, keep=True)
@@ -225,6 +249,14 @@ def load_export(folder, contract, contract_path):
         raise ValueError("The export record and its bundle record must be objects")
     passed = record.get("schema") == EXPORT_SCHEMA and record.get("passed") is True and record.get("problems") == []
     problems = [] if passed else ["the export is not a passed export"]
+    lowest = mapping(record, "disk").get("lowest_free_bytes")
+    if canonical(record.get("checks")) != canonical({"asset": True, "free_disk": True}) or not valid("count", lowest) \
+            or lowest < MARGIN_BYTES:
+        problems.append("the export did not pass its checks of the asset and of the free disk")
+    if record.get("upstream_revision") != contract["upstream_revision"]:
+        problems.append("the export was made with another converter checkout than the contract pins")
+    if not valid("count", record.get("context")):
+        problems.append("the export recorded no valid context limit")
     problems += layer_problems(record, contract, "export")
     if canonical(record.get("model")) != canonical(pinned_model(contract, contract_path)):
         problems.append("the export recorded another model or contract")
@@ -241,7 +273,7 @@ def load_export(folder, contract, contract_path):
     name = None if shape is None else name_of(len(shape[0]), shape[1], shape[4])
     if shape is not None:
         try:
-            problems += check_asset(record, contract, *shape)
+            problems += check_asset(record, contract, *shape) + relation_problems(record, shape[4])
         except (AttributeError, KeyError, TypeError, ValueError):
             problems.append("the export record does not hold a complete inspection of its asset")
     folders = [bundle, bundle / "tokenizer", *([] if name is None else [bundle / f"{name}.aimodel"])]

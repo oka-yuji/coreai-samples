@@ -169,7 +169,11 @@ class AssetTests(unittest.TestCase):
                  "an order without the taps": lambda record: record["asset"]["output_order"]["prefill"].clear(),
                  "metadata without tap_layers": lambda record: record["metadata"].pop("tap_layers"),
                  "metadata with other tap layers": lambda record: record["metadata"].update(tap_layers=[1, 2, 3, 4, 6]),
-                 "metadata with another convention": lambda record: record["metadata"].update(tap_convention="after-norm")}
+                 "metadata with another convention": lambda record: record["metadata"].update(tap_convention="after-norm"),
+                 "a state shape that holds true for one": lambda record: record["asset"]["functions"]["main"]["states"][
+                     "keyCache"]["shape"].__setitem__(1, True),
+                 "metadata with a tap layer of true": lambda record: record["metadata"].update(tap_layers=[True, 2, 3, 4, 5]),
+                 "Float32 elements as a float": lambda record: record["asset"]["storage_types"].update(Float32=386.0)}
         for label, edit in cases.items():
             with self.subTest(case=label):
                 self.assertTrue(problems(edit))
@@ -190,6 +194,7 @@ class AssetTests(unittest.TestCase):
         cases = {"a compression config passed to the export": lambda record: record.update(
                      compression_config={"quantization_config": {"module_type_configs": {}}}),
                  "quantized weights in the PyTorch model": lambda record: record["weights"].update(quantized_layouts=41),
+                 "no quantized weights given as 0.0": lambda record: record["weights"].update(quantized_layouts=0.0),
                  "compression named in metadata.json": lambda record: record["metadata"].update(compression="8bit")}
         for label, change in cases.items():
             with self.subTest(case=label):
@@ -431,6 +436,18 @@ class QuantizedAssetTests(unittest.TestCase):
         self.assertEqual(export.dequantizations(export.quantized_names(sixty), sixty, BOTH, (60,)), 410 + 410)
         skipped = {name for name in export.quantized_names(KINDS) if ".o_proj." in name or ".down_proj." in name}
         self.assertEqual(export.dequantizations(skipped, KINDS, BOTH, TAPS), 12 + 10)
+
+    def test_counts_and_flags_of_the_quantization_of_another_type_fail(self):
+        cases = {"a dequantization count as a float": lambda record: record["asset"].update(
+                     dequantizations=float(DEQUANTIZATIONS)),
+                 "warnings enabled as the number one": lambda record: record["quantized"].update(warnings_enabled=1),
+                 "a skipped count of 0.0": lambda record: record["quantized"].update(skipped=0.0),
+                 "40 quantized layouts": lambda record: record["weights"].update(quantized_layouts=40),
+                 "a block of true and 32": one_layer("model.layers.0.self_attn.q_proj.weight", block=[True, 32])}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(quantized_problems(change))
+        self.assertEqual(quantized_problems(), [])
 
     def test_an_asset_with_one_dequantization_less_or_more_fails_and_the_storage_counts_are_only_recorded(self):
         def dequantized(count, uint8=1_376_256, float16=4):

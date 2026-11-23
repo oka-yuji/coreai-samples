@@ -761,7 +761,34 @@ BUNDLE_DEFECTS = {
     "a tokenizer file of the bundle as a link": linked(export.BUNDLE + "/tokenizer/tokenizer.json"),
     "a bundle size other than the sum of its files": changed(lambda record: record["bundle"].update(
         bytes=record["bundle"]["bytes"] + 1)),
-    "an asset of other outputs": changed(lambda record: record["asset"]["output_order"].update(main=["logits"]))}
+    "an export of another converter checkout": changed(lambda record: record.update(upstream_revision="0" * 40)),
+    "checks that did not pass": changed(lambda record: record["checks"].update(free_disk=False)),
+    "a lowest free disk below the margin": changed(lambda record: record["disk"].update(
+        lowest_free_bytes=export.MARGIN_BYTES - 1)),
+    "a context limit given as text": changed(lambda record: record.update(context="16896")),
+    "an asset of other outputs": changed(lambda record: record["asset"]["output_order"].update(main=["logits"])),
+    "an asset whose state shape holds true for one": changed(lambda record: record["asset"]["functions"]["main"][
+        "states"]["keyCache"]["shape"].__setitem__(1, True)),
+    "weights whose element counts do not add up": changed(lambda record: record["weights"].update(
+        elements=record["weights"]["elements"] + 1)),
+    "a difference of the storage counts that does not follow from them": changed(lambda record: record["asset"].update(
+        float16_minus_weights=5)),
+    "a disk record that does not follow the rule": changed(lambda record: record["disk"].update(
+        required_free_bytes=record["disk"]["required_free_bytes"] + 1)),
+    "a free disk at the start below the requirement": changed(lambda record: record["disk"].update(
+        free_before_bytes=record["disk"]["required_free_bytes"] - 1)),
+    "a swap increase above its limit": changed(lambda record: record["resources"]["swap"].update(
+        increase_bytes=3 * 10**9))}
+QUANTIZATION_DEFECTS = {
+    "a dequantization count as a float": changed(lambda record: record["asset"].update(
+        dequantizations=float(record["asset"]["dequantizations"]))),
+    "warnings of the quantizer enabled as the number one": changed(lambda record: record["quantized"].update(
+        warnings_enabled=1)),
+    "a skipped count of 0.0": changed(lambda record: record["quantized"].update(skipped=0.0)),
+    "a count of quantized layouts other than the Linear weights": changed(lambda record: record["weights"].update(
+        quantized_layouts=40)),
+    "a difference of the UInt8 count that does not follow from it": changed(lambda record: record["asset"].update(
+        uint8_minus_weights=127))}
 
 
 def interrupted_rename(target):
@@ -996,7 +1023,7 @@ class RestoredReferenceTests(unittest.TestCase):
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder, hidden_size=64)
             tensors = quantized_tensors(self.TEXT)
-            for index, (label, change) in enumerate(BUNDLE_DEFECTS.items()):
+            for index, (label, change) in enumerate({**BUNDLE_DEFECTS, **QUANTIZATION_DEFECTS}.items()):
                 target = write_export(folder / f"export-{index}", contract, tensors)
                 change(target)
                 output = folder / f"restored-{index}"
