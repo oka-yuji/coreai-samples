@@ -4,8 +4,10 @@ import hashlib
 import io
 import json
 import math
+import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -23,6 +25,11 @@ from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import PipelineError, canonical, digest, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import TAPS, TEXT, complete_export, write_contract, write_run
 
+ROOT = Path(__file__).resolve().parents[3]
+CHILD = ("import sys\nfrom pathlib import Path\nfrom unittest import mock\n"
+         "from Tools.Conversion.adapters.gemma4_31b import fp16_summary\n"
+         "contract, sys.argv = Path(sys.argv[1]), ['fp16_summary', *sys.argv[2:]]\n"
+         "with mock.patch.object(fp16_summary, 'CONTRACT', contract):\n    sys.exit(fp16_summary.main())\n")
 SENTINEL = "private-example-sentinel"
 SHARD = "model-00001-of-00002.safetensors"
 MODEL = {"id": "google/gemma-4-31B-it", "revision": "a" * 40, "contract_sha256": "b" * 64,
@@ -193,10 +200,23 @@ class Records(unittest.TestCase):
     def options(self):
         return []
 
-    def summarize(self, *runs, options=None):
-        argv = ["fp16_summary", "--reference", str(self.reference), *(self.options() if options is None else options)]
+    def arguments(self, *runs, options=None):
+        argv = ["--reference", str(self.reference), *(self.options() if options is None else options)]
         for report, record, comparison in runs:
             argv += ["--report", str(report), "--export", str(record), "--comparison", str(comparison)]
+        return argv
+
+    def summarize_within(self, *runs, options=None, seconds=20):
+        try:
+            done = subprocess.run([sys.executable, "-c", CHILD, str(self.contract), *self.arguments(*runs, options=options)],
+                                  cwd=ROOT, capture_output=True, text=True, timeout=seconds,
+                                  env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        except subprocess.TimeoutExpired:
+            self.fail(f"the summary did not finish within {seconds} s")
+        return done.returncode, done.stdout
+
+    def summarize(self, *runs, options=None):
+        argv = ["fp16_summary", *self.arguments(*runs, options=options)]
         output, errors = io.StringIO(), io.StringIO()
         with mock.patch.object(sys, "argv", argv), mock.patch.object(fp16_summary, "CONTRACT", self.contract), \
                 contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
@@ -1009,6 +1029,75 @@ class QuantizedSummaryTests(Records):
         shifted = lambda *arguments: {**original(*arguments), "max_abs_logit": 1.5}
         with mock.patch.object(native, "measure_condition", side_effect=shifted):
             self.assertEqual(self.summarize(run), (1, ""))
+
+    def inputs(self, run):
+        reference = self.reference.parent
+        return {"a short array of the rounded reference": self.rounded / "short.npy",
+                "a context array of the rounded reference": self.rounded / "context.npy",
+                "the record of the rounded reference": self.rounded / "record.json",
+                "a short array of the restored reference": reference / "short.npy",
+                "a context array of the restored reference": reference / "context.npy",
+                "the record of the restored reference": self.reference, "the report": run[0], "the export record": run[1],
+                "the comparison": run[2], "the manifest of the stage": run[0].parent / "manifest.json"}
+
+    def test_a_pipe_without_a_writer_in_place_of_an_input_is_refused_without_waiting(self):
+        run = self.run_files("first")
+        self.assertEqual(self.summarize_within(run)[0], 0)
+        for label, path in self.inputs(run).items():
+            saved = path.read_bytes()
+            path.unlink()
+            os.mkfifo(path)
+            with self.subTest(case=label):
+                self.assertEqual(self.summarize_within(run), (1, ""))
+            path.unlink()
+            path.write_bytes(saved)
+        self.assertEqual(self.summarize_within(run)[0], 0)
+
+    def test_a_link_or_a_folder_in_place_of_an_input_is_refused(self):
+        run = self.run_files("first")
+        self.assertEqual(self.summarize(run)[0], 0)
+        for kind in ("a link", "a folder"):
+            for label, path in self.inputs(run).items():
+                saved, other = path.read_bytes(), path.with_name(path.name + ".copy")
+                if kind == "a link":
+                    path.rename(other)
+                    path.symlink_to(other)
+                else:
+                    path.unlink()
+                    path.mkdir()
+                with self.subTest(case=kind, place=label):
+                    self.assertEqual(self.summarize(run), (1, ""))
+                path.unlink() if kind == "a link" else path.rmdir()
+                other.unlink(missing_ok=True)
+                path.write_bytes(saved)
+        self.assertEqual(self.summarize(run)[0], 0)
+
+    def test_a_rounded_reference_that_holds_the_logits_of_the_restored_one_stops_the_summary(self):
+        run = self.run_files("first")
+        self.assertEqual(self.summarize(run)[0], 0)
+
+        def shared(label, places):
+            folder = self.rounded_variant(label)
+            record = read_json(folder / "record.json")
+            for name, how in places:
+                (folder / f"{name}.npy").unlink()
+                how(self.reference.parent / f"{name}.npy", folder / f"{name}.npy")
+                record["inputs"][name]["logits"].update(layers.file_record(folder / f"{name}.npy"))
+            write_json(folder / "record.json", record)
+            return folder
+
+        link, copy = os.link, shutil.copyfile
+        cases = {"a hard link of the short logits": (("short", link),), "a copy of the short logits": (("short", copy),),
+                 "a hard link of the context logits": (("context", link),),
+                 "a copy of the context logits": (("context", copy),),
+                 "hard links of both": (("short", link), ("context", link)),
+                 "copies of both": (("short", copy), ("context", copy))}
+        for index, (label, places) in enumerate(cases.items()):
+            folder = shared(f"shared-{index}", places)
+            with self.subTest(case=label):
+                self.assertEqual(effect.effect(self.reference.parent, folder, self.contract)["problems"],
+                                 [f"the references hold the same {name} logits" for name, _ in places])
+                self.assertEqual(self.summarize(run, options=["--rounded", str(folder)]), (1, ""))
 
     def test_an_8bit_summary_needs_no_run_of_the_model_class_and_stops_when_one_is_given(self):
         run, missing = self.run_files("first"), str(self.folder / "missing-run")

@@ -14,7 +14,7 @@ import time
 from ...storage import PipelineError, canonical, digest, write_json
 from ..jev27b.monitor import FREE_PERCENT, INTERVAL_S, STREAK, SWAP_LIMIT_BYTES
 from ..pinned import sha256
-from .anchor import parse, read
+from .anchor import parse
 from .compare import BLOCK_ROWS, CONTRACT
 from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PACKAGES as EXPORT_PACKAGES, PRECISIONS,
                      SCHEMA as EXPORT_SCHEMA, WRITES, check_asset, expected_functions, metadata, name_of, quantized_names,
@@ -269,7 +269,7 @@ def layer_problems(record, contract, label):
 def load_reference(folder, contract, contract_path):
     import numpy as np
 
-    record, hashed, _ = read(folder / "record.json")
+    record, hashed, _ = read_record(folder / "record.json")
     problems = [] if (record.get("schema"), record.get("implementation")) == (CONTEXT_SCHEMA, "original") else [
         "the reference is not a context run of the original implementation"]
     problems += layer_problems(record, contract, "reference")
@@ -280,9 +280,10 @@ def load_reference(folder, contract, contract_path):
         entry, ids, rows = (record.get("inputs") or {}).get(name) or {}, tokens(name, contract["config"]), kept_rows(name)
         if (entry.get("positions"), entry.get("tokens_sha256"), entry.get("rows")) != (len(ids), digest(ids), rows):
             problems.append(f"the reference did not keep the rows of the {name} input of the conditions")
-        content, content_hash = read_once(folder / f"{name}.npy")
         logits = entry.get("logits") or {}
-        if (len(content), content_hash) != (logits.get("bytes"), logits.get("sha256")):
+        recorded = logits.get("bytes")
+        found, content = regular_file(folder / f"{name}.npy", recorded if valid("count", recorded) else None, keep=True)
+        if (found["bytes"], found["sha256"]) != (recorded, logits.get("sha256")):
             problems.append(f"the {name} logits differ from the size and SHA-256 in the reference record")
             continue
         stream = io.BytesIO(content)
@@ -357,6 +358,11 @@ def regular_file(path, size=None, keep=False):
     if total != status.st_size:
         raise ValueError(f"{Path(path).name} changed while it was read")
     return {"bytes": total, "sha256": hasher.hexdigest()}, b"".join(kept) if keep else None
+
+
+def read_record(path):
+    found, data = regular_file(path, keep=True)
+    return parse(data), found["sha256"], found["bytes"]
 
 
 def mapping(record, key):
@@ -676,6 +682,7 @@ def measured(entry, config, arrays, facts, verifier, output):
 
 
 def compare(export_folder, reference_folder, verifier, output, contract_path=CONTRACT):
+    verifier = Path(verifier).resolve()
     if os.path.lexists(output):
         raise FileExistsError(f"The comparison must be written to a new folder: {output}")
     contract = load_contract(contract_path)
@@ -699,8 +706,7 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
     verifier_record = None
     if not problems:
         try:
-            data, verifier_hash = read_once(verifier)
-            verifier_record = {"bytes": len(data), "sha256": verifier_hash}
+            verifier_record = regular_file(verifier)[0]
         except Exception as error:
             problems.append(f"the verifier is unreadable ({type(error).__name__})")
     conditions = [] if problems else [condition(spec, contract["config"], arrays, facts, verifier, output)

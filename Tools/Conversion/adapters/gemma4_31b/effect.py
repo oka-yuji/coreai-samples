@@ -35,6 +35,9 @@ def effect(restored, rounded, contract_path=CONTRACT):
         loaded[kind] = record, hashed, arrays
     if loaded["restored"][0].get("layers") != loaded["rounded"][0].get("layers"):
         problems.append("the references are of other layer counts")
+    if not problems:
+        problems += [f"the references hold the same {name} logits" for name in ("short", "context")
+                     if len({record["inputs"][name]["logits"]["sha256"] for record, _, _ in loaded.values()}) == 1]
     if not problems and not checked(loaded["restored"][0]):
         problems.append("the restored reference did not check the data, scales and minimums of every quantized weight "
                         "of a passed export")

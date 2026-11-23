@@ -548,10 +548,11 @@ that the two runs, the reference and every export are of the contract `model.jso
 are of the layers and tap layers of every export, that the reference is of the layers of every export and uses its kind
 of weights (restored from its quantized tensors for 8 bits, with the SHA-256 of its record, the size and SHA-256 of
 `quantized.safetensors` and the number of tensors, through `correspondence` of `native.py`), and that each comparison
-records the layers, the functions and the asset of its export and the layers of the reference. The arguments of the runs
-(layers, tap layers, functions, precision and context limit) are checked for their form and for their agreement with the
-contract, the other records and the names and the metadata that they give. Every other value that it prints is of one
-of six kinds, and each kind has one rule:
+records the layers, the functions and the asset of its export and the layers of the reference. It reads the records, the
+manifests and the arrays of the references only as regular files (not a link, a pipe or a folder), and an array only at
+its recorded size. The arguments of the runs (layers, tap layers, functions, precision and context limit) are checked
+for their form and for their agreement with the contract, the other records and the names and the metadata that they
+give. Every other value that it prints is of one of six kinds, and each kind has one rule:
 
 - A fixed value must equal the constant of the tools or the formula that derives it, and a record that differs is
   refused: the twelve conditions in their order with their inputs, token counts, starts, chunks and rows, the criteria,
@@ -701,15 +702,16 @@ the largest absolute logit difference and the top-1 changes inside and outside a
 ~~~
 
 It refuses a restored reference that did not record the SHA-256 of the export record and the check of the data, scale
-and minimum of every quantized weight. `EffectTests` in `Tools/Conversion/tests/test_gemma4_31b_effect.py` fixes it.
+and minimum of every quantized weight, and two references that hold the same logits of an input (a hard link or a copy
+of the same file). `EffectTests` in `Tools/Conversion/tests/test_gemma4_31b_effect.py` fixes it.
 `fp16_summary` summarizes 8-bit records
 with the restored reference as `--reference` and the folder of the rounded reference as `--rounded`, and without
 `--original` and `--model-class`, which only FP16 records take. It computes the effect itself with the function of
 `effect.py` from the two folders and does not read the output of `effect`; it stops with its fixed error when an input
 of the other precision is given or one of its own is missing, and when `effect` finds a problem (a rounded reference of
-other weights, of another contract, of other layers than the restored reference, or not complete with its logits files)
-or did not start from the record of the restored reference. `QuantizedSummaryTests` fixes these checks. The
-published record is
+other weights, of another contract, of other layers than the restored reference, not complete with its logits files, or
+holding the same logits as the restored one) or did not start from the record of the restored reference.
+`QuantizedSummaryTests` fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).
 
 ## Terms

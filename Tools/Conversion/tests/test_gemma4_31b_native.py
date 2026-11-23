@@ -302,14 +302,14 @@ class CompareTests(unittest.TestCase):
         self.verifier = self.folder / "verifier"
         self.calls = self.folder / "calls.txt"
 
-    def run_compare(self, changes=None, label="out"):
+    def run_compare(self, changes=None, label="out", verifier=None):
         plan = {"conditions": {name: [length, start, chunk] for name, _, length, start, chunk in layers.CONDITIONS},
                 "changes": changes or {}, "arrays": self.arrays, "rows": self.rows, "main_hash": MAIN_HASH,
                 "calls": str(self.calls), "prefill_chunk": native.prefill_chunk()}
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
-        return native.compare(self.export, self.reference, self.verifier, self.folder / label, self.contract)
+        return native.compare(self.export, self.reference, verifier or self.verifier, self.folder / label, self.contract)
 
     def conditions(self, result):
         return {entry["name"]: entry for entry in result["conditions"]}
@@ -694,6 +694,20 @@ class CompareTests(unittest.TestCase):
         self.assertIn("the reference record is unreadable (ValueError)", result["problems"])
         self.assertFalse(self.calls.exists())
 
+    def test_the_verifier_that_is_hashed_is_the_one_that_runs_when_it_is_given_by_its_name_only(self):
+        shadow = self.folder / "elsewhere" / "verifier"
+        shadow.parent.mkdir()
+        shadow.write_text("#!/bin/sh\nexit 3\n")
+        shadow.chmod(0o755)
+        previous = os.getcwd()
+        os.chdir(self.folder)
+        self.addCleanup(os.chdir, previous)
+        with mock.patch.dict(os.environ, {"PATH": f"{shadow.parent}{os.pathsep}{os.environ['PATH']}"}):
+            result = self.run_compare(verifier=Path("verifier"))
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
+        self.assertTrue(self.calls.exists())
+
     def test_a_verifier_that_does_not_finish_in_time_is_stopped_and_its_condition_fails(self):
         with mock.patch.object(native, "TIMEOUT_S", 1.0):
             started = time.perf_counter()
@@ -932,6 +946,42 @@ class CompareTests(unittest.TestCase):
             if eight_bit:
                 shutil.rmtree(self.export)
                 complete_export(self.export, self.contract)
+
+    def test_the_reference_reader_does_not_wait_on_a_pipe_and_reads_only_regular_files_of_the_recorded_size(self):
+        contract = load_contract(self.contract)
+
+        def piped(path):
+            path.unlink()
+            os.mkfifo(path)
+
+        def linked(path):
+            path.rename(path.with_name(path.name + ".copy"))
+            path.symlink_to(path.with_name(path.name + ".copy"))
+
+        def folder(path):
+            path.unlink()
+            path.mkdir()
+
+        index = 0
+        for kind, make in {"a pipe": piped, "a link": linked, "a folder": folder}.items():
+            for place in ("short.npy", "context.npy", "record.json"):
+                index += 1
+                copied = self.folder / f"reference-{index}"
+                shutil.copytree(self.reference, copied)
+                make(copied / place)
+                with self.subTest(case=kind, place=place):
+                    thread, outcome = bounded(lambda: native.load_reference(copied, contract, self.contract))
+                    self.assertFalse(release(copied / place, thread))
+                    self.assertIsInstance(outcome.get("error"), (OSError, ValueError))
+        for place in ("short.npy", "context.npy"):
+            copied = self.folder / f"reference-{place}"
+            shutil.copytree(self.reference, copied)
+            (copied / place).write_bytes((copied / place).read_bytes() + b"x")
+            with self.subTest(case="a file of another size", place=place), watched() as reads:
+                with self.assertRaises(ValueError):
+                    native.load_reference(copied, contract, self.contract)
+                self.assertNotIn(inode(copied / place), reads)
+        self.assertEqual(native.load_reference(self.reference, contract, self.contract)[3], [])
 
     def test_the_reader_names_each_number_of_the_record_that_does_not_follow_from_the_others(self):
         limit, contract = native.SWAP_INCREASE_LIMIT_BYTES, load_contract(self.contract)

@@ -6,7 +6,6 @@ import sys
 
 from ... import summary as pipeline
 from ...storage import PipelineError, canonical
-from .anchor import read
 from .anchor_summary import signed
 from .compare import CONTRACT
 from .effect import effect as quantization_effect
@@ -14,7 +13,7 @@ from .export import QUANTIZATION, SCHEMA as EXPORT_SCHEMA
 from .layers import CONDITIONS, CONTEXT_SCHEMA, RESTORED, compare as compare_layers
 from .native import (CRITERIA, KNOWN_CALL, PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER, comparison_passed,
                      condition_problems, correspondence, load_export, load_reference, measurement_problems,
-                     reference_record_problems, regular_file, texts, valid)
+                     read_record, reference_record_problems, regular_file, texts, valid)
 from .prepare import load_contract
 from .summary import HEX, REPOSITORY, SHARD, count, flag, matched, optional, word
 
@@ -245,7 +244,7 @@ def paired(reports, exports, comparisons, context, reference_hash):
                 [entry.get("status") for entry in report["stages"]]) \
                 != ("completed", "not_configured", ROLES, ["executed"] * len(ROLES)):
             raise PipelineError("Each report must be a completed run of the fixed stages, which has no verify stage")
-        manifest = read(Path(stage["artifacts"]).parent / "manifest.json")[0]
+        manifest = read_record(Path(stage["artifacts"]).parent / "manifest.json")[0]
         if (manifest.get("version"), manifest.get("status"), manifest.get("run_id"), manifest.get("stage")) \
                 != (1, "completed", report["run_id"], "export") \
                 or manifest["outputs"]["artifacts"]["tree"].get("export/export.json") != {"bytes": size, "sha256": digest}:
@@ -318,10 +317,10 @@ def main():
         parser.add_argument(f"--{name}", type=Path, action="append", required=True)
     args = parser.parse_args()
     try:
-        reports = [read(path)[0] for path in args.report]
-        exports = [(path, *read(path)) for path in args.export]
-        comparisons = [read(path)[0] for path in args.comparison]
-        context, reference_hash, _ = read(args.reference)
+        reports = [read_record(path)[0] for path in args.report]
+        exports = [(path, *read_record(path)) for path in args.export]
+        comparisons = [read_record(path)[0] for path in args.comparison]
+        context, reference_hash, _ = read_record(args.reference)
         contract = load_contract(CONTRACT)
         paired(reports, exports, comparisons, context, reference_hash)
         _, loaded_hash, arrays, found = load_reference(args.reference.parent, contract, CONTRACT)
