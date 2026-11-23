@@ -612,13 +612,15 @@ Run both implementations under the shared machine lock, which the tools do not t
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp compare \
   --original <new folder>/original --model-class <new folder>/class \
   --model Tools/Conversion/recipes/gemma4_31b/model.json --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
-  --snapshot .local/conversion/models/google--gemma-4-31B-it --records <records of #691> --steps 7 \
-  > <new folder>/comparison.json
+  --snapshot .local/conversion/models/google--gemma-4-31B-it --records <records of #691> --inputs <inputs.jsonl> \
+  --outputs <outputs.jsonl> --steps 7 > <new folder>/comparison.json
 ~~~
 
 - `--records` is the record folder of #691: `subset.json` (48 items of the primary set of the quality contract with
   the SHA-256 of their input and output records; `run`, `compare` and `acceptance` refuse any other counts per category
-  than the fixed ones of #691 in `SUBSET`, 13 categories, and items without an input or an output token) and
+  than the fixed ones of #691 in `SUBSET`, 13 categories, any other ids than `<category>-0001` onwards in that order,
+  items without an input or an output token, and input and output records other than the input records and the
+  reference outputs of the primary set of the quality contract, whose SHA-256 `RECORDS` pins) and
   `tf/features/<id>.safetensors` (the BF16 features of the original
   implementation under teacher forcing: `postnorm`, the output of the final norm, and the keys and values `k58`, `v58`,
   `k59` and `v59`). `--inputs` and `--outputs` are the input records and the outputs of the reference run of the set.
@@ -632,7 +634,8 @@ Run both implementations under the shared machine lock, which the tools do not t
   `record.json`, or `failure.json` with the name of the error when it stops after making the folder.
 - `compare` checks each of the two records against values it builds from the fixed inputs in the same process, not
   against the other record: the two contracts (content and SHA-256), the pins of the index and of the shard that the
-  index names, `subset.json` (SHA-256) with the SHA-256 of the input and output records it holds, the size and SHA-256
+  index names, `subset.json` (SHA-256) with its items checked against the pinned input and output records, the size and
+  SHA-256
   of the features of the chosen items (hashed again), the rows of the fixed selection, the stop tokens, window, layers
   and embedding scale of `model.json`, the weight rounding and `--steps`. Records are compared as normalized JSON with
   their sets of keys, so a missing or `null` entry fails even when both runs lack it. Each array file must hold one
@@ -667,7 +670,10 @@ adds one token of the target; per category it prints the rounds, the tokens and 
 #691 (`drafters/<id>.json` and `trajectories.json` of `--records`), the anchors whose accepted drafts differ from the
 records of #691, and the top-two margin that #691 recorded at the first draft that differs. The accepted count of #691
 at every anchor is computed again from its recorded drafts and the teacher, as for the class; a record whose
-`accepted` differs at any anchor, or with a draft token outside the vocabulary, is refused before a weight is read, and
+`accepted` differs at any anchor, with a draft token outside the vocabulary, or with a row that the drafting of #691
+cannot give (one to 15 drafts, `available` the remaining teacher tokens up to 15, margins rounded to four places, a stop
+token only as the last draft, drafts from the sixth on only while they match the teacher, and a last draft that ends the
+drafting), is refused before a weight is read, and
 so is a `trajectories.json` whose tokens per round are not its tokens over its rounds rounded to four places (`null`
 without rounds), as #691 wrote them. `problems` lists categories where the recomputed counts do not give the rounds and
 tokens of `trajectories.json`, an acceptance in which no anchor was drafted, and an error after the inputs are checked
