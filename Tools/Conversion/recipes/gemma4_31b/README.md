@@ -554,15 +554,16 @@ compares it in float32 on the CPU (with the weights rounded to float16) with the
 (Transformers 5.16.1) on the features that #691 recorded, follows the accepted drafts on the teacher path, and exports a
 synthetic drafter. `assistant.json` pins the revision `627c5ec1458b9086b841a91e0512fd31fd2fbbf1` and the size and
 SHA-256 of the two files that are read, `config.json` and `model.safetensors`. Before `run` creates its folder and
-before `run` or `acceptance` reads a tensor, they check the arguments (`run` also that its output folder does not exist)
-and then, in this order: the two contracts (including the kinds of the values of `model.json` that the tools read: whole
-numbers from 1 for the widths, vocabulary, heads, window and layers, the two layer kinds, and stop tokens below the
-vocabulary); the size and SHA-256 of the index and the shard of `model.json` that hold the embedding table of the
-target, and of the two files of the assistant; the records of #691, with the names, BF16 type and shapes of the tensors
-of their features that are read; the configuration with `assistant_config`; the names, BF16 type and shapes of every
-tensor of the assistant checkpoint; and the name, BF16 type and shape of the embedding table in the shard. The size and
-SHA-256 of the features are taken last of these; `acceptance` then also checks `trajectories.json` and the drafter
-records of #691 (see Accepted drafts) before it reads a weight.
+before `run` or `acceptance` reads a tensor, they check the arguments (`--steps` a whole number from 1; for `run` also
+that `--implementation` is `original` or `class` and that its output folder does not exist) and then, in this order: the
+two contracts (including the kinds of the values of `model.json` that the tools read: whole numbers from 1 for the
+widths, vocabulary, heads, window and layers, the two layer kinds, and stop tokens below the vocabulary); the size and
+SHA-256 of the index and the shard of `model.json` that hold the embedding table of the target, and of the two files of
+the assistant; the records of #691, with the names, BF16 type and shapes of the tensors of their features that are read;
+the configuration with `assistant_config`; the names, BF16 type and shapes of every tensor of the assistant checkpoint;
+and the name, BF16 type and shape of the embedding table in the shard. The size and SHA-256 of the features are taken
+last of these; `acceptance` then also checks `trajectories.json` and the drafter records of #691 (see Accepted drafts)
+before it reads a weight.
 
 Values from these files are compared with what they must equal only after their kind is checked, or as normalized JSON,
 so a `20.0` or `true` never stands for `20` or `1`; the one exception is the comparison of the two reads of `model.json`
@@ -579,18 +580,19 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
 
 ### Drafter class
 
-- `Gemma4AssistantDrafter(assistant_config(<config.json>, <target>), steps)`: the target is the values of `model.json`
-  that the drafter reads (`TARGET`), and `steps`, the number of drafts, has no default. `assistant_config` checks every
-  value it reads against a table of kinds (whole numbers from 1 for widths and counts, a whole number from 0 for the
-  width of the per-layer inputs, booleans for the flags, text for the activation, a positive finite float for
-  `rms_norm_eps`, a list for the layer types and objects for the RoPE and the text configuration), so a width written
-  as `32.0` is refused, and stops with `ValueError` for a configuration that the class does not cover: query heads that
-  are not a multiple of either kind of key and value heads (the grouped attention of `SDPA`), odd head widths (both
-  RoPE implementations rotate two halves of the head), layer types that are not one for each layer, with
-  sliding-window and full-attention layers only and at least one of each, layers that compute their own keys and
-  values, per-layer inputs, and values unlike those of the target or the fixed RoPE, activation and flags. A
-  configuration that it accepts builds the class and the original drafter and computes a step (`BuildTests`). It and
-  `checkpoint_shapes`, the tensors that the checkpoint must hold for a configuration, are in
+- `Gemma4AssistantDrafter(assistant_config(<config.json>, <target>), steps)`: the target is exactly the values of
+  `model.json` that the drafter reads (`TARGET`, each a whole number from 1; other keys or another kind are refused),
+  and `steps`, the number of drafts, has no default and must be a whole number from 1 (`ValueError` otherwise).
+  `assistant_config` checks every value it reads against a table of kinds (whole numbers from 1 for widths and counts, a
+  whole number from 0 for the width of the per-layer inputs, booleans for the flags, text for the activation, a positive
+  finite float for `rms_norm_eps`, a list for the layer types and objects for the RoPE and the text configuration), so a
+  width written as `32.0` is refused, and stops with `ValueError` for a configuration that the class does not cover:
+  query heads that are not a multiple of either kind of key and value heads (the grouped attention of `SDPA`), odd head
+  widths (both RoPE implementations rotate two halves of the head), layer types that are not one for each layer, with
+  sliding-window and full-attention layers only and at least one of each, layers that compute their own keys and values,
+  per-layer inputs, and values unlike those of the target or the fixed RoPE, activation and flags. A configuration that
+  it accepts builds the class and the original drafter and computes a step (`BuildTests`). It and `checkpoint_shapes`,
+  the tensors that the checkpoint must hold for the configuration that `assistant_config` returns, are in
   `adapters/gemma4_31b/assistant.py`, which imports neither PyTorch nor the converter, so the reference environment
   checks the same configuration.
 - Inputs, in this order: `input_ids` int32 [1, 1], the last confirmed token at position a; `hidden_states` [1, 1, 5376],
@@ -598,7 +600,11 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
   and `v_sliding` [1, 1, 16, w, 256], the keys and values of the last sliding-window layer of the target (layer 58, slot
   49 of the sliding-window states) at the w = min(a, 1,025) positions a − w to a − 1; `k_full` and `v_full`
   [1, 1, 4, n, 512], those of the last full-attention layer (layer 59, slot 9) at all n = a positions 0 to a − 1. The
-  keys are the stored ones, after `k_norm` and RoPE. The class has no mask: the caller cuts the ranges.
+  keys are the stored ones, after `k_norm` and RoPE. The class has no mask: the caller cuts the ranges. `outputs` and
+  `forward` check their inputs first and stop with `ValueError` (`The drafter inputs differ from the contract`) for
+  another shape or type: `hidden_states`, the keys and the values must be in the dtype of the weights of the class
+  (float16 in the export), the keys and the values of one shape, with w from 1 to `sliding_window + 1` and n from 1
+  without an upper limit.
 - A token enters as its row of the target table times 73.5 (the BF16 value of √5376). The query uses position a at every
   step of a round. The logits are the product with the assistant's own embedding over the whole vocabulary, without a
   soft cap.
@@ -607,8 +613,16 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
   output of the step before, with the same keys, values and position. Steps after a stop token are computed; `cut` in
   `mtp.py` keeps the drafts up to and including the first stop token, where the original generator stops. The output of
   `post_projection` is no output of the function: the hidden state of the next round comes from the target.
-- `export(drafters, context)` stages one function `draft_<steps>` per drafter with the steps of `staged` in `export.py`;
-  w (1 to 1,025) and n (1 to `context`) are its dynamic dimensions.
+- `export(drafters, context)` stages one function `draft_<steps>` per drafter with the steps of `staged` in `export.py`,
+  so the drafters need different `steps` (the same `steps` twice stops with `ValueError`: `A program with
+  entrypoint_name='draft_1' is already staged`). w (declared from 1 to `sliding_window + 1`, that is 1,025 for the
+  assistant of the 31B model) and n (declared from 1 to `context`) are the dynamic dimensions of its inputs, which take
+  the dtype of the weights of the class (float16 in `mtp.py export`). It traces each function with example inputs of 5
+  sliding-window positions and 9 full-attention positions, so `sliding_window` must be at least 4 and `context` at least
+  9: with less, the example lies outside the declared range and the converter stops with `RuntimeError` (`Your model
+  failed to export: 5 not in range [2, 4]` for a window of 3, `9 not in range [2, 8]` for a `context` of 8, with
+  `coreai-torch` 0.4.3). The assistant of the 31B model (window 1,024) and the synthetic model of `mtp.py export`
+  (window 1,024, `--context` above 1,025) meet both bounds.
 
 ### Comparison with the original drafter
 
@@ -701,13 +715,15 @@ the first draft that differs, how many are known, the largest and how many are a
 at every anchor is computed again from its recorded drafts and the teacher, as for the class; a record whose `accepted`
 differs at any anchor, with a draft token outside the vocabulary, or with a row that the drafting of #691 cannot give,
 is refused before a weight is read, and so is a `trajectories.json` whose tokens per round are not its tokens over its
-rounds rounded to four places (`null` without rounds), as #691 wrote them. A row is one that the drafting of #691 can
-give when `available` is the remaining teacher tokens up to 15, its margins are rounded to four places, and, with a
-minimum of either 0 or 6 drafts (the two settings of #691), the drafting stops at its last draft and at no draft before:
-it stops after a stop token, after the fifteenth draft, or, from the minimum on, after a draft beyond the remaining
-teacher tokens or unlike the teacher. `problems` lists categories where the recomputed counts do not give the rounds and
-tokens of `trajectories.json`, an acceptance in which no anchor was drafted, and an error after the inputs are checked
-(by the name of its type), with the JSON printed in each case. The values are records, not criteria.
+rounds rounded to four places (`null` without rounds), as #691 wrote them, and so is a `--steps` for which
+`trajectories.json` records no fixed position (it records 1 to 7: `trajectories.json holds no per-round values of the
+fixed position for 15 steps`). A row is one that the drafting of #691 can give when `available` is the remaining teacher
+tokens up to 15, its margins are rounded to four places, and, with a minimum of either 0 or 6 drafts (the two settings
+of #691), the drafting stops at its last draft and at no draft before: it stops after a stop token, after the fifteenth
+draft, or, from the minimum on, after a draft beyond the remaining teacher tokens or unlike the teacher. `problems`
+lists categories where the recomputed counts do not give the rounds and tokens of `trajectories.json`, an acceptance in
+which no anchor was drafted, and an error after the inputs are checked (by the name of its type), with the JSON printed
+in each case. The values are records, not criteria.
 
 ### Export of a synthetic drafter
 
@@ -720,8 +736,11 @@ It converts the class with random weights of `SYNTHETIC` in FP16 as one step (`d
 both functions in one asset, inspects each asset and writes `export.json` with the functions, their inputs and outputs,
 the storage types, the operations and the sizes. The exit code is 0 only when every asset has exactly the expected
 functions, each with the expected input and output names, types, shapes and dynamic positions, no states and the single
-output `draft_tokens`, and every parameter and buffer of the PyTorch models is float16 without quantized layouts.
-`ExportTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py` runs it.
+output `draft_tokens`, and every parameter and buffer of the PyTorch models is float16 without quantized layouts. It
+needs `--steps` of at least 2, a `--context` above 1,025 (the window of the synthetic model plus one) and an output
+folder that does not exist, and refuses a call that does not meet them before it converts anything, with `ValueError`
+or `FileExistsError` and without making a folder. `ExportTests` in
+`Tools/Conversion/tests/export_gemma4_31b_drafter.py` runs it.
 The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-class-704).
 
 ## Terms
