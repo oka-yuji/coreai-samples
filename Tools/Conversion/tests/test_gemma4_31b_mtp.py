@@ -937,6 +937,13 @@ class CompareTests(unittest.TestCase):
         with self.subTest(case="an array of another size than its record"):
             self.assertIn("the class logits cannot be read (ValueError)", self.compare("again")["problems"])
         (self.folder / "again/class/logits.npy").write_bytes(saved)
+        (self.folder / "logits-copy.npy").write_bytes(saved)
+        (self.folder / "again/class/logits.npy").unlink()
+        (self.folder / "again/class/logits.npy").symlink_to(self.folder / "logits-copy.npy")
+        with self.subTest(case="an array that links to an identical copy"):
+            self.assertIn("the class logits cannot be read (ValueError)", self.compare("again")["problems"])
+        (self.folder / "again/class/logits.npy").unlink()
+        (self.folder / "again/class/logits.npy").write_bytes(saved)
         for name, problem in {"record.json": "the class run has no readable record.json (ValueError)",
                               "logits.npy": "the class logits cannot be read (ValueError)"}.items():
             saved, _ = piped(self.folder / "again/class" / name)
@@ -1114,15 +1121,68 @@ class RefusalTests(unittest.TestCase):
                                                                      folder / "index-copy.json"), "is a link")}.items():
                 saved = {path: path.read_bytes() for path in (target / SHARD, assistant / "model.safetensors")}
                 change()
-                with self.subTest(change=name), self.assertRaisesRegex(ValueError, message):
-                    mtp.run("class", contract, assistant_contract, target, assistant, records, inputs, outputs, 7,
-                            folder / "out")
+                events, watched = tensor_reads()
+                arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
+                for command, call in {"run": lambda: mtp.run("class", *arguments, folder / "out"),
+                                      "acceptance": lambda: mtp.acceptance(*arguments)}.items():
+                    with self.subTest(change=name, command=command), watched(), \
+                            self.assertRaisesRegex(ValueError, message):
+                        call()
+                self.assertEqual(events, [])
                 self.assertFalse((folder / "out").exists())
                 for path, data in saved.items():
                     path.write_bytes(data)
                 if (target / mtp.INDEX).is_symlink():
                     (target / mtp.INDEX).unlink()
                     write_json(target / mtp.INDEX, {"metadata": {}, "weight_map": {mtp.TABLE: SHARD}})
+
+    @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+    def test_records_of_691_that_differ_from_their_drafts_or_counts_are_refused_before_any_tensor_is_read(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            records, inputs, outputs = write_records(folder)
+            target, contract = write_target(folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
+            assistant, assistant_contract = write_assistant(folder, SYNTHETIC["assistant"], assistant_state())
+            arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
+            items = mtp.items_of(load_contract(contract), records, inputs, outputs, lambda record: record["items"])[2]
+            (records / "drafters").mkdir()
+            for item in items:
+                rows = [{"a": len(item["input_ids"]) + j, "j": j, "fixed": {"accepted": 0, "tokens": [0], "margins": [0.5]}}
+                        for j in range(len(item["teacher"]) - 1)]
+                write_json(records / "drafters" / f"{item['id']}.json",
+                           {"id": item["id"], "P": len(item["input_ids"]), "T": len(item["teacher"]), "mtp": rows})
+            level = {"rounds": 1, "tokens": 1, "tokens_per_round": 1.0}
+            good = {"per_round_on_teacher_path": {"mtp_fixed": {"7": {name: level for name in ("alpha", "beta", "pooled")}}}}
+            first = records / "drafters" / f"{items[0]['id']}.json"
+            kept = read_json(first)
+            changes = {"an accepted count unlike the drafts": (lambda record: record["mtp"][0]["fixed"].update(accepted=1),
+                                                               good, "accepted counts"),
+                       "a draft beyond the vocabulary": (lambda record: record["mtp"][0]["fixed"].update(
+                           tokens=[CONFIG["vocab_size"]]), good, "malformed row"),
+                       "a rate unlike its counts": (None, {"per_round_on_teacher_path": {"mtp_fixed": {"7": {
+                           **good["per_round_on_teacher_path"]["mtp_fixed"]["7"],
+                           "pooled": {"rounds": 1, "tokens": 1, "tokens_per_round": 2.0}}}}}, "tokens per round")}
+            events, watched = tensor_reads()
+            for label, (change, trajectories, message) in changes.items():
+                record = json.loads(json.dumps(kept))
+                if change:
+                    change(record)
+                write_json(first, record)
+                write_json(records / "trajectories.json", trajectories)
+                with self.subTest(change=label), watched(), self.assertRaisesRegex(ValueError, message):
+                    mtp.acceptance(*arguments)
+            self.assertEqual(events, [])
+
+    @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+    def test_checkpoint_tensors_are_rounded_to_float16_and_returned_in_float32(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "weights.safetensors"
+            values = torch.tensor([1e-8, 70000.0, 1.0 + 2 ** -9, -3.0])
+            save_file({"weight": values.to(torch.bfloat16)}, str(path))
+            loaded = mtp.checkpoint(path, {"weight": [4]}, True)["weight"]
+            self.assertEqual(loaded.dtype, torch.float32)
+            self.assertEqual(loaded.tolist(), values.to(torch.bfloat16).to(torch.float16).to(torch.float32).tolist())
+            self.assertNotEqual(loaded.tolist(), values.to(torch.bfloat16).to(torch.float32).tolist())
 
     @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
     def test_empty_inputs_of_each_command_are_refused_or_give_a_result_that_did_not_pass(self):

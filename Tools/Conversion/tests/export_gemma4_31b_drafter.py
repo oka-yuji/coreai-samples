@@ -521,6 +521,8 @@ class RunTests(unittest.TestCase):
             self.assertEqual([result["categories"][name]["anchors_with_other_acceptance"] for name in ("alpha", "beta",
                                                                                                         "pooled")],
                              [0, 1, 1])
+            self.assertEqual(result["categories"]["beta"]["reference_margins_at_the_first_other_draft"],
+                             {"known": 1, "largest": 0.5, "at_most_0.25": 0})
 
 
 class ExportTests(unittest.TestCase):
@@ -542,9 +544,14 @@ class ExportTests(unittest.TestCase):
                            lambda path: {"functions": {}, "output_order": {}}), \
                 mock.patch("coreai.runtime._AIModelAsset", Asset):
             record = mtp.export_synthetic(Path(folder) / "export", 7, 16896, SEED)
+            with mock.patch("sys.argv", ["mtp", "export", "--output", str(Path(folder) / "main"), "--steps", "7",
+                                         "--context", "16896", "--seed", str(SEED)]), \
+                    mock.patch("sys.stdout", new_callable=io.StringIO):
+                code = mtp.main()
         self.assertFalse(record["passed"])
         self.assertEqual(sorted(record["assets"]), ["both", "one_step", "unrolled"])
         self.assertTrue(all(entry["problems"] for entry in record["assets"].values()))
+        self.assertEqual(code, 1)
 
     def test_the_one_step_and_the_unrolled_drafter_convert_with_their_names_shapes_and_dynamic_positions(self):
         with tempfile.TemporaryDirectory() as folder:
