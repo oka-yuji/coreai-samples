@@ -37,6 +37,7 @@ CONFIG = {"num_hidden_layers": 12, "layer_pattern": [SLIDING] * 5 + [FULL], "hid
           "head_dim": 16, "global_head_dim": 32, "attention_k_eq_v": True, "final_logit_softcapping": 30.0,
           "tie_word_embeddings": True, "bos_token_id": 2, "eos_token_id": [1, 106, 50]}
 ITEMS = (("alpha-0010", 30, 4, 106), ("alpha-0002", 20, 9, 106), ("beta-0001", 1100, 6, None))
+FIXED = {"alpha": 2, "beta": 1}
 SHARD = "model-00001-of-00001.safetensors"
 
 
@@ -346,6 +347,12 @@ class PureTests(unittest.TestCase):
                 with self.subTest(change=label), self.assertRaisesRegex(ValueError, "assistant contract"):
                     mtp.load_assistant(path)
 
+    def test_the_fixed_subset_is_the_48_items_of_the_13_categories_of_691(self):
+        self.assertEqual(mtp.SUBSET, {"ja-choice": 4, "ja-reading": 4, "code-gen-he": 4, "code-gen-mbpp": 4, "code-fix": 4,
+                                      "extract-ja": 6, "long-ja-4k": 2, "long-ja-16k": 1, "synth-extract": 4,
+                                      "synth-format": 6, "free-ja": 4, "synth-long-4k": 3, "synth-long-16k": 2})
+        self.assertEqual((len(mtp.SUBSET), sum(mtp.SUBSET.values())), (13, 48))
+
     def test_the_first_item_of_each_category_follows_the_numbers_of_the_ids(self):
         record = {"counts": {"a": 3, "b": 1}, "items": [{"id": "a-10", "category": "a"}, {"id": "a-9", "category": "a"},
                                                         {"id": "b-0002", "category": "b"}, {"id": "a-0011", "category": "a"}]}
@@ -353,6 +360,7 @@ class PureTests(unittest.TestCase):
 
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+@mock.patch.object(mtp, "SUBSET", FIXED)
 class RecordTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
@@ -471,6 +479,12 @@ class RecordTests(unittest.TestCase):
                    "a stop token as a float": lambda record: record["items"][0].update(stop_token=106.0),
                    "a stop token for a limit": lambda record: record["items"][2].update(stop_token=0),
                    "no stop token for a stop": lambda record: record["items"][0].update(stop_token=None),
+                   "an empty subset": lambda record: record.update(counts={}, items=[]),
+                   "another subset than the fixed one": lambda record: record.update(
+                       counts={"alpha": 2}, items=[entry for entry in record["items"] if entry["category"] == "alpha"]),
+                   "an item without outputs": lambda record: record["items"][0].update(output_tokens=0, teacher_tokens=1),
+                   "an item without inputs": lambda record: record["items"][0].update(input_tokens=0),
+                   "a teacher length unlike the outputs": lambda record: record["items"][0].update(teacher_tokens=4),
                    "an extra field": lambda record: record.update(note="x")}
         for label, change in changes.items():
             record = json.loads(json.dumps(subset))
@@ -590,6 +604,7 @@ def write_run(folder, record, arrays):
 
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the comparison")
+@mock.patch.object(mtp, "SUBSET", FIXED)
 class CompareTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
@@ -964,6 +979,7 @@ class CompareTests(unittest.TestCase):
 
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+@mock.patch.object(mtp, "SUBSET", FIXED)
 class ReadTests(unittest.TestCase):
     def test_a_target_contract_that_changes_between_its_two_reads_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -1046,6 +1062,7 @@ class ReadTests(unittest.TestCase):
         self.assertEqual(tensors, [])
 
 
+@mock.patch.object(mtp, "SUBSET", FIXED)
 class RefusalTests(unittest.TestCase):
     def test_a_run_refuses_an_existing_output_or_a_bad_argument_before_it_reads_anything(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -1106,6 +1123,34 @@ class RefusalTests(unittest.TestCase):
                 if (target / mtp.INDEX).is_symlink():
                     (target / mtp.INDEX).unlink()
                     write_json(target / mtp.INDEX, {"metadata": {}, "weight_map": {mtp.TABLE: SHARD}})
+
+    @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+    def test_an_empty_or_another_subset_is_refused_by_every_command_before_any_tensor_is_read(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            records, inputs, outputs = write_records(folder)
+            target, contract = write_target(folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
+            assistant, assistant_contract = write_assistant(folder, SYNTHETIC["assistant"], assistant_state())
+            subset = read_json(records / "subset.json")
+            write_json(records / "trajectories.json", {"per_round_on_teacher_path": {"mtp_fixed": {"7": {
+                "pooled": {"rounds": 0, "tokens": 0, "tokens_per_round": None}}}}})
+            (records / "drafters").mkdir()
+            events, watched = tensor_reads()
+            for label, change in {"an empty subset": {"counts": {}, "items": []},
+                                  "a subset of one category": {"counts": {"alpha": 2}, "items": [
+                                      entry for entry in subset["items"] if entry["category"] == "alpha"]}}.items():
+                write_json(records / "subset.json", {**subset, **change})
+                arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
+                commands = {"run": lambda: mtp.run("class", *arguments, folder / "out"),
+                            "acceptance": lambda: mtp.acceptance(*arguments),
+                            "compare": lambda: mtp.compare(folder / "a", folder / "b", contract, assistant_contract,
+                                                           target, records, 7)}
+                for name, command in commands.items():
+                    with self.subTest(subset=label, command=name), watched(), \
+                            self.assertRaisesRegex(ValueError, "fixed subset of #691: 3 items in 2 categories"):
+                        command()
+                self.assertFalse((folder / "out").exists())
+            self.assertEqual(events, [])
 
     @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
     def test_an_unsupported_assistant_or_tensors_of_other_shapes_are_refused_before_the_output_or_any_tensor_is_read(self):

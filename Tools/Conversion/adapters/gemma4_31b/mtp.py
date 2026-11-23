@@ -33,6 +33,9 @@ ASSISTANT_FILES = ("config.json", "model.safetensors")
 ITEM = {"id": "text", "category": "text", "max_new_tokens": "count", "stop": "text", "input_tokens": "count",
         "output_tokens": "count", "teacher_tokens": "count"}
 LEVEL = ("rounds", "tokens", "tokens_per_round")
+SUBSET = {"ja-choice": 4, "ja-reading": 4, "code-gen-he": 4, "code-gen-mbpp": 4, "code-fix": 4, "extract-ja": 6,
+          "long-ja-4k": 2, "long-ja-16k": 1, "synth-extract": 4, "synth-format": 6, "free-ja": 4, "synth-long-4k": 3,
+          "synth-long-16k": 2}
 ARRAYS = {"original": ("logits", "projected", "drafts"), "class": ("logits", "projected", "drafts", "repeated")}
 RUN = ("schema", "implementation", "steps", "stops", "window", "layers", "model", "assistant", "records", "weights",
        "embed_scale", "rows", "arrays", "versions", "timing", "memory")
@@ -173,8 +176,14 @@ def subset_record(path):
             or not all(isinstance(entry, dict) and set(entry) == {*ITEM, "stop_token"}
                        and all(valid(kind, entry[key]) for key, kind in ITEM.items())
                        and (entry["stop"] == "limit" and entry["stop_token"] is None
-                            or entry["stop"] == "stop_token" and valid("count", entry["stop_token"])) for entry in items):
+                            or entry["stop"] == "stop_token" and valid("count", entry["stop_token"]))
+                       and entry["input_tokens"] >= 1 and entry["output_tokens"] >= 1
+                       and entry["teacher_tokens"] == entry["output_tokens"] + (entry["stop"] == "stop_token")
+                       for entry in items):
         raise ValueError("subset.json is not the record of a subset of the quality set")
+    if canonical(counts) != canonical(SUBSET):
+        raise ValueError(f"subset.json does not hold the fixed subset of #691: {sum(SUBSET.values())} items in "
+                         f"{len(SUBSET)} categories")
     ids = [entry["id"] for entry in items]
     if len(set(ids)) != len(ids) or len(items) != sum(counts.values()) \
             or any(sum(entry["category"] == name for entry in items) != count for name, count in counts.items()) \
@@ -725,6 +734,8 @@ def acceptance(contract_path, assistant_path, snapshot, assistant_snapshot, reco
                              reference_rounds=entry["reference_rounds"] + counted[1][0],
                              reference_tokens=entry["reference_tokens"] + counted[1][1],
                              margins=entry["margins"] + margins)
+        if not totals["pooled"]["anchors"]:
+            problems.append("no anchor was drafted")
         problems += [f"{name}: the drafter records of #691 give {entry['reference_rounds']} rounds and "
                      f"{entry['reference_tokens']} tokens, not the {reference[name]['rounds']} and "
                      f"{reference[name]['tokens']} of trajectories.json" for name, entry in totals.items()

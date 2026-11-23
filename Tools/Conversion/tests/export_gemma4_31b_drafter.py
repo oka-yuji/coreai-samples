@@ -19,7 +19,7 @@ from Tools.Conversion.adapters.gemma4_31b import assistant, drafter, layers, mtp
 from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import read_json, write_json
-from Tools.Conversion.tests.test_gemma4_31b_mtp import CONFIG, write_assistant, write_records, write_target
+from Tools.Conversion.tests.test_gemma4_31b_mtp import CONFIG, FIXED, write_assistant, write_records, write_target
 
 ASSISTANT, TARGET = assistant.SYNTHETIC["assistant"], assistant.SYNTHETIC["target"]
 TEXT = ASSISTANT["text_config"]
@@ -413,6 +413,7 @@ class BuildTests(unittest.TestCase):
         self.assertEqual((len(built), len(refused) + len(built)), (35, len(boundaries())))
 
 
+@mock.patch.object(mtp, "SUBSET", FIXED)
 class RunTests(unittest.TestCase):
     def test_the_contract_of_the_records_holds_the_synthetic_target(self):
         self.assertEqual({key: CONFIG[key] for key in assistant.TARGET}, TARGET)
@@ -498,6 +499,20 @@ class RunTests(unittest.TestCase):
                     code = mtp.main()
             self.assertEqual((failed["problems"], set(failed)), (["the acceptance stopped with OSError"], stopped))
             self.assertEqual((json.loads(printed.getvalue()), code), (failed, 1))
+            real = mtp.prepared
+
+            def shortened(*values):
+                contract, subset, found, sources, shard = real(*values)
+                return contract, subset, [{**item, "teacher": item["teacher"][:1]} for item in found], sources, shard
+
+            for item in items:
+                write_json(arguments[4] / "drafters" / f"{item['id']}.json",
+                           {"id": item["id"], "P": len(item["input_ids"]), "T": 1, "mtp": []})
+            write_json(arguments[4] / "trajectories.json", {"per_round_on_teacher_path": {"mtp_fixed": {"7": {
+                name: {"rounds": 0, "tokens": 0, "tokens_per_round": None} for name in ("alpha", "beta", "pooled")}}}})
+            with mock.patch.object(mtp, "prepared", side_effect=shortened):
+                empty = mtp.acceptance(*arguments, 7)
+            self.assertEqual((empty["problems"], empty["categories"]["pooled"]["anchors"]), (["no anchor was drafted"], 0))
             self.assertEqual([result["categories"][name]["anchors_with_other_acceptance"] for name in ("alpha", "beta",
                                                                                                         "pooled")],
                              [0, 1, 1])
