@@ -292,8 +292,12 @@ class AnchorRunTests(unittest.TestCase):
         def broken(*arguments):
             raise RuntimeError("no device")
 
+        def unclean_loading(*arguments):
+            return copy.deepcopy(self.model), {"after_load": dict(MEMORY)}, False
+
         unclean = {**OBSERVED, "unreadable_samples": 1}
-        for label, options in (("load", {"loader": broken}), ("monitor", {"monitor": unclean})):
+        for label, options in (("load", {"loader": broken}), ("monitor", {"monitor": unclean}),
+                               ("loading", {"loader": unclean_loading})):
             with self.subTest(case=label):
                 code, _, _ = self.main("run", "--weights", "float16", output=label, **options)
                 record = read_json(self.folder / label / "run.json")
@@ -301,6 +305,7 @@ class AnchorRunTests(unittest.TestCase):
                 self.assertFalse((self.folder / label / "logits.json").exists())
         self.assertEqual(read_json(self.folder / "load/run.json")["error"], "RuntimeError")
         self.assertFalse(read_json(self.folder / "monitor/run.json")["checks"]["monitor_clean"])
+        self.assertFalse(read_json(self.folder / "loading/run.json")["checks"]["loading_clean"])
 
     def test_inputs_that_do_not_fit_are_refused_before_the_folder_is_made_or_the_model_is_loaded(self):
         def summary(value):
@@ -402,6 +407,8 @@ class CandidateRunTests(unittest.TestCase):
                                          "shape": [record["rows"], self.vocabulary], "sha256": sha256(out / entry["file"]),
                                          "tokens_sha256": record["tokens_sha256"]})
                 self.assertEqual(json.loads((out / f"{record['id']}.tokens.json").read_text()), record["tokens"])
+        self.assertEqual({(entry["verifier"]["chunk"], entry["verifier"]["main_calls"] == entry["rows"])
+                          for entry in result["items"]}, {(1, True)})
         with mock.patch.object(sys, "argv", ["layer1_candidate", "--export", "e", "--forced", "f", "--verifier", "v",
                                              "--output", "o"]), \
                 mock.patch.object(layer1_candidate, "run", return_value={**result, "passed": False}), \
