@@ -22,6 +22,9 @@ ITEM = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 FORCED = {"id": "item", "input_sha256": "text", "tokens": "tokens", "tokens_sha256": "text", "start": "count",
           "rows": "count", "input_tokens": "count", "targets": "tokens"}
 WEIGHTS = {"float16": "every checkpoint tensor rounded to float16"}
+PASSING = ("anchor_cpu", "original_cpu")
+RECORDED = (("anchor_run", "anchor_cpu"), ("original_eager_cpu", "original_cpu"), ("original_run", "original_cpu"),
+            ("anchor_run", "original_run"))
 
 
 def tokens_sha256(ids):
@@ -163,33 +166,65 @@ def run(record, args, records):
     return record
 
 
-def agreement(record, args, records):
-    import numpy as np
+def anchor_rows(args, records, device):
     import torch
 
-    device, started = record["device"], time.perf_counter()
-    try:
-        model, record["loading"], record["checks"]["loading_clean"] = model_for(args.snapshot, args.layers, device)
+    model, loading, clean = model_for(args.snapshot, args.layers, device)
+    with torch.no_grad():
         weights = rounded(model)
-        with torch.no_grad():
-            anchored = [scored(model, item, weights, device, anchor.ROWS) for item in records]
-        del model, weights
-        if device == "mps":
-            torch.mps.empty_cache()
+        values = [scored(model, item, weights, device, anchor.ROWS) for item in records]
+    del model, weights
+    if device == "mps":
+        torch.mps.empty_cache()
+    return values, loading, clean
+
+
+def original_rows(model, records, device, attention):
+    import torch
+
+    model.set_attn_implementation(attention)
+    model.to(device)
+    values = []
+    with torch.no_grad():
+        for item in records:
+            tokens, start = item["tokens"], item["start"]
+            logits = model(input_ids=torch.tensor([tokens], device=device), use_cache=False,
+                           position_ids=torch.arange(len(tokens), device=device).unsqueeze(0),
+                           logits_to_keep=torch.arange(start, start + item["rows"], device=device)).logits
+            values.append(logits[0].float().cpu().numpy())
+    return values
+
+
+def agreement(record, args, records):
+    import numpy as np
+
+    device, found, started = record["device"], {}, time.perf_counter()
+    variants = {"anchor_cpu": {"device": "cpu"}, "anchor_run": {"device": device},
+                "original_cpu": {"device": "cpu", "attention": "sdpa"},
+                "original_eager_cpu": {"device": "cpu", "attention": "eager"},
+                "original_run": {"device": device, "attention": "sdpa"}}
+    record.update(variants=variants, compared=list(PASSING), recorded=[list(pair) for pair in RECORDED],
+                  limit=anchor.LIMIT)
+    try:
+        found["anchor_run"], record["loading"], clean = anchor_rows(args, records, variants["anchor_run"]["device"])
+        found["anchor_cpu"], _, record["checks"]["loading_clean"] = anchor_rows(args, records,
+                                                                               variants["anchor_cpu"]["device"])
+        record["checks"]["loading_clean"] = clean and record["checks"]["loading_clean"]
         original, scale, _ = layers.original_model(args.snapshot, args.layers)
         record["original"] = {"weights": layers.WEIGHTS, "embed_scale": scale}
-        record["timing"]["anchor_s"] = time.perf_counter() - started
-        for item, first in zip(records, anchored):
-            began = time.perf_counter()
-            second, _ = layers.kept_logits(original, item["tokens"], range(item["start"], item["start"] + item["rows"]),
-                                           len(item["tokens"]))
+        for name in ("original_cpu", "original_eager_cpu", "original_run"):
+            found[name] = original_rows(original, records, variants[name]["device"], variants[name]["attention"])
+        record["timing"]["variants_s"] = time.perf_counter() - started
+        for index, item in enumerate(records):
+            rows = {name: values[index] for name, values in found.items()}
+            difference = lambda pair: reference.finite(np.max(np.abs(rows[pair[0]] - rows[pair[1]])))
             record["items"].append({"id": item["id"], "input_tokens": item["input_tokens"], "tokens": len(item["tokens"]),
-                                    "rows": item["rows"], "shapes": [list(first.shape), list(second.shape)],
-                                    "beyond_window": item["input_tokens"] > args.window,
-                                    "max_abs_difference": reference.finite(np.max(np.abs(first - second))),
-                                    "non_finite": {"anchor": reference.non_finite(first),
-                                                   "original": reference.non_finite(second)},
-                                    "original_s": time.perf_counter() - began, "memory": reference.memory(device)})
+                                    "rows": item["rows"], "beyond_window": item["input_tokens"] > args.window,
+                                    "shapes": {name: list(value.shape) for name, value in rows.items()},
+                                    "max_abs_difference": difference(PASSING),
+                                    "recorded": {" - ".join(pair): difference(pair) for pair in RECORDED},
+                                    "non_finite": {name: reference.non_finite(value) for name, value in rows.items()},
+                                    "memory": reference.memory(device)})
     except Exception as error:
         record["error"] = type(error).__name__
     differences = [item["max_abs_difference"] for item in record["items"]]
@@ -239,7 +274,9 @@ def main():
     parser = argparse.ArgumentParser(description="Write the logits of the scored rows of the layer 1 forced input that "
                                                  "the original Gemma 4 31B implementation gives in float32 with the "
                                                  "weights of a candidate, or check that computation on the first layers "
-                                                 "against the plain float32 forward of the original implementation.")
+                                                 "on the CPU against the plain float32 forward of the original "
+                                                 "implementation with its default sdpa attention and record the "
+                                                 "differences that the device and the attention implementation make.")
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("run", "agreement"):
         command = commands.add_parser(name)

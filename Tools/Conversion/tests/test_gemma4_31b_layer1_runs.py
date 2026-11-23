@@ -237,15 +237,15 @@ class AnchorRunTests(unittest.TestCase):
         self.records = made(VOCABULARY)
         self.forced = write_forced(self.folder / "forced", self.records)
 
-    def main(self, command, *extra, loader=None, monitor=None, original=None, verify=None, output="out"):
+    def main(self, command, *extra, loader=None, monitor=None, original=None, verify=None, output="out", device="cpu"):
         argv = ["layer1_anchor", command, "--model", str(self.contract), "--snapshot", str(self.folder / "snapshot"),
                 "--prepare", str(self.folder / "prepare"), "--forced", str(self.forced), "--layers", "6",
                 "--output", str(self.folder / output), *extra]
         loaded = lambda *arguments: (copy.deepcopy(self.model), {"after_load": dict(MEMORY)}, True)
         observed = lambda path, volumes, patterns, on_abort: ReadyMonitor(on_abort, monitor or OBSERVED)
-        on_cpu = lambda path: {**load_contract(path), "reference": {**load_contract(path)["reference"], "device": "cpu"}}
+        placed = lambda path: {**load_contract(path), "reference": {**load_contract(path)["reference"], "device": device}}
         with mock.patch.object(sys, "argv", argv), mock.patch.object(reference, "ReferenceMonitor", observed), \
-                mock.patch.object(layer1_anchor, "load_contract", side_effect=on_cpu), \
+                mock.patch.object(layer1_anchor, "load_contract", side_effect=placed), \
                 mock.patch.object(reference, "memory", return_value=dict(MEMORY)), \
                 mock.patch.object(reference, "verify_inputs", side_effect=verify, return_value={}) as verified, \
                 mock.patch.object(layer1_anchor, "model_for", side_effect=loader or loaded) as model_for, \
@@ -343,15 +343,58 @@ class AnchorRunTests(unittest.TestCase):
                                     ("changed", changed, "ja-choice-0001,ja-choice-0003"),
                                     ("short", plain, "ja-choice-0001"), ("long", plain, "ja-choice-0003")):
             code, _, _ = self.main("agreement", "--items", items, output=label,
-                                   original=lambda *arguments, model=model: (model, 6.9375, kinds))
+                                   original=lambda *arguments, model=model: (copy.deepcopy(model), 6.9375, kinds))
             record = read_json(self.folder / label / "run.json")
             results[label] = (code, record["checks"]["agreement"], record["checks"]["beyond_window"])
             self.assertFalse((self.folder / label / "logits.json").exists())
         self.assertEqual(results, {"same": (0, True, True), "changed": (1, False, True), "short": (1, True, False),
                                    "long": (0, True, True)})
         record = read_json(self.folder / "same/run.json")
-        self.assertEqual([item["shapes"] for item in record["items"]], [[[1, VOCABULARY]] * 2, [[10, VOCABULARY]] * 2])
+        self.assertEqual([item["shapes"] for item in record["items"]],
+                         [dict.fromkeys(record["variants"], [rows, VOCABULARY]) for rows in (1, 10)])
         self.assertLess(max(item["max_abs_difference"] for item in record["items"]), anchor.LIMIT)
+        self.assertEqual([sorted(item["recorded"]) for item in record["items"]],
+                         [sorted(" - ".join(pair) for pair in layer1_anchor.RECORDED)] * 2)
+
+    def test_the_rows_of_the_original_use_the_requested_attention_implementation(self):
+        model, plain = rounded_copy(self.model), rounded_copy(self.model)
+        model.set_attn_implementation("eager")
+        for attention in ("sdpa", "eager"):
+            with self.subTest(attention=attention):
+                found = layer1_anchor.original_rows(model, self.records, "cpu", attention)
+                self.assertEqual(model.model.language_model.config._attn_implementation, attention)
+                for values, record in zip(found, self.records, strict=True):
+                    self.assertLessEqual(float(np.abs(values - plain_rows(plain, record)).max()), anchor.LIMIT)
+
+    def test_the_agreement_compares_the_cpu_anchor_with_the_sdpa_original_on_the_cpu_and_records_the_other_pairs(self):
+        offsets = {("anchor", "mps"): 0.25, ("anchor", "cpu"): 0.0, ("original", "cpu", "sdpa"): 0.0,
+                   ("original", "cpu", "eager"): 0.5, ("original", "mps", "sdpa"): 0.75}
+        calls = []
+
+        def rows(key, records):
+            calls.append(key)
+            return [np.full((item["rows"], VOCABULARY), 1.0 + offsets[key], dtype=np.float32) for item in records]
+
+        anchored = lambda args, records, device: (rows(("anchor", device), records), {"after_load": dict(MEMORY)}, True)
+        originals = lambda model, records, device, attention: rows(("original", device, attention), records)
+        kinds = layers.check_layers(load_contract(self.contract)["config"], 6)
+        with mock.patch.object(layer1_anchor, "anchor_rows", side_effect=anchored), \
+                mock.patch.object(layer1_anchor, "original_rows", side_effect=originals):
+            code, _, _ = self.main("agreement", "--items", "ja-choice-0001,ja-choice-0003", device="mps",
+                                   original=lambda *arguments: (None, 6.9375, kinds))
+        record = read_json(self.folder / "out/run.json")
+        self.assertEqual((code, record["checks"]["agreement"]), (0, True))
+        self.assertEqual(calls, [("anchor", "mps"), ("anchor", "cpu"), ("original", "cpu", "sdpa"),
+                                 ("original", "cpu", "eager"), ("original", "mps", "sdpa")])
+        self.assertEqual(record["compared"], ["anchor_cpu", "original_cpu"])
+        self.assertEqual(record["variants"], {"anchor_cpu": {"device": "cpu"}, "anchor_run": {"device": "mps"},
+                                              "original_cpu": {"device": "cpu", "attention": "sdpa"},
+                                              "original_eager_cpu": {"device": "cpu", "attention": "eager"},
+                                              "original_run": {"device": "mps", "attention": "sdpa"}})
+        self.assertEqual([item["max_abs_difference"] for item in record["items"]], [0.0, 0.0])
+        self.assertEqual([item["recorded"] for item in record["items"]],
+                         [{"anchor_run - anchor_cpu": 0.25, "original_eager_cpu - original_cpu": 0.5,
+                           "original_run - original_cpu": 0.75, "anchor_run - original_run": 0.5}] * 2)
 
 
 class CandidateRunTests(unittest.TestCase):
