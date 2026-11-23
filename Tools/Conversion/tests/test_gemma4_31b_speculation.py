@@ -392,10 +392,20 @@ class CompareTests(unittest.TestCase):
         with mock.patch.object(speculation, "write_json", side_effect=full_once), self.assertRaises(OSError):
             self.run_compare(label="full")
         self.assertEqual(written, ["comparison.json", "failure.json"])
-        for label, error in (("interrupted", "KeyboardInterrupt"), ("full", "OSError")):
-            with self.subTest(error=error):
+
+        def interrupted_after(path, value):
+            real(path, value)
+            if Path(path).name == "comparison.json":
+                raise KeyboardInterrupt
+
+        with mock.patch.object(speculation, "write_json", side_effect=interrupted_after), \
+                self.assertRaises(KeyboardInterrupt):
+            self.run_compare(label="late")
+        for label, error in (("interrupted", "KeyboardInterrupt"), ("full", "OSError"), ("late", "KeyboardInterrupt")):
+            with self.subTest(error=error, label=label):
                 self.assertEqual(read_json(self.folder / label / "failure.json"),
                                  {"schema": speculation.SCHEMA, "passed": False, "error": error})
+                self.assertFalse((self.folder / label / "comparison.json").exists())
 
     def test_inputs_that_must_not_be_compared_stop_before_anything_is_written(self):
         def reference_of(change):

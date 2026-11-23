@@ -313,6 +313,7 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
         write_json(output / "comparison.json", result)
         return result
     except BaseException as error:
+        (output / "comparison.json").unlink(missing_ok=True)
         write_json(output / "failure.json", {"schema": SCHEMA, "passed": False, "error": type(error).__name__})
         raise
 

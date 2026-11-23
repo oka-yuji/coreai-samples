@@ -698,8 +698,11 @@ checks on the inputs, the record of `coreai-verify` and its files. Into the new 
 standard error of `coreai-verify` (`<condition>.log`), and last `comparison.json`: for every output its rows, width,
 SHA-256 and non-finite values with their rows, and for an output without them the sums of squares by layer of the
 reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
-below 0.99, and the checks. An
-error or an interruption after the folder exists leaves `failure.json` with the type of the error. It prints a short
+below 0.99, and the checks. A
+folder is complete only with `comparison.json`: an error or an interruption after the folder exists removes it and
+leaves `failure.json` with the type of the error. It reads the reference, the verifier and the files that
+`coreai-verify` writes only as regular files, of the recorded size where a record gives one, and the arrays of the
+reference only in the `.npy` format. It prints a short
 summary, and the exit code is 0 only when the comparison passed. The specialization cache that `coreai-verify` makes
 stays in place; remove it yourself.
 
