@@ -559,7 +559,9 @@ from 1 for the widths, heads, window and layers, the two layer kinds, and stop t
 and SHA-256 of these files and of the index and the shard of `model.json` that hold the embedding table of the target,
 and the records of #691; then the configuration with `assistant_config` and
 the names, BF16 type and shapes of every tensor of the assistant checkpoint, of the embedding table and of the features.
-Every file that comes from outside must be a regular file (and, where the contract or the record gives it, of that
+Values from these files are compared with what they must equal only after their kind is checked, or as normalized
+JSON, so a `20.0` or `true` never stands for `20` or `1`. Every file that comes from outside must be a regular file (and,
+where the contract or the record gives it, of that
 size) before its content is read; where the tool reads a file itself, it checks a descriptor opened without waiting.
 `load_contract` of `prepare.py` reads `model.json` once more by its path, and the two reads must give the same contract;
 `safetensors` opens a checkpoint again by its path after the check. The pinned files, the features and the arrays of a
@@ -571,7 +573,11 @@ run must not be links. A hash that a tool records is taken from the bytes it rea
   that the drafter reads (`TARGET`), and `steps`, the number of drafts, has no default. `assistant_config` checks every
   value it reads against a table of kinds (whole numbers from 1 for widths and counts, booleans for the flags, text
   for the activation, a positive finite float for `rms_norm_eps`), so a width written as `32.0` is refused, and stops
-  with `ValueError` for a configuration that the class does not cover. It and `checkpoint_shapes`, the tensors that the
+  with `ValueError` for a configuration that the class does not cover: query heads that are not a multiple of either
+  kind of key and value heads (the grouped attention of `SDPA`), odd head widths (both RoPE implementations rotate two
+  halves of the head), layers other than sliding-window and full-attention ones, and values unlike those of the target
+  or the fixed RoPE, activation and flags. A configuration that it accepts builds the class and the original drafter
+  and computes a step (`BuildTests`). It and `checkpoint_shapes`, the tensors that the
   checkpoint must hold for a configuration, are in `adapters/gemma4_31b/assistant.py`, which imports neither PyTorch
   nor the converter, so the reference environment checks the same configuration.
 - Inputs, in this order: `input_ids` int32 [1, 1], the last confirmed token at position a; `hidden_states`
@@ -641,9 +647,10 @@ Run both implementations under the shared machine lock, which the tools do not t
   prints its JSON result, and the exit code is 0 only when it passed.
 
 `CompareTests`, `RecordTests`, `ReadTests` and `RefusalTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix
-the records, the reads and the criteria; `OneStepTests`, `UnrolledTests`, `ContractTests` and `RunTests` in
-`Tools/Conversion/tests/export_gemma4_31b_drafter.py` compare the class with the original drafter of the converter
-environment on a synthetic assistant (at most 1e-4), with positions 1 to 16,895 and the window edge.
+the records, the reads and the criteria; `OneStepTests`, `UnrolledTests`, `ContractTests`, `BuildTests` and `RunTests`
+in `Tools/Conversion/tests/export_gemma4_31b_drafter.py` compare the class with the original drafter of the converter
+environment on a synthetic assistant (at most 1e-4), with positions 1 to 16,895 and the window edge, and build both
+from configurations at boundary values.
 
 ### Accepted drafts on the teacher path
 
