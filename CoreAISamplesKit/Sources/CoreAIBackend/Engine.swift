@@ -296,8 +296,7 @@ public final class Engine {
         var outputs: [String: NDArrayDescriptor] = [:]
         for name in names {
             guard case .ndArray(let descriptor) = function.outputDescriptor(of: name),
-                descriptor.scalarType == .float16,
-                descriptor.shape.count == 3, descriptor.shape[0] == 1, descriptor.shape[1] < 0, descriptor.shape[2] > 0
+                OutputRows.readable(descriptor.scalarType, shape: descriptor.shape)
             else { throw .unreadableOutput(name) }
             outputs[name] = descriptor
         }

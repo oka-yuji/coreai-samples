@@ -60,6 +60,18 @@ struct OutputRowsTests {
     }
 
     @Test(
+        "An output can be read by row only as a float16 array of one batch row with a row axis that changes with the call and a fixed width",
+        arguments: [
+            (.float16, [1, -1, 48], true), (.float32, [1, -1, 48], false), (.bfloat16, [1, -1, 48], false),
+            (.float16, [1, -1], false), (.float16, [1, -1, 48, 1], false), (.float16, [2, -1, 48], false),
+            (.float16, [-1, -1, 48], false), (.float16, [1, 4, 48], false), (.float16, [1, -1, -1], false),
+            (.float16, [1, -1, 0], false),
+        ] as [(NDArray.ScalarType, [Int], Bool)])
+    func onlyRowShapedFloat16OutputsAreReadable(scalarType: NDArray.ScalarType, shape: [Int], readable: Bool) {
+        #expect(OutputRows.readable(scalarType, shape: shape) == readable)
+    }
+
+    @Test(
         "Naming an output that the function does not have, or the logits of main, is an error, and the other outputs are accepted",
         arguments: [
             (["hidden_states", "tap_hidden_states"], main, "logits", nil),

@@ -4,6 +4,10 @@ struct OutputRows {
     var arrays: [(name: String, array: NDArray)] = []
     var isRead = false
 
+    static func readable(_ scalarType: NDArray.ScalarType, shape: [Int]) -> Bool {
+        scalarType == .float16 && shape.count == 3 && shape[0] == 1 && shape[1] < 0 && shape[2] > 0
+    }
+
     static func check(_ names: Set<String>, outputNames: [String], except logits: String?) throws(OutputRowError) {
         if let name = names.filter({ $0 == logits || !outputNames.contains($0) }).min() {
             throw .unreadableOutput(name)
