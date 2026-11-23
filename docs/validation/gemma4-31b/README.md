@@ -725,9 +725,12 @@ that `export.json` and the restored reference record and records their layers, t
 restored reference and the export are of the contract of the repository and of the same layers and that the reference
 was restored from the quantized tensors of that export (the SHA-256 of `export.json`, the size and SHA-256 of
 `quantized.safetensors` and the number of tensors); and that the effect was computed from that reference record, with a
-rounded reference of the same layers, on the conditions of the comparison. It also checked the type of each number that
-it copies and the relations among the numbers that their writers give them, such as the time of a condition not being
-shorter than the steps that its verifier recorded (the list is in the
+rounded reference of the same layers, on the conditions of the comparison. It computed the effect itself from the two
+references, and the numbers of each condition (the differences, the counts of non-finite values and of top-1 changes,
+the known rows and the checks) again from the logits file of the condition and the reference, and counted the
+non-finite logits of the reference again, each equal to the record. It also checked the type of each number of a run
+that no array gives, such as a time, and the relations that their writers give them, such as the time of a condition
+not being shorter than the steps that its verifier recorded (the list is in the
 [recipe](../../../Tools/Conversion/recipes/gemma4_31b/README.md#comparison-with-the-own-engine)). The hashes of the
 quantized tensors are those of the tensors that the export passed to the converter (`quantized.safetensors`), because
 the asset summary does not list the tensors of the asset; the asset itself is checked through the number of its
@@ -908,10 +911,10 @@ These differences are the effect of the quantization itself and are recorded, no
 | Report of the export | `0c118a098bfb814f4eb4ab145310f660aaf34865329f79f35b63b968d3faf483` |
 | Its `export.json` | `ce5a3eb725214faac782150e2606476b666da7a1c7ec43cbcea889d6aec7b025` |
 | Its `comparison.json` | `274ffebc0e4831b94466562925c21a2f222fa8b078bfc48ef03e0b9f18137265` |
-| Output of `effect` | `14b109692bc06fb72543247806d02f0403968e939e52ba9ceed74635afe49856` |
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <restored reference record.json> \
-  --effect <output of effect> --report <report.json> --export <export.json> --comparison <comparison.json> \
+  --rounded <folder of the reference of float16-rounded weights> \
+  --report <report.json> --export <export.json> --comparison <comparison.json> \
   > docs/validation/gemma4-31b/8bit-first-layers-20261123.json
 ~~~

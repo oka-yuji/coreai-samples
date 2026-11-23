@@ -525,10 +525,11 @@ of `window-c8`) are left out of the difference and the top-1 change and recorded
 rows count on every row. The record that `coreai-verify` prints has to match the condition, including the function,
 the number of calls and the chunk of the reads before `--start`, which follow the rules of the engine.
 `MeasureTests`, `KnownCallTests` and `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_native.py` fix these
-criteria and the checks on the records, the bundle, the record of `coreai-verify` and its files, and `measured_problems`
-and `condition_problems`, the readers of the numbers, the relations among them and the fields that a condition can hold
-on each path of the comparison, which the summary below applies. The specialization cache that `coreai-verify` makes
-stays in place; remove it yourself.
+criteria and the checks on the records, the bundle, the record of `coreai-verify` and its files, `measure_condition`,
+which measures a condition from its logits file and the reference for the comparison and for the summary below, and
+`measurement_problems` and `condition_problems`, which compare the numbers of a record with it and read the fields and
+the relations that a condition can hold on each path of the comparison. The specialization cache that `coreai-verify`
+makes stays in place; remove it yourself.
 
 `fp16_summary` prints the public summary (only states, numbers, hashes and fixed words) of the reference record, of
 the comparison of the model class with the original implementation, which it makes itself with `layers.py compare`
@@ -550,49 +551,58 @@ of weights (restored from its quantized tensors for 8 bits, with the SHA-256 of 
 records the layers, the functions and the asset of its export and the layers of the reference. The arguments of the runs
 (layers, tap layers, functions, precision and context limit) are checked for their form and for their agreement with the
 contract, the other records and the names and the metadata that they give. Every other value that it prints is of one
-of five kinds, and each kind has one rule:
+of six kinds, and each kind has one rule:
 
 - A fixed value must equal the constant of the tools or the formula that derives it, and a record that differs is
   refused: the twelve conditions in their order with their inputs, token counts, starts, chunks and rows, the criteria,
   the call shape that the engine avoids, the stages of the report, the chunks, calls, embedding scale, logits type and
   shape and inputs of the reference, and the sizes and counts that they give (the size of each logits file of the
-  comparison, the rows of the known call shape, the record that the verifier gives for the reads of each condition,
-  the counts of the export that follow from its layers, its tap layers and its checkpoint).
-- A verdict (`passed` of the comparison, `passed` and the checks of each condition and of the export, and the comparison
-  of the model class with the original implementation, which it makes itself) is computed again from the numbers and
-  the fixed values with the function that wrote it (`native.py`, `load_export`, `layers.py compare`), and a record whose
-  verdict differs is refused.
-- A measured number (a difference, a count of non-finite values or of top-1 changes, a time, a memory, disk or swap
-  reading) is copied. The summary does not compute it from the arrays again, so it does not check the number itself; it
-  checks its type and the relations of the table below, which its writer gives it. The readers of the records return the
-  problems of a field of another type alone, and evaluate no relation on it.
+  comparison, the record that the verifier gives for the reads of each condition, the counts of the export that follow
+  from its layers, its tap layers and its checkpoint).
+- A verdict (`passed` of the comparison, `passed` of each condition and of the export, the checks of the export, and the
+  comparison of the model class with the original implementation, which it makes itself) is computed again from the
+  numbers and the fixed values with the function that wrote it (`native.py`, `load_export`, `layers.py compare`), and a
+  record whose verdict differs is refused.
+- A number that the arrays give is computed again from the arrays and must equal the record, as normalized JSON. For
+  each condition that reached its numbers, `measure_condition` of `native.py`, the function that the comparison wrote the
+  numbers with (it maps the rows of the condition to the rows of the reference, marks the known rows and calls `measure`),
+  measures the logits file of the condition, whose size and SHA-256 must be those of the record, against the logits of
+  the reference that `load_reference` read, and the rows, the non-finite values of both, the constant rows, the largest
+  difference, the top-1 changes, the known rows and the checks of the condition must equal those of the record. The
+  count of the non-finite logits that the reference records for each input is counted again from its logits. For 8 bits
+  the effect of the quantization is computed by `effect.py` from the restored reference (`--reference`) and the folder of
+  the rounded reference (`--rounded`) in place, and it stops when the effect has a problem or was not computed from the
+  record of the restored reference. The summary evaluates no relation among these numbers, because the equality gives
+  them all.
+- A measurement of a run that no array gives (a time, a reading of memory, disk or swap, a reading of the monitor, the
+  counts and the cache hit that the verifier records) is copied after its type, its range and the relations of the table
+  below, which its writer gives it. The readers of the records return the problems of a field of another type alone, and
+  evaluate no relation on it.
 - A hash is checked when it leads to a file that the summary reads (the files of the bundle, `quantized.safetensors`,
-  the records and the logits files of the reference and of the comparison, the contract) and copied when it does not
-  (the SHA-256 of the verifier and, for 8 bits, of the record of the rounded reference of `effect`).
+  the records and the logits files of the reference, of the rounded reference and of the comparison, the contract) and
+  copied when it does not (the SHA-256 of the verifier).
 - A version of a package is copied, for exactly the packages that its writer records.
 
-| Relation of measured numbers | Why it holds |
+| Relation of measurements of a run | Why it holds |
 |---|---|
-| A count of non-finite values or of constant rows is at most the values or rows that it counts. The largest difference is a number exactly when every value is finite, and 0 when every row is a known row | `measure` counts over the rows that it compares, and takes the largest difference over the rows that are not known, from 0 |
-| The non-finite values that a condition counts in the reference, or that the effect counts in the restored reference, are at most those that the record of the reference holds for the same input | The comparison and the effect read a subset of the rows that the reference kept, and the reference counts over all of them |
-| A top-1 change in a row that is not known comes with a largest difference above 0 | Rows with equal logits have the same argmax, so a counted row differs somewhere, and the largest difference is taken over the same rows |
-| A top-1 change outside the near tie comes with a largest difference above `NEAR_TIE` / 2 | The largest reference logit `y_b` is more than `NEAR_TIE` above every other; if the argmax of the other side is `a`, not `b`, then `x_a >= x_b` and `y_b - y_a > NEAR_TIE`, so `(x_a - y_a) - (x_b - y_b) > NEAR_TIE` and one of the two differences is above `NEAR_TIE` / 2 |
 | The time of a condition is at least the sum of the steps that its verifier recorded. `specialize_s` is 0 when the asset was in the cache, above 0 when it was not, and within `load_s` | `loadS`, `prefixS` and `scoringS` are consecutive intervals of the process of `coreai-verify` (`PositionLogits.swift`), and `specialize_s` is measured inside the load (`Engine.resolveModel`) |
+| The verifier counted other non-finite values than the file exactly when the condition records a problem | The comparison records a problem when the count of the verifier differs from that of its file |
 | The time of an export is at most the `execute_s` of the stage that ran it. Times that make up another time (the steps of a stage, the stages of a run, the steps of an export or of a reference) do not exceed it | The runner measures around the process of the step, and the export reads its time inside that process |
 | The resident memory that `ps` gave the monitor is at most the peak that `getrusage` gave it. The context limit of an export is at least the 16,896 tokens of the longest condition | `ru_maxrss` is the peak of the resident size that `ps` reads at each sample, and the comparison reads up to 16,896 tokens |
 
-It does not check the measured numbers themselves, the number of tensors of the PyTorch model (`weights.tensors`, which
-would need a copy of the structure of the model class), the SHA-256 of the files that it does not read (the verifier and
-the record of the rounded reference) or the values of the versions. It also leaves unchecked what no writer relates to
+It does not check the measurements of a run beyond these types, ranges and relations, the number of tensors of the
+PyTorch model (`weights.tensors`, which would need a copy of the structure of the model class), the SHA-256 of the
+verifier (the file is not read) or the values of the versions. It also leaves unchecked what no writer relates to
 another number: the peak footprint of the process (a different measure from the resident size), the counts of the
 constants that the asset stores (`Int32`, `UInt32`, `UInt64`) and an upper bound for the time of a condition (the
 verifier is stopped after 1,800 s, and the checks after it add to the time).
 
 Where it prints a mapping of a record key by key, a constant or the reader of the record (`load_export`,
-`load_reference`, `reference_record_problems`, `condition_problems`, `measured_problems`) fixes the set of keys. It
-needs NumPy and PyTorch. A comparison that fails a criterion is printed with `passed` false, as a failed condition of
-the own engine is; `SummaryTests` in `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fixes these checks. The
-published record is
+`load_reference`, `reference_record_problems`, `condition_problems`) fixes the set of keys. It needs NumPy and PyTorch,
+reads every logits file of the comparison and holds one in memory while it measures it (681,574,400 B for the largest).
+A comparison that fails a criterion is printed with `passed` false, as a failed condition of the own engine is;
+`SummaryTests` and `QuantizedSummaryTests` in `Tools/Conversion/tests/test_gemma4_31b_fp16_summary.py` fix these
+checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-in-the-first-six-layers-695).
 
 ## 8-bit export of the first layers
@@ -693,11 +703,12 @@ the largest absolute logit difference and the top-1 changes inside and outside a
 It refuses a restored reference that did not record the SHA-256 of the export record and the check of the data, scale
 and minimum of every quantized weight. `EffectTests` in `Tools/Conversion/tests/test_gemma4_31b_effect.py` fixes it.
 `fp16_summary` summarizes 8-bit records
-with the restored reference as `--reference` and the output of `effect` as `--effect`, and without `--original` and
-`--model-class`, which only FP16 records take; it stops with its fixed error when an input of the other precision is
-given or one of its own is missing, and when the effect is not of the layers of the restored reference, does not compare
-a rounded reference of these layers, was not measured on the twelve fixed conditions with the fixed criteria or holds
-numbers that the comparison of the two references cannot give. `QuantizedSummaryTests` fixes these checks. The
+with the restored reference as `--reference` and the folder of the rounded reference as `--rounded`, and without
+`--original` and `--model-class`, which only FP16 records take. It computes the effect itself with the function of
+`effect.py` from the two folders and does not read the output of `effect`; it stops with its fixed error when an input
+of the other precision is given or one of its own is missing, and when `effect` finds a problem (a rounded reference of
+other weights, of another contract, of other layers than the restored reference, or not complete with its logits files)
+or did not start from the record of the restored reference. `QuantizedSummaryTests` fixes these checks. The
 published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).
 

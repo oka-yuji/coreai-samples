@@ -217,118 +217,6 @@ class MeasureTests(unittest.TestCase):
         nan = lambda swift: swift.__setitem__((20, 7), np.nan)
         self.assertIn("finite", self.failing(self.measure(nan, known=(20,))))
 
-    def test_the_top_one_changes_of_every_measurement_come_with_the_differences_that_their_definition_gives(self):
-        generator, near = np.random.default_rng(5), native.NEAR_TIE
-        gaps = (0.0, near / 2, near, math.nextafter(near, 1), 0.0101, 0.02, 0.5)
-        pushes = (-1e-6, 0.0, 1e-7, 1e-6, 1e-3, 0.3)
-        flipped = tight = 0
-        for trial in range(400):
-            rows = int(generator.integers(1, 12))
-            reference = generator.normal(size=(rows, 6)).astype(np.float32)
-            swift = reference.copy()
-            for row in range(rows):
-                gap = gaps[int(generator.integers(len(gaps)))]
-                reference[row, :2] = 10.0, 10.0 - gap
-                swift[row] = reference[row]
-                if generator.random() < 0.7:
-                    push = gap / 2 + pushes[int(generator.integers(len(pushes)))]
-                    swift[row, 0] -= push
-                    swift[row, 1] += push
-            swift = swift.astype(np.float32 if trial % 2 else np.float16)
-            known = generator.random(rows) < (0.0, 0.3)[trial % 2]
-            result = native.measure(swift, reference, np.arange(rows), known)
-            changes, outside, largest = sum(result["top1_mismatches"].values()), result["top1_mismatches"]["outside"], \
-                result["max_abs_logit"]
-            with self.subTest(trial=trial):
-                self.assertEqual(native.measured_problems(result, 6), [])
-                if changes:
-                    self.assertGreater(largest, 0)
-                if outside:
-                    self.assertGreater(largest, near / 2)
-            flipped += bool(changes)
-            tight += bool(outside) and largest < near
-        self.assertGreater(flipped, 100)
-        self.assertGreater(tight, 5)
-
-    def test_every_measurement_holds_the_relations_of_its_construction_and_each_broken_number_is_named(self):
-        generator = np.random.default_rng(3)
-        for trial in range(24):
-            rows = int(generator.integers(1, 30))
-            reference = generator.normal(size=(rows, VOCABULARY)).astype(np.float32)
-            swift = (reference + generator.normal(scale=0.5, size=reference.shape)).astype(np.float16)
-            if trial % 4 == 1:
-                swift[0, 3] = np.nan
-            if trial % 4 == 2:
-                reference[rows - 1, 4] = np.inf
-            if trial % 3 == 1:
-                swift[rows // 2] = 1.0
-            known = generator.random(rows) < (0.0, 0.4, 1.0)[trial % 3]
-            result = native.measure(swift, reference, np.arange(rows), known)
-            kept = {key: value for key, value in result.items() if key in ("rows", "non_finite", "reference_non_finite",
-                                                                          "max_abs_logit", "top1_mismatches")}
-            with self.subTest(trial=trial):
-                self.assertEqual(native.measured_problems(result, VOCABULARY), [])
-                self.assertEqual(native.measured_problems(kept, VOCABULARY), [])
-        shifted = lambda swift: swift.__setitem__((20, 50), self.reference[20, 50] + 6.0)
-        base = self.measure(shifted, known=(20, 21))
-        self.assertEqual(native.measured_problems(base, VOCABULARY), [])
-        unmeasured = {"max_abs_logit": None, "known": {"rows": 2, "max_abs_logit": None}}
-        counts, largest, every, tops, outnumbered, marked = (
-            "the non-finite values are not counts of the values of the rows",
-            "the largest difference is not a number exactly when every value is finite",
-            "the largest difference is not 0 without a row outside the known rows",
-            "the top-1 changes are not the two counts of the comparison",
-            "the top-1 changes outnumber the rows outside the known rows",
-            "the largest difference of the known rows is not a number exactly when every value is finite and a row is "
-            "known")
-        zero = "the top-1 changes come with no largest difference above zero"
-        half = "the top-1 changes outside the near tie come with no largest difference above half of the near tie"
-        shaped = "the known rows are not recorded as a count and a largest difference"
-        cases = {"more non-finite values than the rows hold": ({"non_finite": 40 * VOCABULARY + 1, **unmeasured}, [counts]),
-                 "a negative count of non-finite reference values": ({"reference_non_finite": -1, **unmeasured}, [counts]),
-                 "more constant rows than rows": ({"constant_rows": 41}, ["the constant rows are not a count of the rows"]),
-                 "no largest difference of finite values": ({"max_abs_logit": None}, [largest]),
-                 "a negative largest difference": ({"max_abs_logit": -0.5}, [largest]),
-                 "a largest difference of values that are not all finite": (
-                     {"non_finite": 1, "known": {"rows": 2, "max_abs_logit": None}}, [largest]),
-                 "a largest difference other than 0 with every row known": (
-                     {"known": {"rows": 40, "max_abs_logit": 6.0}, "top1_mismatches": {"near_tie": 0, "outside": 0}}, [every]),
-                 "a third count of top-1 changes": ({"top1_mismatches": {"near_tie": 0, "outside": 0, "other": 0}}, [tops]),
-                 "more top-1 changes than rows outside the known rows": (
-                     {"top1_mismatches": {"near_tie": 30, "outside": 9}}, [outnumbered]),
-                 "no largest difference of the known rows": ({"known": {"rows": 2, "max_abs_logit": None}}, [marked]),
-                 "a largest difference of the known rows without a known row": (
-                     {"known": {"rows": 0, "max_abs_logit": 0.5}}, [marked]),
-                 "a top-1 change near a tie with no largest difference": (
-                     {"top1_mismatches": {"near_tie": 1, "outside": 0}, "max_abs_logit": 0.0}, [zero]),
-                 "a top-1 change near a tie with the smallest largest difference above zero": (
-                     {"top1_mismatches": {"near_tie": 1, "outside": 0}, "max_abs_logit": math.nextafter(0.0, 1)}, []),
-                 "a top-1 change outside the near tie with half of the near tie as the largest difference": (
-                     {"top1_mismatches": {"near_tie": 0, "outside": 1}, "max_abs_logit": native.NEAR_TIE / 2}, [half]),
-                 "a top-1 change outside the near tie with the next number above half of the near tie": (
-                     {"top1_mismatches": {"near_tie": 0, "outside": 1},
-                      "max_abs_logit": math.nextafter(native.NEAR_TIE / 2, 1)}, []),
-                 "a largest difference of another type": ({"max_abs_logit": "0.5"}, [largest]),
-                 "constant rows of another type": ({"constant_rows": "41"}, ["the constant rows are not a count of the rows"]),
-                 "known rows of another type": ({"known": [2, None]}, [shaped]),
-                 "a count of known rows of another type": ({"known": {"rows": "2", "max_abs_logit": None}}, [shaped]),
-                 "a largest difference of the known rows of another type": (
-                     {"known": {"rows": 2, "max_abs_logit": "6.0"}}, [marked]),
-                 "known rows given as nothing": ({"known": None}, [shaped])}
-        for label, (change, expected) in cases.items():
-            with self.subTest(case=label):
-                self.assertEqual(native.measured_problems({**base, **change}, VOCABULARY), expected)
-        held = "the non-finite values are more than the reference record holds for their input"
-        counted = {**base, "non_finite": 3, "reference_non_finite": 2, "max_abs_logit": None,
-                   "known": {"rows": 2, "max_abs_logit": None}}
-        for bounds, expected in (((None, None), []), ((3, 2), []), ((2, 2), [held]), ((3, 1), [held]), ((0, 0), [held])):
-            with self.subTest(bounds=bounds):
-                self.assertEqual(native.measured_problems(counted, VOCABULARY, bounds), expected)
-        effect = {key: value for key, value in self.measure().items() if key not in ("constant_rows", "known", "checks")}
-        self.assertEqual(native.measured_problems(effect, VOCABULARY), [])
-        self.assertEqual(native.measured_problems({**effect, "top1_mismatches": {"near_tie": 41, "outside": 0}}, VOCABULARY),
-                         [outnumbered])
-
 
 class KnownCallTests(unittest.TestCase):
     def test_only_calls_of_eight_or_more_tokens_that_end_at_97_to_112_positions_are_known(self):
@@ -425,6 +313,9 @@ class CompareTests(unittest.TestCase):
 
     def conditions(self, result):
         return {entry["name"]: entry for entry in result["conditions"]}
+
+    def loaded(self):
+        return {name: np.load(path) for name, path in self.arrays.items()}
 
     def test_matching_logits_pass_all_twelve_conditions_and_the_comparison_is_saved(self):
         result = self.run_compare()
@@ -540,13 +431,12 @@ class CompareTests(unittest.TestCase):
             key: value for key, value in stopped["verifier"].items() if key != "scoring_s"}
         took = "the condition took less time than the verifier recorded for its steps"
         fields = "the verifier record holds a field or a value that the verifier does not write"
-        shape = "the known rows are not recorded as a count and a largest difference"
         cases = {
             "a field that the comparison does not write": (measured, {"extra": 1},
                                                            ["the condition holds other fields than the comparison writes on "
                                                             "its paths"]),
-            "checks that its numbers do not give": (measured, {"checks": {**measured["checks"], "extra": True}},
-                                                    ["the condition records other checks than its numbers give"]),
+            "checks on a path that stops before its numbers": (
+                stopped, {"checks": {"finite": True}}, ["the condition records other checks than its numbers give"]),
             "a verdict that its checks and problems do not give": (
                 measured, {"passed": False}, ["the condition records another verdict than its checks and problems give"]),
             "no problem on a path that stops before its numbers": (
@@ -587,17 +477,9 @@ class CompareTests(unittest.TestCase):
             "a file of the size of the rows that was not measured": (
                 sized, {"output": {**sized["output"], "bytes": native.logits_bytes(sized["rows"], VOCABULARY)}},
                 ["the logits file does not hold the rows of the condition exactly when they were measured"]),
-            "other known rows": (conditions["window-c8"], {"known": {**conditions["window-c8"]["known"], "rows": 15}},
-                                 ["the known rows are not those of the call shape that the engine avoids"]),
             "another non-finite count of the verifier without its problem": (
                 measured, {"verifier": {**verifier, "non_finite_count": 1}},
                 ["the verifier counted other non-finite values than the file exactly when the condition records a problem"]),
-            "a third count of top-1 changes": (
-                measured, {"top1_mismatches": {**measured["top1_mismatches"], "other": 0}},
-                ["the top-1 changes are not the two counts of the comparison"]),
-            "a top-1 change without a largest difference in a condition": (
-                measured, {"top1_mismatches": {"near_tie": 1, "outside": 0}, "max_abs_logit": 0.0},
-                ["the top-1 changes come with no largest difference above zero"]),
             "a condition that took less time than its verifier recorded": (
                 measured, {"seconds": math.nextafter(steps, 0)}, [took]),
             "a condition that took as long as its verifier recorded": (measured, {"seconds": steps}, []),
@@ -622,28 +504,86 @@ class CompareTests(unittest.TestCase):
                 measured, {"output": {**measured["output"], "bytes": "3"}},
                 ["the condition records no size of its logits file"]),
             "a record of the logits file that is no record": (
-                measured, {"output": []}, ["the condition records no size of its logits file"]),
-            "known rows of another type": (measured, {"known": []}, [shape]),
-            "known rows given as nothing": (measured, {"known": None}, [shape])}
+                measured, {"output": []}, ["the condition records no size of its logits file"])}
         for label, (entry, change, expected) in cases.items():
             with self.subTest(case=label):
                 self.assertEqual(native.condition_problems({**entry, **change}, self.config, MAIN_HASH, True), expected)
-        uncounted = {**measured, "reference_non_finite": 1, "max_abs_logit": None, "passed": False,
-                     "checks": {"finite": False, "no_constant_rows": True, "max_abs_logit": False, "top1": True}}
-        held = "the non-finite values are more than the reference record holds for their input"
-        for bound, expected in ((None, []), (1, []), (0, [held])):
-            with self.subTest(case="a condition that counted a non-finite value of a reference that holds", bound=bound):
-                self.assertEqual(native.condition_problems(uncounted, self.config, MAIN_HASH, True, bound), expected)
         zero = {**measured, "verifier": {**verifier, "prefix_chunk": 0}}
         with self.subTest(case="a prefill chunk of zero, which the reads of the condition are not computed for"), \
                 mock.patch.object(native, "call_lengths", side_effect=AssertionError):
             self.assertEqual(native.condition_problems(zero, self.config, MAIN_HASH, True),
                              ["the verifier record differs from the reads of the condition"])
 
+    def test_every_condition_that_reached_its_numbers_holds_those_that_its_file_and_the_reference_give(self):
+        changes = {"window-c8": {"set": [[100, 5, 30.0], [111, 6, 30.0]]}, "capacity-2048": {"set": [[2, 3, float("nan")]]},
+                   "capacity-4096": {"constant": [4]}, "capacity-8192": {"set": [[1, 7, 10.0]]},
+                   "capacity-16384": {"set": [[0, 9, 40.0]]}, "short-c26": {"rows": -1}, "window-c1": {"exit": 1}}
+        result, arrays = self.run_compare(changes), self.loaded()
+        measured = [entry for entry in result["conditions"] if "known" in entry]
+        self.assertEqual((len(measured), {entry["passed"] for entry in measured}), (10, {True, False}))
+        for entry in measured:
+            data = (self.folder / "out" / f"{entry['name']}.f16").read_bytes()
+            with self.subTest(condition=entry["name"]):
+                self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, arrays), [])
+
+    def test_each_number_of_a_condition_that_its_file_and_the_reference_do_not_give_is_named_on_its_own(self):
+        result, arrays = self.run_compare({"window-c8": {"set": [[100, 5, 30.0], [111, 6, 30.0]]}}), self.loaded()
+        entry, data = self.conditions(result)["window-c8"], (self.folder / "out/window-c8.f16").read_bytes()
+        named = ["the numbers of the condition are not those that its logits file and the reference give"]
+        known, top, checks = entry["known"], entry["top1_mismatches"], entry["checks"]
+        self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, arrays), [])
+        self.assertGreater(known["max_abs_logit"], 25)
+        cases = {"one more non-finite value": {"non_finite": entry["non_finite"] + 1},
+                 "one more non-finite value of the reference": {"reference_non_finite": entry["reference_non_finite"] + 1},
+                 "one more constant row": {"constant_rows": entry["constant_rows"] + 1},
+                 "the next number below the largest difference": {"max_abs_logit": math.nextafter(entry["max_abs_logit"], 0)},
+                 "the next number above the largest difference": {"max_abs_logit": math.nextafter(entry["max_abs_logit"], 9)},
+                 "no largest difference": {"max_abs_logit": None},
+                 "one more top-1 change near a tie": {"top1_mismatches": {**top, "near_tie": top["near_tie"] + 1}},
+                 "one more top-1 change outside the near tie": {"top1_mismatches": {**top, "outside": top["outside"] + 1}},
+                 "a third count of top-1 changes": {"top1_mismatches": {**top, "other": 0}},
+                 "one known row less": {"known": {**known, "rows": known["rows"] - 1}},
+                 "the next number below the largest difference of the known rows": {
+                     "known": {**known, "max_abs_logit": math.nextafter(known["max_abs_logit"], 0)}},
+                 "no largest difference of the known rows": {"known": {**known, "max_abs_logit": None}},
+                 "no known rows": {"known": None},
+                 "a check that the numbers do not give": {"checks": {**checks, "finite": not checks["finite"]}},
+                 "one more check": {"checks": {**checks, "extra": True}},
+                 "no checks": {"checks": {}}}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(native.measurement_problems({**entry, **change}, VOCABULARY, data, arrays), named)
+        for key in ("non_finite", "reference_non_finite", "constant_rows", "max_abs_logit", "top1_mismatches", "known", "checks"):
+            for value in (None, "x", [], {}, True, -1):
+                with self.subTest(key=key, value=value):
+                    self.assertEqual(native.measurement_problems({**entry, key: value}, VOCABULARY, data, arrays), named)
+        other = bytearray(data)
+        other[:2] = np.float16(1000).astype("<f2").tobytes()
+        shifted = {name: array + 1 for name, array in arrays.items()}
+        sources = {"a logits file with one value changed": (bytes(other), arrays),
+                   "the logits file of another condition": ((self.folder / "out/window-c4.f16").read_bytes(), arrays),
+                   "a reference of other values": (data, shifted)}
+        for label, (content, held) in sources.items():
+            with self.subTest(case=label):
+                self.assertEqual(native.measurement_problems(entry, VOCABULARY, content, held), named)
+
+    def test_the_comparison_and_the_reader_measure_a_condition_with_the_same_function(self):
+        original = native.measure_condition
+        with mock.patch.object(native, "measure_condition", wraps=original) as measured:
+            result = self.run_compare()
+        self.assertEqual([call.args[0]["name"] for call in measured.call_args_list],
+                         [name for name, *_ in layers.CONDITIONS])
+        entry, data = self.conditions(result)["tail"], (self.folder / "out/tail.f16").read_bytes()
+        self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, self.loaded()), [])
+        shifted = lambda *arguments: {**original(*arguments), "max_abs_logit": 1.5}
+        with mock.patch.object(native, "measure_condition", side_effect=shifted):
+            self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, self.loaded()),
+                             ["the numbers of the condition are not those that its logits file and the reference give"])
+
     def test_a_condition_record_with_a_field_of_another_type_is_named_and_never_raises(self):
         changes = {"short-c26": {"rows": -1}, "window-c1": {"exit": 1}, "window-c2": {"stdout": "not a record"},
                    "window-c4": {"no_output": True}}
-        conditions, fixed = self.conditions(self.run_compare(changes)), set(native.FIELDS[:6])
+        conditions, fixed, arrays = self.conditions(self.run_compare(changes)), set(native.FIELDS[:6]), self.loaded()
         for name in ("window-c4", "window-c2", "window-c1", "short-c26", "window-c8", "tail"):
             entry = conditions[name]
             paths = [(key,) for key in entry if key not in fixed]
@@ -660,6 +600,9 @@ class CompareTests(unittest.TestCase):
                     target[path[-1]] = value
                     with self.subTest(condition=name, path=path, value=value):
                         found = native.condition_problems(changed, self.config, MAIN_HASH, True)
+                        if "known" in entry:
+                            data = (self.folder / "out" / f"{name}.f16").read_bytes()
+                            found += native.measurement_problems(changed, VOCABULARY, data, arrays)
                         if name == "tail" and path != ("output", "sha256"):
                             self.assertTrue(found)
 

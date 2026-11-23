@@ -41,6 +41,7 @@ TOP1 = ("near_tie", "outside")
 FIELDS = ("name", "input", "tokens", "start", "chunk", "rows", "problems", "checks", "passed")
 PATHS = (("seconds",), ("verifier",), ("output",),
          ("non_finite", "reference_non_finite", "constant_rows", "max_abs_logit", "top1_mismatches", "known"))
+PATH_FIELDS = [set(FIELDS).union(*PATHS[:index]) for index in range(len(PATHS) + 1)]
 DISK = ("weight_bytes", "estimated_write_bytes", "margin_bytes", "required_free_bytes", "free_before_bytes",
         "lowest_free_bytes")
 SWAP = ("first_bytes", "peak_bytes", "limit_increase_bytes", "increase_bytes")
@@ -163,6 +164,24 @@ def measure(swift, reference, indices, known):
     return {**result, "checks": verdicts(result)}
 
 
+def measure_condition(entry, vocabulary, data, arrays):
+    import numpy as np
+
+    source, length, start, chunk, rows = (entry[key] for key in ("input", "tokens", "start", "chunk", "rows"))
+    index = {row: position for position, row in enumerate(kept_rows(source))}
+    known = np.zeros(rows, dtype=bool)
+    known[[row - start for row in known_rows(start, length, chunk)]] = True
+    return measure(np.frombuffer(data, dtype="<f2").reshape(rows, vocabulary), arrays[source],
+                   np.array([index[position] for position in range(start, length)]), known)
+
+
+def measurement_problems(entry, vocabulary, data, arrays):
+    numbers = measure_condition(entry, vocabulary, data, arrays)
+    if canonical({key: entry.get(key) for key in numbers}) == canonical(numbers):
+        return []
+    return ["the numbers of the condition are not those that its logits file and the reference give"]
+
+
 def logits_bytes(rows, vocabulary):
     return rows * vocabulary * FLOAT16_BYTES
 
@@ -171,55 +190,10 @@ def texts(value):
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
-def measured_types(entry):
-    top, known = entry["top1_mismatches"], entry.get("known")
-    counts, largest = (entry["non_finite"], entry["reference_non_finite"]), entry["max_abs_logit"]
-    shaped = "known" not in entry or isinstance(known, dict) and set(known) == {"rows", "max_abs_logit"} \
-        and counted(known["rows"])
-    typed = {
-        "the non-finite values are not counts of the values of the rows": counted(*counts),
-        "the constant rows are not a count of the rows": "constant_rows" not in entry or counted(entry["constant_rows"]),
-        "the largest difference is not a number exactly when every value is finite":
-            largest is None or valid("number", largest),
-        "the top-1 changes are not the two counts of the comparison":
-            isinstance(top, dict) and set(top) == set(TOP1) and counted(*top.values()),
-        "the known rows are not recorded as a count and a largest difference": shaped,
-        "the largest difference of the known rows is not a number exactly when every value is finite and a row is known":
-            not shaped or "known" not in entry or known["max_abs_logit"] is None or valid("number", known["max_abs_logit"])}
-    return [message for message, holds in typed.items() if not holds]
-
-
-def measured_problems(entry, vocabulary, held=(None, None)):
-    found = measured_types(entry)
-    if found:
-        return found
-    rows, top, known, largest = entry["rows"], entry["top1_mismatches"], entry.get("known"), entry["max_abs_logit"]
-    counts = (entry["non_finite"], entry["reference_non_finite"])
-    finite, marked, changes = not any(counts), known["rows"] if known else 0, sum(top.values())
-    numeric = finite and largest is not None
-    formulas = {
-        "the non-finite values are not counts of the values of the rows":
-            all(value <= rows * vocabulary for value in counts),
-        "the non-finite values are more than the reference record holds for their input":
-            all(bound is None or value <= bound for value, bound in zip(counts, held)),
-        "the constant rows are not a count of the rows": "constant_rows" not in entry or entry["constant_rows"] <= rows,
-        "the largest difference is not a number exactly when every value is finite": (largest is not None) == finite,
-        "the largest difference is not 0 without a row outside the known rows":
-            largest is None or marked < rows or largest == 0,
-        "the top-1 changes outnumber the rows outside the known rows": changes <= rows - marked,
-        "the largest difference of the known rows is not a number exactly when every value is finite and a row is known":
-            known is None or (known["max_abs_logit"] is not None) == (finite and marked > 0),
-        "the top-1 changes come with no largest difference above zero": not numeric or not changes or largest > 0,
-        "the top-1 changes outside the near tie come with no largest difference above half of the near tie":
-            not numeric or not top["outside"] or largest > NEAR_TIE / 2}
-    return [message for message, holds in formulas.items() if not holds]
-
-
-def condition_problems(entry, config, main_hash, prefill, held=None):
-    fields = [set(FIELDS).union(*PATHS[:index]) for index in range(len(PATHS) + 1)]
-    if set(entry) not in fields:
+def condition_problems(entry, config, main_hash, prefill):
+    if set(entry) not in PATH_FIELDS:
         return ["the condition holds other fields than the comparison writes on its paths"]
-    reached, problems, verifier = fields.index(set(entry)), entry["problems"], entry.get("verifier")
+    reached, problems, verifier = PATH_FIELDS.index(set(entry)), entry["problems"], entry.get("verifier")
     measured, read, ran = reached == len(PATHS), reached > 2, reached > 1
     typed = {
         "the problems of the condition are not a list of texts": texts(problems),
@@ -232,17 +206,14 @@ def condition_problems(entry, config, main_hash, prefill, held=None):
             not read or isinstance(verifier, dict) and set(VERIFIER) - OPTIONAL <= set(verifier),
         "the condition records no size of its logits file":
             not read or isinstance(entry["output"], dict) and valid("count", entry["output"].get("bytes"))}
-    found = [message for message, holds in typed.items() if not holds] + (measured_types(entry) if measured else [])
+    found = [message for message, holds in typed.items() if not holds]
     if found:
         return found
-    numbers = measured_problems(entry, config["vocab_size"], (None, held)) if measured else []
     chunk = verifier.get("prefix_chunk") if read else None
     expected = expected_verifier(entry, config, main_hash, prefill, chunk) if chunk in PREFILL_CHUNKS else {}
-    known = len(known_rows(entry["start"], entry["tokens"], entry["chunk"]))
     steps = [verifier[key] for key in ("load_s", "prefix_s", "scoring_s") if ran and key in verifier]
     formulas = {
-        "the condition records other checks than its numbers give":
-            bool(numbers) or canonical(entry["checks"]) == canonical(verdicts(entry) if measured else {}),
+        "the condition records other checks than its numbers give": measured or not entry["checks"],
         "the condition records another verdict than its checks and problems give":
             canonical(entry["passed"]) == canonical(condition_passed(entry)),
         "the condition records no problem on a path that stops before its numbers": measured or bool(problems),
@@ -267,11 +238,9 @@ def condition_problems(entry, config, main_hash, prefill, held=None):
         "the logits file does not hold the rows of the condition exactly when they were measured":
             not read or (canonical(entry["output"]["bytes"]) == canonical(logits_bytes(entry["rows"], config["vocab_size"])))
             == measured,
-        "the known rows are not those of the call shape that the engine avoids":
-            not measured or canonical(entry["known"]["rows"]) == canonical(known),
         "the verifier counted other non-finite values than the file exactly when the condition records a problem":
             not measured or (canonical(verifier["non_finite_count"]) == canonical(entry["non_finite"])) == (not problems)}
-    return [message for message, holds in formulas.items() if not holds] + numbers
+    return [message for message, holds in formulas.items() if not holds]
 
 
 def verdicts(entry):
@@ -328,7 +297,9 @@ def load_reference(folder, contract, contract_path):
     return record, hashed, arrays, problems
 
 
-def reference_record_problems(record, contract):
+def reference_record_problems(record, contract, arrays):
+    import numpy as np
+
     config, problems = contract["config"], []
     if canonical(record.get("chunk")) != canonical(REFERENCE_CHUNK):
         problems.append("the reference was not computed in the fixed chunks")
@@ -344,8 +315,9 @@ def reference_record_problems(record, contract):
         if canonical({key: logits.get(key) for key in ("dtype", "shape")}) \
                 != canonical({"dtype": "float32", "shape": [rows, config["vocab_size"]]}):
             problems.append(f"the reference recorded the {name} logits of another type or shape")
-        if not valid("count", logits.get("non_finite")) or logits["non_finite"] > rows * config["vocab_size"]:
-            problems.append(f"the reference recorded no count of the non-finite {name} logits")
+        array = arrays.get(name)
+        if array is None or canonical(logits.get("non_finite")) != canonical(int(array.size - np.isfinite(array).sum())):
+            problems.append(f"the reference recorded another count of the non-finite {name} logits than its file holds")
         if not valid("seconds", entry.get("seconds")):
             problems.append(f"the reference recorded no time of the {name} input")
     spent = [timing.get("input_hash_s"), timing.get("load_s"),
@@ -663,8 +635,6 @@ def condition(spec, config, arrays, facts, verifier, output):
 
 
 def measured(entry, config, arrays, facts, verifier, output):
-    import numpy as np
-
     name, source, length, start, chunk, rows = (entry[key] for key in ("name", "input", "tokens", "start", "chunk", "rows"))
     ids, vocabulary, problems = tokens(source, config)[:length], config["vocab_size"], entry["problems"]
     (output / f"{name}.tokens.json").write_text(json.dumps(ids))
@@ -699,11 +669,7 @@ def measured(entry, config, arrays, facts, verifier, output):
     if len(data) != logits_bytes(rows, vocabulary):
         problems.append(f"the logits file holds {len(data)} B, not {logits_bytes(rows, vocabulary)} B")
         return
-    index = {row: position for position, row in enumerate(kept_rows(source))}
-    known = np.zeros(rows, dtype=bool)
-    known[[row - start for row in known_rows(start, length, chunk)]] = True
-    entry.update(measure(np.frombuffer(data, dtype="<f2").reshape(rows, vocabulary), arrays[source],
-                         np.array([index[position] for position in range(start, length)]), known))
+    entry.update(measure_condition(entry, vocabulary, data, arrays))
     if entry["verifier"]["non_finite_count"] != entry["non_finite"]:
         problems.append(f"the verifier counted {entry['verifier']['non_finite_count']} non-finite values, not the "
                         f"{entry['non_finite']} of its file")
