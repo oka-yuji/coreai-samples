@@ -32,10 +32,10 @@ TABLE = PREFIX + "embed_tokens.weight"
 ASSISTANT_FILES = ("config.json", "model.safetensors")
 ITEM = {"id": "text", "category": "text", "max_new_tokens": "count", "stop": "text", "input_tokens": "count",
         "output_tokens": "count", "teacher_tokens": "count"}
-ROW = {"id": "text", "category": "text", "anchor": "count", "output_index": "count", "window": "count"}
 LEVEL = {"rounds": "count", "tokens": "count", "tokens_per_round": "seconds"}
 ARRAYS = {"original": ("logits", "projected", "drafts"), "class": ("logits", "projected", "drafts", "repeated")}
-SAME = ("steps", "stops", "window", "layers", "model", "assistant", "records", "weights", "embed_scale", "rows")
+RUN = ("schema", "implementation", "steps", "stops", "window", "layers", "model", "assistant", "records", "weights",
+       "embed_scale", "rows", "arrays", "versions", "timing", "memory")
 
 
 def document(path, size=None):
@@ -208,6 +208,16 @@ def feature_layout(path, config, place, prompt, teacher):
     return {"features": path, "names": names, "first": first, "start": start}
 
 
+def feature_path(records, name):
+    return Path(records) / "tf" / "features" / f"{name}.safetensors"
+
+
+def target_rows(chosen, window):
+    return [{"id": entry["id"], "category": entry["category"], "anchor": anchor,
+             "output_index": anchor - entry["input_tokens"], "window": min(anchor, window)}
+            for entry in chosen for anchor in anchors(entry["input_tokens"], entry["output_tokens"])]
+
+
 def items_of(contract, records, inputs, outputs, choose):
     config, place = contract["config"], layout(contract["config"])
     subset, subset_sha256 = subset_record(Path(records) / "subset.json")
@@ -234,7 +244,7 @@ def items_of(contract, records, inputs, outputs, choose):
                 or output["stop"] == "stop_token" and output["stop_token"] not in stops \
                 or not stops.isdisjoint(output["output_ids"]):
             raise ValueError(f"{entry['id']}: the input and output records differ from subset.json")
-        path = Path(records) / "tf" / "features" / f"{entry['id']}.safetensors"
+        path = feature_path(records, entry["id"])
         found.append({"id": entry["id"], "category": entry["category"], "input_ids": ids, "teacher": teacher,
                       "outputs": len(output["output_ids"]), **feature_layout(path, config, place, len(ids),
                                                                             len(teacher))})
@@ -396,25 +406,31 @@ def versions(implementation):
             for name in PACKAGES + (CONVERTER if implementation == "class" else ())}
 
 
+def provenance(contract, contract_sha256, files, assistant, assistant_sha256, subset, subset_sha256, features):
+    return {"model": {"id": contract["model_id"], "revision": contract["revision"], "contract_sha256": contract_sha256,
+                      "verified_before_loading": files},
+            "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
+                          "contract_sha256": assistant_sha256,
+                          "verified_before_loading": {name: dict(assistant["files"][name]) for name in ASSISTANT_FILES}},
+            "records": {"subset_sha256": subset_sha256, "inputs_sha256": subset["inputs"]["sha256"],
+                        "outputs_sha256": subset["outputs"]["sha256"], "features": features}}
+
+
 def prepared(contract_path, assistant_path, snapshot, assistant_snapshot, records, inputs, outputs, choose):
     (contract, contract_sha256), (assistant, assistant_sha256) = target_contract(contract_path), load_assistant(
         assistant_path)
     files, shard = table_shard(snapshot, contract)
     files.update(verified(snapshot, contract["files"], (shard,)))
-    held = verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
+    verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
     subset, subset_sha256, items = items_of(contract, records, inputs, outputs, choose)
     config = contract["config"]
-    settings = assistant_config(document(Path(assistant_snapshot) / "config.json", held["config.json"]["bytes"]),
+    settings = assistant_config(document(Path(assistant_snapshot) / "config.json",
+                                         assistant["files"]["config.json"]["bytes"]),
                                 {key: config[key] for key in TARGET})
     expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
     expect(Path(snapshot) / shard, table_shape(config), False)
-    sources = {"model": {"id": contract["model_id"], "revision": contract["revision"],
-                         "contract_sha256": contract_sha256, "verified_before_loading": files},
-               "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
-                             "contract_sha256": assistant_sha256, "verified_before_loading": held},
-               "records": {"subset_sha256": subset_sha256, "inputs_sha256": subset["inputs"]["sha256"],
-                           "outputs_sha256": subset["outputs"]["sha256"],
-                           "features": {item["id"]: digest(item["features"]) for item in items}}}
+    sources = provenance(contract, contract_sha256, files, assistant, assistant_sha256, subset, subset_sha256,
+                         {item["id"]: digest(item["features"]) for item in items})
     return contract, subset, items, sources, Path(snapshot) / shard
 
 
@@ -519,39 +535,39 @@ def tokens_or_padding(array, vocabulary, padded):
     return True
 
 
-def compare(original, model_class, contract_path):
+def canonical(value):
+    return json.dumps(value, sort_keys=True)
+
+
+def compare(original, model_class, contract_path, assistant_path, snapshot, records, steps):
     import numpy as np
 
-    (contract, contract_sha256), problems = target_contract(contract_path), []
-    config = contract["config"]
-    place = layout(config)
-    expected = {"stops": config["eos_token_id"], "window": place["window"], "weights": WEIGHTS,
+    check_steps(steps)
+    (contract, contract_sha256), (assistant, assistant_sha256) = target_contract(contract_path), load_assistant(
+        assistant_path)
+    files, shard = table_shard(snapshot, contract)
+    subset, subset_sha256 = subset_record(Path(records) / "subset.json")
+    config, place, chosen = contract["config"], layout(contract["config"]), first_per_category(subset)
+    rows = target_rows(chosen, place["window"])
+    expected = {"schema": SCHEMA, "steps": steps, "stops": list(config["eos_token_id"]), "window": place["window"],
                 "layers": {"sliding": place["sliding"], "full": place["full"]},
-                "embed_scale": rounded_scale(config["hidden_size"])}
-    folders = {"original": Path(original), "class": Path(model_class)}
+                **provenance(contract, contract_sha256, {**files, shard: dict(contract["files"][shard])}, assistant,
+                             assistant_sha256, subset, subset_sha256,
+                             {entry["id"]: digest(feature_path(records, entry["id"])) for entry in chosen}),
+                "weights": WEIGHTS, "embed_scale": rounded_scale(config["hidden_size"]), "rows": rows}
+    folders, problems = {"original": Path(original), "class": Path(model_class)}, []
     runs = {kind: loaded_run(folder, kind, problems) for kind, folder in folders.items()}
-    records, arrays, hashes = ({kind: value[index] for kind, value in runs.items()} for index in (0, 1, 2))
-    rows, steps = [], None
-    if all(records.values()):
-        first = records["original"]
-        problems += [f"the runs differ in {key}" for key in SAME if first.get(key) != records["class"].get(key)]
-        problems += [f"the runs hold another {key} than the contract" for key, value in expected.items()
-                     if first.get(key) != value]
-        if same_file(folders["original"] / "record.json", folders["class"] / "record.json"):
-            problems.append("both runs read the same record.json")
-        if not isinstance(first.get("model"), dict) or first["model"].get("contract_sha256") != contract_sha256:
-            problems.append("the runs were made under another contract")
-        rows, steps = first.get("rows"), first.get("steps")
-        if not isinstance(rows, list) or not rows or not all(isinstance(row, dict) and set(row) == set(ROW)
-                                                             and all(valid(kind, row[key]) for key, kind in ROW.items())
-                                                             for row in rows):
-            problems.append("the runs hold no well-formed rows")
-            rows = []
-        if type(steps) is not int or steps < 1:
-            problems.append("the runs hold no step count")
+    found, arrays, hashes = ({kind: value[index] for kind, value in runs.items()} for index in (0, 1, 2))
+    for kind, record in found.items():
+        if record is not None and set(record) != set(RUN):
+            problems.append(f"the {kind} run holds the fields {sorted(record)}, not {sorted(RUN)}")
+        problems += [f"the {kind} run holds another {key} than its fixed inputs give" for key, value in expected.items()
+                     if record is not None and canonical(record.get(key)) != canonical(value)]
+    if same_file(folders["original"] / "record.json", folders["class"] / "record.json"):
+        problems.append("both runs read the same record.json")
     widths = {"logits": config["vocab_size"], "projected": config["hidden_size"], "drafts": steps, "repeated": steps}
-    for kind, found in arrays.items():
-        for name, array in found.items():
+    for kind, held in arrays.items():
+        for name, array in held.items():
             wanted = np.int32 if name in ("drafts", "repeated") else np.float32
             if array is not None and (array.dtype != wanted or array.shape != (len(rows), widths[name])):
                 problems.append(f"the {kind} {name} are {array.dtype} {list(array.shape)}, not "
@@ -562,9 +578,9 @@ def compare(original, model_class, contract_path):
                                                                                           (kind, name) == ("original",
                                                                                                            "drafts")):
                 problems.append(f"the {kind} {name} hold values that are not token ids")
-    if problems or not rows:
-        return {"schema": COMPARISON, "passed": False, "problems": problems or ["no rows to compare"]}
-    stops, results = set(records["original"]["stops"]), []
+    if problems:
+        return {"schema": COMPARISON, "passed": False, "problems": problems}
+    stops, results = set(expected["stops"]), []
     for index, row in enumerate(rows):
         logits = [np.asarray(arrays[kind]["logits"][index], dtype=np.float64) for kind in IMPLEMENTATIONS]
         projection = ratio(arrays["class"]["projected"][index], arrays["original"]["projected"][index])
@@ -579,7 +595,7 @@ def compare(original, model_class, contract_path):
                                    "unrolled_equals_repeated": unrolled == repeated}})
     return {"schema": COMPARISON, "passed": all(all(result["checks"].values()) for result in results), "problems": [],
             "criteria": {"max_abs_logit": LOGIT_LIMIT, "projection_ratio": RATIO}, "steps": steps,
-            "stops": records["original"]["stops"], "window": records["original"]["window"], "rows": results,
+            "stops": expected["stops"], "window": place["window"], "rows": results,
             "summary": {"rows": len(results), "items": len({result["id"] for result in results}),
                         "max_abs_logit": max(result["max_abs_logit"] for result in results),
                         "largest_projection_ratio": max(result["projection_ratio"] for result in results),
@@ -757,8 +773,9 @@ def main():
             command.add_argument(f"--{option}", type=Path, required=True)
         command.add_argument("--steps", type=int, required=True)
     checker = commands.add_parser("compare")
-    for option in ("original", "model-class", "model"):
+    for option in ("original", "model-class", "model", "assistant", "snapshot", "records"):
         checker.add_argument(f"--{option}", type=Path, required=True)
+    checker.add_argument("--steps", type=int, required=True)
     exporter = commands.add_parser("export")
     exporter.add_argument("--output", type=Path, required=True)
     for option in ("steps", "context", "seed"):
@@ -774,7 +791,8 @@ def main():
         record = export_synthetic(args.output, args.steps, args.context, args.seed)
         print(json.dumps({name: entry["bytes"] for name, entry in record["assets"].items()}), flush=True)
         return 0 if record["passed"] else 1
-    result = (compare(args.original, args.model_class, args.model) if args.command == "compare"
+    result = (compare(args.original, args.model_class, args.model, args.assistant, args.snapshot, args.records,
+                      args.steps) if args.command == "compare"
               else acceptance(args.model, args.assistant, args.snapshot, args.assistant_snapshot, args.records,
                               args.inputs, args.outputs, args.steps))
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False), flush=True)

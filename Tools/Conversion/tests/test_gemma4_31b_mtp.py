@@ -462,53 +462,90 @@ class RecordTests(unittest.TestCase):
                 mtp.published(path, steps, categories)
 
 
-def write_run(folder, kind, rows, arrays, contract, steps=3, change=None):
+ROWS = [{"id": name, "category": name.rsplit("-", 1)[0], "anchor": anchor, "output_index": anchor - prompt,
+         "window": min(anchor, 1025)}
+        for name, prompt, positions in (("alpha-0002", 20, (20, 23, 26, 28)), ("beta-0001", 1100, (1100, 1102, 1104, 1105)))
+        for anchor in positions]
+
+
+def pins(place, names):
+    return {name: {"bytes": (place / name).stat().st_size, "sha256": sha256(place / name)} for name in names}
+
+
+def run_record(folder, kind):
+    contract, features = read_json(folder / "model.json"), folder / "records/tf/features"
+    return {"schema": mtp.SCHEMA, "implementation": kind, "steps": 3, "stops": [1, 106, 50], "window": 1025,
+            "layers": {"sliding": 10, "full": 11},
+            "model": {"id": contract["model_id"], "revision": contract["revision"],
+                      "contract_sha256": sha256(folder / "model.json"),
+                      "verified_before_loading": pins(folder / "target", (mtp.INDEX, SHARD))},
+            "assistant": {"id": "google/gemma-4-31B-it-assistant", "revision": "0" * 40,
+                          "contract_sha256": sha256(folder / "assistant.json"),
+                          "verified_before_loading": pins(folder / "assistant", ("config.json", "model.safetensors"))},
+            "records": {"subset_sha256": sha256(folder / "records/subset.json"),
+                        "inputs_sha256": sha256(folder / "evaluation/inputs.jsonl"),
+                        "outputs_sha256": sha256(folder / "evaluation/outputs.jsonl"),
+                        "features": {name: pins(features, [f"{name}.safetensors"])[f"{name}.safetensors"]
+                                     for name in ("alpha-0002", "beta-0001")}},
+            "weights": mtp.WEIGHTS, "embed_scale": 6.9375, "rows": [dict(row) for row in ROWS],
+            "versions": {"torch": "0"}, "timing": {"total_s": 1.0}, "memory": {"max_rss_bytes": 1}}
+
+
+def write_run(folder, record, arrays):
     folder.mkdir(parents=True)
-    files = {}
+    record = dict(record, arrays={})
     for name, array in arrays.items():
         np.save(folder / f"{name}.npy", array)
-        files[name] = {"bytes": (folder / f"{name}.npy").stat().st_size, "sha256": sha256(folder / f"{name}.npy")}
-    record = {"schema": mtp.SCHEMA, "implementation": kind, "steps": steps, "stops": [1, 106, 50], "window": 1025,
-              "layers": {"sliding": 10, "full": 11}, "model": {"contract_sha256": sha256(contract)},
-              "assistant": {"contract_sha256": "0" * 64}, "records": {}, "weights": mtp.WEIGHTS, "embed_scale": 6.9375,
-              "rows": [dict(row) for row in rows], "arrays": files}
-    if change:
-        change(record)
+        record["arrays"][name] = {**pins(folder, [f"{name}.npy"])[f"{name}.npy"], "dtype": str(array.dtype),
+                                  "shape": list(array.shape),
+                                  "non_finite": int(array.size - np.isfinite(array).sum())}
     write_json(folder / "record.json", record)
 
 
-@unittest.skipIf(np is None, "NumPy is required for the comparison")
+@unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the comparison")
 class CompareTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
-        self.contract = write_contract(self.folder, {name: {"bytes": 1, "sha256": "0" * 64} for name in TOKENIZER_FILES})
+        write_records(self.folder)
+        write_target(self.folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
+        write_assistant(self.folder, SYNTHETIC["assistant"], assistant_state())
         generator = np.random.default_rng(3)
-        self.rows = [{"id": "alpha-0002", "category": "alpha", "anchor": 20 + index, "output_index": index,
-                      "window": 20 + index} for index in range(3)]
-        logits = generator.normal(size=(3, CONFIG["vocab_size"])).astype(np.float32)
-        projected = generator.normal(size=(3, CONFIG["hidden_size"])).astype(np.float32)
-        drafts = np.array([[4, 5, 6], [7, 106, 8], [9, 9, 50]], dtype=np.int32)
-        self.arrays = {"original": {"logits": logits, "projected": projected,
-                                    "drafts": np.array([[4, 5, 6], [7, 106, -1], [9, 9, 50]], dtype=np.int32)},
+        logits = generator.normal(size=(8, CONFIG["vocab_size"])).astype(np.float32)
+        projected = generator.normal(size=(8, CONFIG["hidden_size"])).astype(np.float32)
+        drafts = generator.integers(51, 106, size=(8, 3)).astype(np.int32)
+        drafts[1], drafts[2] = [7, 106, 8], [9, 9, 50]
+        original = drafts.copy()
+        original[1] = [7, 106, -1]
+        self.arrays = {"original": {"logits": logits, "projected": projected, "drafts": original},
                        "class": {"logits": logits.copy(), "projected": projected.copy(), "drafts": drafts,
                                  "repeated": drafts.copy()}}
+
+    def compare(self, label, original="original", model_class="class", contract="model.json"):
+        return mtp.compare(self.folder / label / original, self.folder / label / model_class, self.folder / contract,
+                           self.folder / "assistant.json", self.folder / "target", self.folder / "records", 3)
 
     def pair(self, label, change=None, record=None, both=None):
         arrays = {kind: {name: array.copy() for name, array in found.items()} for kind, found in self.arrays.items()}
         if change:
             change(arrays)
         for kind in mtp.IMPLEMENTATIONS:
-            write_run(self.folder / label / kind, kind, self.rows, arrays[kind], self.contract,
-                      change=both or (record if kind == "class" else None))
-        return mtp.compare(self.folder / label / "original", self.folder / label / "class", self.contract)
+            entry = run_record(self.folder, kind)
+            for edit in (both, record if kind == "class" else None):
+                if edit:
+                    edit(entry)
+            write_run(self.folder / label / kind, entry, arrays[kind])
+        return self.compare(label)
 
     def test_runs_within_the_criteria_pass_and_record_the_differences_from_the_original_drafts(self):
         result = self.pair("same")
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual(result["criteria"], {"max_abs_logit": 1e-3, "projection_ratio": 1e-3})
-        self.assertEqual(result["summary"], {"rows": 3, "items": 1, "max_abs_logit": 0.0, "largest_projection_ratio": 0.0,
-                                             "argmax_equal": 3, "unrolled_equals_repeated": 3, "cut_equals_original": 3})
+        self.assertEqual(result["summary"], {"rows": 8, "items": 2, "max_abs_logit": 0.0, "largest_projection_ratio": 0.0,
+                                             "argmax_equal": 8, "unrolled_equals_repeated": 8, "cut_equals_original": 8})
+        self.assertEqual([{key: row[key] for key in ROWS[0]} for row in result["rows"]], ROWS)
+        self.assertEqual(result["records_sha256"], {kind: sha256(self.folder / "same" / kind / "record.json")
+                                                    for kind in mtp.IMPLEMENTATIONS})
 
         def drafts(arrays):
             arrays["original"]["drafts"][2] = [9, 8, 50]
@@ -516,7 +553,7 @@ class CompareTests(unittest.TestCase):
         result = self.pair("other-drafts", drafts)
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual([(row["cut_equals_original"], row["first_step_unlike_original"]) for row in result["rows"]],
-                         [(True, None), (True, None), (False, 1)])
+                         [(True, None)] * 2 + [(False, 1)] + [(True, None)] * 5)
 
     def test_each_criterion_fails_just_beyond_its_limit(self):
         def logits(value):
@@ -574,11 +611,11 @@ class CompareTests(unittest.TestCase):
                                                               for kind in mtp.IMPLEMENTATIONS], None),
                  "an infinite projection": (value("class", "projected", (1, 2), np.inf), None),
                  "logits of another vocabulary": (lambda arrays: arrays["class"].update(
-                     logits=np.zeros((3, 300), np.float32)), None),
+                     logits=np.zeros((8, 300), np.float32)), None),
                  "drafts as int64": (lambda arrays: arrays["class"].update(
                      drafts=arrays["class"]["drafts"].astype(np.int64)), None),
                  "a missing row": (lambda arrays: arrays["original"].update(
-                     projected=arrays["original"]["projected"][:2]), None),
+                     projected=arrays["original"]["projected"][:7]), None),
                  "another step count": (None, lambda record: record.update(steps=4)),
                  "other rows": (None, lambda record: record["rows"][0].update(anchor=99)),
                  "a row without its window": (None, lambda record: [row.pop("window") for row in record["rows"]]),
@@ -592,60 +629,101 @@ class CompareTests(unittest.TestCase):
             with self.subTest(case=label):
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
-        both = {"stop tokens": lambda record: record.update(stops=[1, 106]), "a window": lambda record: record.update(
-                    window=1024), "an embedding scale": lambda record: record.update(embed_scale=6.928),
-                "layers": lambda record: record.update(layers={"sliding": 9, "full": 11})}
-        for label, record in both.items():
-            result = self.pair(f"both-{label.replace(' ', '-')}", both=record)
-            with self.subTest(case=f"{label} unlike the contract in both runs"):
+
+        def sliced(rows):
+            return lambda arrays: [found.update({name: array[rows] for name, array in found.items()})
+                                   for found in arrays.values()]
+
+        def target(record):
+            files = record["model"]["verified_before_loading"]
+            files["model-00002-of-00002.safetensors"] = files.pop(SHARD)
+
+        both = {"stop tokens": (None, lambda record: record.update(stops=[1, 106])),
+                "a window": (None, lambda record: record.update(window=1024)),
+                "an embedding scale": (None, lambda record: record.update(embed_scale=6.928)),
+                "layers": (None, lambda record: record.update(layers={"sliding": 9, "full": 11})),
+                "no assistant": (None, lambda record: record.pop("assistant")),
+                "a null assistant": (None, lambda record: record.update(assistant=None)),
+                "an assistant contract of zeros": (None, lambda record: record["assistant"].update(contract_sha256="0" * 64)),
+                "another revision of the assistant": (None, lambda record: record["assistant"].update(revision="1" * 40)),
+                "assistant files without their sizes": (None, lambda record: [
+                    entry.pop("bytes") for entry in record["assistant"]["verified_before_loading"].values()]),
+                "empty records": (None, lambda record: record.update(records={})),
+                "no features": (None, lambda record: record["records"].pop("features")),
+                "features of another file": (None, lambda record: record["records"]["features"]["alpha-0002"].update(
+                    sha256="1" * 64)),
+                "the features of one item": (None, lambda record: record["records"]["features"].pop("beta-0001")),
+                "a null subset": (None, lambda record: record["records"].update(subset_sha256=None)),
+                "other input records": (None, lambda record: record["records"].update(inputs_sha256="1" * 64)),
+                "no verified files of the target": (None, lambda record: record["model"].pop("verified_before_loading")),
+                "another shard of the target": (None, target),
+                "a missing row": (sliced(slice(0, 7)), lambda record: record["rows"].pop()),
+                "a repeated row": (sliced([0, 1, 2, 3, 4, 5, 6, 7, 7]), lambda record: record["rows"].append(
+                    dict(record["rows"][-1]))),
+                "rows of another selection": (sliced(slice(0, 3)), lambda record: record.update(rows=[
+                    {"id": "alpha-0002", "category": "alpha", "anchor": 20 + index, "output_index": index,
+                     "window": 20 + index} for index in range(3)])),
+                "an extra field": (None, lambda record: record.update(note="x")),
+                "no versions": (None, lambda record: record.pop("versions"))}
+        for label, (change, record) in both.items():
+            result = self.pair(f"both-{label.replace(' ', '-')}", change, both=record)
+            with self.subTest(case=f"{label} in both runs"):
                 self.assertFalse(result["passed"])
-                self.assertEqual(len(result["problems"]), 1)
-                self.assertIn("than the contract", result["problems"][0])
+                for kind in mtp.IMPLEMENTATIONS:
+                    self.assertTrue(any(problem.startswith(f"the {kind} run holds") for problem in result["problems"]),
+                                    result["problems"])
         self.pair("files")
         for name in ("logits", "repeated"):
             np.save(self.folder / "files/class" / f"{name}.npy", self.arrays["class"][name] + 1)
             with self.subTest(case=f"{name} changed after the record"):
-                result = mtp.compare(self.folder / "files/original", self.folder / "files/class", self.contract)
+                result = self.compare("files")
                 self.assertFalse(result["passed"])
                 self.assertIn(f"the class {name} differ from the SHA-256 in their record", result["problems"])
         self.pair("again")
         with self.subTest(case="a run compared with itself"):
-            self.assertFalse(mtp.compare(self.folder / "again/original", self.folder / "again/original",
-                                         self.contract)["passed"])
-        (self.folder / "other").mkdir()
-        other = write_contract(self.folder / "other", {name: {"bytes": 2, "sha256": "1" * 64} for name in TOKENIZER_FILES})
+            self.assertFalse(self.compare("again", model_class="original")["passed"])
+        other = read_json(self.folder / "model.json")
+        other["revision"] = "1" * 40
+        write_json(self.folder / "other.json", other)
         with self.subTest(case="another contract"):
-            result = mtp.compare(self.folder / "again/original", self.folder / "again/class", other)
+            result = self.compare("again", contract="other.json")
             self.assertFalse(result["passed"])
-            self.assertIn("the runs were made under another contract", result["problems"])
+            self.assertIn("the original run holds another model than its fixed inputs give", result["problems"])
+            self.assertIn("the class run holds another model than its fixed inputs give", result["problems"])
         for name, problem in {"record.json": "the class run has no readable record.json (ValueError)",
                               "logits.npy": "the class logits cannot be read (ValueError)"}.items():
             saved, _ = piped(self.folder / "again/class" / name)
             with self.subTest(case=f"{name} as a named pipe"):
-                waited, outcome = bounded(lambda: mtp.compare(self.folder / "again/original", self.folder / "again/class",
-                                                              self.contract), self.folder / "again/class" / name)
+                waited, outcome = bounded(lambda: self.compare("again"), self.folder / "again/class" / name)
                 self.assertFalse(waited)
                 self.assertFalse(outcome["value"]["passed"])
                 self.assertIn(problem, outcome["value"]["problems"])
             (self.folder / "again/class" / name).unlink()
             (self.folder / "again/class" / name).write_bytes(saved)
-        saved, _ = piped(self.contract)
-        with self.subTest(case="a target contract that is a named pipe"), \
-                mock.patch.object(mtp, "load_contract", wraps=load_contract) as load:
-            waited, outcome = bounded(lambda: mtp.compare(self.folder / "again/original", self.folder / "again/class",
-                                                          self.contract), self.contract)
-            self.assertFalse(waited)
-            self.assertIsInstance(outcome.get("error"), ValueError)
-            load.assert_not_called()
-        self.contract.unlink()
-        self.contract.write_bytes(saved)
+        self.assertTrue(self.compare("again")["passed"])
+        inputs = {"the target contract": "model.json", "the assistant contract": "assistant.json",
+                  "the index of the target": f"target/{mtp.INDEX}", "subset.json": "records/subset.json",
+                  "the features": "records/tf/features/beta-0001.safetensors"}
+        for label, name in inputs.items():
+            saved, _ = piped(self.folder / name)
+            with self.subTest(case=f"{label} as a named pipe"), \
+                    mock.patch.object(mtp, "load_contract", wraps=load_contract) as load:
+                waited, outcome = bounded(lambda: self.compare("again"), self.folder / name)
+                self.assertFalse(waited)
+                self.assertIsInstance(outcome.get("error"), ValueError)
+                self.assertRegex(str(outcome["error"]), "is not a regular file")
+                self.assertEqual(load.call_count, 0 if name == "model.json" else 1)
+            (self.folder / name).unlink()
+            (self.folder / name).write_bytes(saved)
 
     def test_compare_writes_only_its_result_as_json_and_exits_with_one_unless_it_passes(self):
         for label, change in {"passing": None, "failing": lambda arrays: arrays["class"]["repeated"].__setitem__(
                 (0, 0), 3)}.items():
             result = self.pair(f"main-{label}", change)
             arguments = ["mtp", "compare", "--original", str(self.folder / f"main-{label}/original"), "--model-class",
-                         str(self.folder / f"main-{label}/class"), "--model", str(self.contract)]
+                         str(self.folder / f"main-{label}/class"), "--model", str(self.folder / "model.json"),
+                         "--assistant", str(self.folder / "assistant.json"), "--snapshot", str(self.folder / "target"),
+                         "--records", str(self.folder / "records"), "--steps", "3"]
             with self.subTest(run=label), mock.patch("sys.argv", arguments), \
                     mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
                 code = mtp.main()

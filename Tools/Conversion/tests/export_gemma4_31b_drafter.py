@@ -15,6 +15,7 @@ from transformers.models.gemma4_assistant.modeling_gemma4_assistant import Gemma
 
 from Tools.Conversion.adapters.gemma4_31b import assistant, drafter, layers, mtp
 from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
+from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_mtp import CONFIG, write_assistant, write_records, write_target
 
@@ -364,14 +365,24 @@ class RunTests(unittest.TestCase):
                              [("alpha-0002", 20, 20), ("alpha-0002", 23, 23), ("alpha-0002", 26, 26),
                               ("alpha-0002", 28, 28), ("beta-0001", 1100, WINDOW), ("beta-0001", 1102, WINDOW),
                               ("beta-0001", 1104, WINDOW), ("beta-0001", 1105, WINDOW)])
-            result = mtp.compare(folder / "original", folder / "class", arguments[0])
+            pinned = read_json(arguments[1])
+            for record in (original, model_class):
+                self.assertEqual(record["assistant"], {"id": pinned["model_id"], "revision": pinned["revision"],
+                                                       "contract_sha256": sha256(arguments[1]),
+                                                       "verified_before_loading": pinned["files"]})
+                self.assertEqual(record["records"]["features"], {
+                    name: {"bytes": (arguments[4] / f"tf/features/{name}.safetensors").stat().st_size,
+                           "sha256": sha256(arguments[4] / f"tf/features/{name}.safetensors")}
+                    for name in ("alpha-0002", "beta-0001")})
+            fixed = (arguments[0], arguments[1], arguments[2], arguments[4], 7)
+            result = mtp.compare(folder / "original", folder / "class", *fixed)
             self.assertTrue(result["passed"], result["problems"])
             self.assertLessEqual(result["summary"]["max_abs_logit"], LIMIT)
             self.assertEqual(result["summary"]["unrolled_equals_repeated"], 8)
             self.assertEqual(result["summary"]["cut_equals_original"], 8)
             with mock.patch.object(drafter, "bfloat16", lambda value: 1.0):
                 mtp.run("class", *arguments, 7, folder / "unscaled")
-            result = mtp.compare(folder / "original", folder / "unscaled", arguments[0])
+            result = mtp.compare(folder / "original", folder / "unscaled", *fixed)
             self.assertEqual(result["problems"], [])
             self.assertFalse(result["passed"])
             self.assertGreater(result["summary"]["max_abs_logit"], 1e-3)
