@@ -185,6 +185,81 @@ run folder, and start a new run folder instead.
 The published record of the primary-set run is
 [docs/validation/gemma4-31b/baseline-20261122.md](../../../../docs/validation/gemma4-31b/baseline-20261122.md).
 
+## Layer 1 runs
+
+Two commands write the two sides of layer 1 of the quality contract (#699) for the
+[forced input](../../../LLMEvaluation/README.md#layer-1-forced-input) of `python3 -m Tools.LLMEvaluation forced`, each
+into a new folder with `logits.json` and one array file per item, the hand-off format that
+[`layer1_compare`](#layer-1-comparison) reads. Both read `forced.jsonl` and `forced.json` of the forced folder and stop
+before they write anything when the records or the summary do not fit (`ForcedInputTests` in
+`Tools/Conversion/tests/test_gemma4_31b_layer1_runs.py`). Run them from the repository root with the reference
+environment, under the shared machine lock, which they do not take themselves.
+
+### Baseline side
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_anchor run \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --prepare <artifacts of the prepare step> --forced <forced folder> --layers <6, 12, ..., 60> \
+  --weights <float16 | 8bit> [--export <artifacts of the 8-bit export step>/export] [--items <id>,<id>,...] \
+  --output <new folder>
+~~~
+
+It loads the first `--layers` layers, the final norm and the head in BF16 on MPS and computes every forced record as
+the [`anchor` step](#fp32-anchor-and-fp16-diagnostics) does: float32 compute, each unit's weights replaced while it runs, attention in blocks of 512 query
+rows and the embedding scale 73.5. With `--weights float16` the weights are the loaded tensors cast to float16 and back.
+With `--weights 8bit` and `--export`, the quantized Linear weights are restored from the quantized tensors of that 8-bit
+export with the functions of the restored reference of `layers.py` (`quantized_export`, which takes only an export that
+`load_export` of `native.py` accepts, `quantized_weights` and `restore`), and the other tensors are rounded as with
+`float16`; `weights` then names the SHA-256 of the quantized tensors and of `export.json`, and `run.json` records them
+under `quantized`. Only the scored rows (`rows` rows from `start`) reach the head. `--items` runs only the named items,
+in that order.
+
+| File | Contents |
+|---|---|
+| `<id>.f32` | The logits of the scored rows: float32, little-endian, row-major, [rows, vocabulary] |
+| `run.json` | `passed`, `checks`, `error` (the type name of an exception after the folder was made), `weights`, `compute`, `loading`, `forced` and per item the token counts, `seconds`, the size and SHA-256 of its file, the memory after it and the swap use before and after it, then `resources` and `timing` |
+| `logits.json` | Written only when the run passed: role `anchor`, `weights`, `forced_sha256` and one entry per item |
+| `monitor.tsv`, `failure.json` | The monitor of `reference` and its record of a stop |
+
+`passed` is true only when every check in `run.json` is. `AnchorRunTests` and `RestoredRunTests` fix the records and
+the refusals.
+
+`layer1_anchor agreement` takes the same options without `--weights` and with `--items` required, and writes
+`run.json` without array files or `logits.json`. It computes the scored rows of the items as `run` does with
+`--weights float16`, on MPS and on the CPU, and the same rows with the original implementation of `layers.py`
+(`original_model`: the weights rounded to float16, float32) in one call per item, with the attention implementations
+`sdpa` and `eager` on the CPU and `sdpa` on MPS. The compared pair is the computation on the CPU and the original
+implementation with `sdpa`, its default, on the CPU; the limit of their largest absolute logit difference is 1e-4 for
+every item, and one item has to have more input tokens than the sliding window. The other differences, between the
+devices and between the attention implementations, are listed under `recorded` and decide nothing. `run` computes on
+MPS, so its logits carry the difference between MPS and the CPU; on the first six layers it reached 2.4e-3
+([validation record](../../../../docs/validation/gemma4-31b/README.md#layer-1-runs-in-the-first-six-layers-699)).
+
+### Candidate side
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_candidate \
+  --export <artifacts of the export step>/export --forced <forced folder> \
+  --verifier Tools/Verify/.build/release/coreai-verify --output <new folder>
+~~~
+
+It launches `coreai-verify logits --model <bundle> --tokens <id>.tokens.json --start <start> --chunk 1 --output
+<id>.f16` once per item: the tokens before `start` are read as the engine reads them, then the scored rows one token at a
+time. It takes only an export that `load_export` of `native.py` accepts. The role follows the precision of the export,
+`fp16` for `float16` and `w8` for `8bit`, and `weights` is the bundle name with its `main.hash`.
+
+| File | Contents |
+|---|---|
+| `<id>.tokens.json`, `<id>.log`, `<id>.f16` | The tokens, the standard error and the logits of each launch |
+| `run.json` | `passed`, `problems`, the export, the size and SHA-256 of `coreai-verify`, `forced` and per item its problems, the record that `coreai-verify` printed (including `load_s`, `specialize_s` and `cached`), the size and SHA-256 of its file and `seconds` |
+| `logits.json` | Always written: role, `weights`, `forced_sha256` and one entry for every item that passed |
+
+An item that fails is recorded with its problems and the next item runs; the exit code is 0 only when every item
+passed. `CandidateRunTests` fixes the records, the refusals and the checks on the record of `coreai-verify`. The first
+launch on a bundle writes the specialization cache of `coreai-verify` and the later launches read it; it stays in place,
+so remove it yourself.
+
 ## Layer 1 comparison
 
 `layer1_compare` judges layer 1 of the quality contract (§4, #697). It compares the logits that two implementations give
