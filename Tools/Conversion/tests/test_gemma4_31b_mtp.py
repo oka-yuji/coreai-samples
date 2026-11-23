@@ -686,6 +686,13 @@ class CompareTests(unittest.TestCase):
         self.pair("listed")
         write_json(self.folder / "listed/class/record.json", [])
         self.assertEqual(self.compare("listed")["problems"], ["the class run holds another record"])
+        self.pair("unrecorded")
+        record = read_json(self.folder / "unrecorded/class/record.json")
+        record["arrays"]["repeated"] = {"bytes": True, "sha256": None}
+        write_json(self.folder / "unrecorded/class/record.json", record)
+        result = self.compare("unrecorded")
+        self.assertIn("the class run records no size and SHA-256 of its repeated", result["problems"])
+        json.dumps(result, allow_nan=False)
         self.pair("unexpected")
         with mock.patch.object(mtp, "cut", side_effect=RuntimeError("a message with details")):
             result = self.compare("unexpected")
