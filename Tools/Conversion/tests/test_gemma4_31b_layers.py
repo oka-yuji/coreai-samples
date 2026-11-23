@@ -1,9 +1,12 @@
+import copy
+import hashlib
 import io
 import json
 import os
 from pathlib import Path
 import shutil
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -21,6 +24,8 @@ except ImportError:
 
 from Tools.Conversion.adapters.gemma4_31b import export, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
+from Tools.Conversion.adapters.gemma4_31b.reference import SWAP_INCREASE_LIMIT_BYTES
+from Tools.Conversion.adapters.jev27b import monitor as shared
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, file_hash, read_json, write_json
 
@@ -628,25 +633,186 @@ def quantized_tensors(text, seed=5):
     return tensors
 
 
-def write_export(folder, contract, tensors, **changes):
+MAIN_ASSET = b"main asset"
+
+
+def resync(target):
+    record, bundle = read_json(target / "export.json"), target / export.BUNDLE
+    files = {path.relative_to(bundle).as_posix(): file_hash(path) for path in sorted(bundle.rglob("*")) if path.is_file()}
+    record["bundle"].update(files=files, bytes=sum(entry["bytes"] for entry in files.values()))
+    write_json(target / "export.json", record)
+
+
+def complete_export(folder, contract, precision="fp16", functions=("main", "prefill"), quantized=None, **changes):
+    pinned, name, eight_bit = load_contract(contract), export.name_of(6, functions, precision), precision == "8bit"
+    config, kinds, compression = pinned["config"], layers.check_layers(pinned["config"], 6), "8bit" if eight_bit else None
     bundle = folder / export.BUNDLE
-    (bundle / "asset.aimodel").mkdir(parents=True)
-    (bundle / "asset.aimodel/main.hash").write_bytes(bytes(32))
-    (bundle / "metadata.json").write_text("{}")
+    (bundle / f"{name}.aimodel").mkdir(parents=True)
+    (bundle / f"{name}.aimodel/main.mlirb").write_bytes(MAIN_ASSET)
+    (bundle / f"{name}.aimodel/main.hash").write_bytes(hashlib.sha256(MAIN_ASSET).digest())
+    write_json(bundle / f"{name}.aimodel/metadata.json", {"assetVersion": "2.0"})
+    write_json(bundle / "metadata.json", export.metadata(pinned, name, 16896, compression, TAPS))
+    (bundle / "tokenizer").mkdir()
+    for item in TOKENIZER_FILES:
+        shutil.copyfile(Path(contract).parent / "snapshot" / item, bundle / "tokenizer" / item)
+    names = sorted(export.quantized_names(kinds))
+    shapes = [entry.get("shape") for entry in (quantized or {}).get("layers", [])]
+    uint8 = sum(shape[0] * shape[1] for shape in shapes if isinstance(shape, list) and len(shape) == 2)
+    elements = {"torch.float16": 1000, **({"torch.uint8": uint8} if eight_bit else {})}
+    checkpoint = 1000 + uint8 - uint8 // 16
+    required = export.required_bytes(checkpoint, precision)
+    steps = ["input_hash_s", "load_s", *(["quantize_s", "tensors_s"] if eight_bit else []), "convert_s", "save_s",
+             "inspect_s", "bundle_hash_s"]
+    monitor = {"samples": 2, "interval_s": shared.INTERVAL_S, "abort": None, "aborts": 0, "failure": None,
+               "unreadable_samples": 0, "limits": {"swap_used_bytes": shared.SWAP_LIMIT_BYTES,
+                                                   "free_percent": shared.FREE_PERCENT, "streak": shared.STREAK},
+               "first": {"swap_used_bytes": 5, "free_bytes": {"volume": required}},
+               "peak": {"rss_bytes": 8, "max_rss_bytes": 9, "swap_used_bytes": 5, "temporary_bytes": 0},
+               "lowest": {"free_percent": 50, "free_bytes": {"volume": export.MARGIN_BYTES}}}
+    record = {"schema": export.SCHEMA, "passed": True, "problems": [], "checks": {"asset": True, "free_disk": True},
+              "model": native.pinned_model(pinned, contract), "layers": 6, "layer_types": kinds,
+              "functions": list(functions), "context": 16896, "precision": export.PRECISIONS[precision],
+              "compression_config": copy.deepcopy(export.QUANTIZATION) if eight_bit else None,
+              "upstream_revision": pinned["upstream_revision"],
+              "weights": {"tensors": 85, "elements": sum(elements.values()), "elements_by_dtype": elements,
+                          "quantized_layouts": len(names) if eight_bit else 0},
+              **({"quantized": quantized} if eight_bit else {}),
+              "asset": {"functions": export.expected_functions(config, kinds, functions, TAPS),
+                        "output_order": {item: list(export.RETURNS[item]) for item in functions},
+                        "storage_types": {"Float16": 1004, "Float32": export.float32_elements(config), "Int32": 1,
+                                          "UInt32": 1, "UInt64": 1, **({"UInt8": uint8 + 128} if eight_bit else {})},
+                        "dequantizations": export.dequantizations(names, kinds, functions, TAPS) if eight_bit else 0,
+                        "float16_minus_weights": 4, **({"uint8_minus_weights": 128} if eight_bit else {})},
+              "tokenizer": dict(pinned["tokenizer"]["files"]),
+              "metadata": export.metadata(pinned, name, 16896, compression, TAPS),
+              "bundle": {"folder": export.BUNDLE, "name": name, "main_hash": hashlib.sha256(MAIN_ASSET).hexdigest()},
+              "disk": {"weight_bytes": 2 * checkpoint, "estimated_write_bytes": export.WRITES[precision] * checkpoint,
+                       "margin_bytes": export.MARGIN_BYTES, "required_free_bytes": required,
+                       "free_before_bytes": required, "lowest_free_bytes": export.MARGIN_BYTES},
+              "resources": {"max_rss_bytes": 9, "lifetime_peak_footprint_bytes": 7, "monitor": monitor,
+                            "swap": {"first_bytes": 5, "peak_bytes": 5, "limit_increase_bytes": SWAP_INCREASE_LIMIT_BYTES,
+                                     "increase_bytes": 0}},
+              "timing": {**dict.fromkeys(steps, 1.0), "total_s": len(steps) + 1.0}, **changes}
+    write_json(folder / "export.json", record)
+    resync(folder)
+    return folder
+
+
+def write_export(folder, contract, tensors, **changes):
+    folder.mkdir()
     digests = export.save_quantized(folder / layers.QUANTIZED, list(tensors.items()))
     weights = sorted({name.rsplit(".", 1)[0] for name in tensors})
-    pinned = load_contract(contract)
-    record = {"schema": export.SCHEMA, "passed": True, "problems": [], "precision": "8bit", "layers": 6,
-              "layer_types": layers.check_layers(pinned["config"], 6), "functions": ["main", "prefill"],
-              "model": native.pinned_model(pinned, contract), "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
-              "bundle": {"folder": export.BUNDLE, "name": "asset", "main_hash": bytes(32).hex(),
-                         "files": {path.relative_to(bundle).as_posix(): file_hash(path)
-                                   for path in sorted(bundle.rglob("*")) if path.is_file()}},
-              "quantized": {"layers": [{"name": name, "class": "Dequantize", "shape": None, **export.LAYOUT}
-                                       for name in weights],
-                            "file": file_hash(folder / layers.QUANTIZED), "tensors": digests}, **changes}
-    write_json(folder / "export.json", record)
-    return folder
+    shapes = {name: list(tensors[f"{name}.quantized_data"].shape) if f"{name}.quantized_data" in tensors else None
+              for name in weights}
+    quantized = {"layers": [{"name": name, "class": "Dequantize", "shape": shapes[name], **export.LAYOUT}
+                            for name in weights],
+                 "skipped": 0, "warnings_enabled": True, "file": file_hash(folder / layers.QUANTIZED), "tensors": digests}
+    return complete_export(folder, contract, "8bit", quantized=quantized, **changes)
+
+
+def named(relative, target):
+    return relative.format(name=read_json(target / "export.json")["bundle"]["name"])
+
+
+def removed(relative):
+    def change(target):
+        path = target / export.BUNDLE / named(relative, target)
+        shutil.rmtree(path) if path.is_dir() else path.unlink()
+        resync(target)
+    return change
+
+
+def main_hash_only(target):
+    keep = target / export.BUNDLE / named("{name}.aimodel/main.hash", target)
+    for path in (target / export.BUNDLE).rglob("*"):
+        if path.is_file() and path != keep:
+            path.unlink()
+    resync(target)
+
+
+def rewritten(relative, content):
+    def change(target):
+        (target / export.BUNDLE / named(relative, target)).write_bytes(content)
+        resync(target)
+    return change
+
+
+def linked(relative):
+    def change(target):
+        path = target / named(relative, target)
+        moved = target.parent / f"{target.name}-moved-{path.name}"
+        path.rename(moved)
+        path.symlink_to(moved, target_is_directory=moved.is_dir())
+    return change
+
+
+def renamed(target):
+    record, bundle = read_json(target / "export.json"), target / export.BUNDLE
+    old = record["bundle"]["name"]
+    (bundle / f"{old}.aimodel").rename(bundle / f"{old}_copy.aimodel")
+    record["metadata"].update(name=f"{old}_copy", assets={"main": f"{old}_copy.aimodel"})
+    record["bundle"]["name"] = f"{old}_copy"
+    write_json(bundle / "metadata.json", record["metadata"])
+    write_json(target / "export.json", record)
+    resync(target)
+
+
+def changed(change):
+    def apply(target):
+        record = read_json(target / "export.json")
+        change(record)
+        write_json(target / "export.json", record)
+    return apply
+
+
+BUNDLE_DEFECTS = {
+    "a bundle of main.hash only": main_hash_only,
+    "a bundle without main.mlirb": removed("{name}.aimodel/main.mlirb"),
+    "a bundle without the tokenizer": removed("tokenizer"),
+    "a bundle without its metadata.json": removed("metadata.json"),
+    "a bundle with an extra file": rewritten("notes.txt", b"x"),
+    "a bundle under a name that its layers, functions and precision do not give": renamed,
+    "a tokenizer file of other content under a matching record": rewritten("tokenizer/tokenizer.json", b"{}"),
+    "a metadata.json of the bundle of other content under a matching record": rewritten("metadata.json", b'{"name": "x"}'),
+    "a main.mlirb that main.hash does not hash under a matching record": rewritten("{name}.aimodel/main.mlirb", b"other"),
+    "the bundle folder as a link": linked(export.BUNDLE),
+    "the asset folder as a link": linked(export.BUNDLE + "/{name}.aimodel"),
+    "the tokenizer folder as a link": linked(export.BUNDLE + "/tokenizer"),
+    "export.json as a link": linked("export.json"),
+    "a tokenizer file of the bundle as a link": linked(export.BUNDLE + "/tokenizer/tokenizer.json"),
+    "a bundle size other than the sum of its files": changed(lambda record: record["bundle"].update(
+        bytes=record["bundle"]["bytes"] + 1)),
+    "an export of another converter checkout": changed(lambda record: record.update(upstream_revision="0" * 40)),
+    "checks that did not pass": changed(lambda record: record["checks"].update(free_disk=False)),
+    "a lowest free disk below the margin": changed(lambda record: (
+        record["disk"].update(lowest_free_bytes=export.MARGIN_BYTES - 1),
+        record["resources"]["monitor"]["lowest"]["free_bytes"].update(volume=export.MARGIN_BYTES - 1))),
+    "a context limit given as text": changed(lambda record: record.update(context="16896")),
+    "an asset of other outputs": changed(lambda record: record["asset"]["output_order"].update(main=["logits"])),
+    "an asset whose state shape holds true for one": changed(lambda record: record["asset"]["functions"]["main"][
+        "states"]["keyCache"]["shape"].__setitem__(1, True)),
+    "weights whose element counts do not add up": changed(lambda record: record["weights"].update(
+        elements=record["weights"]["elements"] + 1)),
+    "a difference of the storage counts that does not follow from them": changed(lambda record: record["asset"].update(
+        float16_minus_weights=5)),
+    "a disk record that does not follow the rule": changed(lambda record: record["disk"].update(
+        required_free_bytes=record["disk"]["required_free_bytes"] + 1)),
+    "a free disk at the start below the requirement": changed(lambda record: record["disk"].update(
+        free_before_bytes=record["disk"]["required_free_bytes"] - 1)),
+    "a swap increase above its limit": changed(lambda record: (
+        record["resources"]["monitor"]["first"].update(swap_used_bytes=0),
+        record["resources"]["monitor"]["peak"].update(swap_used_bytes=3 * 10**9),
+        record["resources"]["swap"].update(first_bytes=0, peak_bytes=3 * 10**9, increase_bytes=3 * 10**9)))}
+QUANTIZATION_DEFECTS = {
+    "a dequantization count as a float": changed(lambda record: record["asset"].update(
+        dequantizations=float(record["asset"]["dequantizations"]))),
+    "warnings of the quantizer enabled as the number one": changed(lambda record: record["quantized"].update(
+        warnings_enabled=1)),
+    "a skipped count of 0.0": changed(lambda record: record["quantized"].update(skipped=0.0)),
+    "a count of quantized layouts other than the Linear weights": changed(lambda record: record["weights"].update(
+        quantized_layouts=40)),
+    "a difference of the UInt8 count that does not follow from it": changed(lambda record: record["asset"].update(
+        uint8_minus_weights=127))}
 
 
 def interrupted_rename(target):
@@ -781,6 +947,7 @@ class RestoredReferenceTests(unittest.TestCase):
                 self.assertFalse(os.path.lexists(output))
             index = snapshot / "model.safetensors.index.json"
             saved = index.read_bytes()
+            shutil.copyfile(snapshot / SHARD, folder / "shard.safetensors")
             for label, content in {"a list": [], "a weight map that is a list": {"weight_map": []},
                                    "a shard outside the snapshot": {"weight_map": {
                                        key: "../shard.safetensors" for key in read_json(index)["weight_map"]}}}.items():
@@ -791,6 +958,12 @@ class RestoredReferenceTests(unittest.TestCase):
                         folder / f"export-index-{label.replace(' ', '-')}", contract, tensors))
                 self.assertFalse(os.path.lexists(output))
             index.write_bytes(saved)
+            float16 = complete_export(folder / "float16-export", contract)
+            with self.assertRaisesRegex(ValueError, "not an 8-bit export"), \
+                    mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                layers.context(contract, snapshot, 6, folder / "restored-float16", "8bit", float16)
+            load.assert_not_called()
+            self.assertFalse(os.path.lexists(folder / "restored-float16"))
             source = write_export(folder / "export", contract, tensors)
             for label, (weights, given) in {"8bit without an export": ("8bit", None),
                                             "float16 with an export": ("float16", source),
@@ -869,6 +1042,55 @@ class RestoredReferenceTests(unittest.TestCase):
             record = layers.context(contract, snapshot, 6, folder / "accepted", "8bit",
                                     write_export(folder / "export-accepted", contract, tensors))
             self.assertEqual(record["quantized"]["tensors"], 123)
+
+    def test_a_restored_reference_refuses_an_export_whose_bundle_or_record_is_not_complete_or_not_of_the_contract(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            for index, (label, change) in enumerate({**BUNDLE_DEFECTS, **QUANTIZATION_DEFECTS}.items()):
+                target = write_export(folder / f"export-{index}", contract, tensors)
+                change(target)
+                output = folder / f"restored-{index}"
+                with self.subTest(case=label):
+                    with self.assertRaises(ValueError), \
+                            mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                        layers.context(contract, snapshot, 6, output, "8bit", target)
+                    load.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
+
+    def test_a_restored_reference_does_not_wait_on_a_checkpoint_file_or_an_export_record_that_is_a_pipe(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            for index, relative in enumerate(("model.safetensors.index.json", SHARD, "export.json")):
+                target = write_export(folder / f"export-{index}", contract, tensors)
+                path = target / relative if relative == "export.json" else snapshot / relative
+                saved = folder / f"saved-{index}"
+                shutil.move(path, saved)
+                os.mkfifo(path)
+                output, outcome = folder / f"restored-{index}", {}
+
+                def run():
+                    try:
+                        layers.context(contract, snapshot, 6, output, "8bit", target)
+                    except BaseException as error:
+                        outcome["error"] = error
+
+                thread = threading.Thread(target=run, daemon=True)
+                thread.start()
+                thread.join(5)
+                waited = thread.is_alive()
+                if waited:
+                    os.close(os.open(path, os.O_WRONLY | os.O_NONBLOCK))
+                    thread.join(5)
+                path.unlink()
+                shutil.move(saved, path)
+                with self.subTest(file=relative):
+                    self.assertFalse(waited)
+                    self.assertIsInstance(outcome.get("error"), ValueError)
+                    self.assertFalse(os.path.lexists(output))
 
     def test_a_restored_reference_refuses_scales_and_minimums_in_blocks_other_than_32(self):
         with tempfile.TemporaryDirectory() as folder:

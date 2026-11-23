@@ -6,19 +6,22 @@ import math
 import os
 from pathlib import Path
 import signal
+import stat
 import subprocess
 import sys
 import time
 
-from ...storage import canonical, digest, file_hash, write_json
+from ...storage import PipelineError, canonical, digest, write_json
+from ..jev27b.monitor import FREE_PERCENT, INTERVAL_S, STREAK, SWAP_LIMIT_BYTES
 from ..pinned import sha256
-from .anchor import read
+from .anchor import parse, read
 from .compare import BLOCK_ROWS, CONTRACT
-from .export import BUNDLE, FUNCTIONS, INCOMPLETE, LAYOUT, PRECISIONS, SCHEMA as EXPORT_SCHEMA, quantized_names
+from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PRECISIONS, SCHEMA as EXPORT_SCHEMA, WRITES, check_asset,
+                     metadata, name_of, quantized_names, required_bytes)
 from .layers import (CONDITIONS, CONTEXT_SCHEMA, PARTS, QUANTIZED, WEIGHT_KINDS, check_layers, check_taps, joined,
                      kept_rows, tokens)
-from .prepare import load_contract
-from .reference import LOADED_FILES
+from .prepare import TOKENIZER_FILES, load_contract
+from .reference import LOADED_FILES, SWAP_INCREASE_LIMIT_BYTES
 
 SCHEMA = "gemma4-31b-native-comparison/1"
 MAX_ABS_LOGIT = 2.0
@@ -26,6 +29,11 @@ NEAR_TIE = 0.01
 KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
 LARGEST = 2**63 - 1
+BLOCK_BYTES = 16 * 2**20
+STEPS = ("input_hash_s", "load_s", "convert_s", "save_s", "inspect_s", "bundle_hash_s")
+QUANTIZING_STEPS = ("quantize_s", "tensors_s")
+MONITOR = {"interval_s": INTERVAL_S, "abort": None, "aborts": 0, "failure": None, "unreadable_samples": 0,
+           "limits": {"swap_used_bytes": SWAP_LIMIT_BYTES, "free_percent": FREE_PERCENT, "streak": STREAK}}
 VERIFIER = {"record": "text", "token_count": "count", "start": "count", "chunk": "count", "tokens_sha256": "text",
             "shape": "shape", "dtype": "text", "byte_order": "text", "main_calls": "count", "main_hash": "text",
             "prefix_function": "text", "prefix_calls": "count", "prefix_chunk": "count", "cached": "flag",
@@ -165,34 +173,138 @@ def load_reference(folder, contract, contract_path):
     return record, hashed, arrays, problems
 
 
+def regular_file(path, size=None, keep=False):
+    descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    try:
+        status = os.fstat(descriptor)
+        if not stat.S_ISREG(status.st_mode) or size is not None and status.st_size != size:
+            raise ValueError(f"{Path(path).name} is not a regular file of the recorded size")
+        hasher, kept, total = hashlib.sha256(), [], 0
+        with open(descriptor, "rb", closefd=False) as handle:
+            while block := handle.read(BLOCK_BYTES):
+                hasher.update(block)
+                total += len(block)
+                if keep:
+                    kept.append(block)
+    finally:
+        os.close(descriptor)
+    if total != status.st_size:
+        raise ValueError(f"{Path(path).name} changed while it was read")
+    return {"bytes": total, "sha256": hasher.hexdigest()}, b"".join(kept) if keep else None
+
+
 def mapping(record, key):
     value = record.get(key)
     return value if isinstance(value, dict) else {}
 
 
-def recorded_weights(record, contract):
-    quantized = mapping(record, "quantized")
-    entries, tensors = quantized.get("layers"), quantized.get("tensors")
+def recorded_tensors(record, contract):
+    tensors = mapping(record, "quantized").get("tensors")
     try:
-        expected = sorted(quantized_names(check_layers(contract["config"], record.get("layers"))))
+        expected = quantized_names(check_layers(contract["config"], record.get("layers")))
     except ValueError:
         return False
-    if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries) \
-            or not isinstance(tensors, dict) or not all(isinstance(value, str) for value in tensors.values()):
-        return False
-    fields = ("name", *LAYOUT)
-    return sorted(canonical({key: entry.get(key) for key in fields}) for entry in entries) \
-        == [canonical({"name": name, **LAYOUT}) for name in expected] \
+    return isinstance(tensors, dict) and all(isinstance(value, str) for value in tensors.values()) \
         and set(tensors) == {f"{name}.{part}" for name in expected for part in PARTS}
 
 
+def arguments(record, contract):
+    try:
+        kinds = check_layers(contract["config"], record.get("layers"))
+        taps = check_taps(joined(mapping(record, "metadata").get("tap_layers")), record.get("layers"))
+    except ValueError:
+        return None
+    functions, context = record.get("functions"), record.get("context")
+    precision = next((key for key, value in PRECISIONS.items() if value == record.get("precision")), None)
+    if functions not in [list(layout) for layout in FUNCTIONS.values()] or precision is None or not valid("count", context):
+        return None
+    return kinds, tuple(functions), context, taps, precision
+
+
+def counted(*values):
+    return all(valid("count", value) for value in values)
+
+
+def relation_problems(record, precision):
+    weights, asset, disk = record["weights"], record["asset"], record["disk"]
+    by_dtype, storage, problems = weights["elements_by_dtype"], asset["storage_types"], []
+    if not all(valid("count", value) for value in (weights["elements"], *by_dtype.values(), *storage.values())) \
+            or sum(by_dtype.values()) != weights["elements"]:
+        problems.append("the element counts of the weights do not add up")
+    differences = {"float16_minus_weights": storage.get("Float16", 0) - by_dtype.get("torch.float16", 0),
+                   **({"uint8_minus_weights": storage.get("UInt8", 0) - by_dtype.get("torch.uint8", 0)}
+                      if precision == "8bit" else {})}
+    if canonical({key: asset.get(key) for key in differences}) != canonical(differences):
+        problems.append("the recorded differences of the storage counts and the weights do not follow from them")
+    checkpoint, free = disk.get("weight_bytes"), disk.get("free_before_bytes")
+    rule = None if not valid("count", checkpoint) or checkpoint % 2 else {
+        "estimated_write_bytes": WRITES[precision] * (checkpoint // 2), "margin_bytes": MARGIN_BYTES,
+        "required_free_bytes": required_bytes(checkpoint // 2, precision)}
+    if rule is None or canonical({key: disk.get(key) for key in rule}) != canonical(rule) or not valid("count", free) \
+            or free < rule["required_free_bytes"]:
+        problems.append("the disk record does not follow the rule of the free disk")
+    resources = mapping(record, "resources")
+    swap, monitor, timing = mapping(resources, "swap"), mapping(resources, "monitor"), mapping(record, "timing")
+    first, peak, increase = (swap.get(key) for key in ("first_bytes", "peak_bytes", "increase_bytes"))
+    if not valid("count", increase) or increase > SWAP_INCREASE_LIMIT_BYTES:
+        problems.append("the export recorded no swap increase within its limit")
+    lowest, started = (mapping(mapping(monitor, key), "free_bytes") for key in ("lowest", "first"))
+    steps = [*STEPS, *(QUANTIZING_STEPS if precision == "8bit" else ()), "total_s"]
+    seconds = all(valid("seconds", value) for value in timing.values())
+    uint8, float16, layouts = by_dtype.get("torch.uint8", 0), by_dtype.get("torch.float16"), \
+        mapping(record, "quantized").get("layers", [])
+    shapes = [entry.get("shape") if isinstance(entry, dict) else None for entry in layouts] \
+        if isinstance(layouts, list) else [None]
+    formulas = {
+        "the swap record names another limit than the fixed one":
+            canonical(swap.get("limit_increase_bytes")) == canonical(SWAP_INCREASE_LIMIT_BYTES),
+        "the first swap of the record is not that of the monitor":
+            canonical(first) == canonical(mapping(monitor, "first").get("swap_used_bytes")),
+        "the peak swap of the record is not that of the monitor":
+            canonical(peak) == canonical(mapping(monitor, "peak").get("swap_used_bytes")),
+        "the swap increase is not the peak less the first swap":
+            counted(first, peak, increase) and increase == peak - first,
+        "the lowest free disk is not that of the monitor":
+            len(lowest) == 1 and canonical(disk.get("lowest_free_bytes")) == canonical([*lowest.values()][0]),
+        "the lowest free disk of the monitor is above its first free disk":
+            set(started) == set(lowest) and all(counted(lowest[key], started[key]) and lowest[key] <= started[key]
+                                                for key in lowest),
+        "the peak resident memory is below that of the monitor":
+            counted(resources.get("max_rss_bytes"), mapping(monitor, "peak").get("max_rss_bytes"))
+            and resources["max_rss_bytes"] >= monitor["peak"]["max_rss_bytes"],
+        "the monitor did not run under the fixed limits without stopping":
+            canonical({key: monitor.get(key) for key in MONITOR}) == canonical(MONITOR)
+            and canonical(mapping(monitor, "peak").get("temporary_bytes")) == canonical(0),
+        "the times are not those of the steps of the export":
+            sorted(timing) == sorted(steps) and seconds,
+        "the total time is shorter than its steps":
+            seconds and sum(value for key, value in timing.items() if key != "total_s") <= timing.get("total_s", 0),
+        "the weight elements do not follow from the checkpoint size and the quantized elements":
+            counted(disk.get("weight_bytes"), uint8, float16)
+            and 8 * (2 * float16 + 2 * uint8 - disk["weight_bytes"]) == uint8,
+        "the uint8 elements are not those of the quantized shapes":
+            all(valid("shape", shape) and len(shape) == 2 for shape in shapes)
+            and canonical(uint8) == canonical(sum(rows * columns for rows, columns in shapes))}
+    return problems + [message for message, holds in formulas.items() if not holds]
+
+
 def load_export(folder, contract, contract_path):
-    record, hashed, _ = read(folder / "export.json")
+    path = folder / "export.json"
+    entry, data = regular_file(path, keep=True)
+    record, hashed = parse(data), entry["sha256"]
     recorded = (record.get("bundle") or {}) if isinstance(record, dict) else None
     if not isinstance(recorded, dict) or not isinstance(recorded.get("files") or {}, dict):
         raise ValueError("The export record and its bundle record must be objects")
     passed = record.get("schema") == EXPORT_SCHEMA and record.get("passed") is True and record.get("problems") == []
     problems = [] if passed else ["the export is not a passed export"]
+    lowest = mapping(record, "disk").get("lowest_free_bytes")
+    if canonical(record.get("checks")) != canonical({"asset": True, "free_disk": True}) or not valid("count", lowest) \
+            or lowest < MARGIN_BYTES:
+        problems.append("the export did not pass its checks of the asset and of the free disk")
+    if record.get("upstream_revision") != contract["upstream_revision"]:
+        problems.append("the export was made with another converter checkout than the contract pins")
+    if not valid("count", record.get("context")):
+        problems.append("the export recorded no valid context limit")
     problems += layer_problems(record, contract, "export")
     if canonical(record.get("model")) != canonical(pinned_model(contract, contract_path)):
         problems.append("the export recorded another model or contract")
@@ -205,27 +317,62 @@ def load_export(folder, contract, contract_path):
     problems += [f"the export folder holds {kind}" for name, kind in (("failure.json", "a failure record"),
                                                                       (INCOMPLETE, "an unfinished bundle"))
                  if os.path.lexists(folder / name)]
-    bundle, files = folder / BUNDLE, recorded.get("files") or {}
+    shape, bundle, files = arguments(record, contract), folder / BUNDLE, recorded.get("files") or {}
+    name = None if shape is None else name_of(len(shape[0]), shape[1], shape[4])
+    if shape is not None:
+        try:
+            problems += check_asset(record, contract, *shape) + relation_problems(record, shape[4])
+        except (AttributeError, KeyError, TypeError, ValueError):
+            problems.append("the export record does not hold a complete inspection of its asset")
+    folders = [bundle, bundle / "tokenizer", *([] if name is None else [bundle / f"{name}.aimodel"])]
+    if not bundle.is_dir() or any(item.is_symlink() for item in folders):
+        problems.append("the bundle, its asset or its tokenizer folder is not a real folder")
     present = {path.relative_to(bundle).as_posix() for path in bundle.rglob("*") if path.is_symlink() or not path.is_dir()}
+    hashes, contents, main = {}, {}, f"{recorded.get('name')}.aimodel/main.hash"
     if recorded.get("folder") != BUNDLE or present != set(files):
         problems.append("the bundle folder holds other files than its export record")
     else:
         for relative, entry in sorted(files.items()):
-            if (bundle / relative).is_symlink() or canonical(file_hash(bundle / relative)) != canonical(entry):
+            try:
+                if not isinstance(entry, dict) or not valid("count", entry.get("bytes")):
+                    raise ValueError(f"the record of {relative} has no size")
+                hashes[relative], contents[relative] = regular_file(bundle / relative, entry["bytes"],
+                                                                    keep=relative in (main, "metadata.json"))
+            except (OSError, ValueError):
+                hashes[relative] = None
+            if hashes[relative] is None or hashes[relative] != entry:
                 problems.append(f"a bundle file differs from the export record: {relative}")
-    main = bundle / f"{recorded.get('name')}.aimodel" / "main.hash"
-    if not main.is_file() or main.read_bytes().hex() != recorded.get("main_hash"):
+    if any((hashes.get(f"tokenizer/{item}") or {}).get("sha256") != contract["tokenizer"]["files"].get(item)
+           for item in TOKENIZER_FILES):
+        problems.append("the tokenizer files of the bundle differ from the contract")
+    if hashes.get("metadata.json") and name is not None:
+        expected = metadata(contract, name, shape[2], "8bit" if shape[4] == "8bit" else None, shape[3])
+        try:
+            written = canonical(parse(contents["metadata.json"]))
+        except (PipelineError, ValueError):
+            written = None
+        if written != canonical(expected):
+            problems.append("metadata.json of the bundle differs from the contract and the record")
+    if hashes and None not in hashes.values() and canonical(recorded.get("bytes")) \
+            != canonical(sum(entry["bytes"] for entry in hashes.values())):
+        problems.append("the export recorded another bundle size than the sum of its files")
+    if contents.get(main) is None or contents[main].hex() != recorded.get("main_hash"):
         problems.append("main.hash of the bundle differs from the export record")
+    elif (hashes.get(f"{recorded.get('name')}.aimodel/main.mlirb") or {}).get("sha256") != recorded.get("main_hash"):
+        problems.append("main.hash of the bundle is not the SHA-256 of its main.mlirb")
     if record.get("functions") not in [list(functions) for functions in FUNCTIONS.values()]:
         problems.append("the export recorded other functions than main or main and prefill")
     if record.get("precision") == "8bit" and record.get("functions") != list(FUNCTIONS["main,prefill"]):
         problems.append("an 8-bit export recorded other functions than main and prefill")
     if record.get("precision") == "8bit":
-        if not recorded_weights(record, contract):
-            problems.append("the export did not record exactly the quantized Linear weights of its layers in blocks of "
-                            "[1, 32]")
+        if not recorded_tensors(record, contract):
+            problems.append("the export did not record the tensors of exactly the quantized Linear weights of its layers")
         quantized, tensors = quantized_entry(record), folder / QUANTIZED
-        if quantized is None or tensors.is_symlink() or not tensors.is_file() or file_hash(tensors) != quantized["file"]:
+        try:
+            found = None if quantized is None else regular_file(tensors, quantized["file"]["bytes"])[0]
+        except (OSError, ValueError):
+            found = None
+        if found is None or found != quantized["file"]:
             problems.append("the quantized tensors of the export differ from its record")
     facts = {"bundle": bundle, "main_hash": recorded.get("main_hash"), "prefill": "prefill" in (record.get("functions") or [])}
     return record, hashed, facts, problems

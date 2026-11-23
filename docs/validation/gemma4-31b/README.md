@@ -732,15 +732,14 @@ tensors and the logits stay in the local work directory.
 - The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power, battery
   100 % at the start of every job). Every model job held the shared machine lock, and none started while another model
   process ran. The times below are records, not measurements.
-- Commit e873b4ee with no local changes for every model job; the tools last changed in e876c730, and e873b4ee
-  changed only a test. Converter `apple/coreai-models`
-  `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core 1.0.0b3, coreai-models 0.1.0, coreai-opt 0.4.0,
-  coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors 0.7.0. Reference: transformers 5.16.1, torch
-  2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` was built in release from e873b4ee.
-- Runs (2026-11-23 JST, the pipeline run ID in UTC): the export `20261123T005205-78dbfcbb` from 09:52:01 with the
+- Commit ca63eb81, the last change of the tools, with no local changes for every model job. Converter
+  `apple/coreai-models` `c8e00c01800ba6ad324707007f7af358efc980a4` with coreai-core 1.0.0b3, coreai-models 0.1.0,
+  coreai-opt 0.4.0, coreai-torch 0.4.3, torch 2.9.0, transformers 5.12.1 and safetensors 0.7.0. Reference: transformers
+  5.16.1, torch 2.15.0, numpy 2.4.6, safetensors 0.8.0. `coreai-verify` was built in release from ca63eb81.
+- Runs (2026-11-23 JST, the pipeline run ID in UTC): the export `20261123T043147-264994c4` from 13:31:43 with the
   `prepare` step of the recipe (the `export` step ran, not reused); the restored reference (`layers.py context --weights
-  8bit`) from 09:57:36; the reference with float16-rounded weights (`--weights float16`) from 10:03:42; the comparison
-  from 10:07:05, and `effect` after it.
+  8bit`) from 13:37:27; the reference with float16-rounded weights (`--weights float16`) from 13:40:54; the comparison
+  from 13:44:17, and `effect` after it.
 - Tap layers `1,2,3,4,5`. Inputs: `short` (26 tokens) and `context` (16,896 tokens), the fixed-seed token IDs of the
   FP16 record above.
 
@@ -748,25 +747,25 @@ tensors and the logits stay in the local work directory.
 
 | | `main` and `prefill` |
 |---|---:|
-| Pipeline | 205.1 s |
-| `prepare` step | 26.8 s |
-| `export` step | 74.4 s |
-| Export tool | 71.33 s |
-| Hashing the files to load | 22.82 s |
-| Loading the model class in FP16 | 2.64 s |
-| `quantize_for_export` | 2.04 s |
-| Writing `quantized.safetensors` and hashing it | 2.64 s |
-| Tracing and converting the functions | 34.05 s |
-| Saving the asset | 4.17 s |
-| Hashing the bundle | 2.33 s |
-| Peak resident memory | 20,353,499,136 B |
-| Kernel lifetime footprint peak | 11,585,683,872 B |
+| Pipeline | 213.5 s |
+| `prepare` step | 27.0 s |
+| `export` step | 79.8 s |
+| Export tool | 77.06 s |
+| Hashing the files to load | 23.38 s |
+| Loading the model class in FP16 | 4.65 s |
+| `quantize_for_export` | 3.22 s |
+| Writing `quantized.safetensors` and hashing it | 3.29 s |
+| Tracing and converting the functions | 33.84 s |
+| Saving the asset | 5.68 s |
+| Hashing the bundle | 2.31 s |
+| Peak resident memory | 20,349,681,664 B |
+| Kernel lifetime footprint peak | 11,581,915,624 B |
 | Swap increase (limit 2,000,000,000 B) | 0 B |
 | Free disk required at the start | 94,791,187,754 B |
-| Lowest free disk during the run (limit 64,424,509,440 B) | 312,909,512,704 B |
-| `main.mlirb` | 6,113,706,121 B |
-| `main.hash`, the SHA-256 of `main.mlirb` | `cbeab38f2b68ef02932592041bfc01f8165d1e4045e6a444288af31fd12bc933` |
-| Bundle | 6,145,898,339 B |
+| Lowest free disk during the run (limit 64,424,509,440 B) | 287,105,204,224 B |
+| `main.mlirb` | 6,113,706,114 B |
+| `main.hash`, the SHA-256 of `main.mlirb` | `4284357701f6269241428ff43323cb69bec24790ecc6e06edf43912d304dc98d` |
+| Bundle | 6,145,898,332 B |
 | `quantized.safetensors` | 3,294,771,912 B |
 | Its SHA-256 | `5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833` |
 
@@ -783,63 +782,68 @@ more), recorded without a judgment, and the constants Float32 386, Int32 148, UI
 assets), and no other type. `main` returns `logits` float16 [1, ?, 262144], `hidden_states` float16 [1, ?, 5376] and
 `tap_hidden_states` float16 [1, ?, 26880] in this order, and `prefill` returns `tap_hidden_states` float16
 [1, ?, 26880]; the inputs and the states are those of the FP16 assets. `main.mlirb` is 0.705 times the FP16 one with
-`main` and `prefill` of the section above. The three tokenizer files are the distributed files, and `metadata.json` has
+`main` and `prefill` of the section above. The bundle holds exactly the seven files of a complete bundle, the three of
+the asset, `metadata.json` and the three tokenizer files, which are the distributed files, and `metadata.json` has
 `compression` `8bit`, `tap_layers` [1, 2, 3, 4, 5], `tap_convention` `layers-passed:before-final-norm:ascending`,
 vocabulary 262,144, context limit 16,896, `source.hf_model_id` `google/gemma-4-31B-it` and `source.revision`
 `842da3794eaa0b77d5f08bae87a17459d91ff475`. The free disk check counts seven bytes per weight element
 (30,366,678,314 B) plus 60 GiB.
 
-Two earlier 8-bit exports of the same layers wrote the same `quantized.safetensors` (the same size and SHA-256), the
-same storage counts and the same 77 operations: the one from 18eedf75, with the same outputs before the changes of the
-checks, whose `main.mlirb` is 2 B smaller and differs only in its last 7,510 bytes, and the one from 6abb7325, before the
-outputs for speculation, whose `main` returned `logits` only and whose `main.mlirb` is 290 B smaller.
+Three earlier 8-bit exports of the same layers wrote the same `quantized.safetensors` (the same size and SHA-256), the
+same storage counts and the same 77 operations: the one from e873b4ee, before the last changes of the checks of the
+export and of its reader, whose `main.mlirb` is 7 B larger and differs from this one only in its last 7,512 bytes; the
+one from 18eedf75, with the same outputs, whose `main.mlirb` is 5 B larger (it differed from that of e873b4ee only in
+its last 7,510 bytes); and the one from 6abb7325, before the outputs for speculation, whose `main` returned `logits`
+only and whose `main.mlirb` is 283 B smaller.
 
 ### FP32 references
 
 | | Restored from the quantized weights | float16-rounded weights |
 |---|---:|---:|
-| Total | 71.8 s | 73.0 s |
-| Hashing the files to load | 23.25 s | 24.48 s |
-| Loading the original implementation (and restoring the 41 weights) | 2.63 s | 2.71 s |
-| `context` in 17 calls of up to 1,024 tokens | 44.9 s | 44.9 s |
-| Peak resident memory | 51,228,786,688 B | 55,567,056,896 B |
-| Kernel lifetime footprint peak | 51,196,695,320 B | 55,537,082,160 B |
+| Total | 70.7 s | 72.3 s |
+| Hashing the files to load | 23.12 s | 23.58 s |
+| Loading the original implementation (and restoring the 41 weights) | 2.17 s | 2.55 s |
+| `context` in 17 calls of up to 1,024 tokens | 44.5 s | 45.3 s |
+| Peak resident memory | 51,240,468,480 B | 55,570,219,008 B |
+| Kernel lifetime footprint peak | 51,208,409,928 B | 55,540,227,864 B |
 
-Before it made its folder, the restored reference read the export with the reader that the comparison also uses (the
-bundle under its final name with the files of its record, no failure record or unfinished bundle, a passed record of
-these layers and tap layers, and the 41 Linear weights in blocks of [1, 32] with `quantized.safetensors` of the recorded
+Before it made its folder, the restored reference read the export with the reader that the comparison also uses (a
+complete bundle under its final name with the sizes and SHA-256 of its record, the tokenizer files of the contract, the
+expected `metadata.json` and `main.hash` the SHA-256 of `main.mlirb`; real folders and regular files, each read only at
+its recorded size; no failure record or unfinished bundle; a passed record of these layers and tap layers, whose
+inspection it ran again; and the 41 Linear weights in blocks of [1, 32] with `quantized.safetensors` of the recorded
 size and SHA-256), checked the 123 tensors against their SHA-256 and each weight against its shape in the checkpoint,
 with scales and minimums of exactly [rows, columns / 32], and then restored the 41 weights (these checks are not in the
 times above). Both references kept 26 rows of `short` and 1,428 rows of `context`, all finite, and their logits files
-have the SHA-256 of those of the references of the runs at 18eedf75 and 6abb7325.
+have the SHA-256 of those of the references of the runs at e873b4ee, 18eedf75 and 6abb7325.
 
 ### Comparison
 
 The asset passed all twelve conditions against the restored reference: no non-finite value in any written or reference
 row, no constant written row, every largest absolute logit difference below 2.0, and no top-1 change outside a near tie.
-Each of the twelve logits files is byte-identical to the file of the same condition from the exports from 18eedf75 and
-6abb7325, so the differences are those of these exports. The FP16 asset with `main` and `prefill` against its reference
-of the FP16 section above is in parentheses.
+Each of the twelve logits files is byte-identical to the file of the same condition from the exports from e873b4ee,
+18eedf75 and 6abb7325, so the differences are those of these exports. The FP16 asset with `main` and `prefill` against
+its reference of the FP16 section above is in parentheses.
 
 | Condition | Rows | Largest absolute logit difference (FP16) | Top-1 changes in a near tie / outside | Rows of the known call shape: count, largest difference (FP16) | Seconds |
 |---|---:|---:|---:|---:|---:|
-| `short-c1` | 26 | 0.516 (0.458) | 25 / 0 | – | 8.0 |
-| `short-c26` | 26 | 0.521 (0.480) | 25 / 0 | – | 2.1 |
-| `window-c1` | 1,300 | 0.926 (0.989) | 1,266 / 0 | – | 25.9 |
-| `window-c2` | 1,300 | 0.984 (0.929) | 1,266 / 0 | – | 14.1 |
-| `window-c4` | 1,300 | 0.953 (0.855) | 1,266 / 0 | – | 8.0 |
-| `window-c8` | 1,300 | 0.902 (0.861) | 1,250 / 0 | 16, 4.379 (4.266) | 6.6 |
-| `prefix-c1` | 300 | 0.832 (0.836) | 294 / 0 | – | 8.2 |
-| `capacity-2048` | 16 | 0.583 (0.437) | 15 / 0 | – | 2.9 |
-| `capacity-4096` | 16 | 0.612 (0.535) | 14 / 0 | – | 4.0 |
+| `short-c1` | 26 | 0.516 (0.458) | 25 / 0 | – | 7.5 |
+| `short-c26` | 26 | 0.521 (0.480) | 25 / 0 | – | 1.9 |
+| `window-c1` | 1,300 | 0.926 (0.989) | 1,266 / 0 | – | 25.1 |
+| `window-c2` | 1,300 | 0.984 (0.929) | 1,266 / 0 | – | 13.3 |
+| `window-c4` | 1,300 | 0.953 (0.855) | 1,266 / 0 | – | 7.5 |
+| `window-c8` | 1,300 | 0.902 (0.861) | 1,250 / 0 | 16, 4.379 (4.266) | 6.1 |
+| `prefix-c1` | 300 | 0.832 (0.836) | 294 / 0 | – | 7.7 |
+| `capacity-2048` | 16 | 0.583 (0.437) | 15 / 0 | – | 2.5 |
+| `capacity-4096` | 16 | 0.612 (0.535) | 14 / 0 | – | 3.6 |
 | `capacity-8192` | 16 | 0.761 (0.459) | 16 / 0 | – | 6.5 |
-| `capacity-16384` | 16 | 0.553 (0.567) | 15 / 0 | – | 11.6 |
-| `tail` | 64 | 0.913 (0.466) | 61 / 0 | – | 14.7 |
+| `capacity-16384` | 16 | 0.553 (0.567) | 15 / 0 | – | 10.9 |
+| `tail` | 64 | 0.913 (0.466) | 61 / 0 | – | 12.5 |
 
 - The rows of the known call shape are rows 96 to 111 of `window-c8`; they are left out of the judgment.
 - The tokens before `--start` went through the `prefill` function (1, 1, 1, 2, 4 and 5 calls for `prefix-c1`, the four
   `capacity` conditions and `tail`), and no `coreai-verify` process stopped.
-- The first condition specialized the asset (5.1 s); the others used the specialization cache, which took 8,738,288 KiB
+- The first condition specialized the asset (4.5 s); the others used the specialization cache, which took 8,739,724 KiB
   (`resources.bin` 8,932,172,280 B, the size that #665 found for the same form) and was removed after the comparison.
 - The differences, 0.516 to 0.984 outside the known rows, are of the size of those of the FP16 asset against its own
   reference (0.437 to 0.989).
@@ -883,12 +887,12 @@ These differences are the effect of the quantization itself and are recorded, no
 
 | File | SHA-256 |
 |---|---|
-| Restored FP32 reference `record.json` | `f59dfd767e111f0860933d76cb1f97433bed0afeeb23bc7092157ec5af3dab4f` |
-| FP32 reference of float16-rounded weights `record.json` | `4f013b021b0131398c659bf985cbac624f2da39396d209d60479a8a7bd742144` |
-| Report of the export | `1fb710b3ed8032125052996fc73f6659481ff4c79f391e6da8be84a2983b505f` |
-| Its `export.json` | `a8ac2814254efdfa3f83cabad9faa7c1a03c0187c1b8970c40b50d53908789fe` |
-| Its `comparison.json` | `5db7c3104f276ce9c5f5e5d2f46f7a97c5ce671aaf62b41fc89eefb544dcceb9` |
-| Output of `effect` | `2d449de5ffab96553f300d9f734b76b8a5008bf68d8a4ce2c5a5bdfb3548712b` |
+| Restored FP32 reference `record.json` | `21a498b1e7103482b37ba7b07c15be12a74725723f486a10912562e582f3a26a` |
+| FP32 reference of float16-rounded weights `record.json` | `1c038cdf1eb01f060ba3c08c296c44311bcd56d7c082e75ca627aa452811b0a9` |
+| Report of the export | `0c118a098bfb814f4eb4ab145310f660aaf34865329f79f35b63b968d3faf483` |
+| Its `export.json` | `ce5a3eb725214faac782150e2606476b666da7a1c7ec43cbcea889d6aec7b025` |
+| Its `comparison.json` | `b8717574915bacdc2fbf21a5b44c7f8035ed13f51232f5ddd3466bebe0979afe` |
+| Output of `effect` | `561034151e195c327931765a20d8990b340d18286b64cb120a0d702973627b73` |
 
 ~~~sh
 python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <restored reference record.json> \
