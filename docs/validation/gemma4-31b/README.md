@@ -722,10 +722,12 @@ text, local paths, commands or environment variables; the run folders and arrays
 
 ### Conditions
 
-- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power. The four runs held the shared machine
-  lock in one session (2026-11-23 14:30:08 to 14:41:56 JST) and no other model process ran; the times below are records,
+- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power. The runs of both drafters, the
+  comparison and the accepted drafts held the shared machine lock in one session (2026-11-23 15:20:17 to 15:31:08 JST),
+  the export in an earlier one (14:30:08 to 14:41:56 JST), and no other model process ran; the times below are records,
   not measurements.
-- Commit 15d35fd8 with no local changes. The reference environment of the recipe (torch 2.15.0, transformers 5.16.1)
+- Commit a8a91507 with no local changes; the export at commit 15d35fd8, whose drafter class, synthetic configuration and
+  export function are those of a8a91507. The reference environment of the recipe (torch 2.15.0, transformers 5.16.1)
   ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers 5.12.1,
   coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted drafts and
   the export.
@@ -734,7 +736,7 @@ text, local paths, commands or environment variables; the run folders and arrays
   on the CPU. The features are those of #691: the original implementation in BF16 on MPS under teacher forcing with the
   reference outputs of 48 items of the primary set. Seven draft steps, stop tokens 1, 106 and 50.
 - The arrays of both runs and every compared value equal those of the runs made before the tools checked their inputs
-  as they do now; only the times, the memory, the hashes of the records and a few bytes of the synthetic assets differ.
+  as they do now; only the times, the memory and the hashes of the records differ.
 
 ### Drafter class and original drafter
 
@@ -761,14 +763,15 @@ original generator. On the real weights the comparison passed for 47 rows of 13 
 | `synth-long-16k-0001` | 15,345 (0), 15,372 (27), 15,399 (54), 15,426 (81) | 1,025 | 1.14e-05 | 3.36e-07 |
 
 The criteria are a largest absolute logit difference of at most 1e-3 and a projection ratio (the largest absolute
-difference of the `post_projection` output over its largest absolute value in the original drafter) of at most 1e-3.
+difference of the `post_projection` output over its largest absolute value in the original drafter) of at most 1e-3;
+no row has an original `post_projection` output that is all zero.
 `compare` checked both records against what it built from the fixed inputs: the two contracts, the pins of the index
 and of the shard with the embedding table, `subset.json` and the features of the 13 items hashed again, the 47 rows of
 the fixed selection and seven steps. At all 47 rows the argmax was the same, the unrolled drafts of seven steps were
 those of one step repeated seven times, and the unrolled drafts cut after the first stop token were the drafts of the
 original generator. `ja-choice-0001` has one output token, so its four anchors are one. The run of the original drafter
-took 29.0 s (6.9 s after the files to read were hashed), that of the class 40.6 s (19.5 s); kernel lifetime footprint
-peak 28,491,223,896 B and 31,662,562,368 B.
+took 28.7 s (6.6 s after the files to read were hashed), that of the class 40.7 s (19.4 s); kernel lifetime footprint
+peak 28,481,262,352 B and 31,656,352,808 B.
 
 ### Accepted drafts on the teacher path
 
@@ -797,8 +800,9 @@ of #691 also gave again:
 At 21 anchors the number of accepted drafts differs from the records of #691; at the first draft that differs, the
 top-two logit margin that #691 recorded in BF16 was at most 0.125 (0.0 at two anchors). These are records, not criteria.
 The accepted counts of the records of #691, computed again from their drafts and the reference outputs, equal the
-recorded ones at all 4,462 anchors. The run took 563.6 s (538 s of drafting); kernel lifetime footprint peak
-60,530,716,112 B.
+recorded ones at all 4,462 anchors, and the tokens per round of `trajectories.json` are its tokens over its rounds
+rounded to four places in all 14 rows. The run took 580.0 s (555 s of drafting); kernel lifetime footprint peak
+60,604,116,552 B.
 
 ### Export of a synthetic drafter
 
@@ -832,8 +836,8 @@ weight of `post_projection`, whose output one step does not read. The counts are
 
 | File | SHA-256 |
 |---|---|
-| `record.json` of the run of the original drafter | `d7d39494e292da306f16a1db527dc8824abb14b9b70ddbab8002fd5d48b47e0b` |
-| `record.json` of the run of the class | `0c2218cbca8ffe1f0dbd5d90b2c22a5200aceebc252cb54c53f69d626bebe377` |
+| `record.json` of the run of the original drafter | `9917b0c8f2d1335d3e92d36e3f7c950e7ce2ac30c8fece92757f1b9c4672a3f7` |
+| `record.json` of the run of the class | `791128669dbf3d132d58243be9d789dbf8c422313a93ba2c3d97a651a01be7cd` |
 | `subset.json` of #691 | `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9` |
 
 ~~~sh
