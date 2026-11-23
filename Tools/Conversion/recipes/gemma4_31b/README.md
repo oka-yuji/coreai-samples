@@ -617,7 +617,9 @@ Run both implementations under the shared machine lock, which the tools do not t
 ~~~
 
 - `--records` is the record folder of #691: `subset.json` (48 items of the primary set of the quality contract with
-  the SHA-256 of their input and output records) and `tf/features/<id>.safetensors` (the BF16 features of the original
+  the SHA-256 of their input and output records; `run`, `compare` and `acceptance` refuse any other counts per category
+  than the fixed ones of #691 in `SUBSET`, 13 categories, and items without an input or an output token) and
+  `tf/features/<id>.safetensors` (the BF16 features of the original
   implementation under teacher forcing: `postnorm`, the output of the final norm, and the keys and values `k58`, `v58`,
   `k59` and `v59`). `--inputs` and `--outputs` are the input records and the outputs of the reference run of the set.
 - Rows: the first item of each category in the numeric order of the ids, and in each item the anchors at the first
@@ -668,8 +670,8 @@ at every anchor is computed again from its recorded drafts and the teacher, as f
 `accepted` differs at any anchor, or with a draft token outside the vocabulary, is refused before a weight is read, and
 so is a `trajectories.json` whose tokens per round are not its tokens over its rounds rounded to four places (`null`
 without rounds), as #691 wrote them. `problems` lists categories where the recomputed counts do not give the rounds and
-tokens of `trajectories.json`, and an error after the inputs are checked (by the name of its type), with the JSON
-printed in either case. The values are records, not criteria.
+tokens of `trajectories.json`, an acceptance in which no anchor was drafted, and an error after the inputs are checked
+(by the name of its type), with the JSON printed in each case. The values are records, not criteria.
 
 ### Export of a synthetic drafter
 
