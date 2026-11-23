@@ -671,13 +671,15 @@ adds one token of the target; per category it prints the rounds, the tokens and 
 records of #691, and the top-two margin that #691 recorded at the first draft that differs. The accepted count of #691
 at every anchor is computed again from its recorded drafts and the teacher, as for the class; a record whose
 `accepted` differs at any anchor, with a draft token outside the vocabulary, or with a row that the drafting of #691
-cannot give (one to 15 drafts, `available` the remaining teacher tokens up to 15, margins rounded to four places, a stop
-token only as the last draft, drafts from the sixth on only while they match the teacher, and a last draft that ends the
-drafting), is refused before a weight is read, and
-so is a `trajectories.json` whose tokens per round are not its tokens over its rounds rounded to four places (`null`
-without rounds), as #691 wrote them. `problems` lists categories where the recomputed counts do not give the rounds and
-tokens of `trajectories.json`, an acceptance in which no anchor was drafted, and an error after the inputs are checked
-(by the name of its type), with the JSON printed in each case. The values are records, not criteria.
+cannot give, is refused before a weight is read, and so is a `trajectories.json` whose tokens per round are not its
+tokens over its rounds rounded to four places (`null` without rounds), as #691 wrote them. A row is one that the
+drafting of #691 can give when `available` is the remaining teacher tokens up to 15, its margins are rounded to four
+places, and, with a minimum of either 0 or 6 drafts (the two settings of #691), the drafting stops at its last draft and
+at no draft before: it stops after a stop token, after the fifteenth draft, or, from the minimum on, after a draft
+beyond the remaining teacher tokens or unlike the teacher. `problems` lists categories where the recomputed counts do
+not give the rounds and tokens of `trajectories.json`, an acceptance in which no anchor was drafted, and an error after
+the inputs are checked (by the name of its type), with the JSON printed in each case. The values are records, not
+criteria.
 
 ### Export of a synthetic drafter
 
