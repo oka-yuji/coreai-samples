@@ -1,3 +1,4 @@
+import io
 import json
 import os
 from pathlib import Path
@@ -12,14 +13,21 @@ try:
 except ImportError:
     np = None
 
-from Tools.Conversion.adapters.gemma4_31b import export, layers, native, speculation
+from Tools.Conversion.adapters.gemma4_31b import layers, native, speculation
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, read_json, write_json
-from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
-from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, edit, model_record
+from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, complete_export, write_contract
+from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, bounded, edit, model_record
 
 HIDDEN = TEXT["hidden_size"]
+
+
+def npz(array):
+    buffer = io.BytesIO()
+    np.savez(buffer, array=array)
+    return buffer.getvalue()
+
 FAKE = """#!{python}
 import hashlib, json, math, sys
 from pathlib import Path
@@ -68,6 +76,9 @@ for function, argument in requested:
     for target, row, column in change.get("nan", []):
         if target == key:
             values[row, column] = np.nan
+    for target, row in change.get("zero", []):
+        if target == key:
+            values[row] = 0
     data = values.astype("<f2")
     data = data[:len(data) - change.get("drop_rows", {{}}).get(key, 0)].tobytes()
     Path(path).write_bytes(data)
@@ -144,7 +155,10 @@ class CompareTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
-        files = dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64})
+        (self.folder / "snapshot").mkdir()
+        for index, item in enumerate(TOKENIZER_FILES):
+            (self.folder / "snapshot" / item).write_text("abc"[index])
+        files = {item: {"bytes": 1, "sha256": sha256(self.folder / "snapshot" / item)} for item in TOKENIZER_FILES}
         self.contract = write_contract(self.folder, files)
         self.config = load_contract(self.contract)["config"]
         self.kinds = layers.check_layers(self.config, 6)
@@ -161,29 +175,18 @@ class CompareTests(unittest.TestCase):
             for output, array in arrays.items():
                 path = self.reference / f"{name}.{output}.npy"
                 np.save(path, array.astype(np.float32))
-                inputs[name][output] = layers.file_record(path)
+                inputs[name][output] = {**layers.file_record(path), "dtype": "float32", "shape": list(array.shape),
+                                        "non_finite": 0}
                 self.arrays[name][output] = str(path)
         write_json(self.reference / "record.json", {"schema": layers.SCHEMA, "implementation": "original", "layers": 6,
                                                      "layer_types": self.kinds, "tap_layers": [1, 2, 3, 4, 5, 6],
                                                      "weights": layers.WEIGHTS, "model": model_record(self.contract),
                                                      "inputs": inputs})
-        self.export = self.folder / "export"
-        bundle = self.export / export.BUNDLE
-        (bundle / "asset.aimodel").mkdir(parents=True)
-        (bundle / "asset.aimodel/main.hash").write_bytes(bytes.fromhex(MAIN_HASH))
-        (bundle / "metadata.json").write_text("{}")
-        recorded = {path.relative_to(bundle).as_posix(): {"bytes": path.stat().st_size, "sha256": sha256(path)}
-                    for path in sorted(bundle.rglob("*")) if path.is_file()}
-        write_json(self.export / "export.json", {"schema": export.SCHEMA, "passed": True, "problems": [], "layers": 6,
-                                                 "layer_types": self.kinds, "functions": ["main", "prefill"],
-                                                 "precision": "float16", "model": model_record(self.contract),
-                                                 "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
-                                                 "bundle": {"folder": export.BUNDLE, "name": "asset",
-                                                            "main_hash": MAIN_HASH, "files": recorded}})
+        self.export = complete_export(self.folder / "export", self.contract)
         self.verifier = self.folder / "verifier"
         self.calls = self.folder / "calls.txt"
 
-    def run_compare(self, changes=None, label="out"):
+    def write_fake(self, changes=None):
         conditions = {name: [len(layers.tokens(source, self.config)), start, chunk]
                       for name, source, start, chunk in speculation.CONDITIONS}
         plan = {"conditions": conditions, "changes": changes or {}, "arrays": self.arrays, "hidden": HIDDEN,
@@ -192,6 +195,9 @@ class CompareTests(unittest.TestCase):
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
+
+    def run_compare(self, changes=None, label="out"):
+        self.write_fake(changes)
         return speculation.compare(self.export, self.reference, self.verifier, self.folder / label, self.contract)
 
     def conditions(self, result):
@@ -249,14 +255,18 @@ class CompareTests(unittest.TestCase):
 
     def test_cosines_below_the_limits_fail_and_the_rows_below_the_smallest_cosine_are_named(self):
         result = self.run_compare({"short-c1": {"cosine": [["main.tap_hidden_states", 2, [3, 7], 0.985]]},
-                                   "long-prefill": {"cosine": [["main.hidden_states", 0, list(range(300)), 0.995]]}})
+                                   "long-prefill": {"cosine": [["main.hidden_states", 0, list(range(300)), 0.995]]},
+                                   "short-c8": {"zero": [["main.hidden_states", 5]]}})
+        zero = self.conditions(result)["short-c8"]
+        self.assertEqual(self.failing(zero), {"main.hidden_states.cosine_smallest"})
+        self.assertEqual(zero["outputs"]["main.hidden_states"]["below"], [[5, 0.0]])
         conditions = self.conditions(result)
         section = conditions["short-c1"]["outputs"]["main.tap_hidden_states"]["sections"][2]
         self.assertEqual(self.failing(conditions["short-c1"]), {"main.tap_hidden_states.3.cosine_smallest"})
         self.assertEqual([position for position, _ in section["below"]], [3, 7])
         self.assertTrue(all(abs(value - 0.985) < 1e-3 for _, value in section["below"]))
         self.assertEqual(self.failing(conditions["long-prefill"]), {"main.hidden_states.cosine_median"})
-        self.assertTrue(conditions["long-main"]["passed"] and conditions["short-c8"]["passed"])
+        self.assertTrue(conditions["long-main"]["passed"])
 
     def test_non_finite_values_fail_their_output_and_name_their_rows(self):
         result = self.run_compare({"long-main": {"nan": [["main.hidden_states", 5, 3], ["main.hidden_states", 9, 0]]},
@@ -271,7 +281,8 @@ class CompareTests(unittest.TestCase):
 
     def test_arrays_of_another_shape_fail_their_condition_and_the_comparison_is_saved(self):
         cases = {"a file with a row less": ("short-c1", {"drop_rows": {"main.hidden_states": 1}},
-                                            "the main.hidden_states file holds"),
+                                            "the main.hidden_states file: short-c1.hidden_states.f16 is not a "
+                                            "regular file of 2496 B"),
                  "a recorded width of four layers": ("short-c8",
                                                      {"outputs": {"main.tap_hidden_states": {"width": 4 * HIDDEN}}},
                                                      "the verifier recorded main tap_hidden_states of"),
@@ -326,19 +337,40 @@ class CompareTests(unittest.TestCase):
                 self.assertTrue(self.conditions(result)[name]["problems"])
 
     def test_a_condition_that_cannot_be_compared_is_recorded_and_the_others_are_still_compared(self):
-        original = speculation.read_once
+        original, calls = speculation.taps, []
 
-        def failing(path):
-            if Path(path).name == "short-c8.tap_hidden_states.f16":
-                raise PermissionError("denied")
-            return original(path)
+        def failing(*arguments):
+            calls.append(arguments[-1])
+            if len(calls) == 2:
+                raise RuntimeError("private-example-sentinel")
+            return original(*arguments)
 
-        with mock.patch.object(speculation, "read_once", side_effect=failing):
+        with mock.patch.object(speculation, "taps", side_effect=failing):
             result = self.run_compare()
         entry = self.conditions(result)["short-c8"]
-        self.assertEqual(entry["problems"], ["the condition could not be compared (PermissionError)"])
+        self.assertEqual(entry["problems"], ["the condition could not be compared (RuntimeError)"])
+        self.assertEqual((entry["outputs"], entry["checks"], entry["passed"]), ({}, {}, False))
         self.assertEqual([item["name"] for item in result["conditions"] if item["passed"]],
                          ["short-c1", "long-main", "long-prefill"])
+        self.assertNotIn("private-example-sentinel", (self.folder / "out/comparison.json").read_text())
+
+    def test_files_that_are_not_regular_files_of_the_recorded_size_fail_their_condition(self):
+        original = speculation.regular_file
+
+        def swapped(path, size=None, keep=False):
+            if Path(path).name == "long-main.hidden_states.f16":
+                target = Path(path).with_name("long-main.target.f16")
+                Path(path).rename(target)
+                Path(path).symlink_to(target)
+            return original(path, size, keep)
+
+        with mock.patch.object(speculation, "regular_file", side_effect=swapped):
+            result = self.run_compare()
+        entry = self.conditions(result)["long-main"]
+        self.assertEqual(len(entry["problems"]), 1)
+        self.assertTrue(entry["problems"][0].startswith(
+            "the main.hidden_states file: long-main.hidden_states.f16 is not a regular file of"), entry["problems"])
+        self.assertNotIn("main.hidden_states", entry["outputs"])
 
     def test_a_failure_after_the_output_is_created_leaves_a_failure_record(self):
         with mock.patch.object(speculation, "run_verifier", side_effect=KeyboardInterrupt), \
@@ -364,46 +396,103 @@ class CompareTests(unittest.TestCase):
         def reference_of(change):
             return lambda: edit(self.reference / "record.json", change)
 
+        def entry_of(name, output, **change):
+            return reference_of(lambda record: record["inputs"][name][output].update(change))
+
         def array_changed():
             np.save(self.reference / "short.hidden_states.npy", np.zeros((26, HIDDEN), dtype=np.float32))
+
+        def rewritten(path, write):
+            write(path)
+            edit(self.reference / "record.json", lambda record: record["inputs"]["long"]["tap_hidden_states"].update(
+                layers.file_record(path)))
 
         def non_finite():
             array = np.load(self.reference / "long.tap_hidden_states.npy")
             array[3, 4] = np.inf
-            np.save(self.reference / "long.tap_hidden_states.npy", array)
-            edit(self.reference / "record.json", lambda record: record["inputs"]["long"].update(
-                tap_hidden_states=layers.file_record(self.reference / "long.tap_hidden_states.npy")))
+            rewritten(self.reference / "long.tap_hidden_states.npy", lambda path: np.save(path, array))
 
-        cases = {"a reference without the last layer": reference_of(
-                     lambda record: record.update(tap_layers=[1, 2, 3, 4, 5])),
-                 "a reference of the model class": reference_of(lambda record: record.update(implementation="class")),
-                 "a reference of restored weights": reference_of(lambda record: record.update(weights=layers.RESTORED)),
-                 "a reference of other layers": reference_of(lambda record: record.update(layers=12)),
-                 "a reference of another input": reference_of(
-                     lambda record: record["inputs"]["long"].update(positions=1399)),
-                 "a reference array that differs from its record": array_changed,
-                 "a non-finite reference": non_finite,
-                 "an export that did not pass": lambda: edit(self.export / "export.json",
-                                                             lambda record: record.update(passed=False)),
-                 "an export without the prefill function": lambda: edit(
-                     self.export / "export.json", lambda record: record.update(functions=["main"])),
-                 "a missing verifier": lambda: None}
-        for label, make in cases.items():
+        def compressed():
+            array = np.load(self.reference / "long.tap_hidden_states.npy")
+            rewritten(self.reference / "long.tap_hidden_states.npy",
+                      lambda path: path.write_bytes(npz(array)))
+
+        def linked():
+            path = self.reference / "short.hidden_states.npy"
+            path.rename(self.reference / "target.npy")
+            path.symlink_to(self.reference / "target.npy")
+
+        def piped(path):
+            def make():
+                path.unlink()
+                os.mkfifo(path)
+            return make
+
+        def main_only():
+            shutil.rmtree(self.export)
+            complete_export(self.export, self.contract, functions=("main",))
+
+        every_layer, unreadable = "does not hold the output of every layer", "the reference record is unreadable"
+        entry_problem = "the reference record does not give the short hidden_states"
+        cases = {"a reference without the last layer": (
+                     reference_of(lambda record: record.update(tap_layers=[1, 2, 3, 4, 5])), every_layer),
+                 "a flag among the tap layers": (
+                     reference_of(lambda record: record.update(tap_layers=[True, 2, 3, 4, 5, 6])), every_layer),
+                 "a reference of the model class": (
+                     reference_of(lambda record: record.update(implementation="class")), "not a run of the original"),
+                 "a reference of restored weights": (
+                     reference_of(lambda record: record.update(weights=layers.RESTORED)), "does not use the weights"),
+                 "a reference of other layers": (reference_of(lambda record: record.update(layers=12)), every_layer),
+                 "a reference of another input": (
+                     reference_of(lambda record: record["inputs"]["long"].update(positions=1399)),
+                     "did not read the long input"),
+                 "a fractional position count": (
+                     reference_of(lambda record: record["inputs"]["short"].update(positions=26.0)),
+                     "did not read the short input"),
+                 "a fractional byte count": (
+                     reference_of(lambda record: record["inputs"]["short"]["hidden_states"].update(
+                         bytes=float(record["inputs"]["short"]["hidden_states"]["bytes"]))), entry_problem),
+                 "a recorded shape of another width": (
+                     entry_of("short", "hidden_states", shape=[26, HIDDEN + 1]), entry_problem),
+                 "a recorded dtype of float16": (entry_of("short", "hidden_states", dtype="float16"), entry_problem),
+                 "a recorded non-finite value": (entry_of("short", "hidden_states", non_finite=1), entry_problem),
+                 "a reference array that differs from its record": (
+                     array_changed, "the short hidden_states differ from the SHA-256"),
+                 "a non-finite reference": (non_finite, "the long tap_hidden_states of the reference hold non-finite"),
+                 "a reference array in the NPZ format": (compressed, "not an array in the .npy format"),
+                 "a reference array behind a symbolic link": (linked, "short.hidden_states.npy is not a regular file"),
+                 "a reference record that is a named pipe": (piped(self.reference / "record.json"), unreadable),
+                 "a reference array that is a named pipe": (
+                     piped(self.reference / "long.hidden_states.npy"), "long.hidden_states.npy is not a regular file"),
+                 "an export that did not pass": (
+                     lambda: edit(self.export / "export.json", lambda record: record.update(passed=False)),
+                     "the export is not a passed export"),
+                 "an export without the prefill function": (main_only, "the export has no prefill function"),
+                 "a missing verifier": (lambda: self.verifier.unlink(), "the verifier is unreadable"),
+                 "a verifier that is a named pipe": (piped(self.verifier), "the verifier is unreadable")}
+        for label, (make, problem) in cases.items():
             with self.subTest(case=label):
+                self.write_fake()
                 shutil.copytree(self.reference, self.folder / "saved-reference")
                 shutil.copytree(self.export, self.folder / "saved-export")
-                make()
-                output = self.folder / label.replace(" ", "-")
-                verifier = self.folder / "missing" if label == "a missing verifier" else self.verifier
-                self.verifier.write_text("#!/bin/sh\nexit 0\n")
-                with self.assertRaises(ValueError):
-                    speculation.compare(self.export, self.reference, verifier, output, self.contract)
-                self.assertFalse(os.path.lexists(output))
-                self.assertFalse(self.calls.exists())
-                shutil.rmtree(self.reference)
-                shutil.rmtree(self.export)
-                shutil.move(self.folder / "saved-reference", self.reference)
-                shutil.move(self.folder / "saved-export", self.export)
+                try:
+                    make()
+                    output = self.folder / label.replace(" ", "-")
+                    with mock.patch.object(speculation, "run_verifier") as run:
+                        thread, outcome = bounded(lambda: speculation.compare(
+                            self.export, self.reference, self.verifier, output, self.contract))
+                    self.assertFalse(thread.is_alive())
+                    self.assertIsInstance(outcome.get("error"), ValueError, outcome)
+                    self.assertIn(problem, str(outcome.get("error")))
+                    run.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
+                    self.assertFalse(self.calls.exists())
+                finally:
+                    shutil.rmtree(self.reference)
+                    shutil.rmtree(self.export)
+                    shutil.move(self.folder / "saved-reference", self.reference)
+                    shutil.move(self.folder / "saved-export", self.export)
+                    self.verifier.unlink(missing_ok=True)
 
     def test_an_existing_output_is_refused_before_anything_is_read(self):
         target = self.folder / "target"
@@ -413,7 +502,7 @@ class CompareTests(unittest.TestCase):
                             "link": lambda path: path.symlink_to(target)}.items():
             output = self.folder / label.replace(" ", "-")
             make(output)
-            with self.subTest(output=label), mock.patch.object(speculation, "read_once") as read, \
+            with self.subTest(output=label), mock.patch.object(speculation, "regular_file") as read, \
                     mock.patch.object(speculation, "load_contract") as load, self.assertRaises(FileExistsError):
                 speculation.compare(self.export, self.reference, self.verifier, output, self.contract)
             read.assert_not_called()

@@ -10,11 +10,11 @@ import sys
 import time
 
 from ...storage import canonical, digest, write_json
-from .anchor import read
+from .anchor import parse
 from .compare import BLOCK_ROWS, CONTRACT
 from .layers import SCHEMA as RUN_SCHEMA, tokens
 from .native import (TIMEOUT_S, VERIFIER, correspondence, layer_problems, load_export, mapping, pinned_model,
-                     prefill_chunk, prefix_record, printed, read_once, run_verifier, valid)
+                     prefill_chunk, prefix_record, printed, regular_file, run_verifier, valid)
 from .prepare import load_contract
 
 SCHEMA = "gemma4-31b-speculation-outputs/1"
@@ -95,17 +95,35 @@ def validated(record):
     return kept, malformed
 
 
+def read_file(path, size):
+    try:
+        return regular_file(path, size, keep=True)
+    except (OSError, ValueError) as error:
+        raise ValueError(f"{Path(path).name} is not a regular file{'' if size is None else f' of {size} B'} "
+                         f"({type(error).__name__})") from None
+
+
+def npy(data):
+    import numpy as np
+
+    try:
+        return np.lib.format.read_array(io.BytesIO(data), allow_pickle=False)
+    except Exception as error:
+        raise ValueError(f"not an array in the .npy format ({type(error).__name__})") from None
+
+
 def load_reference(folder, contract, contract_path):
     import numpy as np
 
-    record, hashed, _ = read(folder / "record.json")
+    entry, data = read_file(folder / "record.json", None)
+    record, hashed = parse(data), entry["sha256"]
     if not isinstance(record, dict):
         raise ValueError("The reference record is not an object")
     problems = [] if (record.get("schema"), record.get("implementation")) == (RUN_SCHEMA, "original") else [
         "the reference is not a run of the original implementation"]
     problems += layer_problems(record, contract, "reference")
     count = record.get("layers")
-    if type(count) is not int or record.get("tap_layers") != list(range(1, count + 1)):
+    if type(count) is not int or canonical(record.get("tap_layers")) != canonical(list(range(1, count + 1))):
         problems.append("the reference does not hold the output of every layer")
     if canonical(record.get("model")) != canonical(pinned_model(contract, contract_path)):
         problems.append("the reference recorded another model or contract")
@@ -115,19 +133,25 @@ def load_reference(folder, contract, contract_path):
     size = contract["config"]["hidden_size"]
     for name in ("short", "long"):
         ids, entry = tokens(name, contract["config"]), mapping(mapping(record, "inputs"), name)
-        if (entry.get("positions"), entry.get("tokens_sha256")) != (len(ids), digest(ids)):
+        if canonical([entry.get("positions"), entry.get("tokens_sha256")]) != canonical([len(ids), digest(ids)]):
             problems.append(f"the reference did not read the {name} input")
         for output, width in zip(OUTPUTS, (size, size * count)):
-            path, recorded = folder / f"{name}.{output}.npy", mapping(entry, output)
-            if path.is_symlink() or not path.is_file():
-                problems.append(f"the {name} {output} of the reference are not a file")
+            recorded = mapping(entry, output)
+            expected = {"dtype": "float32", "shape": [len(ids), width], "non_finite": 0}
+            if not valid("count", recorded.get("bytes")) \
+                    or canonical({key: recorded.get(key) for key in expected}) != canonical(expected):
+                problems.append(f"the reference record does not give the {name} {output} as finite float32 "
+                                f"{expected['shape']}")
                 continue
-            content, content_hash = read_once(path)
-            if (len(content), content_hash) != (recorded.get("bytes"), recorded.get("sha256")):
-                problems.append(f"the {name} {output} differ from the size and SHA-256 in the reference record")
+            try:
+                found, content = read_file(folder / f"{name}.{output}.npy", recorded["bytes"])
+                array = npy(content)
+            except ValueError as error:
+                problems.append(f"the {name} {output} of the reference: {error}")
                 continue
-            array = np.load(io.BytesIO(content))
-            if array.dtype != np.float32 or array.shape != (len(ids), width):
+            if found["sha256"] != recorded.get("sha256"):
+                problems.append(f"the {name} {output} differ from the SHA-256 in the reference record")
+            elif array.dtype != np.float32 or array.shape != (len(ids), width):
                 problems.append(f"the {name} {output} of the reference are {array.dtype} {list(array.shape)}")
             elif not np.isfinite(array).all():
                 problems.append(f"the {name} {output} of the reference hold non-finite values")
@@ -157,8 +181,7 @@ def inputs(export_folder, reference_folder, verifier, contract, contract_path):
             problems.append("the export and the reference are of other layer counts")
         problems += correspondence(found["exported"], found["export_hash"], found["reference"])
     try:
-        data, verifier_hash = read_once(verifier)
-        found["verifier"] = {"bytes": len(data), "sha256": verifier_hash}
+        found["verifier"] = regular_file(verifier)[0]
     except Exception as error:
         problems.append(f"the verifier is unreadable ({type(error).__name__})")
     if problems:
@@ -238,14 +261,15 @@ def measured(entry, found, contract, verifier, output):
     norm, layers_taps = reference[source, "hidden_states"], reference[source, "tap_hidden_states"]
     reference_taps = list(range(1, found["reference"]["layers"] + 1))
     for key, (count, width) in expected_files.items():
-        path, label = paths[key], ".".join(key)
-        if path.is_symlink() or not path.is_file():
-            problems.append(f"the {label} file is not a file")
+        label = ".".join(key)
+        try:
+            found_file, data = read_file(paths[key], count * width * 2)
+        except ValueError as error:
+            problems.append(f"the {label} file: {error}")
             continue
-        data, content_hash = read_once(path)
-        if len(data) != count * width * 2 or content_hash != listed[key]["sha256"]:
-            problems.append(f"the {label} file holds {len(data)} B with SHA-256 {content_hash}, not the "
-                            f"{count * width * 2} B and the SHA-256 of the verifier record")
+        content_hash = found_file["sha256"]
+        if content_hash != listed[key]["sha256"]:
+            problems.append(f"the {label} file has the SHA-256 {content_hash}, not that of the verifier record")
             continue
         asset = np.frombuffer(data, dtype="<f2").reshape(count, width)
         first = start if key[0] == "main" else 0
