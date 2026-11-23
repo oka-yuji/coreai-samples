@@ -115,7 +115,7 @@ def computed(model, record, weights, device, output):
     if device == "mps":
         torch.mps.empty_cache()
     return {"id": record["id"], "input_tokens": record["input_tokens"], "tokens": len(record["tokens"]),
-            "start": record["start"], "rows": record["rows"], "shape": list(values.shape),
+            "start": record["start"], "rows": record["rows"], "shape": list(values.shape), "dtype": values.dtype.name,
             "non_finite": reference.non_finite(values), "seconds": seconds, "file": name, "bytes": len(data),
             "sha256": hashlib.sha256(data).hexdigest(), "tokens_sha256": record["tokens_sha256"], "memory": memory,
             "swap_used_bytes": {"before": before, "after": swap_used()}}
@@ -144,10 +144,11 @@ def run(record, args, records):
             for item in records:
                 record["items"].append(computed(model, item, weights, device, args.output))
                 print(item["id"], len(item["tokens"]), f"{record['items'][-1]['seconds']:.2f}s", flush=True)
-    except Exception as error:
+    except BaseException as error:
         record["error"] = type(error).__name__
     record["timing"]["items_s"] = sum(item["seconds"] for item in record["items"])
     record["checks"].update(shapes=all(item["shape"] == [item["rows"], args.vocabulary] for item in record["items"]),
+                            dtypes=all(item["dtype"] == "float32" for item in record["items"]),
                             finite=all(item["non_finite"] == 0 for item in record["items"]))
     return record
 
@@ -211,7 +212,7 @@ def agreement(record, args, records):
                                     "recorded": {" - ".join(pair): difference(pair) for pair in RECORDED},
                                     "non_finite": {name: reference.non_finite(value) for name, value in rows.items()},
                                     "memory": reference.memory(device)})
-    except Exception as error:
+    except BaseException as error:
         record["error"] = type(error).__name__
     differences = [item["max_abs_difference"] for item in record["items"]]
     record["checks"].update(finite=not any(any(item["non_finite"].values()) for item in record["items"]),

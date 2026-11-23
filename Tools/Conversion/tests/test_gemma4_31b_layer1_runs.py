@@ -290,8 +290,8 @@ class AnchorRunTests(unittest.TestCase):
         out, plain = self.folder / "out", rounded_copy(self.model)
         handoff, record = read_json(out / "logits.json"), read_json(out / "run.json")
         self.assertEqual((code, record["passed"], record["error"]), (0, True, None))
-        self.assertEqual(record["checks"], dict.fromkeys(("loading_clean", "shapes", "finite", "items", "monitor_clean",
-                                                          "resources_recorded"), True))
+        self.assertEqual(record["checks"], dict.fromkeys(("loading_clean", "shapes", "dtypes", "finite", "items",
+                                                          "monitor_clean", "resources_recorded"), True))
         self.assertEqual({key: handoff[key] for key in ("schema", "role", "forced_sha256")},
                          {"schema": layer1_anchor.LOGITS, "role": "anchor", "forced_sha256": sha256(self.forced / "forced.jsonl")})
         self.assertIn("the first 6 layers", handoff["weights"])
@@ -336,6 +336,46 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(read_json(self.folder / "load/run.json")["error"], "RuntimeError")
         self.assertFalse(read_json(self.folder / "monitor/run.json")["checks"]["monitor_clean"])
         self.assertFalse(read_json(self.folder / "loading/run.json")["checks"]["loading_clean"])
+
+    def test_a_stop_an_interrupt_or_logits_out_of_shape_type_or_range_still_leave_a_record_and_no_handoff(self):
+        def stopping(path, volumes, patterns, on_abort):
+            on_abort("swap rose by 2000000001 B, above 2000000000 B")
+            return ReadyMonitor(on_abort, OBSERVED)
+
+        def interrupted(*arguments):
+            raise KeyboardInterrupt
+
+        for label, options in (("stopped", {"loader": interrupted, "watcher": stopping}),
+                               ("interrupted", {"loader": interrupted})):
+            with self.subTest(case=label):
+                try:
+                    code, _, _ = self.main("run", "--weights", "float16", output=label, **options)
+                except KeyboardInterrupt:
+                    self.fail("the interrupt ended the run without a record")
+                self.assertEqual(code, 1)
+                self.assertFalse((self.folder / label / "logits.json").exists())
+        failure = read_json(self.folder / "stopped/failure.json")
+        self.assertEqual((failure["schema"], failure["abort"][:9]), (layer1_anchor.SCHEMA, "swap rose"))
+        self.assertFalse((self.folder / "stopped/run.json").exists())
+        self.assertEqual(read_json(self.folder / "interrupted/run.json")["error"], "KeyboardInterrupt")
+        scored = layer1_anchor.scored
+
+        def odd(model, record, weights, device, block):
+            values = scored(model, record, weights, device, block)
+            return {"ja-choice-0001": values * np.nan, "ja-choice-0002": values[:-1],
+                    "ja-choice-0003": values.astype(np.float16)}.get(record["id"], values)
+
+        with mock.patch.object(layer1_anchor, "scored", side_effect=odd):
+            code, _, _ = self.main("run", "--weights", "float16", output="odd")
+        record = read_json(self.folder / "odd/run.json")
+        self.assertEqual((code, record["passed"], record["error"]), (1, False, None))
+        self.assertEqual({key: record["checks"][key] for key in ("finite", "shapes", "dtypes", "items")},
+                         {"finite": False, "shapes": False, "dtypes": False, "items": True})
+        self.assertEqual([(item["dtype"], item["non_finite"] > 0, item["shape"][0] == item["rows"])
+                          for item in record["items"]],
+                         [("float32", True, True), ("float32", False, False), ("float16", False, True),
+                          ("float32", False, True)])
+        self.assertFalse((self.folder / "odd/logits.json").exists())
 
     def test_inputs_that_do_not_fit_are_refused_before_the_folder_is_made_or_the_model_is_loaded(self):
         def summary(value):
