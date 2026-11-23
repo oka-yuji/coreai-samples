@@ -525,6 +525,9 @@ def loaded_run(folder, kind, problems):
             continue
         if arrays[name] is None:
             problems.append(f"the {kind} {name} differ from the SHA-256 in their record")
+        elif type(arrays[name]) is not np.ndarray:
+            problems.append(f"the {kind} {name} are not one array")
+            arrays[name] = None
     return record, arrays, found
 
 

@@ -603,6 +603,23 @@ class CompareTests(unittest.TestCase):
         self.assertEqual([(row["cut_equals_original"], row["first_step_unlike_original"]) for row in result["rows"]],
                          [(True, None)] * 2 + [(False, 1)] + [(True, None)] * 5)
 
+    def replaced(self, label, kind, name, data):
+        folder = self.folder / label / kind
+        (folder / f"{name}.npy").write_bytes(data)
+        record = read_json(folder / "record.json")
+        record["arrays"][name].update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
+        write_json(folder / "record.json", record)
+
+    def test_an_archive_of_arrays_in_place_of_an_array_is_a_problem_of_that_array(self):
+        self.pair("archive")
+        buffer = io.BytesIO()
+        np.savez(buffer, logits=self.arrays["class"]["logits"])
+        self.replaced("archive", "class", "logits", buffer.getvalue())
+        result = self.compare("archive")
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["problems"], ["the class logits are not one array"])
+        json.dumps(result, allow_nan=False)
+
     def test_a_zero_original_projection_passes_only_with_a_zero_class_projection_and_the_summary_holds_either(self):
         def zero(value):
             def change(arrays):
