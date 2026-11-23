@@ -42,7 +42,7 @@ class EffectTests(unittest.TestCase):
         restored["context"][rows.index(1100), 1] = restored["context"][rows.index(1100), 0] + 1.0
         rounded["context"][rows.index(16890), :2] = (30.005, 30.0)
         restored["context"][rows.index(16890), :2] = (30.0, 30.5)
-        self.arrays = rounded
+        self.arrays, self.restored_arrays = rounded, restored
         self.rounded = self.write("rounded", layers.WEIGHTS, rounded)
         self.restored = self.write("restored", layers.RESTORED, restored,
                                    quantized={"export_sha256": "1" * 64, "file": {"bytes": 1, "sha256": "2" * 64},
@@ -129,7 +129,7 @@ class EffectTests(unittest.TestCase):
                                                "tensors": 123.0},
                  "a list": ["tensors"]}
         for label, quantized in cases.items():
-            restored = self.write(label.replace(" ", "-"), layers.RESTORED, self.arrays, quantized=quantized)
+            restored = self.write(label.replace(" ", "-"), layers.RESTORED, self.restored_arrays, quantized=quantized)
             with self.subTest(case=label):
                 code, output, _ = self.run_main(restored, self.rounded)
                 result = json.loads(output)
