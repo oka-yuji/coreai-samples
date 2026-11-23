@@ -86,6 +86,19 @@ def compare(arguments):
     return 0
 
 
+def forced(arguments):
+    from Tools.LLMEvaluation import layer1
+
+    bundle = items.load()
+    found = checks.problems(bundle)
+    if found:
+        for problem in found:
+            print(f"FAIL: {problem}")
+        return 1
+    print(json.dumps(layer1.write(bundle, arguments.inputs, arguments.run, arguments.output), indent=2, sort_keys=True))
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(prog="python3 -m Tools.LLMEvaluation")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -109,9 +122,12 @@ def main():
         compared.add_argument(name, type=Path, required=True)
     compared.add_argument("--layer1", type=Path)
     compared.add_argument("--substitute-reason")
+    made = commands.add_parser("forced")
+    for name in ("--inputs", "--run", "--output"):
+        made.add_argument(name, type=Path, required=True)
     arguments = parser.parse_args()
     return {"validate": validate, "select": select, "build": build, "score": score,
-            "compare": compare}[arguments.command](arguments)
+            "compare": compare, "forced": forced}[arguments.command](arguments)
 
 
 if __name__ == "__main__":
