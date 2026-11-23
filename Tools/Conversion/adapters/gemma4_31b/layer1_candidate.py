@@ -12,7 +12,7 @@ from Tools.LLMEvaluation import layer1
 from ...storage import write_json
 from . import native
 from .compare import CONTRACT
-from .layer1_anchor import LOGITS, forced
+from .layer1_anchor import LOGITS, forced, interruptible
 from .prepare import load_contract
 
 SCHEMA = "gemma4-31b-layer1-candidate/1"
@@ -139,6 +139,7 @@ def main():
     for name in ("export", "forced", "verifier", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
+    interruptible()
     result = run(args.export, args.forced, args.verifier, args.output)
     print(json.dumps({"passed": result["passed"], "items": len(result["items"]), "problems": result["problems"]},
                      indent=2), flush=True)

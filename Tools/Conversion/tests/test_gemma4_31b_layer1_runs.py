@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import random
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -73,6 +74,57 @@ sys.exit(change.get("exit", 0))
 
 def tokens_sha256(ids):
     return hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest()
+
+
+SIGINT_STATE = """
+import _thread
+import json
+import signal
+import sys
+
+from Tools.Conversion.adapters.gemma4_31b import layer1_anchor
+
+if sys.argv[1] == "called":
+    layer1_anchor.interruptible()
+state = {"handler_is_default": signal.getsignal(signal.SIGINT) is signal.default_int_handler, "interrupted": False}
+try:
+    _thread.interrupt_main()
+    for _ in range(100000):
+        pass
+except KeyboardInterrupt:
+    state["interrupted"] = True
+print(json.dumps(state))
+"""
+
+SIGINT_SUPERVISED = """
+import sys
+import time
+from pathlib import Path
+
+from Tools.Conversion.adapters.gemma4_31b import layer1_anchor, reference
+from Tools.Conversion.adapters.jev27b import monitor as shared
+
+folder, steps = Path(sys.argv[1]), []
+shared.INTERVAL_S, shared.KILL_AFTER_S = 0.05, 60
+shared.swap_used, shared.free_percent = (lambda: 0), (lambda: 50)
+reference.ReferenceMonitor.verdict = lambda self: "the test stops the run" if self.samples >= 3 else None
+layer1_anchor.interruptible()
+
+
+def work():
+    try:
+        for _ in range(100):
+            time.sleep(0.05)
+            steps.append(1)
+    except BaseException as error:
+        return type(error).__name__
+    return None
+
+
+code = reference.supervise(folder, "test/1", work, lambda result, observed, started: 0)
+(folder / "steps").write_text(str(len(steps)))
+sys.exit(code)
+"""
 
 
 def forced_record(name, inputs, generated):
@@ -312,6 +364,16 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(record["forced"]["items"], [item["id"] for item in self.records])
         self.assertEqual({item["id"]: item["swap_used_bytes"] for item in record["items"]},
                          {item["id"]: {"before": 5, "after": 5} for item in self.records})
+
+    def test_an_interrupt_is_made_effective_just_before_the_supervision_starts(self):
+        for command, extra in (("run", ("--weights", "float16")), ("agreement", ("--items", "ja-choice-0001"))):
+            events = []
+            with self.subTest(command=command), \
+                    mock.patch.object(layer1_anchor, "interruptible", side_effect=lambda: events.append("interruptible")), \
+                    mock.patch.object(reference, "supervise",
+                                      side_effect=lambda *arguments: events.append("supervise") or 0):
+                code, _, _ = self.main(command, *extra, output=command)
+                self.assertEqual((code, events), (0, ["interruptible", "supervise"]))
 
     def test_the_chosen_items_run_in_their_order(self):
         code, _, _ = self.main("run", "--weights", "float16", "--items", "ja-choice-0004,ja-choice-0002")
@@ -627,6 +689,16 @@ class CandidateRunTests(unittest.TestCase):
             self.run_candidate(main_hash=bytes(32).hex(), output="unknown")
         self.assertFalse((self.folder / "unknown").exists() or self.launches.exists())
 
+    def test_an_interrupt_is_made_effective_before_the_items_are_read(self):
+        events, result = [], {"passed": True, "items": [], "problems": []}
+        argv = ["layer1_candidate", "--export", "e", "--forced", "f", "--verifier", "v", "--output", "o"]
+        with mock.patch.object(sys, "argv", argv), \
+                mock.patch.object(layer1_candidate, "interruptible", side_effect=lambda: events.append("interruptible")), \
+                mock.patch.object(layer1_candidate, "run", side_effect=lambda *arguments: events.append("run") or result), \
+                contextlib.redirect_stdout(io.StringIO()):
+            code = layer1_candidate.main()
+        self.assertEqual((code, events), (0, ["interruptible", "run"]))
+
     def test_a_stopped_run_still_records_the_items_that_were_read(self):
         attempted = layer1_candidate.attempted
         calls = []
@@ -643,6 +715,33 @@ class CandidateRunTests(unittest.TestCase):
         self.assertEqual((record["passed"], [entry["id"] for entry in record["items"]]), (False, calls[:2]))
         self.assertEqual([entry["id"] for entry in handoff["items"]], calls[:2])
 
+
+class InterruptTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+
+    def ignoring_sigint(self, *arguments):
+        return subprocess.run([sys.executable, "-c", *arguments], cwd=Path(__file__).resolve().parents[3],
+                              capture_output=True, text=True, timeout=120,
+                              preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_IGN))
+
+    def test_a_process_that_started_with_sigint_ignored_gets_the_python_handler_only_from_interruptible(self):
+        states = {}
+        for mode in ("called", "not called"):
+            process = self.ignoring_sigint(SIGINT_STATE, mode)
+            self.assertEqual(process.returncode, 0, process.stderr)
+            states[mode] = json.loads(process.stdout)
+        self.assertEqual(states, {"called": {"handler_is_default": True, "interrupted": True},
+                                  "not called": {"handler_is_default": False, "interrupted": False}})
+
+    def test_a_stop_of_the_monitor_ends_a_supervised_run_that_started_with_sigint_ignored_and_leaves_the_record(self):
+        process = self.ignoring_sigint(SIGINT_SUPERVISED, str(self.folder))
+        self.assertEqual(process.returncode, 1, process.stderr)
+        failure = read_json(self.folder / "failure.json")
+        self.assertEqual((failure["schema"], failure["passed"], failure["abort"]),
+                         ("test/1", False, "the test stops the run"))
+        self.assertLess(int((self.folder / "steps").read_text()), 50)
 
 
 @unittest.skipIf(not GEMMA4 or np is None, "Transformers with Gemma 4, PyTorch and NumPy are required for the runs")

@@ -3,6 +3,7 @@ import hashlib
 import os
 from pathlib import Path
 import re
+import signal
 import sys
 import time
 
@@ -23,6 +24,10 @@ WEIGHTS = {"float16": "every checkpoint tensor rounded to float16",
 PASSING = ("anchor_cpu", "original_cpu")
 RECORDED = (("anchor_run", "anchor_cpu"), ("original_eager_cpu", "original_cpu"), ("original_run", "original_cpu"),
             ("anchor_run", "original_run"))
+
+
+def interruptible():
+    signal.signal(signal.SIGINT, signal.default_int_handler)
 
 
 def frozen():
@@ -320,6 +325,7 @@ def main():
         result["timing"]["total_s"] = time.perf_counter() - began
         return recorded(args.output, result)
 
+    interruptible()
     return reference.supervise(args.output, schema, lambda: work(record, args, records), conclude)
 
 
