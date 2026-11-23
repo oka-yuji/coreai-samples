@@ -16,7 +16,7 @@ struct RunFunction: AsyncParsableCommand {
 
     @Option(
         help:
-            "JSON file that lists the inputs with name, dtype, shape and file. Each file is relative to the folder of this JSON file."
+            "JSON file that lists the inputs with name, dtype, shape and file. Each file is the name of a file in the folder of this JSON file."
     )
     var inputs: String
 
