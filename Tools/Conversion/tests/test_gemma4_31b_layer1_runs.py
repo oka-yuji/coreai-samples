@@ -3,9 +3,11 @@ import copy
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import random
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -363,8 +365,15 @@ class AnchorRunTests(unittest.TestCase):
         thread, outcome = bounded(lambda: self.main("run", "--weights", "float16", output="no-ready"))
         self.assertFalse(release(self.folder / "prepare/ready.json", thread), "the run waited on ready.json")
         self.assertEqual(str(outcome.get("error")), "ready.json is not a regular file")
+        model = self.contract.with_name("model-fifo.json")
+        os.mkfifo(model)
+        self.contract, contract = model, self.contract
+        thread, outcome = bounded(lambda: self.main("run", "--weights", "float16", output="fifo-model"))
+        self.assertFalse(release(model, thread), "the run waited on the contract")
+        self.assertEqual(str(outcome.get("error")), "model-fifo.json is not a regular file")
+        self.contract = contract
         self.assertEqual(sorted(path.name for path in self.folder.iterdir()),
-                         ["forced", "model.json", "other", "prepare", "taken"])
+                         ["forced", "model-fifo.json", "model.json", "other", "prepare", "taken"])
         self.assertEqual(self.loads, [])
 
     def test_the_agreement_passes_only_when_the_original_gives_the_same_rows_with_an_item_beyond_the_window(self):
@@ -630,6 +639,22 @@ class RestoredRunTests(unittest.TestCase):
                 self.assertLessEqual(float(np.abs(values - expected[start:start + item["rows"]]).max()), anchor.LIMIT)
                 kept = np.frombuffer((self.folder / "rounded" / other["file"]).read_bytes(), dtype="<f4")
                 self.assertGreater(float(np.abs(values.reshape(-1) - kept).max()), 0.1)
+
+    def test_a_snapshot_file_that_is_not_a_regular_file_is_refused_before_any_quantized_tensor_is_read(self):
+        shard = next(self.snapshot.glob("*.safetensors"))
+        replaced(shard, "fifo")
+        command = [sys.executable, "-m", "Tools.Conversion.adapters.gemma4_31b.layer1_anchor", "run", "--model",
+                   str(self.contract), "--snapshot", str(self.snapshot), "--prepare", str(self.folder / "prepare"),
+                   "--forced", str(self.forced), "--layers", "6", "--weights", "8bit", "--export", str(self.export),
+                   "--output", str(self.folder / "out")]
+        try:
+            process = subprocess.run(command, cwd=Path(__file__).resolve().parents[3], capture_output=True, text=True,
+                                     timeout=60)
+        except subprocess.TimeoutExpired:
+            self.fail("the run waited on a file of the snapshot")
+        self.assertNotEqual(process.returncode, 0)
+        self.assertIn(f"A file to load differs from the contract: {shard.name}", process.stderr)
+        self.assertFalse((self.folder / "out").exists())
 
     def test_an_export_or_quantized_tensors_that_do_not_fit_are_refused_before_the_folder_is_made(self):
         def edited(label, change):

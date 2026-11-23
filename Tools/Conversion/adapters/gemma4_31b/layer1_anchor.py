@@ -9,7 +9,6 @@ import time
 from Tools.LLMEvaluation import items as evaluation, layer1
 from ...storage import canonical, write_json
 from ..jev27b.monitor import swap_used
-from ..pinned import sha256
 from . import anchor, layers, reference
 from .prepare import load_contract
 
@@ -278,9 +277,10 @@ def main():
     args = parser.parse_args()
     if os.path.lexists(args.output):
         raise FileExistsError(f"The {args.command} must be written to a new folder: {args.output}")
+    contract_sha256 = hashlib.sha256(layer1.file_bytes(args.model)).hexdigest()
     contract = load_contract(args.model)
     ready = layer1.strict(layer1.file_bytes(args.prepare / "ready.json"))
-    if ready.get("ready") is not True or ready.get("contract_sha256") != sha256(args.model):
+    if ready.get("ready") is not True or ready.get("contract_sha256") != contract_sha256:
         raise ValueError("Run prepare with this contract first")
     kinds = layers.check_layers(contract["config"], args.layers)
     args.vocabulary, args.window = contract["config"]["vocab_size"], contract["config"]["sliding_window"]
@@ -289,15 +289,15 @@ def main():
     args.restored, quantized = {}, None
     if args.command == "run" and (args.weights == "8bit") != (args.export is not None):
         raise ValueError("Give --export exactly for the weights restored from its quantized tensors")
+    started = time.perf_counter()
+    verified = reference.verify_inputs(args.snapshot, contract)
+    hashed = time.perf_counter() - started
     if args.command == "run" and args.export is not None:
         quantized, digests = layers.quantized_export(args.export, contract, args.model, kinds)
         names = sorted({key.rsplit(".", 1)[0] for key in digests})
         args.restored = layers.quantized_weights(args.export / layers.QUANTIZED, digests,
                                                  layers.checkpoint_shapes(args.snapshot, names))
         quantized["tensors"] = len(digests)
-    started = time.perf_counter()
-    verified = reference.verify_inputs(args.snapshot, contract)
-    hashed = time.perf_counter() - started
     work, schema = (run, SCHEMA) if args.command == "run" else (agreement, AGREEMENT)
     record = header(schema, args, contract, ready, verified, hashes, records, kinds)
     record["timing"]["input_hash_s"] = hashed
