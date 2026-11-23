@@ -1,3 +1,4 @@
+import math
 from types import SimpleNamespace
 
 SLIDING, FULL = "sliding_attention", "full_attention"
@@ -22,43 +23,58 @@ SYNTHETIC = {
                                   "eos_token_id": 1}}}
 
 
+KINDS = {"count": lambda value: type(value) is int and value > 0,
+         "size": lambda value: type(value) is int and value >= 0,
+         "flag": lambda value: type(value) is bool,
+         "text": lambda value: type(value) is str,
+         "epsilon": lambda value: type(value) is float and math.isfinite(value) and value > 0,
+         "list": lambda value: type(value) is list,
+         "table": lambda value: type(value) is dict}
+CONFIG = {"backbone_hidden_size": "count", "use_ordered_embeddings": "flag", "tie_word_embeddings": "flag",
+          "text_config": "table"}
+TEXT_CONFIG = {"vocab_size": "count", "hidden_size": "count", "intermediate_size": "count", "num_hidden_layers": "count",
+               "layer_types": "list", "num_attention_heads": "count", "num_key_value_heads": "count",
+               "num_global_key_value_heads": "count", "head_dim": "count", "global_head_dim": "count",
+               "sliding_window": "count", "rms_norm_eps": "epsilon", "rope_parameters": "table",
+               "num_kv_shared_layers": "count", "hidden_size_per_layer_input": "size", "enable_moe_block": "flag",
+               "use_double_wide_mlp": "flag", "attention_bias": "flag", "hidden_activation": "text"}
+
+
 def assistant_config(document, target):
-    text = document.get("text_config") if isinstance(document, dict) else None
-    if not isinstance(text, dict) or not isinstance(target, dict) or set(target) != set(TARGET):
-        raise ValueError("The assistant configuration needs a text_config and the target needs " + ", ".join(TARGET))
-
-    def read(source, name):
-        if name not in source or source[name] is None:
-            raise ValueError(f"The Gemma 4 assistant configuration has no {name}")
-        return source[name]
-
-    layers, kinds = read(text, "num_hidden_layers"), read(text, "layer_types")
-    heads, kv, global_kv = (read(text, name) for name in ("num_attention_heads", "num_key_value_heads",
-                                                          "num_global_key_value_heads"))
+    if not isinstance(document, dict) or not isinstance(target, dict) or set(target) != set(TARGET) \
+            or not all(KINDS["count"](target[name]) for name in TARGET):
+        raise ValueError("The assistant configuration must be an object and the target must give whole numbers from 1 "
+                         "for " + ", ".join(TARGET))
+    wrong = [name for name, kind in CONFIG.items() if not KINDS[kind](document.get(name))]
+    text = document.get("text_config") if not wrong else {}
+    wrong += [name for name, kind in TEXT_CONFIG.items() if not KINDS[kind](text.get(name))]
+    if wrong:
+        raise ValueError(f"The Gemma 4 assistant configuration has no {wrong} of the kind that the class reads")
+    layers, kinds = text["num_hidden_layers"], text["layer_types"]
+    heads, kv, global_kv = (text[name] for name in ("num_attention_heads", "num_key_value_heads",
+                                                    "num_global_key_value_heads"))
     shared = {"backbone_hidden_size": "hidden_size", **{name: name for name in TARGET if name != "hidden_size"}}
-    found = {name: read(document if name == "backbone_hidden_size" else text, name) for name in shared}
+    found = {name: (document if name == "backbone_hidden_size" else text)[name] for name in shared}
     unsupported = {
-        "ordered embeddings with centroids": read(document, "use_ordered_embeddings") is not False,
-        "untied embeddings": read(document, "tie_word_embeddings") is not True,
-        "layers that compute their own keys and values": read(text, "num_kv_shared_layers") != layers,
-        "per-layer inputs": read(text, "hidden_size_per_layer_input") != 0,
-        "mixture of experts": read(text, "enable_moe_block") is not False,
-        "double-wide MLP": read(text, "use_double_wide_mlp") is not False,
-        "attention bias": read(text, "attention_bias") is not False,
-        "another activation": read(text, "hidden_activation") != "gelu_pytorch_tanh",
-        "another RoPE": read(text, "rope_parameters") != ROPE,
+        "ordered embeddings with centroids": document["use_ordered_embeddings"],
+        "untied embeddings": not document["tie_word_embeddings"],
+        "layers that compute their own keys and values": text["num_kv_shared_layers"] != layers,
+        "per-layer inputs": text["hidden_size_per_layer_input"] != 0,
+        "mixture of experts": text["enable_moe_block"],
+        "double-wide MLP": text["use_double_wide_mlp"],
+        "attention bias": text["attention_bias"],
+        "another activation": text["hidden_activation"] != "gelu_pytorch_tanh",
+        "another RoPE": text["rope_parameters"] != ROPE,
         "layer types other than one or more sliding-window layers and full-attention layers":
-            type(layers) is not int or not isinstance(kinds, list) or len(kinds) != layers
-            or any(kind not in (SLIDING, FULL) for kind in kinds) or SLIDING not in kinds or FULL not in kinds,
-        "query heads that are not a multiple of the key and value heads":
-            any(type(value) is not int or value <= 0 for value in (heads, kv, global_kv)) or heads % kv or heads % global_kv,
+            len(kinds) != layers or any(kind not in (SLIDING, FULL) for kind in kinds) or SLIDING not in kinds
+            or FULL not in kinds,
+        "query heads that are not a multiple of the key and value heads": heads % kv or heads % global_kv,
         **{f"another {name} than the target {target_name}": found[name] != target[target_name]
            for name, target_name in shared.items()}}
     if any(unsupported.values()):
         raise ValueError(f"Unsupported Gemma 4 assistant: {[name for name, wrong in unsupported.items() if wrong]}")
-    return SimpleNamespace(**found, hidden_size=read(text, "hidden_size"),
-                           intermediate_size=read(text, "intermediate_size"), layer_types=list(kinds),
-                           num_attention_heads=heads, rms_norm_eps=read(text, "rms_norm_eps"),
+    return SimpleNamespace(**found, hidden_size=text["hidden_size"], intermediate_size=text["intermediate_size"],
+                           layer_types=list(kinds), num_attention_heads=heads, rms_norm_eps=text["rms_norm_eps"],
                            sliding_rope_theta=ROPE[SLIDING]["rope_theta"], full_rope_theta=ROPE[FULL]["rope_theta"],
                            partial_rotary_factor=ROPE[FULL]["partial_rotary_factor"])
 

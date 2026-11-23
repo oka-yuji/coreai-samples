@@ -268,6 +268,33 @@ class PureTests(unittest.TestCase):
             with self.subTest(case=label):
                 self.assertIsNone(mtp.ratio(model_class, original))
 
+    def test_assistant_values_of_another_kind_are_refused_even_when_they_equal_a_supported_value(self):
+        good = assistant_config(SYNTHETIC["assistant"], SYNTHETIC["target"])
+        self.assertEqual((good.hidden_size, good.intermediate_size, good.rms_norm_eps), (32, 64, 1e-6))
+        top = {"backbone_hidden_size": [48.0], "use_ordered_embeddings": [0, None], "tie_word_embeddings": [1],
+               "text_config": [[]]}
+        inner = {"vocab_size": [301.0], "hidden_size": [32.0, "32", 0], "intermediate_size": [64.0, -64, None],
+                 "num_hidden_layers": [4.0], "num_attention_heads": [4.0], "num_key_value_heads": [2.0],
+                 "num_global_key_value_heads": [True], "head_dim": [16.0], "global_head_dim": [32.0],
+                 "sliding_window": [1024.0], "num_kv_shared_layers": [4.0], "hidden_size_per_layer_input": [0.0, False],
+                 "enable_moe_block": [0], "use_double_wide_mlp": [0], "attention_bias": [0], "hidden_activation": [None],
+                 "rms_norm_eps": ["1e-06", 0.0, -1e-6, 1, float("nan"), float("inf")], "layer_types": ["full_attention"],
+                 "rope_parameters": [[]]}
+        cases = [(name, value, {**SYNTHETIC["assistant"], name: value}, SYNTHETIC["target"])
+                 for name, values in top.items() for value in values]
+        cases += [(name, value, {**SYNTHETIC["assistant"], "text_config": {**SYNTHETIC["assistant"]["text_config"],
+                                                                           name: value}}, SYNTHETIC["target"])
+                  for name, values in inner.items() for value in values]
+        cases += [(name, value, SYNTHETIC["assistant"], {**SYNTHETIC["target"], name: value})
+                  for name, value in (("hidden_size", 48.0), ("vocab_size", True), ("sliding_window", "1024"))]
+        for name, value, document, target in cases:
+            with self.subTest(key=name, value=value), self.assertRaisesRegex(ValueError, name if target is
+                                                                             SYNTHETIC["target"] else "target"):
+                assistant_config(document, target)
+        missing = {key: value for key, value in SYNTHETIC["assistant"]["text_config"].items() if key != "rms_norm_eps"}
+        with self.assertRaisesRegex(ValueError, "rms_norm_eps"):
+            assistant_config({**SYNTHETIC["assistant"], "text_config": missing}, SYNTHETIC["target"])
+
     def test_a_step_count_that_is_not_a_whole_number_from_one_is_refused(self):
         self.assertEqual(mtp.check_steps(7), 7)
         for steps in (0, -1, True, 1.0, None, "7"):
@@ -890,6 +917,8 @@ class RefusalTests(unittest.TestCase):
             unsupported, weights = "Unsupported Gemma 4 assistant", "model.safetensors differs from the expected"
             cases = {"ordered embeddings": (lambda document: document.update(use_ordered_embeddings=True), None, None,
                                             unsupported),
+                     "a width as a float": (lambda document: document["text_config"].update(hidden_size=32.0), None, None,
+                                            "hidden_size"),
                      "another width of the target": (lambda document: document.update(backbone_hidden_size=64), None,
                                                      None, unsupported),
                      "a sliding-window layer in place of the full-attention layer": (
