@@ -19,7 +19,7 @@ try:
 except ImportError:
     torch = None
 
-from Tools.Conversion.adapters.gemma4_31b import export, layers
+from Tools.Conversion.adapters.gemma4_31b import export, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, file_hash, read_json, write_json
@@ -627,15 +627,29 @@ def quantized_tensors(text, seed=5):
 
 
 def write_export(folder, contract, tensors, **changes):
-    folder.mkdir()
+    bundle = folder / export.BUNDLE
+    (bundle / "asset.aimodel").mkdir(parents=True)
+    (bundle / "asset.aimodel/main.hash").write_bytes(bytes(32))
+    (bundle / "metadata.json").write_text("{}")
     digests = export.save_quantized(folder / layers.QUANTIZED, list(tensors.items()))
     weights = sorted({name.rsplit(".", 1)[0] for name in tensors})
-    record = {"schema": export.SCHEMA, "precision": "8bit", "passed": True, "layers": 6,
-              "model": {"contract_sha256": sha256(contract)},
-              "quantized": {"layers": [{"name": name} for name in weights], "file": file_hash(folder / layers.QUANTIZED),
-                            "tensors": digests}, **changes}
+    pinned = load_contract(contract)
+    record = {"schema": export.SCHEMA, "passed": True, "problems": [], "precision": "8bit", "layers": 6,
+              "layer_types": layers.check_layers(pinned["config"], 6), "functions": ["main", "prefill"],
+              "model": native.pinned_model(pinned, contract), "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
+              "bundle": {"folder": export.BUNDLE, "name": "asset", "main_hash": bytes(32).hex(),
+                         "files": {path.relative_to(bundle).as_posix(): file_hash(path)
+                                   for path in sorted(bundle.rglob("*")) if path.is_file()}},
+              "quantized": {"layers": [{"name": name, "class": "Dequantize", "shape": None, **export.LAYOUT}
+                                       for name in weights],
+                            "file": file_hash(folder / layers.QUANTIZED), "tensors": digests}, **changes}
     write_json(folder / "export.json", record)
     return folder
+
+
+def interrupted_rename(target):
+    (target / export.BUNDLE).rename(target / export.INCOMPLETE)
+    write_json(target / "failure.json", {"schema": export.SCHEMA, "passed": False, "error": "OSError"})
 
 
 def in_blocks_of(tensors, width):
@@ -798,6 +812,58 @@ class RestoredReferenceTests(unittest.TestCase):
                 self.assertEqual(read_json(output / "failure.json"), {"schema": layers.CONTEXT_SCHEMA, "passed": False,
                                                                        "weights": weights, "error": "RuntimeError"})
                 self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
+
+    def test_a_restored_reference_refuses_an_export_that_did_not_finish_did_not_pass_or_has_other_blocks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            name = "model.layers.0.self_attn.q_proj.weight"
+
+            def entry(target, **changes):
+                record = read_json(target / "export.json")
+                for item in record["quantized"]["layers"]:
+                    if item["name"] == name:
+                        item.update(changes)
+                write_json(target / "export.json", record)
+
+            def edited(change):
+                return lambda target: write_json(target / "export.json", change(read_json(target / "export.json")))
+
+            cases = {"the last rename failed": (tensors, interrupted_rename),
+                     "a failure record next to the bundle": (tensors, lambda target: write_json(
+                         target / "failure.json", {"schema": export.SCHEMA, "passed": False, "error": "OSError"})),
+                     "an unfinished bundle next to the bundle": (tensors, lambda target: (
+                         target / export.INCOMPLETE).mkdir()),
+                     "a bundle file changed after the export": (tensors, lambda target: (
+                         target / export.BUNDLE / "metadata.json").write_text("{ }")),
+                     "passed as the number one": (tensors, edited(lambda record: {**record, "passed": 1})),
+                     "an export with a problem": (tensors, edited(lambda record: {**record, "problems": ["asset"]})),
+                     "an export without tap layers": (tensors, edited(lambda record: {**record, "metadata": {}})),
+                     "an export of another function layout": (tensors, edited(
+                         lambda record: {**record, "functions": ["main"]})),
+                     "a weight recorded in blocks of 16": (tensors, lambda target: entry(target, block=[1, 16])),
+                     "a weight recorded with a zero point": (tensors, lambda target: entry(
+                         target, zero_point="torch.uint8")),
+                     "a weight recorded with scales of another type": (tensors, lambda target: entry(
+                         target, scale="torch.float32")),
+                     "a weight listed twice": (tensors, edited(lambda record: {**record, "quantized": {
+                         **record["quantized"],
+                         "layers": record["quantized"]["layers"] + record["quantized"]["layers"][:1]}}))}
+            for index, (label, (chosen, change)) in enumerate(cases.items()):
+                target = write_export(folder / f"export-{index}", contract, chosen)
+                if change:
+                    change(target)
+                output = folder / f"restored-{index}"
+                with self.subTest(case=label):
+                    with self.assertRaises(ValueError), \
+                            mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
+                        layers.context(contract, snapshot, 6, output, "8bit", target)
+                    load.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
+            record = layers.context(contract, snapshot, 6, folder / "accepted", "8bit",
+                                    write_export(folder / "export-accepted", contract, tensors))
+            self.assertEqual(record["quantized"]["tensors"], 123)
 
     def test_a_restored_reference_refuses_scales_and_minimums_in_blocks_other_than_32(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -9,7 +9,8 @@ import coreai_models
 from safetensors import safe_open
 import torch
 
-from Tools.Conversion.adapters.gemma4_31b import export, layers
+from Tools.Conversion.adapters.gemma4_31b import export, layers, native
+from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import file_hash, read_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import SHARD, TEXT, write_snapshot
@@ -94,6 +95,7 @@ class ExportTests(unittest.TestCase):
                     self.assertFalse((output / export.INCOMPLETE).exists())
                     self.assertFalse((output / export.WORK).exists())
                     self.assertIsNotNone(record["resources"]["swap"]["increase_bytes"])
+                    self.assertEqual(native.load_export(output, load_contract(contract), contract)[3], [])
 
     def test_the_loading_work_area_is_removed_when_the_export_or_the_save_fails_or_is_interrupted(self):
         upstream = Path(coreai_models.__file__).resolve().parents[3]
@@ -175,6 +177,9 @@ class QuantizedExportTests(unittest.TestCase):
             self.assertFalse((bundle / layers.QUANTIZED).exists())
             for work in (export.WORK, export.QUANTIZING, export.INCOMPLETE):
                 self.assertFalse((output / work).exists())
+            pinned = load_contract(contract)
+            self.assertEqual(native.load_export(output, pinned, contract)[3], [])
+            self.assertEqual(layers.quantized_export(output, pinned, contract, kinds)[1], quantized["tensors"])
 
     def test_an_8bit_export_whose_linear_layers_the_converter_skips_fails(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -515,11 +515,16 @@ converter environment.
 ### FP32 reference restored from the quantized weights
 
 `layers.py context --weights 8bit --export <the export folder of the step>` writes the reference of the comparison with
-the weights that the export quantized. It reads only an export that passed and recorded exactly the Linear weights of
-the layers as its quantized weights. Before it creates its folder, it checks `quantized.safetensors` against the size
-and SHA-256 in `export.json`, and each tensor against its SHA-256 there and its weight against the shape in the
-checkpoint. It then restores each weight as uint8 × scale + minimum with the blocks widened to the weight and each
-operation rounded to float16 (the dequantization of the converter), and puts it into the original implementation in
+the weights that the export quantized. It reads the export with `load_export` of `native.py`, the one definition of an
+export that may be used, which the comparison below also applies: the bundle under its final name with exactly the
+files of the record and their sizes and SHA-256, no `failure.json` and no `bundle.incomplete` next to it, `passed` the
+JSON true and no problem, the schema, the contract, the layers, the function layout, the precision and the tap layers
+checked by type (a boolean is not taken for a number), and for 8 bits exactly the Linear weights of the layers as uint8
+with float16 scales and minimums in blocks of [1, 32] and no zero point, their tensors, and the size and SHA-256 of
+`quantized.safetensors`. Before it creates its folder, it also checks each tensor against its SHA-256 in `export.json`,
+its weight against the shape in the checkpoint and its scales and minimums against exactly [rows, columns / 32]. It
+then restores each weight as uint8 × scale + minimum with the blocks widened to the weight and each operation rounded to
+float16 (the dequantization of the converter), and puts it into the original implementation in
 float32. The other tensors are rounded to float16 as with `--weights float16`. `record.json` records the kind of the
 weights, the SHA-256 of `export.json`, the size and SHA-256 of `quantized.safetensors` and the number of tensors that
 it checked. An error after the folder exists, with either kind of weights, leaves `failure.json` with the type of the

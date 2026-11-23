@@ -242,9 +242,10 @@ class CompareTests(unittest.TestCase):
         (bundle / "metadata.json").write_text("{}")
         recorded = {path.relative_to(bundle).as_posix(): {"bytes": path.stat().st_size, "sha256": sha256(path)}
                     for path in sorted(bundle.rglob("*")) if path.is_file()}
-        write_json(self.export / "export.json", {"schema": export.SCHEMA, "passed": True, "layers": 6,
+        write_json(self.export / "export.json", {"schema": export.SCHEMA, "passed": True, "problems": [], "layers": 6,
                                                  "layer_types": self.kinds, "functions": ["main", "prefill"],
                                                  "precision": "float16", "model": model_record(self.contract),
+                                                 "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
                                                  "bundle": {"folder": export.BUNDLE, "name": "asset",
                                                             "main_hash": MAIN_HASH, "files": recorded}})
         self.verifier = self.folder / "verifier"
@@ -475,7 +476,17 @@ class CompareTests(unittest.TestCase):
                  "an export of another model": ("export", lambda record: record["model"].update(id="other/model")),
                  "an export that did not pass": ("export", lambda record: record.update(passed=False)),
                  "an export of another main hash": ("export", lambda record: record["bundle"].update(main_hash="cd" * 32)),
-                 "an export of other functions": ("export", lambda record: record.update(functions="main,prefill"))}
+                 "an export of other functions": ("export", lambda record: record.update(functions="main,prefill")),
+                 "an export that passed as the number one": ("export", lambda record: record.update(passed=1)),
+                 "an export with a problem": ("export", lambda record: record.update(problems=["asset"])),
+                 "an export without tap layers": ("export", lambda record: record["metadata"].pop("tap_layers")),
+                 "an export with tap layers beyond its layers": ("export", lambda record: record["metadata"].update(
+                     tap_layers=[1, 7])),
+                 "an export with tap layers as booleans": ("export", lambda record: record["metadata"].update(
+                     tap_layers=[True])),
+                 "an export of a layer count given as a boolean": ("export", lambda record: record.update(layers=True)),
+                 "an export whose model record has a file size of true": ("export", lambda record: next(iter(
+                     record["model"]["verified_before_loading"].values())).update(bytes=True))}
         for label, (target, change) in cases.items():
             with self.subTest(case=label):
                 backups = {path: path.read_bytes() for path in (self.reference / "record.json", self.export / "export.json")}
@@ -496,12 +507,21 @@ class CompareTests(unittest.TestCase):
         tensors = self.export / layers.QUANTIZED
         tensors.write_bytes(b"quantized tensors")
         entry = {"bytes": tensors.stat().st_size, "sha256": sha256(tensors)}
+        names = sorted(export.quantized_names(self.kinds))
+        weights = [{"name": name, "class": "Dequantize", "shape": None, **export.LAYOUT} for name in names]
+        digests = {f"{name}.{part}": "1" * 64 for name in names for part in layers.PARTS}
         edit(self.export / "export.json", lambda record: record.update(
-            precision="8bit", quantized={"file": entry, "tensors": {"a.quantized_data": "1" * 64, "a.scale": "2" * 64}},
-            **changes))
+            precision="8bit", quantized={"layers": weights, "file": entry, "tensors": digests}, **changes))
         edit(self.reference / "record.json", lambda record: record.update(
             weights=layers.RESTORED, quantized={"export_sha256": sha256(self.export / "export.json"), "file": entry,
-                                                "tensors": 2}))
+                                                "tensors": 3 * len(names)}))
+
+    def weights(self, change):
+        def edited():
+            edit(self.export / "export.json", lambda record: change(record["quantized"]))
+            edit(self.reference / "record.json", lambda record: record["quantized"].update(
+                export_sha256=sha256(self.export / "export.json")))
+        return edited
 
     def test_an_8bit_export_is_compared_with_the_reference_restored_from_its_quantized_tensors(self):
         self.quantized()
@@ -543,7 +563,15 @@ class CompareTests(unittest.TestCase):
                  "a record of the tensors without the file": (True, lambda: edit(
                      self.export / "export.json", lambda record: record["quantized"].pop("file"))),
                  "a size of the tensors as text": (True, lambda: edit(
-                     self.export / "export.json", lambda record: record["quantized"]["file"].update(bytes="17")))}
+                     self.export / "export.json", lambda record: record["quantized"]["file"].update(bytes="17"))),
+                 "a weight recorded in blocks of 16": (True, self.weights(
+                     lambda quantized: quantized["layers"][0].update(block=[1, 16]))),
+                 "a weight recorded with a zero point": (True, self.weights(
+                     lambda quantized: quantized["layers"][0].update(zero_point="torch.uint8"))),
+                 "a weight left out of the record of the weights": (True, self.weights(
+                     lambda quantized: quantized["layers"].pop())),
+                 "tensors of another weight": (True, self.weights(lambda quantized: quantized["tensors"].update(
+                     {"embed_tokens.weight.scale": "1" * 64})))}
         for label, (eight_bit, change) in cases.items():
             with self.subTest(case=label):
                 backups = {path: path.read_bytes() for path in (self.reference / "record.json", self.export / "export.json")}
@@ -568,7 +596,68 @@ class CompareTests(unittest.TestCase):
         result = self.run_compare(label="problem-only")
         self.assertEqual(read_json(self.folder / "problem-only/comparison.json"), result)
         self.assertEqual((result["problems"], result["conditions"]),
-                         (["the quantized tensors of the export differ from its record"], []))
+                         (["the export did not record exactly the quantized Linear weights of its layers in blocks of "
+                           "[1, 32]", "the quantized tensors of the export differ from its record"], []))
+
+    def test_the_export_reader_names_each_defect_of_the_record_and_of_its_folder(self):
+        contract = load_contract(self.contract)
+        self.assertEqual(native.load_export(self.export, contract, self.contract)[3], [])
+
+        def entry(record):
+            next(iter(record["model"]["verified_before_loading"].values())).update(bytes=True)
+
+        def failure(folder):
+            write_json(folder / "failure.json", {"schema": export.SCHEMA, "passed": False, "error": "OSError"})
+
+        cases = {"passed as the number one": (lambda record: record.update(passed=1), None,
+                                              "the export is not a passed export"),
+                 "a problem in the record": (lambda record: record.update(problems=["asset"]), None,
+                                             "the export is not a passed export"),
+                 "an unknown precision": (lambda record: record.update(precision="4bit"), None,
+                                          "the export recorded no known precision"),
+                 "no tap layers": (lambda record: record.update(metadata={}), None,
+                                   "the export recorded no valid tap layers"),
+                 "a model record with a size of true": (entry, None, "the export recorded another model or contract"),
+                 "a failure record": (None, failure, "the export folder holds a failure record"),
+                 "an unfinished bundle": (None, lambda folder: (folder / export.INCOMPLETE).mkdir(),
+                                          "the export folder holds an unfinished bundle")}
+        for index, (label, (change, arrange, expected)) in enumerate(cases.items()):
+            folder = self.folder / f"read-{index}"
+            shutil.copytree(self.export, folder)
+            if change:
+                edit(folder / "export.json", change)
+            if arrange:
+                arrange(folder)
+            with self.subTest(case=label):
+                self.assertEqual(native.load_export(folder, contract, self.contract)[3], [expected])
+
+    def test_an_export_folder_that_did_not_finish_stops_before_the_verifier_runs(self):
+        def recorded_as_true():
+            path = self.export / export.BUNDLE / "one.txt"
+            path.write_text("1")
+            edit(self.export / "export.json", lambda record: record["bundle"]["files"].update(
+                {"one.txt": {"bytes": True, "sha256": sha256(path)}}))
+
+        failure = {"schema": export.SCHEMA, "passed": False, "error": "OSError"}
+        cases = {"the last rename failed": lambda: (
+                     (self.export / export.BUNDLE).rename(self.export / export.INCOMPLETE),
+                     write_json(self.export / "failure.json", failure)),
+                 "a failure record next to the bundle": lambda: write_json(self.export / "failure.json", failure),
+                 "an unfinished bundle next to the bundle": lambda: (self.export / export.INCOMPLETE).mkdir(),
+                 "a bundle file recorded with a size of true": recorded_as_true}
+        original = self.export
+        for index, (label, change) in enumerate(cases.items()):
+            with self.subTest(case=label):
+                self.export = self.folder / f"export-{index}"
+                shutil.copytree(original, self.export)
+                change()
+                self.calls.unlink(missing_ok=True)
+                result = self.run_compare(label=label.replace(" ", "-"))
+                self.export = original
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
+                self.assertEqual(result["conditions"], [])
+                self.assertFalse(self.calls.exists())
 
     def test_files_that_differ_from_their_records_or_are_one_file_stop_before_the_verifier_runs(self):
         context = self.reference / "context.npy"

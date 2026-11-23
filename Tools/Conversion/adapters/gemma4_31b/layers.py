@@ -11,9 +11,8 @@ import resource
 import sys
 import time
 
-from ...storage import digest, file_hash, read_json, write_json
+from ...storage import digest, read_json, write_json
 from ..pinned import sha256
-from .anchor import read
 from .compare import BLOCK_ROWS, CONTRACT, recorded
 from .prepare import load_contract
 from .reference import LOADED_FILES, file_record, footprint, verify_inputs
@@ -222,33 +221,15 @@ def restore(data, scale, minval):
     return data.to(scale.dtype) * scale.repeat_interleave(blocks, -1) + minval.repeat_interleave(blocks, -1)
 
 
-def names_of(entries):
-    if not isinstance(entries, list) or not all(isinstance(entry, dict) and isinstance(entry.get("name"), str)
-                                                for entry in entries):
-        return None
-    return sorted(entry["name"] for entry in entries)
+def quantized_export(folder, contract, contract_path, kinds):
+    from .native import load_export
 
-
-def quantized_export(folder, contract_path, kinds):
-    from .export import SCHEMA, quantized_names
-
-    record, hashed, _ = read(folder / "export.json")
-    record = record if isinstance(record, dict) else {}
-    model, quantized = record.get("model"), record.get("quantized")
-    if (record.get("schema"), record.get("precision"), record.get("passed"), record.get("layers")) \
-            != (SCHEMA, "8bit", True, len(kinds)) or not isinstance(model, dict) \
-            or model.get("contract_sha256") != sha256(contract_path) or not isinstance(quantized, dict):
-        raise ValueError("The export is not a passed 8-bit export of these layers with this contract")
-    expected = sorted(quantized_names(kinds))
-    tensors, entry = quantized.get("tensors"), quantized.get("file")
-    if names_of(quantized.get("layers")) != expected or not isinstance(tensors, dict) \
-            or set(tensors) != {f"{name}.{part}" for name in expected for part in PARTS} \
-            or not all(isinstance(value, str) for value in tensors.values()):
-        raise ValueError("The export did not record exactly the quantized Linear weights of these layers")
-    path = folder / QUANTIZED
-    if path.is_symlink() or not path.is_file() or file_hash(path) != entry:
-        raise ValueError("The quantized tensors differ from the export record")
-    return {"export_sha256": hashed, "file": entry}, tensors
+    record, hashed, _, problems = load_export(folder, contract, contract_path)
+    if not problems and (record["precision"], record["layers"]) != ("8bit", len(kinds)):
+        problems = ["the export is not an 8-bit export of these layers"]
+    if problems:
+        raise ValueError(f"The export cannot be restored: {problems[0]}")
+    return {"export_sha256": hashed, "file": record["quantized"]["file"]}, record["quantized"]["tensors"]
 
 
 def checkpoint_shapes(snapshot, names):
@@ -330,7 +311,7 @@ def context(contract_path, snapshot, layers, output, weights, export=None):
     kinds = check_layers(config, layers)
     quantized, restored = {}, {}
     if export is not None:
-        quantized, digests = quantized_export(export, contract_path, kinds)
+        quantized, digests = quantized_export(export, contract, contract_path, kinds)
         names = sorted({key.rsplit(".", 1)[0] for key in digests})
         restored = quantized_weights(export / QUANTIZED, digests, checkpoint_shapes(snapshot, names))
         quantized["tensors"] = len(digests)
