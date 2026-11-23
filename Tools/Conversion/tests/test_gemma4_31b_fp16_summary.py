@@ -321,7 +321,7 @@ class SummaryTests(Records):
                 self.assertEqual(self.summarize((report, record, comparison)), (1, ""))
 
     def test_numbers_too_large_for_a_float_stop_with_the_fixed_error_and_print_nothing(self):
-        record = export_record()
+        record = export_record(self.contract_sha256)
         record["weights"]["elements"] = 10**400
         cases = {"an export record": self.run_files("huge-export", record=record), "a comparison": self.run_files("huge-comparison")}
         data = json.loads(cases["a comparison"][2].read_text())
