@@ -7,6 +7,7 @@ import random
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -88,6 +89,42 @@ def save(state, folder):
         (run / "progress.json").write_text(json.dumps({"lines": len(state["inputs"]), "run": identity(stored),
                                                        "sha256": hashlib.sha256(outputs).hexdigest(), **state["progress"]}))
     return inputs, run
+
+
+def bounded(call, seconds=3):
+    outcome = {}
+
+    def run():
+        try:
+            outcome["value"] = call()
+        except BaseException as error:
+            outcome["error"] = error
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    return thread, outcome
+
+
+def release(path, thread):
+    waited = thread.is_alive()
+    if waited:
+        try:
+            os.close(os.open(path, os.O_WRONLY | os.O_NONBLOCK))
+        except OSError:
+            pass
+        thread.join(5)
+    return waited
+
+
+def replaced(path, kind):
+    path.unlink()
+    if kind == "fifo":
+        os.mkfifo(path)
+    elif kind == "folder":
+        path.mkdir()
+    elif kind == "broken link":
+        path.symlink_to(path.parent / "nowhere")
 
 
 def grouped(entries):
@@ -496,6 +533,26 @@ class RefusalTests(Folder):
                                    ("NaN", constant, "Not a JSON value: NaN")):
             with self.subTest(name):
                 self.refused(fixture(), text, change)
+
+    def test_a_source_that_is_not_a_regular_file_stops_without_waiting(self):
+        names = (("inputs", "inputs.jsonl"), ("inputs", "inputs.json"), ("run", "run.json"), ("run", "progress.json"),
+                 ("run", "outputs.jsonl"))
+        for folder, name in names:
+            for kind, error, text in (("fifo", ValueError, f"{name} is not a regular file"),
+                                      ("folder", ValueError, f"{name} is not a regular file"),
+                                      ("missing", FileNotFoundError, name), ("broken link", FileNotFoundError, name)):
+                with self.subTest(file=name, kind=kind):
+                    inputs, run = save(fixture(), tempfile.mkdtemp(dir=self.root))
+                    source = {"inputs": inputs, "run": run}[folder] / name
+                    replaced(source, kind)
+                    output = Path(tempfile.mkdtemp(dir=self.root)) / "forced"
+                    thread, outcome = bounded(lambda: layer1.write(BUNDLE, inputs, run, output))
+                    self.assertFalse(release(source, thread), "the forced input waited on the source")
+                    self.assertIsInstance(outcome.get("error"), error)
+                    self.assertIn(text, str(outcome["error"]))
+                    if error is ValueError:
+                        self.assertNotIn(str(source.parent), str(outcome["error"]))
+                    self.assertFalse(os.path.lexists(output))
 
     def test_an_existing_output_or_link_is_refused_before_anything_is_read(self):
         missing = self.root / "missing"

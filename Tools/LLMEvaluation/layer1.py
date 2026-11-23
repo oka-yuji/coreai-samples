@@ -4,11 +4,30 @@ import math
 import os
 from pathlib import Path
 import shutil
+import stat
 
 from Tools.LLMEvaluation.items import FILES, canonical
 from Tools.LLMEvaluation.scoring import generated, nonstandard, partition, record_checks
 
 SET, ROLE = "primary", "reference"
+
+
+def file_bytes(path, size=None):
+    path = Path(path)
+    descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        status = os.fstat(descriptor)
+        if not stat.S_ISREG(status.st_mode):
+            raise ValueError(f"{path.name} is not a regular file")
+        if size is not None and status.st_size != size:
+            raise ValueError(f"{path.name} holds {status.st_size} B, not {size} B")
+        with open(descriptor, "rb", closefd=False) as handle:
+            data = handle.read() if size is None else handle.read(size + 1)
+    finally:
+        os.close(descriptor)
+    if size is not None and len(data) != size:
+        raise ValueError(f"{path.name} changed while it was read")
+    return data
 
 
 def strict(data):
@@ -173,13 +192,13 @@ def forced_record(entry, source, output, contract):
 
 def make(bundle, inputs, run):
     inputs, run = Path(inputs), Path(run)
-    data, outputs = (inputs / "inputs.jsonl").read_bytes(), (run / "outputs.jsonl").read_bytes()
-    summary, stored = strict((inputs / "inputs.json").read_bytes()), strict((run / "run.json").read_bytes())
+    data, outputs = file_bytes(inputs / "inputs.jsonl"), file_bytes(run / "outputs.jsonl")
+    summary, stored = strict(file_bytes(inputs / "inputs.json")), strict(file_bytes(run / "run.json"))
     known = by_id(data, "inputs.jsonl")
     files = {"count": len(known), "sha256": hashlib.sha256(data).hexdigest()}
     identity = checked_sources(bundle, summary, stored, known, files)
     confirmed = {"lines": files["count"], "run": run_identity(stored), "sha256": hashlib.sha256(outputs).hexdigest()}
-    progress = strict((run / "progress.json").read_bytes())
+    progress = strict(file_bytes(run / "progress.json"))
     if not same(progress, confirmed):
         raise ValueError("progress.json does not confirm these output records of this finished run: "
                          + ", ".join(differing(progress, confirmed)))

@@ -18,7 +18,7 @@ except ImportError:
 from Tools.Conversion.adapters.gemma4_31b import baseline, layer1_compare
 from Tools.Conversion.storage import read_json, write_json
 from Tools.LLMEvaluation import layer1
-from Tools.LLMEvaluation.tests.test_layer1 import BUNDLE, digest, fixture, generate, save
+from Tools.LLMEvaluation.tests.test_layer1 import BUNDLE, bounded, digest, fixture, generate, release, replaced, save
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b/model.json"
 ROOT = Path(__file__).resolve().parents[3]
@@ -432,14 +432,15 @@ class CorrespondenceTests(Comparison):
         self.assertFalse(any("made from another forced input" in problem for problem in result["problems"]))
 
     def reads(self):
-        calls, original = [], layer1_compare.contents
+        calls, original = [], layer1_compare.file_bytes
 
-        def recorded(path, size):
-            if Path(path).parent.name in ("baseline", "candidate"):
+        def recorded(path, size=None):
+            data = original(path, size)
+            if Path(path).parent.name in ("baseline", "candidate") and Path(path).name != "logits.json":
                 calls.append((Path(path).parent.name, Path(path).name))
-            return original(path, size)
+            return data
 
-        return calls, mock.patch.object(layer1_compare, "contents", side_effect=recorded)
+        return calls, mock.patch.object(layer1_compare, "file_bytes", side_effect=recorded)
 
     def test_an_array_file_of_another_size_or_kind_is_not_read(self):
         name, rows = self.records[3]["id"], self.records[3]["rows"]
@@ -457,9 +458,9 @@ class CorrespondenceTests(Comparison):
             (folder / f"{name}.float32").unlink()
             (folder / f"{name}.float32").mkdir()
 
-        for kind, change, text in (("bigger", bigger, f"the candidate file holds {size + extra} B, not {size} B"),
-                                   ("smaller", smaller, f"the candidate file holds {size - 4} B, not {size} B"),
-                                   ("folder", directory, "the candidate logits are not a regular file")):
+        for kind, change, text in (("bigger", bigger, f"the candidate file {name}.float32 holds {size + extra} B, not {size} B"),
+                                   ("smaller", smaller, f"the candidate file {name}.float32 holds {size - 4} B, not {size} B"),
+                                   ("folder", directory, f"the candidate file {name}.float32 is not a regular file")):
             with self.subTest(kind):
                 self.fresh()
                 calls, patched = self.reads()
@@ -470,21 +471,23 @@ class CorrespondenceTests(Comparison):
                 self.assertEqual(len(calls), 2 * len(self.records) - 1)
 
     def test_a_file_that_grows_after_its_size_was_checked_fails(self):
-        name, real = self.records[3]["id"], os.stat
+        name, real, grown_files = self.records[3]["id"], os.fstat, []
 
         def grown(folder):
             with (folder / f"{name}.float32").open("ab") as handle:
                 handle.write(bytes(4))
+            status = os.stat(folder / f"{name}.float32")
+            grown_files.append((status.st_dev, status.st_ino))
 
-        def reported(path, *arguments, **options):
-            status = real(path, *arguments, **options)
-            if Path(path).name == f"{name}.float32" and Path(path).parent.name == "candidate":
+        def reported(descriptor):
+            status = real(descriptor)
+            if (status.st_dev, status.st_ino) in grown_files:
                 return os.stat_result(tuple(status)[:6] + (status.st_size - 4,) + tuple(status)[7:10])
             return status
 
-        with mock.patch.object(layer1_compare.os, "stat", side_effect=reported):
+        with mock.patch.object(layer1.os, "fstat", side_effect=reported):
             result = self.compared(after=grown)
-        self.failed(result, f"{name}: the candidate file changed while it was read")
+        self.failed(result, f"{name}: the candidate file {name}.float32 changed while it was read")
 
     def test_no_array_of_an_item_with_a_problem_in_its_entries_is_read(self):
         def changed(record):
@@ -519,6 +522,54 @@ class BoundaryTests(Comparison):
                     with self.assertRaises(FileExistsError):
                         layer1_compare.compare(missing, missing, missing, missing, missing, output, self.contract)
                 self.assertFalse(os.path.exists(output / "layer1.json"))
+
+    def test_a_file_that_is_not_a_regular_file_fails_without_waiting(self):
+        name = self.records[2]["id"]
+
+        def source(folder):
+            run = folder / "run"
+            shutil.copytree(self.reference, run)
+            return run / "outputs.jsonl", {"sources": (self.inputs, run)}
+
+        def given(folder):
+            copied = folder / "given"
+            shutil.copytree(self.forced, copied)
+            return copied / "forced.jsonl", {"forced": copied}
+
+        def logits(folder):
+            return folder / "candidate" / "logits.json", {}
+
+        def array(folder):
+            return folder / "candidate" / f"{name}.float32", {}
+
+        cases = (("fifo", source, "the forced input cannot be made again from the input records and the run "
+                                  "(outputs.jsonl is not a regular file)"),
+                 ("folder", source, "(outputs.jsonl is not a regular file)"),
+                 ("missing", source, "the forced input cannot be made again from the input records and the run "
+                                     "(FileNotFoundError)"),
+                 ("broken link", source, "(FileNotFoundError)"),
+                 ("fifo", given, "forced.jsonl differs from the forced input made again from the input records and the "
+                                 "run (forced.jsonl is not a regular file)"),
+                 ("fifo", logits, "the candidate logits.json is unreadable (logits.json is not a regular file)"),
+                 ("fifo", array, f"{name}: the candidate file {name}.float32 is not a regular file"))
+        for kind, where, text in cases:
+            with self.subTest(kind=kind, file=where.__name__):
+                self.fresh()
+                folder, waited_on = self.folder, []
+                path, options = (None, {}) if where in (logits, array) else where(folder)
+
+                def change(candidate):
+                    target = where(folder)[0]
+                    waited_on.append(target)
+                    replaced(target, kind)
+
+                if path is not None:
+                    replaced(path, kind)
+                    waited_on.append(path)
+                thread, outcome = bounded(lambda: self.compared(after=None if path is not None else change, **options))
+                self.assertFalse(release(waited_on[-1], thread), "the comparison waited on a file")
+                self.assertNotIn("error", outcome, outcome.get("error"))
+                self.failed(outcome["value"], text)
 
     def test_frozen_files_that_do_not_validate_stop_before_the_output_is_made(self):
         output = self.folder / "result"

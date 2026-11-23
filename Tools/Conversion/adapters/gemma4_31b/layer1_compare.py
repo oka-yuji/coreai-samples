@@ -3,15 +3,14 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import stat
 import sys
 
 from Tools.LLMEvaluation import checks, items
 from Tools.LLMEvaluation.items import FILES
-from Tools.LLMEvaluation.layer1 import band, chosen, label, make
+from Tools.LLMEvaluation.layer1 import band, chosen, file_bytes, label, make
 from ...storage import write_json
 from ..verify_llm import compare as judged, probabilities
-from .anchor import read
+from .anchor import parse
 from .compare import CONTRACT
 from .native import valid
 from .prepare import load_contract
@@ -47,26 +46,29 @@ def forced_input(folder, sources, bundle, problems):
         return {"sha256": None, "summary_sha256": None}, {}, None
     hashes = {}
     for key, name, expected in (("sha256", "forced.jsonl", content), ("summary_sha256", "forced.json", summary)):
+        note = ""
         try:
-            status = os.stat(folder / name)
-            sized = stat.S_ISREG(status.st_mode) and status.st_size == len(expected)
-            data = contents(folder / name, len(expected)) if sized else None
+            data = file_bytes(folder / name, len(expected))
+        except ValueError as error:
+            data, note = None, f" ({error})"
         except Exception as error:
             problems.append(f"{name} of the forced input is unreadable ({type(error).__name__})")
             hashes[key] = None
             continue
         hashes[key] = None if data is None else hashlib.sha256(data).hexdigest()
         if data != expected:
-            problems.append(f"{name} differs from the forced input made again from the input records and the run")
+            problems.append(f"{name} differs from the forced input made again from the input records and the run{note}")
     return hashes, {row["id"]: row for row in rows}, hashlib.sha256(content).hexdigest()
 
 
 def side(name, folder, digest, roles, expected, problems):
     found = {"folder": folder, "role": None, "weights": None, "sha256": None, "entries": {}}
     try:
-        record, found["sha256"], _ = read(folder / "logits.json")
+        data = file_bytes(folder / "logits.json")
+        record, found["sha256"] = parse(data), hashlib.sha256(data).hexdigest()
     except Exception as error:
-        problems.append(f"the {name} logits.json is unreadable ({type(error).__name__})")
+        reason = str(error) if type(error) is ValueError else type(error).__name__
+        problems.append(f"the {name} logits.json is unreadable ({reason})")
         return found
     kept, malformed = validated(record, SIDE)
     found.update(role=kept.get("role"), weights=kept.get("weights"))
@@ -108,35 +110,22 @@ def listed(name, found, record, vocabulary, problems):
     return None if wrong else entry
 
 
-def contents(path, size):
-    with open(path, "rb") as handle:
-        return handle.read(size + 1)
-
-
 def loaded(name, folder, entry, problems):
     import numpy as np
 
-    dtype, path = np.dtype(DTYPES[entry["dtype"]]), folder / entry["file"]
-    size = entry["shape"][0] * entry["shape"][1] * dtype.itemsize
+    dtype = np.dtype(DTYPES[entry["dtype"]])
     try:
-        status = os.stat(path)
-        if not stat.S_ISREG(status.st_mode):
-            problems.append(f"the {name} logits are not a regular file")
-            return None
-        if status.st_size != size:
-            problems.append(f"the {name} file holds {status.st_size} B, not {size} B")
-            return None
-        data = contents(path, size)
+        data = file_bytes(folder / entry["file"], entry["shape"][0] * entry["shape"][1] * dtype.itemsize)
+    except ValueError as error:
+        problems.append(f"the {name} file {error}")
+        return None
     except Exception as error:
         problems.append(f"the {name} logits are unreadable ({type(error).__name__})")
         return None
-    if len(data) != size:
-        problems.append(f"the {name} file changed while it was read")
-    elif hashlib.sha256(data).hexdigest() != entry["sha256"]:
+    if hashlib.sha256(data).hexdigest() != entry["sha256"]:
         problems.append(f"the {name} file differs from its SHA-256")
-    else:
-        return np.frombuffer(data, dtype=dtype).reshape(entry["shape"])
-    return None
+        return None
+    return np.frombuffer(data, dtype=dtype).reshape(entry["shape"])
 
 
 def per_row(baseline, candidate):

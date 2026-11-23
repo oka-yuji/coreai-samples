@@ -243,8 +243,10 @@ compared and its mean is within the limit; and `failed` otherwise. The report-on
 `kl_mean`, `kl_p99` and `kl_max` (the KL divergence from the baseline to the candidate at each position),
 `max_abs_logit_difference`, `top1_agreement` and `near_tie_count`. A forced input that cannot be made again, or that
 differs from the one made again, fails the comparison. A finding about the logits of one item fails that item and the
-comparison, and the other items are still compared. An array file, and a file of `--forced`, is read only when it is a
-regular file of the expected size, and no array file of an item is read once a finding about the item is known. The
+comparison, and the other items are still compared. Every file that the command reads from the given folders goes
+through `file_bytes` of `Tools/LLMEvaluation/layer1.py`: it is opened without waiting and read only when it is a regular
+file, and an array file or a file of `--forced` only when it has the expected size. No array file of an item is read
+once a finding about the item is known. The
 command refuses an existing output, also a link, before it reads the records; once it has made the folder, it writes
 `layer1.json` on every path, and a minimal failed record when the full record cannot be written. The exit code is 0
 only when the comparison passed. `VerdictTests`, `CorrespondenceTests` and `BoundaryTests` in
