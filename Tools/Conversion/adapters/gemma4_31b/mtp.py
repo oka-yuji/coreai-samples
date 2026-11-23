@@ -13,6 +13,7 @@ from Tools.LLMEvaluation.layer1 import file_bytes, strict, strict_records
 from Tools.LLMEvaluation.scoring import generated, partition
 from ...storage import write_json
 from ..pinned import sha256
+from .assistant import SYNTHETIC, TARGET, assistant_config, checkpoint_shapes
 from .baseline import read_inputs
 from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, below, ratios, rounded_scale, same_file
 from .native import valid
@@ -214,27 +215,37 @@ def row_inputs(item, features, anchor, window):
                           torch.tensor([[anchor]], dtype=torch.int32), *sliding, *full)}
 
 
-def checkpoint(path, expected, every):
-    import torch
-    from safetensors import safe_open
-
+def expect(path, expected, every):
     found, present = header(path, expected)
     if every and present != set(expected) or found != {name: ("BF16", list(shape)) for name, shape in expected.items()}:
         raise ValueError(f"{Path(path).name} differs from the expected BF16 tensors: missing "
                          f"{sorted(set(expected) - present)}, unexpected {sorted(present - set(expected)) if every else []}")
+
+
+def checkpoint(path, expected, every):
+    import torch
+    from safetensors import safe_open
+
+    expect(path, expected, every)
     with safe_open(str(path), framework="pt") as handle:
         return {name: handle.get_tensor(name).to(torch.float16).to(torch.float32) for name in expected}
 
 
-def target_table(snapshot, contract):
+def table_shard(snapshot, contract):
     files = verified(snapshot, contract["files"], (INDEX,))
     places = document(Path(snapshot) / INDEX).get("weight_map")
     shard = places.get(TABLE) if isinstance(places, dict) else None
     if not isinstance(shard, str) or not shard.endswith(".safetensors") or shard not in contract["files"]:
         raise ValueError("The index of the target does not place the embedding table in a pinned shard")
-    files.update(verified(snapshot, contract["files"], (shard,)))
-    shape = [contract["config"]["vocab_size"], contract["config"]["hidden_size"]]
-    return files, lambda: checkpoint(Path(snapshot) / shard, {TABLE: shape}, False)[TABLE]
+    return files, shard
+
+
+def table_shape(config):
+    return {TABLE: [config["vocab_size"], config["hidden_size"]]}
+
+
+def table(path, config):
+    return checkpoint(path, table_shape(config), False)[TABLE]
 
 
 def original_drafter(assistant, table, config):
@@ -269,8 +280,7 @@ def class_drafter(assistant, table, config, steps):
 
     from . import drafter
 
-    settings = drafter.assistant_config(document(Path(assistant) / "config.json"),
-                                        {key: config[key] for key in drafter.TARGET})
+    settings = assistant_config(document(Path(assistant) / "config.json"), {key: config[key] for key in TARGET})
     with torch.device("meta"):
         model = drafter.Gemma4AssistantDrafter(settings, steps)
     expected = {name: tensor.shape for name, tensor in model.state_dict().items() if name != "target_embed.weight"}
@@ -336,16 +346,24 @@ def versions(implementation):
             for name in PACKAGES + (CONVERTER if implementation == "class" else ())}
 
 
-def sources_of(contract_path, assistant_path, contract, assistant, snapshot, assistant_snapshot, records, inputs,
-               outputs):
-    files, table = target_table(snapshot, contract)
-    return {"model": {"id": contract["model_id"], "revision": contract["revision"],
-                      "contract_sha256": sha256(contract_path), "verified_before_loading": files},
-            "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
-                          "contract_sha256": sha256(assistant_path),
-                          "verified_before_loading": verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)},
-            "records": {"subset_sha256": sha256(Path(records) / "subset.json"), "inputs_sha256": sha256(inputs),
-                        "outputs_sha256": sha256(outputs)}}, table
+def prepared(contract_path, assistant_path, snapshot, assistant_snapshot, records, inputs, outputs, choose):
+    contract, assistant = load_contract(contract_path), load_assistant(assistant_path)
+    files, shard = table_shard(snapshot, contract)
+    files.update(verified(snapshot, contract["files"], (shard,)))
+    held = verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
+    subset, items = items_of(contract, records, inputs, outputs, choose)
+    config = contract["config"]
+    settings = assistant_config(document(Path(assistant_snapshot) / "config.json"), {key: config[key] for key in TARGET})
+    expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
+    expect(Path(snapshot) / shard, table_shape(config), False)
+    sources = {"model": {"id": contract["model_id"], "revision": contract["revision"],
+                         "contract_sha256": sha256(contract_path), "verified_before_loading": files},
+               "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
+                             "contract_sha256": sha256(assistant_path), "verified_before_loading": held},
+               "records": {"subset_sha256": sha256(Path(records) / "subset.json"), "inputs_sha256": sha256(inputs),
+                           "outputs_sha256": sha256(outputs),
+                           "features": {item["id"]: file_record(item["features"]) for item in items}}}
+    return contract, subset, items, sources, Path(snapshot) / shard
 
 
 def memory():
@@ -360,25 +378,22 @@ def run(implementation, contract_path, assistant_path, snapshot, assistant_snaps
     if implementation not in IMPLEMENTATIONS:
         raise ValueError(f"Unknown implementation: {implementation!r}")
     check_steps(steps)
-    contract, assistant = load_contract(contract_path), load_assistant(assistant_path)
-    _, items = items_of(contract, records, inputs, outputs, first_per_category)
-    sources, table = sources_of(contract_path, assistant_path, contract, assistant, snapshot, assistant_snapshot,
-                                records, inputs, outputs)
-    sources["records"]["features"] = {item["id"]: file_record(item["features"]) for item in items}
+    contract, _, items, sources, shard = prepared(contract_path, assistant_path, snapshot, assistant_snapshot, records,
+                                                  inputs, outputs, first_per_category)
     output.mkdir(parents=True)
     try:
-        return run_rows(implementation, assistant_snapshot, contract["config"], items, sources, table, steps, output)
+        return run_rows(implementation, assistant_snapshot, contract["config"], items, sources, shard, steps, output)
     except BaseException as error:
         write_json(output / "failure.json", {"schema": SCHEMA, "implementation": implementation,
                                              "failure": type(error).__name__})
         raise
 
 
-def run_rows(implementation, assistant_snapshot, config, items, sources, table, steps, output):
+def run_rows(implementation, assistant_snapshot, config, items, sources, shard, steps, output):
     import numpy as np
 
     started, place = time.perf_counter(), layout(config)
-    weights = table()
+    weights = table(shard, config)
     model = (original_drafter(assistant_snapshot, weights, config) if implementation == "original"
              else class_drafter(assistant_snapshot, weights, config, steps))
     loaded = time.perf_counter()
@@ -550,16 +565,13 @@ def acceptance(contract_path, assistant_path, snapshot, assistant_snapshot, reco
     import torch
 
     check_steps(steps)
-    contract, assistant = load_contract(contract_path), load_assistant(assistant_path)
+    contract, subset, items, sources, shard = prepared(contract_path, assistant_path, snapshot, assistant_snapshot,
+                                                       records, inputs, outputs, lambda record: record["items"])
     config, place, stops = contract["config"], layout(contract["config"]), set(contract["config"]["eos_token_id"])
-    subset, items = items_of(contract, records, inputs, outputs, lambda record: record["items"])
     reference = published(Path(records) / "trajectories.json", steps, subset["counts"])
     drafts = {item["id"]: draft_rows(Path(records) / "drafters" / f"{item['id']}.json", item) for item in items}
-    sources, table = sources_of(contract_path, assistant_path, contract, assistant, snapshot, assistant_snapshot,
-                                records, inputs, outputs)
-    sources["records"]["features"] = {item["id"]: file_record(item["features"]) for item in items}
     started = time.perf_counter()
-    model = class_drafter(assistant_snapshot, table(), config, steps)
+    model = class_drafter(assistant_snapshot, table(shard, config), config, steps)
     loaded = time.perf_counter()
     totals = {name: {"items": 0, "anchors": 0, "rounds": 0, "tokens": 0, "reference_rounds": 0, "reference_tokens": 0,
                      "margins": []} for name in [*subset["counts"], "pooled"]}
@@ -625,11 +637,11 @@ def export_synthetic(output, steps, context, seed):
     from .export import inspect_asset, weights
 
     if steps < 2 or type(context) is not int or type(seed) is not int \
-            or context <= drafter.SYNTHETIC["target"]["sliding_window"] + 1:
+            or context <= SYNTHETIC["target"]["sliding_window"] + 1:
         raise ValueError("The export needs at least two steps, a context above the window and a whole-number seed")
     output.mkdir(parents=True)
     try:
-        record = {"schema": EXPORT, "steps": steps, "context": context, "seed": seed, "configuration": drafter.SYNTHETIC,
+        record = {"schema": EXPORT, "steps": steps, "context": context, "seed": seed, "configuration": SYNTHETIC,
                   "assets": {}, "versions": versions("class")}
         for name, counts in {"one_step": (1,), "unrolled": (steps,), "both": (1, steps)}.items():
             models = [drafter.synthetic(seed, count).to(torch.float16) for count in counts]

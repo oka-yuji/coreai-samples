@@ -20,6 +20,7 @@ except ImportError:
     torch = None
 
 from Tools.Conversion.adapters.gemma4_31b import mtp
+from Tools.Conversion.adapters.gemma4_31b.assistant import SYNTHETIC, assistant_config, checkpoint_shapes
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import read_json, write_json
@@ -136,6 +137,46 @@ def write_assistant(folder, document, state):
                           "files": {name: {"bytes": (snapshot / name).stat().st_size, "sha256": sha256(snapshot / name)}
                                     for name in mtp.ASSISTANT_FILES}})
     return snapshot, contract
+
+
+def assistant_state():
+    shapes = checkpoint_shapes(assistant_config(SYNTHETIC["assistant"], SYNTHETIC["target"]))
+    return {name: torch.zeros(shape) for name, shape in shapes.items()}
+
+
+def tensor_reads():
+    import safetensors
+
+    events, real = [], safetensors.safe_open
+
+    class Watched:
+        def __init__(self, path, *arguments, **options):
+            status = os.stat(path)
+            self.name, self.opened = (status.st_dev, status.st_ino), real(path, *arguments, **options)
+
+        def __enter__(self):
+            self.handle = self.opened.__enter__()
+            return self
+
+        def __exit__(self, *details):
+            return self.opened.__exit__(*details)
+
+        def keys(self):
+            return self.handle.keys()
+
+        def get_slice(self, name):
+            return self.handle.get_slice(name)
+
+        def get_tensor(self, name):
+            events.append((self.name, name))
+            return self.handle.get_tensor(name)
+
+    return events, lambda: mock.patch.object(safetensors, "safe_open", Watched)
+
+
+def inode(path):
+    status = os.stat(path)
+    return status.st_dev, status.st_ino
 
 
 class PureTests(unittest.TestCase):
@@ -534,7 +575,7 @@ class RefusalTests(unittest.TestCase):
             folder = Path(folder)
             records, inputs, outputs = write_records(folder)
             target, contract = write_target(folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
-            assistant, assistant_contract = write_assistant(folder, {"note": "x"}, {"weight": torch.zeros(2)})
+            assistant, assistant_contract = write_assistant(folder, SYNTHETIC["assistant"], assistant_state())
             for error in (RuntimeError("a message with details"), KeyboardInterrupt()):
                 output = folder / type(error).__name__
                 with self.subTest(error=type(error).__name__), mock.patch.object(mtp, "run_rows", side_effect=error), \
@@ -550,7 +591,7 @@ class RefusalTests(unittest.TestCase):
             folder = Path(folder)
             records, inputs, outputs = write_records(folder)
             target, contract = write_target(folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
-            assistant, assistant_contract = write_assistant(folder, {"note": "x"}, {"weight": torch.zeros(2)})
+            assistant, assistant_contract = write_assistant(folder, SYNTHETIC["assistant"], assistant_state())
             for name, change in {"the shard of the table": lambda: (target / SHARD).write_bytes(b"0"),
                                  "the assistant weights": lambda: (assistant / "model.safetensors").write_bytes(b"0"),
                                  "the index as a link": lambda: (target / mtp.INDEX).unlink()
@@ -566,6 +607,68 @@ class RefusalTests(unittest.TestCase):
                 if (target / mtp.INDEX).is_symlink():
                     (target / mtp.INDEX).unlink()
                     write_json(target / mtp.INDEX, {"metadata": {}, "weight_map": {mtp.TABLE: SHARD}})
+
+    @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
+    def test_an_unsupported_assistant_or_tensors_of_other_shapes_are_refused_before_the_output_or_any_tensor_is_read(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            records, inputs, outputs = write_records(folder)
+            vocabulary, hidden = CONFIG["vocab_size"], CONFIG["hidden_size"]
+            place = mtp.layout(CONFIG)
+
+            def tensor(name, shape):
+                return lambda state: state.update({name: torch.zeros(shape)})
+
+            def features():
+                save_file({key: torch.zeros(2, 2, dtype=torch.bfloat16) for key in ("postnorm", f"k{place['sliding']}")},
+                          str(records / "tf/features/alpha-0002.safetensors"))
+
+            unsupported, weights = "Unsupported Gemma 4 assistant", "model.safetensors differs from the expected"
+            cases = {"ordered embeddings": (lambda document: document.update(use_ordered_embeddings=True), None, None,
+                                            unsupported),
+                     "another width of the target": (lambda document: document.update(backbone_hidden_size=64), None,
+                                                     None, unsupported),
+                     "a sliding-window layer in place of the full-attention layer": (
+                         lambda document: document["text_config"].update(layer_types=[SLIDING] * 4), None, None,
+                         unsupported),
+                     "a query projection of another shape": (None, tensor("model.layers.0.self_attn.q_proj.weight",
+                                                                          (64, 33)), None, weights),
+                     "a missing tensor": (None, lambda state: state.pop("model.norm.weight"), None, weights),
+                     "an extra tensor": (None, tensor("model.layers.4.layer_scalar", (1,)), None, weights),
+                     "a table of another width": (None, None, (vocabulary, hidden + 2),
+                                                  f"{SHARD} differs from the expected"),
+                     "features of another shape": (None, None, features, "alpha-0002.safetensors does not hold")}
+            backup = {path: path.read_bytes() for path in (records / "tf/features").iterdir()}
+            events, watched = tensor_reads()
+            for label, (configured, changed, other, message) in cases.items():
+                for path, data in backup.items():
+                    path.write_bytes(data)
+                case = folder / label.replace(" ", "-")
+                case.mkdir()
+                document, state = json.loads(json.dumps(SYNTHETIC["assistant"])), assistant_state()
+                if configured:
+                    configured(document)
+                if changed:
+                    changed(state)
+                if callable(other):
+                    other()
+                table = torch.zeros(*(other if isinstance(other, tuple) else (vocabulary, hidden)))
+                target, contract = write_target(case, table)
+                assistant, assistant_contract = write_assistant(case, document, state)
+                arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
+                for implementation in mtp.IMPLEMENTATIONS:
+                    output = case / implementation
+                    with self.subTest(case=label, implementation=implementation), watched(), \
+                            self.assertRaisesRegex(ValueError, message):
+                        mtp.run(implementation, *arguments, output)
+                    self.assertFalse(output.exists())
+                with self.subTest(case=label, command="acceptance"), watched(), \
+                        self.assertRaisesRegex(ValueError, message):
+                    mtp.acceptance(*arguments)
+            self.assertEqual(events, [])
+            with watched():
+                mtp.table(target / SHARD, CONFIG)
+            self.assertEqual(events, [(inode(target / SHARD), mtp.TABLE)])
 
 
 if __name__ == "__main__":

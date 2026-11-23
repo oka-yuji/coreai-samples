@@ -13,12 +13,12 @@ from transformers.models.gemma4.modeling_gemma4 import Gemma4TextScaledWordEmbed
 from transformers.models.gemma4_assistant.configuration_gemma4_assistant import Gemma4AssistantConfig
 from transformers.models.gemma4_assistant.modeling_gemma4_assistant import Gemma4AssistantForCausalLM
 
-from Tools.Conversion.adapters.gemma4_31b import drafter, layers, mtp
+from Tools.Conversion.adapters.gemma4_31b import assistant, drafter, layers, mtp
 from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
 from Tools.Conversion.storage import read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_mtp import CONFIG, write_assistant, write_records, write_target
 
-ASSISTANT, TARGET = drafter.SYNTHETIC["assistant"], drafter.SYNTHETIC["target"]
+ASSISTANT, TARGET = assistant.SYNTHETIC["assistant"], assistant.SYNTHETIC["target"]
 TEXT = ASSISTANT["text_config"]
 VOCABULARY, BACKBONE = TARGET["vocab_size"], TARGET["hidden_size"]
 WINDOW = TARGET["sliding_window"] + 1
@@ -265,9 +265,9 @@ class ContractTests(unittest.TestCase):
 
     def test_assistant_configurations_off_the_contract_or_the_target_are_refused(self):
         rope = ASSISTANT["text_config"]["rope_parameters"]
-        text_changes = {"a layer type that is not known": {"layer_types": [drafter.SLIDING] * 3 + ["chunked_attention"]},
-                        "no full-attention layer": {"layer_types": [drafter.SLIDING] * 4},
-                        "fewer layer types than layers": {"layer_types": [drafter.SLIDING, drafter.FULL]},
+        text_changes = {"a layer type that is not known": {"layer_types": [assistant.SLIDING] * 3 + ["chunked_attention"]},
+                        "no full-attention layer": {"layer_types": [assistant.SLIDING] * 4},
+                        "fewer layer types than layers": {"layer_types": [assistant.SLIDING, assistant.FULL]},
                         "other key and value heads than the target": {"num_key_value_heads": 1},
                         "other full-attention heads than the target": {"num_global_key_value_heads": 2},
                         "query heads that do not divide into the key and value heads": {"num_attention_heads": 3},
@@ -281,7 +281,7 @@ class ContractTests(unittest.TestCase):
                         "double-wide MLP": {"use_double_wide_mlp": True},
                         "attention bias": {"attention_bias": True},
                         "another activation": {"hidden_activation": "gelu"},
-                        "another RoPE": {"rope_parameters": {**rope, drafter.FULL: {**rope[drafter.FULL],
+                        "another RoPE": {"rope_parameters": {**rope, assistant.FULL: {**rope[assistant.FULL],
                                                                                     "partial_rotary_factor": 0.5}}},
                         "no head dimension": {"head_dim": None}}
         changes = {label: ({**ASSISTANT, "text_config": {**TEXT, **change}}, TARGET) for label, change in text_changes.items()}
@@ -292,13 +292,13 @@ class ContractTests(unittest.TestCase):
                                                                     if key != "sliding_window"}),
                         "no text configuration": ({key: value for key, value in ASSISTANT.items()
                                                    if key != "text_config"}, TARGET)})
-        self.assertEqual(drafter.assistant_config(ASSISTANT, TARGET).layer_types, TEXT["layer_types"])
+        self.assertEqual(assistant.assistant_config(ASSISTANT, TARGET).layer_types, TEXT["layer_types"])
         for label, (document, target) in changes.items():
             with self.subTest(change=label), self.assertRaises(ValueError):
-                drafter.assistant_config(document, target)
+                assistant.assistant_config(document, target)
 
     def test_a_step_count_that_is_not_a_whole_number_from_one_is_refused(self):
-        config = drafter.assistant_config(ASSISTANT, TARGET)
+        config = assistant.assistant_config(ASSISTANT, TARGET)
         for steps in (0, -1, True, 1.0, None, "7"):
             with self.subTest(steps=steps), self.assertRaisesRegex(ValueError, "whole number of steps"):
                 drafter.Gemma4AssistantDrafter(config, steps)
@@ -317,7 +317,7 @@ def reference_records(arguments, steps):
     contract, _, target, assistant, records, inputs, outputs = arguments
     pinned = load_contract(contract)
     _, items = mtp.items_of(pinned, records, inputs, outputs, lambda record: record["items"])
-    model = mtp.class_drafter(assistant, mtp.target_table(target, pinned)[1](), CONFIG, steps)
+    model = mtp.class_drafter(assistant, mtp.table(target / mtp.table_shard(target, pinned)[1], CONFIG), CONFIG, steps)
     totals = {}
     (records / "drafters").mkdir()
     for item in items:
@@ -342,7 +342,16 @@ def reference_records(arguments, steps):
 
 class RunTests(unittest.TestCase):
     def test_the_contract_of_the_records_holds_the_synthetic_target(self):
-        self.assertEqual({key: CONFIG[key] for key in drafter.TARGET}, TARGET)
+        self.assertEqual({key: CONFIG[key] for key in assistant.TARGET}, TARGET)
+
+    def test_the_checkpoint_checked_before_loading_holds_the_tensors_of_both_drafters(self):
+        expected = assistant.checkpoint_shapes(assistant.assistant_config(ASSISTANT, TARGET))
+        state = drafter.synthetic(SEED, 1).state_dict()
+        self.assertEqual({name: list(tensor.shape) for name, tensor in state.items() if name != "target_embed.weight"},
+                         expected)
+        model, _ = original({name: tensor for name, tensor in state.items()})
+        self.assertEqual({name: list(tensor.shape) for name, tensor in model.state_dict().items()
+                          if name != "lm_head.weight"}, expected)
 
     def test_runs_of_both_implementations_on_recorded_features_pass_the_comparison_unless_the_scale_is_dropped(self):
         with tempfile.TemporaryDirectory() as folder:
