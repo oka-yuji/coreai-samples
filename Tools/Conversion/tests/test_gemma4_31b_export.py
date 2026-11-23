@@ -44,6 +44,11 @@ LAYOUT = {"main": function({"logits": {"dtype": "float16", "shape": [1, None, 26
           "prefill": function(dict(TAPPED))}
 
 
+def bundle_of(name):
+    return {"folder": export.INCOMPLETE, "name": name,
+            "files": dict.fromkeys(export.bundle_layout(name), {"bytes": 1, "sha256": "0" * 64})}
+
+
 def inspected(functions=BOTH):
     return {"compression_config": None,
             "weights": {"elements": ELEMENTS, "elements_by_dtype": {"torch.float16": ELEMENTS}, "quantized_layouts": 0},
@@ -51,7 +56,8 @@ def inspected(functions=BOTH):
                       "output_order": {name: list(LAYOUT[name]["outputs"]) for name in functions},
                       "storage_types": dict(STORAGE)},
             "tokenizer": dict(CONTRACT["tokenizer"]["files"]),
-            "metadata": export.metadata(CONTRACT, export.name_of(6, functions, "fp16"), 16896, None, TAPS)}
+            "metadata": export.metadata(CONTRACT, export.name_of(6, functions, "fp16"), 16896, None, TAPS),
+            "bundle": bundle_of(export.name_of(6, functions, "fp16"))}
 
 
 def problems(change=None, functions=BOTH):
@@ -92,6 +98,34 @@ class AssetTests(unittest.TestCase):
                        "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475"},
             "compression": None, "tap_layers": [1, 17, 29, 47, 59],
             "tap_convention": "layers-passed:before-final-norm:ascending"})
+
+    def test_a_complete_bundle_holds_the_three_files_of_the_asset_the_metadata_and_the_tokenizer_files(self):
+        name = export.name_of(6, BOTH, "fp16")
+        self.assertEqual(export.bundle_layout(name), sorted([
+            f"{name}.aimodel/main.hash", f"{name}.aimodel/main.mlirb", f"{name}.aimodel/metadata.json", "metadata.json",
+            "tokenizer/chat_template.jinja", "tokenizer/tokenizer.json", "tokenizer/tokenizer_config.json"]))
+
+        def without(relative):
+            return lambda record: record["bundle"]["files"].pop(relative.format(name=name))
+
+        def extra(record):
+            record["bundle"]["files"]["notes.txt"] = {"bytes": 1, "sha256": "0" * 64}
+
+        def renamed(record):
+            files = record["bundle"]["files"]
+            record["bundle"].update(name=f"{name}_copy", files={key.replace(name, f"{name}_copy"): value
+                                                                for key, value in files.items()})
+
+        cases = {"a recorded name other than that of its files": lambda record: record["bundle"].update(name=f"{name}_copy"),
+                 "no main.mlirb": without("{name}.aimodel/main.mlirb"), "no main.hash": without("{name}.aimodel/main.hash"),
+                 "no metadata.json of the asset": without("{name}.aimodel/metadata.json"),
+                 "no metadata.json of the bundle": without("metadata.json"),
+                 "no tokenizer.json": without("tokenizer/tokenizer.json"), "an extra file": extra,
+                 "another name": renamed}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(problems(change))
+        self.assertEqual(problems(), [])
 
     def test_main_returns_logits_first_then_the_final_norm_output_and_the_taps_and_prefill_only_the_taps(self):
         for layers, taps in ((6, (1, 2, 3, 4, 5)), (6, (6,)), (60, (1, 17, 29, 47, 59))):
@@ -276,6 +310,7 @@ def quantized(functions=BOTH):
     record["asset"].update(storage_types=dict(QUANTIZED_STORAGE),
                            dequantizations={BOTH: DEQUANTIZATIONS, ("main",): 41}[functions])
     record["metadata"] = export.metadata(CONTRACT, export.name_of(6, functions, "8bit"), 16896, "8bit", TAPS)
+    record["bundle"] = bundle_of(export.name_of(6, functions, "8bit"))
     return record
 
 

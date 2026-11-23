@@ -19,12 +19,13 @@ from Tools.Conversion.adapters.gemma4_31b import export, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, read_json, write_json
-from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
+from Tools.Conversion.tests.test_gemma4_31b_layers import (BUNDLE_DEFECTS, MAIN_ASSET, TEXT, complete_export,
+                                                            write_contract)
 
 ENGINE = Path(__file__).resolve().parents[3] / "CoreAISamplesKit/Sources/CoreAIBackend/Engine.swift"
 LOGITS = Path(__file__).resolve().parents[3] / "Tools/Verify/Sources/coreai-verify/PositionLogits.swift"
 VOCABULARY = TEXT["vocab_size"]
-MAIN_HASH = "ab" * 32
+MAIN_HASH = hashlib.sha256(MAIN_ASSET).hexdigest()
 FAKE = """#!{python}
 import hashlib, json, sys, time
 from pathlib import Path
@@ -215,7 +216,10 @@ class CompareTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
-        files = dict.fromkeys(TOKENIZER_FILES, {"bytes": 1, "sha256": "0" * 64})
+        (self.folder / "snapshot").mkdir()
+        for index, item in enumerate(TOKENIZER_FILES):
+            (self.folder / "snapshot" / item).write_text("abc"[index])
+        files = {item: {"bytes": 1, "sha256": sha256(self.folder / "snapshot" / item)} for item in TOKENIZER_FILES}
         self.contract = write_contract(self.folder, files)
         self.config = load_contract(self.contract)["config"]
         self.kinds = layers.check_layers(self.config, 6)
@@ -235,19 +239,7 @@ class CompareTests(unittest.TestCase):
                                                      "layers": 6, "layer_types": self.kinds, "chunk": 1024,
                                                      "weights": layers.WEIGHTS, "model": model_record(self.contract),
                                                      "inputs": inputs})
-        self.export = self.folder / "export"
-        bundle = self.export / export.BUNDLE
-        (bundle / "asset.aimodel").mkdir(parents=True)
-        (bundle / "asset.aimodel/main.hash").write_bytes(bytes.fromhex(MAIN_HASH))
-        (bundle / "metadata.json").write_text("{}")
-        recorded = {path.relative_to(bundle).as_posix(): {"bytes": path.stat().st_size, "sha256": sha256(path)}
-                    for path in sorted(bundle.rglob("*")) if path.is_file()}
-        write_json(self.export / "export.json", {"schema": export.SCHEMA, "passed": True, "problems": [], "layers": 6,
-                                                 "layer_types": self.kinds, "functions": ["main", "prefill"],
-                                                 "precision": "float16", "model": model_record(self.contract),
-                                                 "metadata": {"tap_layers": [1, 2, 3, 4, 5]},
-                                                 "bundle": {"folder": export.BUNDLE, "name": "asset",
-                                                            "main_hash": MAIN_HASH, "files": recorded}})
+        self.export = complete_export(self.folder / "export", self.contract)
         self.verifier = self.folder / "verifier"
         self.calls = self.folder / "calls.txt"
 
@@ -504,14 +496,16 @@ class CompareTests(unittest.TestCase):
                 self.assertFalse(self.calls.exists())
 
     def quantized(self, **changes):
+        shutil.rmtree(self.export)
+        self.export.mkdir()
         tensors = self.export / layers.QUANTIZED
         tensors.write_bytes(b"quantized tensors")
         entry = {"bytes": tensors.stat().st_size, "sha256": sha256(tensors)}
         names = sorted(export.quantized_names(self.kinds))
         weights = [{"name": name, "class": "Dequantize", "shape": None, **export.LAYOUT} for name in names]
         digests = {f"{name}.{part}": "1" * 64 for name in names for part in layers.PARTS}
-        edit(self.export / "export.json", lambda record: record.update(
-            precision="8bit", quantized={"layers": weights, "file": entry, "tensors": digests}, **changes))
+        complete_export(self.export, self.contract, "8bit", quantized={
+            "layers": weights, "skipped": 0, "warnings_enabled": True, "file": entry, "tensors": digests}, **changes)
         edit(self.reference / "record.json", lambda record: record.update(
             weights=layers.RESTORED, quantized={"export_sha256": sha256(self.export / "export.json"), "file": entry,
                                                 "tensors": 3 * len(names)}))
@@ -577,15 +571,15 @@ class CompareTests(unittest.TestCase):
                          tensors=float(record["quantized"]["tensors"]))))}
         for label, (eight_bit, change) in cases.items():
             with self.subTest(case=label):
-                backups = {path: path.read_bytes() for path in (self.reference / "record.json", self.export / "export.json")}
+                backup = (self.reference / "record.json").read_bytes()
                 if eight_bit:
                     self.quantized()
                 change()
                 self.calls.unlink(missing_ok=True)
                 result = self.run_compare(label=label.replace(" ", "-"))
-                for path, data in backups.items():
-                    path.write_bytes(data)
-                tensors.unlink(missing_ok=True)
+                (self.reference / "record.json").write_bytes(backup)
+                shutil.rmtree(self.export)
+                complete_export(self.export, self.contract)
                 self.assertEqual(read_json(self.folder / label.replace(" ", "-") / "comparison.json"), result)
                 self.assertFalse(result["passed"])
                 self.assertTrue(result["problems"])
@@ -599,8 +593,24 @@ class CompareTests(unittest.TestCase):
         result = self.run_compare(label="problem-only")
         self.assertEqual(read_json(self.folder / "problem-only/comparison.json"), result)
         self.assertEqual((result["problems"], result["conditions"]),
-                         (["the export did not record exactly the quantized Linear weights of its layers in blocks of "
-                           "[1, 32]", "the quantized tensors of the export differ from its record"], []))
+                         (["the export record does not hold a complete inspection of its asset",
+                           "the export did not record the tensors of exactly the quantized Linear weights of its layers",
+                           "the quantized tensors of the export differ from its record"], []))
+
+    def test_an_export_whose_bundle_or_record_is_not_complete_or_not_of_the_contract_is_not_compared(self):
+        original = self.export
+        for index, (label, change) in enumerate(BUNDLE_DEFECTS.items()):
+            with self.subTest(case=label):
+                self.export = complete_export(self.folder / f"defect-{index}", self.contract)
+                change(self.export)
+                self.calls.unlink(missing_ok=True)
+                result = self.run_compare(label=f"defect-{index}-out")
+                self.export = original
+                self.assertEqual(read_json(self.folder / f"defect-{index}-out" / "comparison.json"), result)
+                self.assertFalse(result["passed"])
+                self.assertTrue(result["problems"])
+                self.assertEqual(result["conditions"], [])
+                self.assertFalse(self.calls.exists())
 
     def test_the_export_reader_names_each_defect_of_the_record_and_of_its_folder(self):
         contract = load_contract(self.contract)
@@ -636,10 +646,8 @@ class CompareTests(unittest.TestCase):
 
     def test_an_export_folder_that_did_not_finish_stops_before_the_verifier_runs(self):
         def recorded_as_true():
-            path = self.export / export.BUNDLE / "one.txt"
-            path.write_text("1")
-            edit(self.export / "export.json", lambda record: record["bundle"]["files"].update(
-                {"one.txt": {"bytes": True, "sha256": sha256(path)}}))
+            edit(self.export / "export.json", lambda record: record["bundle"]["files"]["tokenizer/tokenizer.json"].update(
+                bytes=True))
 
         failure = {"schema": export.SCHEMA, "passed": False, "error": "OSError"}
         cases = {"the last rename failed": lambda: (
@@ -647,7 +655,7 @@ class CompareTests(unittest.TestCase):
                      write_json(self.export / "failure.json", failure)),
                  "a failure record next to the bundle": lambda: write_json(self.export / "failure.json", failure),
                  "an unfinished bundle next to the bundle": lambda: (self.export / export.INCOMPLETE).mkdir(),
-                 "a bundle file recorded with a size of true": recorded_as_true}
+                 "a tokenizer file recorded with a size of true": recorded_as_true}
         original = self.export
         for index, (label, change) in enumerate(cases.items()):
             with self.subTest(case=label):

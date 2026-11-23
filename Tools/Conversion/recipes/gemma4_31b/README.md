@@ -451,7 +451,10 @@ the asset has exactly the functions asked for, with the inputs, outputs and stat
 contract and the tap layers give and the sequence as their only dynamic dimension, `main` returns `logits`,
 `hidden_states` and `tap_hidden_states` in this order (`output_order` in `export.json`), the tokenizer files match the
 contract and `metadata.json` the contract and the arguments, including `tap_layers`, the tap layers, and
-`tap_convention`, `layers-passed:before-final-norm:ascending`, and the volume kept 60 GiB free. The step stages `main`
+`tap_convention`, `layers-passed:before-final-norm:ascending`, the bundle holds exactly the files of a complete bundle
+(`bundle_layout`: `main.mlirb`, `main.hash` and `metadata.json` of the asset, `metadata.json` and the three tokenizer
+files) under the name that the layers, the functions and the precision give, and the volume kept 60 GiB free. The step
+stages `main`
 and `prefill` with the steps that `export_to_coreai` of the converter takes for an eager model, through its
 non-public `_build_reference_inputs`, because that function passes no output name for `prefill`, whose output would
 then take the name of a graph node. The storage counts are totals over the
@@ -586,13 +589,18 @@ converter environment.
 
 `layers.py context --weights 8bit --export <the export folder of the step>` writes the reference of the comparison with
 the weights that the export quantized. It reads the export with `load_export` of `native.py`, the one definition of an
-export that may be used, which the comparison below also applies: the bundle under its final name with exactly the
-files of the record and their sizes and SHA-256, no `failure.json` and no `bundle.incomplete` next to it, `passed` the
-JSON true and no problem, the schema, the contract, the layers, the function layout, the precision and the tap layers
-checked by type (a boolean is not taken for a number), and for 8 bits exactly the Linear weights of the layers as uint8
-with float16 scales and minimums in blocks of [1, 32] and no zero point, their tensors, and the size and SHA-256 of
-`quantized.safetensors`. Before it creates its folder, it also checks each tensor against its SHA-256 in `export.json`,
-its weight against the shape in the checkpoint and its scales and minimums against exactly [rows, columns / 32]. It
+export that may be used, which the comparison below also applies: a bundle that holds exactly the files of a complete
+bundle (`bundle_layout` of `export.py`) under the name that its layers, functions and precision give, with the sizes
+and SHA-256 of its record, the tokenizer files of the contract, `metadata.json` built from the contract and the record,
+`main.hash` the SHA-256 of `main.mlirb` and the size of the bundle the sum of its files, each file of the bundle a
+regular file read only when its size is that of its record; `quantized.safetensors` no symbolic link; no `failure.json`
+and no `bundle.incomplete` next to it; `passed` the JSON true and no problem; the schema, the contract, the layers, the
+function layout, the precision and the tap layers checked by type (a boolean is not taken for a number); the inspection
+of the export step run again on the record (`check_asset`); and for 8 bits exactly the Linear weights of the layers as
+uint8 with float16 scales and minimums in blocks of [1, 32] and no zero point, their tensors, and the size and SHA-256
+of `quantized.safetensors`. Before it creates its folder, it also checks each tensor against its SHA-256 in
+`export.json`, its weight against the shape in the checkpoint and its scales and minimums against exactly
+[rows, columns / 32]. It
 then restores each weight as uint8 × scale + minimum with the blocks widened to the weight and each operation rounded to
 float16 (the dequantization of the converter), and puts it into the original implementation in
 float32. The other tensors are rounded to float16 as with `--weights float16`. `record.json` records the kind of the
