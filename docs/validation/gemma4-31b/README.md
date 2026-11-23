@@ -724,11 +724,11 @@ folders and arrays stay in the local work directory.
 ### Conditions
 
 - Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power. The runs of both drafters, the
-  comparison and the accepted drafts held the shared machine lock in one session (2026-11-23 17:53:33 to 18:03:34 JST),
+  comparison and the accepted drafts held the shared machine lock in one session (2026-11-23 19:24:00 to 19:34:18 JST),
   the export in an earlier one (14:30:08 to 14:41:56 JST), and no other model process ran; the times below are records,
   not measurements.
-- Commit e21b2afe with no local changes; the export at commit 15d35fd8, whose drafter class, synthetic configuration
-  and export function are those of e21b2afe. The reference environment of the recipe (torch 2.15.0,
+- Commit 977309b1 with no local changes; the export at commit 15d35fd8, whose drafter class, synthetic configuration
+  and export function are those of 977309b1. The reference environment of the recipe (torch 2.15.0,
   transformers 5.16.1) ran the original drafter and the comparison; the converter environment (torch 2.9.0, transformers
   5.12.1, coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-models at `upstream_revision`) ran the class, the accepted
   drafts and the export.
@@ -773,8 +773,8 @@ and of the shard with the embedding table, `subset.json` and the features of the
 the fixed selection and seven steps. At all 47 rows the argmax was the same, the unrolled drafts of seven steps were
 those of one step repeated seven times, and the unrolled drafts cut after the first stop token were the drafts of the
 original generator. `ja-choice-0001` has one output token, so its four anchors are one. The run of the original drafter
-took 28.9 s (6.7 s after the files to read were hashed), that of the class 40.4 s (18.9 s); kernel lifetime footprint
-peak 28,488,061,760 B and 31,656,647,672 B.
+took 28.7 s (7.0 s after the files to read were hashed), that of the class 39.1 s (19.4 s); kernel lifetime footprint
+peak 28,484,473,640 B and 31,658,892,304 B.
 
 ### Accepted drafts on the teacher path
 
@@ -804,8 +804,8 @@ At 21 anchors the number of accepted drafts differs from the records of #691; at
 top-two logit margin that #691 recorded in BF16 was at most 0.125 (0.0 at two anchors). These are records, not criteria.
 The accepted counts of the records of #691, computed again from their drafts and the reference outputs, equal the
 recorded ones at all 4,462 anchors, and the tokens per round of `trajectories.json` are its tokens over its rounds
-rounded to four places in all 14 rows. The run took 529.7 s (505 s of drafting); kernel lifetime footprint peak
-60,468,342,248 B.
+rounded to four places in all 14 rows. The run took 548.3 s (525 s of drafting); kernel lifetime footprint peak
+65,812,085,752 B.
 
 ### Export of a synthetic drafter
 
@@ -839,8 +839,8 @@ weight of `post_projection`, whose output one step does not read. The counts are
 
 | File | SHA-256 |
 |---|---|
-| `record.json` of the run of the original drafter | `4839568843e26824a9699b4959566ca6d5f0da27b943cb9e5d89454c95d17a1c` |
-| `record.json` of the run of the class | `7d8a3daf1842446b6388897cd7d02131d47bbf6333b84f02ed10a6134a4d2a98` |
+| `record.json` of the run of the original drafter | `8c87bd62f3fe96c42a813b23061ca6c86233383bce15faa9f1fad89ff20d2b80` |
+| `record.json` of the run of the class | `04ea4763d7c026894a0f723644b716e95a5e3342331147781309d8a0ef0503c6` |
 | `subset.json` of #691 | `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9` |
 
 ~~~sh
