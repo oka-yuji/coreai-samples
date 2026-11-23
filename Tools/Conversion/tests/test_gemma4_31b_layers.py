@@ -748,6 +748,8 @@ class RestoredReferenceTests(unittest.TestCase):
                      "a weight of another shape": ({**tensors, f"{name}.quantized_data": tensors[
                          f"{name}.quantized_data"][:, :32].contiguous(), f"{name}.scale": tensors[f"{name}.scale"][:, :1]
                          .contiguous(), f"{name}.minval": tensors[f"{name}.minval"][:, :1].contiguous()}, None),
+                     "data of another shape with the scales of the weight": ({**tensors, f"{name}.quantized_data": tensors[
+                         f"{name}.quantized_data"][:, :32].contiguous()}, None),
                      "scales of another type": ({**tensors, f"{name}.scale": tensors[f"{name}.scale"].float()}, None),
                      "another precision": (tensors, lambda target: record_of(target, lambda record: record.update(
                          precision="float16"))),
