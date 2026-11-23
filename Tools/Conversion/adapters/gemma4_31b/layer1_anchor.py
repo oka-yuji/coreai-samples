@@ -86,7 +86,8 @@ def rounded(model):
 
 
 def restore_into(model, restored, device):
-    for name, parts in restored.items():
+    while restored:
+        name, parts = restored.popitem()
         model.get_parameter(layers.PREFIX + name.removeprefix("model.")).data = layers.restore(*parts).to(device)
 
 
