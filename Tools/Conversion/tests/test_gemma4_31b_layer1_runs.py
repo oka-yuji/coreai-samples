@@ -565,6 +565,15 @@ class CandidateRunTests(unittest.TestCase):
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual((result["role"], read_json(self.folder / "w8/logits.json")["role"]), ("w8", "w8"))
 
+    @unittest.skipIf(not GEMMA4, "Transformers with Gemma 4 and PyTorch are required to write the quantized tensors")
+    def test_an_export_of_a_precision_without_a_role_is_refused_before_anything_is_written_or_launched(self):
+        self.export = write_export(self.folder / "export-8bit", self.contract,
+                                   quantized_tensors({**TEXT, "hidden_size": 64}), context=64)
+        with mock.patch.dict(layer1_candidate.ROLES, {"float16": "fp16"}, clear=True), \
+                self.assertRaisesRegex(ValueError, "no role is known for the precision '8bit'"):
+            self.run_candidate(main_hash=bytes(32).hex(), output="unknown")
+        self.assertFalse((self.folder / "unknown").exists() or self.launches.exists())
+
     def test_a_stopped_run_still_records_the_items_that_were_read(self):
         attempted = layer1_candidate.attempted
         calls = []
