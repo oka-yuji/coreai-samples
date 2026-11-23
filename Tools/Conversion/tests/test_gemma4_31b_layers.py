@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -753,6 +754,11 @@ BUNDLE_DEFECTS = {
     "a tokenizer file of other content under a matching record": rewritten("tokenizer/tokenizer.json", b"{}"),
     "a metadata.json of the bundle of other content under a matching record": rewritten("metadata.json", b'{"name": "x"}'),
     "a main.mlirb that main.hash does not hash under a matching record": rewritten("{name}.aimodel/main.mlirb", b"other"),
+    "the bundle folder as a link": linked(export.BUNDLE),
+    "the asset folder as a link": linked(export.BUNDLE + "/{name}.aimodel"),
+    "the tokenizer folder as a link": linked(export.BUNDLE + "/tokenizer"),
+    "export.json as a link": linked("export.json"),
+    "a tokenizer file of the bundle as a link": linked(export.BUNDLE + "/tokenizer/tokenizer.json"),
     "a bundle size other than the sum of its files": changed(lambda record: record["bundle"].update(
         bytes=record["bundle"]["bytes"] + 1)),
     "an asset of other outputs": changed(lambda record: record["asset"]["output_order"].update(main=["logits"]))}
@@ -999,6 +1005,39 @@ class RestoredReferenceTests(unittest.TestCase):
                             mock.patch.object(layers, "original_model", wraps=layers.original_model) as load:
                         layers.context(contract, snapshot, 6, output, "8bit", target)
                     load.assert_not_called()
+                    self.assertFalse(os.path.lexists(output))
+
+    def test_a_restored_reference_does_not_wait_on_a_checkpoint_file_or_an_export_record_that_is_a_pipe(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            for index, relative in enumerate(("model.safetensors.index.json", SHARD, "export.json")):
+                target = write_export(folder / f"export-{index}", contract, tensors)
+                path = target / relative if relative == "export.json" else snapshot / relative
+                saved = folder / f"saved-{index}"
+                shutil.move(path, saved)
+                os.mkfifo(path)
+                output, outcome = folder / f"restored-{index}", {}
+
+                def run():
+                    try:
+                        layers.context(contract, snapshot, 6, output, "8bit", target)
+                    except BaseException as error:
+                        outcome["error"] = error
+
+                thread = threading.Thread(target=run, daemon=True)
+                thread.start()
+                thread.join(5)
+                waited = thread.is_alive()
+                if waited:
+                    os.close(os.open(path, os.O_WRONLY | os.O_NONBLOCK))
+                    thread.join(5)
+                path.unlink()
+                shutil.move(saved, path)
+                with self.subTest(file=relative):
+                    self.assertFalse(waited)
+                    self.assertIsInstance(outcome.get("error"), ValueError)
                     self.assertFalse(os.path.lexists(output))
 
     def test_a_restored_reference_refuses_scales_and_minimums_in_blocks_other_than_32(self):

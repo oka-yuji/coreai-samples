@@ -8,10 +8,11 @@ from pathlib import Path
 import random
 import re
 import resource
+import stat
 import sys
 import time
 
-from ...storage import digest, read_json, write_json
+from ...storage import PipelineError, digest, read_json, write_json
 from ..pinned import sha256
 from .compare import BLOCK_ROWS, CONTRACT, recorded
 from .prepare import load_contract
@@ -224,7 +225,10 @@ def restore(data, scale, minval):
 def quantized_export(folder, contract, contract_path, kinds):
     from .native import load_export
 
-    record, hashed, _, problems = load_export(folder, contract, contract_path)
+    try:
+        record, hashed, _, problems = load_export(folder, contract, contract_path)
+    except (OSError, PipelineError) as error:
+        raise ValueError(f"The export cannot be read ({type(error).__name__})") from error
     if not problems and (record["precision"], record["layers"]) != ("8bit", len(kinds)):
         problems = ["the export is not an 8-bit export of these layers"]
     if problems:
@@ -232,9 +236,18 @@ def quantized_export(folder, contract, contract_path, kinds):
     return {"export_sha256": hashed, "file": record["quantized"]["file"]}, record["quantized"]["tensors"]
 
 
+def regular(path):
+    try:
+        return stat.S_ISREG(os.lstat(path).st_mode)
+    except OSError:
+        return False
+
+
 def checkpoint_shapes(snapshot, names):
     from safetensors import safe_open
 
+    if not regular(Path(snapshot) / "model.safetensors.index.json"):
+        raise ValueError("The checkpoint index is not a regular file")
     index, files = read_json(Path(snapshot) / "model.safetensors.index.json"), {}
     weight_map = index.get("weight_map") if isinstance(index, dict) else None
     if not isinstance(weight_map, dict):
@@ -246,6 +259,8 @@ def checkpoint_shapes(snapshot, names):
         files.setdefault(weight_map[key], []).append((name, key))
     shapes = {}
     for file, items in sorted(files.items()):
+        if not regular(Path(snapshot) / file):
+            raise ValueError(f"The checkpoint file {file} is not a regular file")
         with safe_open(str(Path(snapshot) / file), framework="pt") as handle:
             for name, key in items:
                 shapes[name] = list(handle.get_slice(key).get_shape())

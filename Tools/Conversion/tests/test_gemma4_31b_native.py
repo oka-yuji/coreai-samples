@@ -1,4 +1,6 @@
+import contextlib
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -6,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest import mock
@@ -73,6 +76,60 @@ for old, new in change.get("replace", []):
 print(change.get("stdout", text))
 sys.exit(change.get("exit", 0))
 """
+
+
+def bounded(call, seconds=5):
+    outcome = {}
+
+    def run():
+        try:
+            outcome["value"] = call()
+        except BaseException as error:
+            outcome["error"] = error
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    return thread, outcome
+
+
+def release(path, thread):
+    waited = thread.is_alive()
+    if waited:
+        try:
+            os.close(os.open(path, os.O_WRONLY | os.O_NONBLOCK))
+        except OSError:
+            pass
+        thread.join(5)
+    return waited
+
+
+OPEN = io.open
+
+
+@contextlib.contextmanager
+def watched():
+    reads = []
+
+    def opener(file, *arguments, **options):
+        handle = OPEN(file, *arguments, **options)
+        status = os.fstat(handle.fileno())
+        original = handle.read
+
+        def read(*sizes):
+            reads.append((status.st_dev, status.st_ino))
+            return original(*sizes)
+
+        handle.read = read
+        return handle
+
+    with mock.patch("builtins.open", new=opener), mock.patch("io.open", new=opener):
+        yield reads
+
+
+def inode(path):
+    status = os.stat(path)
+    return status.st_dev, status.st_ino
 
 
 def model_record(contract):
@@ -611,6 +668,65 @@ class CompareTests(unittest.TestCase):
                 self.assertTrue(result["problems"])
                 self.assertEqual(result["conditions"], [])
                 self.assertFalse(self.calls.exists())
+
+    def test_the_reader_does_not_wait_on_a_pipe_and_does_not_read_a_file_of_another_size(self):
+        contract = load_contract(self.contract)
+        name = read_json(self.export / "export.json")["bundle"]["name"]
+
+        def piped(relative):
+            def change(folder):
+                path = folder / relative
+                shutil.rmtree(path) if path.is_dir() and not path.is_symlink() else path.unlink()
+                os.mkfifo(path)
+                return path
+            return change
+
+        def folder_instead(folder):
+            (folder / "export.json").unlink()
+            (folder / "export.json").mkdir()
+            return folder / "export.json"
+
+        def resized(change):
+            def apply(folder):
+                edit(folder / "export.json", change)
+                return None
+            return apply
+
+        def quantized_resized(folder):
+            edit(folder / "export.json", lambda record: record["quantized"]["file"].update(
+                bytes=record["quantized"]["file"]["bytes"] + 1))
+            return None
+
+        unreadable = {"export.json as a pipe": (False, piped("export.json")), "export.json as a folder": (False, folder_instead)}
+        refused = {"main.mlirb as a pipe": (False, piped(f"bundle/{name}.aimodel/main.mlirb"), None),
+                   "main.mlirb of another size than its record": (False, resized(lambda record: record["bundle"]["files"][
+                       f"{name}.aimodel/main.mlirb"].update(bytes=len(MAIN_ASSET) + 1)), f"bundle/{name}.aimodel/main.mlirb"),
+                   "main.hash as a pipe": (False, piped(f"bundle/{name}.aimodel/main.hash"), None),
+                   "quantized tensors as a pipe": (True, piped(layers.QUANTIZED), None),
+                   "quantized tensors of another size than their record": (True, quantized_resized, layers.QUANTIZED)}
+        for index, (label, (eight_bit, change)) in enumerate(unreadable.items()):
+            folder = self.folder / f"unreadable-{index}"
+            shutil.copytree(self.export, folder)
+            path = change(folder)
+            with self.subTest(case=label):
+                thread, outcome = bounded(lambda: native.load_export(folder, contract, self.contract))
+                self.assertFalse(release(path, thread))
+                self.assertIsInstance(outcome.get("error"), (OSError, ValueError))
+        for index, (label, (eight_bit, change, unread)) in enumerate(refused.items()):
+            if eight_bit:
+                self.quantized()
+            folder = self.folder / f"refused-{index}"
+            shutil.copytree(self.export, folder)
+            path = change(folder)
+            with self.subTest(case=label), watched() as reads:
+                thread, outcome = bounded(lambda: native.load_export(folder, contract, self.contract))
+                self.assertFalse(release(path, thread) if path else thread.is_alive())
+                self.assertTrue(outcome["value"][3])
+                if unread:
+                    self.assertNotIn(inode(folder / unread), reads)
+            if eight_bit:
+                shutil.rmtree(self.export)
+                complete_export(self.export, self.contract)
 
     def test_the_export_reader_names_each_defect_of_the_record_and_of_its_folder(self):
         contract = load_contract(self.contract)

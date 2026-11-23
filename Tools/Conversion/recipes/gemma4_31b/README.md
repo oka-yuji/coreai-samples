@@ -592,15 +592,16 @@ the weights that the export quantized. It reads the export with `load_export` of
 export that may be used, which the comparison below also applies: a bundle that holds exactly the files of a complete
 bundle (`bundle_layout` of `export.py`) under the name that its layers, functions and precision give, with the sizes
 and SHA-256 of its record, the tokenizer files of the contract, `metadata.json` built from the contract and the record,
-`main.hash` the SHA-256 of `main.mlirb` and the size of the bundle the sum of its files, each file of the bundle a
-regular file read only when its size is that of its record; `quantized.safetensors` no symbolic link; no `failure.json`
-and no `bundle.incomplete` next to it; `passed` the JSON true and no problem; the schema, the contract, the layers, the
-function layout, the precision and the tap layers checked by type (a boolean is not taken for a number); the inspection
-of the export step run again on the record (`check_asset`); and for 8 bits exactly the Linear weights of the layers as
-uint8 with float16 scales and minimums in blocks of [1, 32] and no zero point, their tensors, and the size and SHA-256
-of `quantized.safetensors`. Before it creates its folder, it also checks each tensor against its SHA-256 in
-`export.json`, its weight against the shape in the checkpoint and its scales and minimums against exactly
-[rows, columns / 32]. It
+`main.hash` the SHA-256 of `main.mlirb` and the size of the bundle the sum of its files; the bundle, its asset and its
+tokenizer folder real folders, and `export.json`, every file of the bundle and `quantized.safetensors` regular files, not
+symbolic links or pipes, each opened without waiting and read only when its size is that of its record; no
+`failure.json` and no `bundle.incomplete` next to it; `passed` the JSON true and no problem; the schema, the contract,
+the layers, the function layout, the precision and the tap layers checked by type (a boolean is not taken for a
+number); the inspection of the export step run again on the record (`check_asset`); and for 8 bits exactly the Linear
+weights of the layers as uint8 with float16 scales and minimums in blocks of [1, 32] and no zero point, their tensors,
+and the size and SHA-256 of `quantized.safetensors`. Before it creates its folder, it also checks each tensor against
+its SHA-256 in `export.json`, its weight against the shape in the checkpoint, whose index and files must be regular
+files, and its scales and minimums against exactly [rows, columns / 32]. It
 then restores each weight as uint8 × scale + minimum with the blocks widened to the weight and each operation rounded to
 float16 (the dequantization of the converter), and puts it into the original implementation in
 float32. The other tensors are rounded to float16 as with `--weights float16`. `record.json` records the kind of the

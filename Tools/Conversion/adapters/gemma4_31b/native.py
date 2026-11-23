@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 
-from ...storage import PipelineError, canonical, digest, file_hash, write_json
+from ...storage import PipelineError, canonical, digest, write_json
 from ..pinned import sha256
 from .anchor import parse, read
 from .compare import BLOCK_ROWS, CONTRACT
@@ -218,7 +218,8 @@ def arguments(record, contract):
 
 def load_export(folder, contract, contract_path):
     path = folder / "export.json"
-    record, hashed, _ = read(path)
+    entry, data = regular_file(path, keep=True)
+    record, hashed = parse(data), entry["sha256"]
     recorded = (record.get("bundle") or {}) if isinstance(record, dict) else None
     if not isinstance(recorded, dict) or not isinstance(recorded.get("files") or {}, dict):
         raise ValueError("The export record and its bundle record must be objects")
@@ -243,6 +244,9 @@ def load_export(folder, contract, contract_path):
             problems += check_asset(record, contract, *shape)
         except (AttributeError, KeyError, TypeError, ValueError):
             problems.append("the export record does not hold a complete inspection of its asset")
+    folders = [bundle, bundle / "tokenizer", *([] if name is None else [bundle / f"{name}.aimodel"])]
+    if not bundle.is_dir() or any(item.is_symlink() for item in folders):
+        problems.append("the bundle, its asset or its tokenizer folder is not a real folder")
     present = {path.relative_to(bundle).as_posix() for path in bundle.rglob("*") if path.is_symlink() or not path.is_dir()}
     hashes, contents, main = {}, {}, f"{recorded.get('name')}.aimodel/main.hash"
     if recorded.get("folder") != BUNDLE or present != set(files):
@@ -284,7 +288,11 @@ def load_export(folder, contract, contract_path):
         if not recorded_tensors(record, contract):
             problems.append("the export did not record the tensors of exactly the quantized Linear weights of its layers")
         quantized, tensors = quantized_entry(record), folder / QUANTIZED
-        if quantized is None or tensors.is_symlink() or not tensors.is_file() or file_hash(tensors) != quantized["file"]:
+        try:
+            found = None if quantized is None else regular_file(tensors, quantized["file"]["bytes"])[0]
+        except (OSError, ValueError):
+            found = None
+        if found is None or found != quantized["file"]:
             problems.append("the quantized tensors of the export differ from its record")
     facts = {"bundle": bundle, "main_hash": recorded.get("main_hash"), "prefill": "prefill" in (record.get("functions") or [])}
     return record, hashed, facts, problems
