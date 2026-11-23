@@ -200,14 +200,20 @@ environment, under the shared machine lock, which they do not take themselves.
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_anchor run \
   --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
-  --prepare <artifacts of the prepare step> --forced <forced folder> --layers <6, 12, ..., 60> --weights float16 \
-  [--items <id>,<id>,...] --output <new folder>
+  --prepare <artifacts of the prepare step> --forced <forced folder> --layers <6, 12, ..., 60> \
+  --weights <float16 | 8bit> [--export <artifacts of the 8-bit export step>/export] [--items <id>,<id>,...] \
+  --output <new folder>
 ~~~
 
 It loads the first `--layers` layers, the final norm and the head in BF16 on MPS and computes every forced record as
 the [`anchor` step](#fp32-anchor-and-fp16-diagnostics) does: float32 compute, each unit's weights replaced while it runs, attention in blocks of 512 query
 rows and the embedding scale 73.5. With `--weights float16` the weights are the loaded tensors cast to float16 and back.
-Only the scored rows (`rows` rows from `start`) reach the head. `--items` runs only the named items, in that order.
+With `--weights 8bit` and `--export`, the quantized Linear weights are restored from the quantized tensors of that 8-bit
+export with the functions of the restored reference of `layers.py` (`quantized_export`, which takes only an export that
+`load_export` of `native.py` accepts, `quantized_weights` and `restore`), and the other tensors are rounded as with
+`float16`; `weights` then names the SHA-256 of the quantized tensors and of `export.json`, and `run.json` records them
+under `quantized`. Only the scored rows (`rows` rows from `start`) reach the head. `--items` runs only the named items,
+in that order.
 
 | File | Contents |
 |---|---|
@@ -216,7 +222,8 @@ Only the scored rows (`rows` rows from `start`) reach the head. `--items` runs o
 | `logits.json` | Written only when the run passed: role `anchor`, `weights`, `forced_sha256` and one entry per item |
 | `monitor.tsv`, `failure.json` | The monitor of `reference` and its record of a stop |
 
-`passed` is true only when every check in `run.json` is. `AnchorRunTests` fixes the records and the refusals.
+`passed` is true only when every check in `run.json` is. `AnchorRunTests` and `RestoredRunTests` fix the records and
+the refusals.
 
 `layer1_anchor agreement` takes the same options without `--weights` and with `--items` required, and writes
 `run.json` without array files or `logits.json`. It computes the scored rows of the items as `run` does with
@@ -239,8 +246,8 @@ MPS, so its logits carry the difference between MPS and the CPU; on the first si
 
 It launches `coreai-verify logits --model <bundle> --tokens <id>.tokens.json --start <start> --chunk 1 --output
 <id>.f16` once per item: the tokens before `start` are read as the engine reads them, then the scored rows one token at a
-time. The role follows the precision of the export, `fp16` for `float16` and `w8` for `8bit`, and `weights` is the
-bundle name with its `main.hash`.
+time. It takes only an export that `load_export` of `native.py` accepts. The role follows the precision of the export,
+`fp16` for `float16` and `w8` for `8bit`, and `weights` is the bundle name with its `main.hash`.
 
 | File | Contents |
 |---|---|
