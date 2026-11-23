@@ -148,11 +148,12 @@ class ForcedInputTests(unittest.TestCase):
         vocabulary = TEXT["vocab_size"]
 
         def tokens(record, value):
-            record.update(tokens=value, tokens_sha256=tokens_sha256(value))
+            record.update(tokens=value, tokens_sha256=tokens_sha256(value),
+                          input_sha256=tokens_sha256(value[:record["input_tokens"]]))
 
         changes = {"a start of true": lambda record: record.update(start=True),
                    "rows as a float": lambda record: record.update(rows=float(record["rows"])),
-                   "a token outside the vocabulary": lambda record: tokens(record, record["tokens"][:-1] + [vocabulary]),
+                   "a token outside the vocabulary": lambda record: tokens(record, [2, vocabulary] + record["tokens"][2:]),
                    "a negative token": lambda record: tokens(record, [-1] + record["tokens"][1:]),
                    "a token of true": lambda record: tokens(record, [True] + record["tokens"][1:]),
                    "no targets": lambda record: record.pop("targets"),
