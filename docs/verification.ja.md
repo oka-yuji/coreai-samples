@@ -273,13 +273,18 @@ swift build -c release
 | `call_s` | 呼び出しごとの秒数(順) |
 | `repeat_identical`、`repeat_differing_calls` | どの呼び出しも最初の呼び出しと同じ出力を返したか。違った呼び出しの番号(2 から)。名前・型・形・byte のどれかが違えば違いです |
 
-出力のフォルダに最初にすることは、種類 `incomplete` の `failure.json` を書くことです。書けないときは、作ったフォルダを消し、理由を言って、モデルを読む前に止まります。そのあとは次のとおりです:
+出力のフォルダに最初にすることは、`failure.json` を書くことです。書けないときは、作ったフォルダを消します(消せなければ、そう言います)。そして理由を言って、モデルを読む前に止まります。中身は `{"kind": ..., "record": "function-failure"}` の 1 行だけです。`kind` は最初は `incomplete` で、実行の終わり方が分かった時点で、それを表す `kind` に書き直します。書き直せなかったときは `incomplete` のまま残り、process が止められるなど、跡を残さずに止まったときも `incomplete` が残ります。
 
-- 成功する実行は、`function.json` を書いてから `failure.json` を消します。消せないときは、実行が失敗します。
-- 最初の呼び出しと違う出力を返した呼び出しがあるときは、最後の呼び出しのファイルと、`repeat_identical` が偽の `function.json` を書き、`failure.json` を種類 `repeat_mismatch` のものに替え、記録を出して、終了コード 1 で終わります。
-- それ以外の失敗は、`failure.json` を種類 `load`(特殊化と関数の読み込み)・`call`・`write`(出力・記録・失敗の記録の除去の書き込み。断った出力の名前を含む)・`cancelled` のものに替え、誤りを投げ直します。task が取り消されたかは、関数を読む前、各呼び出しの前、出力を書く前に確かめます。替えること自体が失敗したとき(例えば容量が足りないとき)は、`failure.json` は種類 `incomplete` のまま残ります。
+| `kind` | 実行の終わり方 |
+|---|---|
+| `incomplete` | 上のとおり、書き直されなかった。 |
+| `load` | 特殊化、または関数の読み込みが失敗した。 |
+| `call` | 呼び出しが失敗した。 |
+| `write` | 出力か `function.json` の書き込み、または `failure.json` の除去が失敗した(断った出力の名前を含む)。 |
+| `cancelled` | task が取り消された。関数を読む前、各呼び出しの前、出力を書く前に確かめます。 |
+| `repeat_mismatch` | 最初の呼び出しと違う出力を返した呼び出しがあった。最後の呼び出しのファイルと、`repeat_identical` が偽の `function.json` を書き、記録を出して、終了コード 1 で終わります。 |
 
-決まりは 1 つです: 出力のフォルダに `failure.json` が在れば、その実行は成功していません。process が止められるなど、跡を残さずに止まった実行も、種類 `incomplete` を残します。中身は `{"kind": ..., "record": "function-failure"}` の 1 行だけです。
+`load`・`call`・`write`・`cancelled` は、その原因の誤りで終わります。成功する実行は、`function.json` を書いてから `failure.json` を消し、消せないときは実行が失敗します。決まりは 1 つです: 出力のフォルダに `failure.json` が在れば、その実行は成功していません。
 
 モデルの要らない確認は `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"` です。入力の一覧、関数の記述との照合、データのファイル、記録・失敗の記録・取消での停止を、モデルの代わりの偽の実装で確かめ、テンソルの変換を SDK の `NDArray` で確かめます。資産での実行は別の確認です。
 

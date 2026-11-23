@@ -274,13 +274,18 @@ The record is one JSON line with `record` set to `function`:
 | `call_s` | The seconds of each call, in order |
 | `repeat_identical`, `repeat_differing_calls` | Whether every call returned the outputs of the first call, and the numbers of the calls (from 2) whose name, dtype, shape or bytes differ from the first call's |
 
-The command writes `failure.json` with the kind `incomplete` as its first act on the output folder. When it cannot, it removes the folder that it made, says why and stops before it loads the model. Afterwards:
+The command writes `failure.json` as its first act on the output folder. When it cannot, it removes the folder that it made, or says that it could not remove it, and stops with the reason before it loads the model. The file is one JSON line, `{"kind": ..., "record": "function-failure"}`, and nothing else. Its `kind` starts as `incomplete`. As soon as the command knows how the run ends, it rewrites the file with the kind that says so. When it cannot rewrite it, `kind` stays `incomplete`; it also stays when the process is stopped without a trace, for example by a kill.
 
-- A run that succeeds writes `function.json` and then removes `failure.json`. When it cannot remove it, the run fails.
-- When a call returns outputs that differ from the first call's, the command writes the files of the last call and `function.json` with `repeat_identical` false, replaces `failure.json` with one of the kind `repeat_mismatch`, prints the record and ends with the exit code 1.
-- Any other failure replaces `failure.json` with one of the kind `load` (specialization or loading the function), `call`, `write` (the outputs, the record or the removal of the failure record, including a rejected output name) or `cancelled`, and throws the error again. The command checks whether its task was cancelled before it loads the function, before each call and before it writes the outputs. When the replacement itself fails, for example because the disk is full, `failure.json` keeps the kind `incomplete`.
+| `kind` | How the run ended |
+|---|---|
+| `incomplete` | The file was not rewritten, as above. |
+| `load` | Specialization or loading the function failed. |
+| `call` | A call failed. |
+| `write` | Writing the outputs or `function.json`, or removing `failure.json`, failed, including a rejected output name. |
+| `cancelled` | The task was cancelled. The command checks before it loads the function, before each call and before it writes the outputs. |
+| `repeat_mismatch` | A call returned outputs that differ from the first call's. The files of the last call and `function.json` (with `repeat_identical` false) are written, the record is printed and the exit code is 1. |
 
-So there is one rule: when `failure.json` is in the output folder, the run did not succeed. A run that is stopped without a trace, for example because its process is killed, also leaves the kind `incomplete`. The file is one JSON line, `{"kind": ..., "record": "function-failure"}`, and nothing else.
+`load`, `call`, `write` and `cancelled` end the command with the error that caused them. A run that succeeds writes `function.json` and then removes `failure.json`; when it cannot remove it, the run fails. So there is one rule: when `failure.json` is in the output folder, the run did not succeed.
 
 The model-free checks are `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"`. They check the inputs file, the comparison with the description of the function, the data files, the record, the failure record and the stop on cancellation with a fake in place of the model, and the conversion of tensors with the SDK's `NDArray`. A run on an asset is a separate check.
 
