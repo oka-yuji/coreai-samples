@@ -122,6 +122,10 @@ class SectionTests(unittest.TestCase):
         self.assertEqual([section["nearest"] for section in shifted], ["2", "3", "4"])
         self.assertFalse(any(section["checks"]["mixup"] for section in shifted))
         self.assertEqual(shifted[0]["below"][0][0], 7)
+        skipping = speculation.taps(np.concatenate([reference[:, 3:6], reference[:, 9:12]], axis=1), reference, [2, 4],
+                                    [1, 2, 3, 4], 3, 7)
+        self.assertEqual([section["layer"] for section in skipping], [2, 4])
+        self.assertTrue(all(all(section["checks"].values()) for section in skipping))
 
     def test_the_final_hidden_state_is_compared_with_the_final_norm_and_the_last_layer(self):
         generator = np.random.default_rng(1)
@@ -213,6 +217,14 @@ class CompareTests(unittest.TestCase):
         self.assertEqual((main["rows"], main["width"], main["non_finite"]), (1400, HIDDEN, 0))
         self.assertLess(main["ratio"], 1e-3)
         self.assertGreater(main["cosine"]["smallest"], 0.999)
+        norm, reference = (np.load(self.arrays["long"][output]).astype(np.float64) for output in speculation.OUTPUTS)
+        written = norm.astype(np.float16).astype(np.float64)
+        expected = float(np.square(written - reference[:, 5 * HIDDEN:]).sum())
+        self.assertAlmostEqual(main["squares"]["last_layer"], expected, delta=1e-9 * expected)
+        third = reference[:1100, 2 * HIDDEN:3 * HIDDEN].astype(np.float16).astype(np.float64)
+        self.assertAlmostEqual(taps["sections"][2]["squares"]["5"],
+                               float(np.square(third - reference[:1100, 4 * HIDDEN:5 * HIDDEN]).sum()),
+                               delta=1e-9 * taps["sections"][2]["squares"]["5"])
         self.assertEqual(result["criteria"], {"cosine_smallest": 0.99, "cosine_median": 0.999, "mixup_ratio": 0.5})
 
     def test_mixed_up_values_fail_the_mixup_check_of_their_output_and_section(self):
@@ -258,25 +270,46 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(self.failing(conditions["long-prefill"]), {"prefill.tap_hidden_states.finite"})
 
     def test_arrays_of_another_shape_fail_their_condition_and_the_comparison_is_saved(self):
-        cases = {"a file with a row less": ("short-c1", {"drop_rows": {"main.hidden_states": 1}}),
+        cases = {"a file with a row less": ("short-c1", {"drop_rows": {"main.hidden_states": 1}},
+                                            "the main.hidden_states file holds"),
                  "a recorded width of four layers": ("short-c8",
-                                                     {"outputs": {"main.tap_hidden_states": {"width": 4 * HIDDEN}}}),
+                                                     {"outputs": {"main.tap_hidden_states": {"width": 4 * HIDDEN}}},
+                                                     "the verifier recorded main tap_hidden_states of"),
                  "a recorded row count of the whole input": (
-                     "long-prefill", {"outputs": {"prefill.tap_hidden_states": {"rows": 1400}}}),
-                 "a missing output": ("long-main", {"drop_outputs": ["main.tap_hidden_states"]})}
-        for label, (name, change) in cases.items():
+                     "long-prefill", {"outputs": {"prefill.tap_hidden_states": {"rows": 1400}}},
+                     "the verifier recorded prefill tap_hidden_states of"),
+                 "a missing output": ("long-main", {"drop_outputs": ["main.tap_hidden_states"]},
+                                      "the verifier recorded the outputs")}
+        for label, (name, change, problem) in cases.items():
             with self.subTest(case=label):
                 folder = label.replace(" ", "-")
                 result = self.run_compare({name: change}, label=folder)
                 entry = self.conditions(result)[name]
                 self.assertFalse(result["passed"] or entry["passed"])
-                self.assertTrue(entry["problems"])
+                self.assertEqual(len(entry["problems"]), 1)
+                self.assertTrue(entry["problems"][0].startswith(problem), entry["problems"])
                 if label == "a file with a row less":
                     self.assertNotIn("main.hidden_states", entry["outputs"])
-                    self.assertTrue(entry["problems"][0].startswith("the main.hidden_states file holds"))
                 else:
                     self.assertEqual(entry["checks"], {})
                 self.assertEqual(read_json(self.folder / folder / "comparison.json"), result)
+
+    def test_an_output_entry_with_a_missing_key_a_flag_or_another_type_is_malformed(self):
+        entry = {"function": "main", "name": "hidden_states", "rows": 1, "width": 1, "sha256": "0" * 64}
+        record = {"record": "logits", "token_count": 1, "start": 0, "chunk": 1, "tokens_sha256": "x", "shape": [1, 1],
+                  "dtype": "float16", "byte_order": "little", "main_calls": 1, "main_hash": "x", "prefix_calls": 0,
+                  "prefix_chunk": 4096, "cached": True, "non_finite_count": 0, "load_s": 0.1, "prefix_s": 0,
+                  "scoring_s": 0.1, "scoring_call_s": 0.1, "specialize_s": 0}
+        kept, malformed = speculation.validated({**record, "outputs": [entry]})
+        self.assertEqual((malformed, kept["outputs"]), ([], [entry]))
+        for label, outputs in {"a flag as a row count": [{**entry, "rows": True}],
+                               "a flag as a width": [{**entry, "width": False}],
+                               "a number as a name": [{**entry, "name": 1}],
+                               "a missing hash": [{key: value for key, value in entry.items() if key != "sha256"}],
+                               "an extra key": [{**entry, "path": "x"}], "an object": {"0": entry}}.items():
+            with self.subTest(case=label):
+                self.assertEqual(speculation.validated({**record, "outputs": outputs})[1], ["outputs"])
+        self.assertEqual(speculation.validated(record)[1], ["outputs"])
 
     def test_a_verifier_record_or_file_that_differs_fails_only_its_condition(self):
         cases = {"another file hash": {"outputs": {"main.hidden_states": {"sha256": "0" * 64}}},
