@@ -690,6 +690,11 @@ class CompareTests(unittest.TestCase):
             self.assertFalse(result["passed"])
             self.assertIn("the original run holds another model than its fixed inputs give", result["problems"])
             self.assertIn("the class run holds another model than its fixed inputs give", result["problems"])
+        saved = (self.folder / "again/class/logits.npy").read_bytes()
+        (self.folder / "again/class/logits.npy").write_bytes(saved + b"0")
+        with self.subTest(case="an array of another size than its record"):
+            self.assertIn("the class logits cannot be read (ValueError)", self.compare("again")["problems"])
+        (self.folder / "again/class/logits.npy").write_bytes(saved)
         for name, problem in {"record.json": "the class run has no readable record.json (ValueError)",
                               "logits.npy": "the class logits cannot be read (ValueError)"}.items():
             saved, _ = piped(self.folder / "again/class" / name)
@@ -733,6 +738,20 @@ class CompareTests(unittest.TestCase):
 
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
 class ReadTests(unittest.TestCase):
+    def test_a_target_contract_that_changes_between_its_two_reads_is_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = write_contract(folder, {name: {"bytes": 1, "sha256": "0" * 64} for name in TOKENIZER_FILES})
+            self.assertEqual(mtp.target_contract(path), (load_contract(path), sha256(path)))
+
+            def changed(name):
+                found = load_contract(name)
+                found["revision"] = "1" * 40
+                return found
+
+            with mock.patch.object(mtp, "load_contract", side_effect=changed), \
+                    self.assertRaisesRegex(ValueError, "model.json changed while it was read"):
+                mtp.target_contract(path)
+
     def test_inputs_that_are_named_pipes_are_refused_without_waiting_or_reading_them(self):
         folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, folder)
@@ -775,6 +794,11 @@ class ReadTests(unittest.TestCase):
                     self.assertEqual(load.call_count, 0 if label == "the target contract" else 1)
             path.unlink()
             path.write_bytes(saved)
+        item = mtp.items_of(load_contract(contract), records, inputs, outputs, mtp.first_per_category)[2][0]
+        piped(item["features"])
+        waited, outcome = bounded(lambda: mtp.loaded_features(item), item["features"])
+        self.assertFalse(waited)
+        self.assertRegex(str(outcome.get("error")), "is not a regular file")
 
 
 class RefusalTests(unittest.TestCase):
@@ -818,13 +842,17 @@ class RefusalTests(unittest.TestCase):
             records, inputs, outputs = write_records(folder)
             target, contract = write_target(folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
             assistant, assistant_contract = write_assistant(folder, SYNTHETIC["assistant"], assistant_state())
-            for name, change in {"the shard of the table": lambda: (target / SHARD).write_bytes(b"0"),
-                                 "the assistant weights": lambda: (assistant / "model.safetensors").write_bytes(b"0"),
-                                 "the index as a link": lambda: (target / mtp.INDEX).unlink()
-                                 or (target / mtp.INDEX).symlink_to(target / "tokenizer.json")}.items():
+            shutil.copy(target / mtp.INDEX, folder / "index-copy.json")
+            for name, (change, message) in {
+                    "the shard of the table": (lambda: (target / SHARD).write_bytes(b"0"), SHARD),
+                    "the assistant weights": (lambda: (assistant / "model.safetensors").write_bytes(b"0"),
+                                              "model.safetensors"),
+                    "the index as a link to an identical copy": (lambda: (target / mtp.INDEX).unlink()
+                                                                 or (target / mtp.INDEX).symlink_to(
+                                                                     folder / "index-copy.json"), "is a link")}.items():
                 saved = {path: path.read_bytes() for path in (target / SHARD, assistant / "model.safetensors")}
                 change()
-                with self.subTest(change=name), self.assertRaises(ValueError):
+                with self.subTest(change=name), self.assertRaisesRegex(ValueError, message):
                     mtp.run("class", contract, assistant_contract, target, assistant, records, inputs, outputs, 7,
                             folder / "out")
                 self.assertFalse((folder / "out").exists())
