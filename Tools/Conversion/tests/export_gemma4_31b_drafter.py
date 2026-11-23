@@ -366,7 +366,7 @@ class RunTests(unittest.TestCase):
                               ("beta-0001", 1104, WINDOW), ("beta-0001", 1105, WINDOW)])
             result = mtp.compare(folder / "original", folder / "class", arguments[0])
             self.assertTrue(result["passed"], result["problems"])
-            self.assertLess(result["summary"]["max_abs_logit"], LIMIT)
+            self.assertLessEqual(result["summary"]["max_abs_logit"], LIMIT)
             self.assertEqual(result["summary"]["unrolled_equals_repeated"], 8)
             self.assertEqual(result["summary"]["cut_equals_original"], 8)
             with mock.patch.object(drafter, "bfloat16", lambda value: 1.0):

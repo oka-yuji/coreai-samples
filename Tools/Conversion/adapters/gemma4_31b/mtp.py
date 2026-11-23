@@ -15,7 +15,7 @@ from ...storage import write_json
 from ..pinned import sha256
 from .assistant import SYNTHETIC, TARGET, assistant_config, checkpoint_shapes
 from .baseline import read_inputs
-from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, below, ratios, rounded_scale, same_file
+from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, rounded_scale, same_file
 from .native import valid
 from .prepare import HEX40, HEX64, REPOSITORY, load_contract
 from .reference import file_record, footprint
@@ -63,6 +63,18 @@ def simulate(accepted, length, steps):
 
 def anchors(prompt, output):
     return sorted({prompt, prompt + output // 3, prompt + 2 * output // 3, prompt + output - 1})
+
+
+def within(value, limit):
+    return value is not None and value <= limit
+
+
+def ratio(model_class, original):
+    import numpy as np
+
+    x, y = (np.asarray(array, dtype=np.float64) for array in (model_class, original))
+    scale = float(np.abs(y).max())
+    return float(np.abs(x - y).max()) / scale if np.isfinite(x).all() and np.isfinite(y).all() and scale > 0 else None
 
 
 def check_steps(steps):
@@ -507,15 +519,15 @@ def compare(original, model_class, contract_path):
     stops, results = set(records["original"]["stops"]), []
     for index, row in enumerate(rows):
         logits = [np.asarray(arrays[kind]["logits"][index], dtype=np.float64) for kind in IMPLEMENTATIONS]
-        projection = ratios(arrays["class"]["projected"][index:index + 1], arrays["original"]["projected"][index:index + 1])
+        projection = ratio(arrays["class"]["projected"][index], arrays["original"]["projected"][index])
         unrolled, repeated = (arrays["class"][name][index].tolist() for name in ("drafts", "repeated"))
         drafted, kept = [token for token in arrays["original"]["drafts"][index].tolist() if token >= 0], cut(unrolled, stops)
         difference = float(np.max(np.abs(logits[0] - logits[1])))
-        results.append({**row, "max_abs_logit": difference, "projection_ratio": projection["largest_ratio"],
+        results.append({**row, "max_abs_logit": difference, "projection_ratio": projection,
                         "argmax_equal": int(logits[0].argmax()) == int(logits[1].argmax()),
                         "unrolled_equals_repeated": unrolled == repeated, "cut_equals_original": kept == drafted,
                         "first_step_unlike_original": None if kept == drafted else matches(kept, drafted),
-                        "checks": {"max_abs_logit": below(difference, LOGIT_LIMIT), "projection": projection["passed"],
+                        "checks": {"max_abs_logit": within(difference, LOGIT_LIMIT), "projection": within(projection, RATIO),
                                    "unrolled_equals_repeated": unrolled == repeated}})
     return {"schema": COMPARISON, "passed": all(all(result["checks"].values()) for result in results), "problems": [],
             "criteria": {"max_abs_logit": LOGIT_LIMIT, "projection_ratio": RATIO}, "steps": steps,

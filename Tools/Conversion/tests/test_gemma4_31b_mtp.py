@@ -1,6 +1,7 @@
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -206,6 +207,18 @@ class PureTests(unittest.TestCase):
         self.assertEqual(mtp.anchors(10, 2), [10, 11])
         self.assertEqual(mtp.anchors(10, 9), [10, 13, 16, 18])
         self.assertEqual(mtp.anchors(28, 256), [28, 113, 198, 283])
+
+    def test_the_limits_include_their_boundary_and_the_ratio_is_the_largest_difference_over_the_largest_value(self):
+        self.assertTrue(mtp.within(1e-3, mtp.LOGIT_LIMIT))
+        self.assertFalse(mtp.within(math.nextafter(1e-3, 1.0), mtp.LOGIT_LIMIT))
+        self.assertTrue(mtp.within(mtp.RATIO, mtp.RATIO))
+        self.assertFalse(mtp.within(math.nextafter(mtp.RATIO, 1.0), mtp.RATIO))
+        self.assertFalse(mtp.within(None, mtp.RATIO))
+        self.assertEqual(mtp.ratio([1.0, -4.5, 2.0], [1.5, -4.0, 2.0]), 0.5 / 4.0)
+        for label, (model_class, original) in {"a zero original": ([1.0], [0.0]), "a NaN": ([float("nan")], [1.0]),
+                                               "an infinity": ([1.0], [float("inf")])}.items():
+            with self.subTest(case=label):
+                self.assertIsNone(mtp.ratio(model_class, original))
 
     def test_a_step_count_that_is_not_a_whole_number_from_one_is_refused(self):
         self.assertEqual(mtp.check_steps(7), 7)
@@ -468,16 +481,38 @@ class CompareTests(unittest.TestCase):
         def repeated(arrays):
             arrays["class"]["repeated"][0, 2] = 7
 
+        def logits_at(value):
+            def change(arrays):
+                arrays["original"]["logits"][1, 7] = 1.0
+                arrays["class"]["logits"][1, 7] = 1.0 + value
+            return change
+
+        def projected_at(value):
+            def change(arrays):
+                arrays["original"]["projected"][2] = 1.0
+                arrays["class"]["projected"][2] = 1.0
+                arrays["class"]["projected"][2, 5] = 1.0 + value
+            return change
+
+        edge, beyond = 2.0 ** -10, 2.0 ** -10 + 2.0 ** -23
         cases = {"logits below": (logits(0.0009), set()), "logits above": (logits(0.0011), {"max_abs_logit"}),
                  "projection below": (projected(0.00099), set()), "projection above": (projected(0.00101), {"projection"}),
-                 "unrolled unlike repeated": (repeated, {"unrolled_equals_repeated"})}
+                 "unrolled unlike repeated": (repeated, {"unrolled_equals_repeated"}),
+                 "logits exactly at a limit": (logits_at(edge), set()),
+                 "logits just beyond a limit": (logits_at(beyond), {"max_abs_logit"}),
+                 "projection exactly at a limit": (projected_at(edge), set()),
+                 "projection just beyond a limit": (projected_at(beyond), {"projection"})}
         for label, (change, failing) in cases.items():
-            result = self.pair(label.replace(" ", "-"), change)
+            limits = (edge, edge) if "a limit" in label else (mtp.LOGIT_LIMIT, mtp.RATIO)
+            with mock.patch.object(mtp, "LOGIT_LIMIT", limits[0]), mock.patch.object(mtp, "RATIO", limits[1]):
+                result = self.pair(label.replace(" ", "-"), change)
             with self.subTest(case=label):
                 self.assertEqual(result["problems"], [])
                 self.assertEqual(result["passed"], not failing)
                 self.assertEqual({key for row in result["rows"] for key, passed in row["checks"].items() if not passed},
                                  failing)
+                self.assertEqual(result["criteria"], {"max_abs_logit": limits[0], "projection_ratio": limits[1]})
+        self.assertEqual(np.float32(1.0 + beyond) - np.float32(1.0), beyond)
 
     def test_runs_that_must_not_pass(self):
         def value(kind, name, index, number):
