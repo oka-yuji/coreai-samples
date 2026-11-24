@@ -109,7 +109,7 @@ from Tools.Conversion.adapters.jev27b import monitor as shared
 folder, steps = Path(sys.argv[1]), []
 shared.INTERVAL_S, shared.KILL_AFTER_S = 0.05, 60
 shared.swap_used, shared.free_percent = (lambda: 0), (lambda: 50)
-reference.ReferenceMonitor.verdict = lambda self: "the test stops the run" if self.samples >= 3 else None
+reference.ReferenceMonitor.verdict = lambda self: "the test stops the run" if self.samples >= 3 and steps else None
 layer1_anchor.interruptible()
 
 
@@ -1103,7 +1103,9 @@ class InterruptTests(unittest.TestCase):
         failure = read_json(self.folder / "failure.json")
         self.assertEqual((failure["schema"], failure["passed"], failure["abort"]),
                          ("test/1", False, "the test stops the run"))
-        self.assertLess(int((self.folder / "steps").read_text()), 50)
+        steps = int((self.folder / "steps").read_text())
+        self.assertGreater(steps, 0)
+        self.assertLess(steps, 50)
 
 
 @unittest.skipIf(not GEMMA4 or np is None, "Transformers with Gemma 4, PyTorch and NumPy are required for the runs")
