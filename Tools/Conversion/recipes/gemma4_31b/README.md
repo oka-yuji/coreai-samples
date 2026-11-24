@@ -779,15 +779,17 @@ below 0.99, and the checks. A folder is complete only with `comparison.json`: an
 SIGTERM) after the folder exists removes it and leaves `failure.json` with the type of the error, and an interruption
 stops `coreai-verify` too, also when it arrives as the process starts. While it makes the folder and writes
 `comparison.json` or `failure.json`, it holds SIGINT and SIGTERM back until that write is done and then stops as for an
-interruption. It reads the reference, the verifier and the files that `coreai-verify` writes only as regular files,
-opened without waiting and not through a link, of the recorded size where a record gives one, and no further than a
-limit on the open file: 1 MiB for the reference record; for an array of the reference, the rows × width × 4 bytes of
-its values plus up to 64 KiB of header, and a recorded size outside that range is refused before the file is opened;
-and the rows × width × 2 bytes of the file for each output of `coreai-verify`. It reads the header of an array of the
-reference first and refuses a shape, type (little-endian float32) or order other than the record's before it makes the
-array from the values. It resolves `--verifier` to an absolute path, then hashes that file and starts that same path. It
-prints a short summary, and the exit code is 0 only when the comparison passed. The specialization cache that
-`coreai-verify` makes stays in place; remove it yourself.
+interruption. It reads the reference, the verifier, the export record and the files that `coreai-verify` writes only
+as regular files, opened without waiting and not through a link, of the recorded size where a record gives one, and no
+further than a limit on the open file: 1 MiB for the reference record; for an array of the reference, the rows × width
+× 4 bytes of its values plus up to 64 KiB of header, and a recorded size outside that range is refused before the file
+is opened; the rows × width × 2 bytes of the file for each output of `coreai-verify`; and 16 MiB for the export record
+and for the two bundle files that it keeps in memory (`main.hash` and `metadata.json`). It only hashes the other bundle
+files and the verifier, without keeping them, so they have no limit but their recorded size. It reads the header of an
+array of the reference first and refuses a shape, type (little-endian float32) or order other than the record's before
+it makes the array from the values. It resolves `--verifier` to an absolute path, then hashes that file and starts that
+same path. It prints a short summary, and the exit code is 0 only when the comparison passed. The specialization cache
+that `coreai-verify` makes stays in place; remove it yourself.
 
 ## MTP drafter
 
