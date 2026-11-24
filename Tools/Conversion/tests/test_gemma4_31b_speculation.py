@@ -447,6 +447,10 @@ class CompareTests(unittest.TestCase):
             shutil.rmtree(self.export)
             complete_export(self.export, self.contract, functions=("main",))
 
+        def looped():
+            self.verifier.unlink()
+            self.verifier.symlink_to(self.verifier)
+
         every_layer, unreadable = "does not hold the output of every layer", "the reference record is unreadable"
         entry_problem = "the reference record does not give the short hidden_states"
         cases = {"a reference without the last layer": (
@@ -484,7 +488,8 @@ class CompareTests(unittest.TestCase):
                      "the export is not a passed export"),
                  "an export without the prefill function": (main_only, "the export has no prefill function"),
                  "a missing verifier": (lambda: self.verifier.unlink(), "the verifier is unreadable"),
-                 "a verifier that is a named pipe": (piped(self.verifier), "the verifier is unreadable")}
+                 "a verifier that is a named pipe": (piped(self.verifier), "the verifier is unreadable"),
+                 "a verifier that links to itself": (looped, "the verifier is unreadable")}
         for label, (make, problem) in cases.items():
             with self.subTest(case=label):
                 self.write_fake()
@@ -523,6 +528,22 @@ class CompareTests(unittest.TestCase):
             read.assert_not_called()
             load.assert_not_called()
             self.assertEqual(target.read_text(), "target")
+
+    def test_the_verifier_that_is_hashed_is_the_one_that_runs_when_it_is_given_by_its_name_only(self):
+        shadow = self.folder / "elsewhere" / "verifier"
+        shadow.parent.mkdir()
+        shadow.write_text("#!/bin/sh\nexit 3\n")
+        shadow.chmod(0o755)
+        self.write_fake()
+        previous = os.getcwd()
+        os.chdir(self.folder)
+        self.addCleanup(os.chdir, previous)
+        with mock.patch.dict(os.environ, {"PATH": f"{shadow.parent}{os.pathsep}{os.environ['PATH']}"}):
+            result = speculation.compare(self.export, self.reference, Path("verifier"), self.folder / "out",
+                                         self.contract)
+        self.assertTrue(result["passed"], result)
+        self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
+        self.assertEqual(self.calls.read_text().split(), [name for name, *_ in speculation.CONDITIONS])
 
     def test_the_command_prints_a_summary_and_exits_with_one_unless_it_passes(self):
         result = {"passed": False, "conditions": [{"name": "long-main", "passed": False, "checks": {}}]}

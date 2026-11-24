@@ -10,11 +10,10 @@ import sys
 import time
 
 from ...storage import canonical, digest, write_json
-from .anchor import parse
 from .compare import BLOCK_ROWS, CONTRACT
 from .layers import SCHEMA as RUN_SCHEMA, tokens
 from .native import (TIMEOUT_S, VERIFIER, correspondence, layer_problems, load_export, mapping, pinned_model,
-                     prefill_chunk, prefix_record, printed, regular_file, run_verifier, valid)
+                     prefill_chunk, prefix_record, printed, read_record, regular_file, run_verifier, valid)
 from .prepare import load_contract
 
 SCHEMA = "gemma4-31b-speculation-outputs/1"
@@ -116,8 +115,7 @@ def npy(data):
 def load_reference(folder, contract, contract_path):
     import numpy as np
 
-    entry, data = read_file(folder / "record.json", None)
-    record, hashed = parse(data), entry["sha256"]
+    record, hashed, _ = read_record(folder / "record.json")
     if not isinstance(record, dict):
         raise ValueError("The reference record is not an object")
     problems = [] if (record.get("schema"), record.get("implementation")) == (RUN_SCHEMA, "original") else [
@@ -182,7 +180,8 @@ def inputs(export_folder, reference_folder, verifier, contract, contract_path):
             problems.append("the export and the reference are of other layer counts")
         problems += correspondence(found["exported"], found["export_hash"], found["reference"])
     try:
-        found["verifier"] = regular_file(verifier)[0]
+        found["path"] = Path(verifier).resolve()
+        found["verifier"] = regular_file(found["path"])[0]
     except Exception as error:
         problems.append(f"the verifier is unreadable ({type(error).__name__})")
     if problems:
@@ -300,7 +299,7 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
     found = inputs(export_folder, reference_folder, verifier, contract, contract_path)
     output.mkdir(parents=True)
     try:
-        conditions = [condition(spec, found, contract, verifier, output) for spec in CONDITIONS]
+        conditions = [condition(spec, found, contract, found["path"], output) for spec in CONDITIONS]
         reference, exported = found["reference"], found["exported"]
         result = {"schema": SCHEMA, "passed": all(entry["passed"] for entry in conditions),
                   "criteria": {"cosine_smallest": SMALLEST, "cosine_median": MEDIAN, "mixup_ratio": MIXUP},
