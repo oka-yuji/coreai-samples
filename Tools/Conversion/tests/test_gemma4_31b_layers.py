@@ -1200,6 +1200,20 @@ class RestoredReferenceTests(unittest.TestCase):
             self.assertGreaterEqual(timing["load_s"], 0.3)
             self.assertGreaterEqual(timing["total_s"], timing["input_hash_s"] + timing["load_s"])
 
+    def test_a_run_stopped_by_sigint_after_its_folder_is_made_leaves_a_failure_record(self):
+        self.addCleanup(signal.signal, signal.SIGINT, signal.signal(signal.SIGINT, signal.default_int_handler))
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            output = folder / "interrupted"
+
+            def interrupt(*arguments, **keywords):
+                signal.raise_signal(signal.SIGINT)
+
+            with mock.patch.object(layers, "original_model", side_effect=interrupt), self.assertRaises(KeyboardInterrupt):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, "float16", None)
+            self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
+            self.assertFalse((output / "record.json").exists())
 
     def test_a_run_stopped_by_sigterm_after_its_folder_is_made_leaves_a_failure_record(self):
         with tempfile.TemporaryDirectory() as folder:
