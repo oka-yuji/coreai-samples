@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import hashlib
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import sys
 import time
 
 from Tools.LLMEvaluation import items as evaluation, layer1
+from ...runner import deferred_interrupts
 from ...storage import canonical, write_json
 from ..jev27b.monitor import swap_used
 from . import anchor, layers, reference
@@ -256,21 +258,23 @@ def handoff(record):
 
 
 def recorded(output, record):
-    try:
-        if record["passed"] and record["schema"] == SCHEMA:
-            write_json(output / "logits.json", handoff(record))
-        write_json(output / "run.json", record)
-    except BaseException as error:
-        (output / "logits.json").unlink(missing_ok=True)
-        write_json(output / "run.json", {"schema": record["schema"], "passed": False, "error": type(error).__name__})
-        return 1
-    return 0 if record["passed"] else 1
+    with deferred_interrupts():
+        try:
+            if record["passed"] and record["schema"] == SCHEMA:
+                write_json(output / "logits.json", handoff(record))
+            write_json(output / "run.json", record)
+        except Exception as error:
+            (output / "logits.json").unlink(missing_ok=True)
+            write_json(output / "run.json", {"schema": record["schema"], "passed": False, "error": type(error).__name__})
+            return 1
+        return 0 if record["passed"] else 1
 
 
 def abandoned(output, schema, error):
-    if not any((output / name).exists() for name in ("run.json", "failure.json")):
-        (output / "logits.json").unlink(missing_ok=True)
-        write_json(output / "failure.json", {"schema": schema, "passed": False, "error": type(error).__name__})
+    with contextlib.suppress(KeyboardInterrupt), deferred_interrupts():
+        if not any((output / name).exists() for name in ("run.json", "failure.json")):
+            (output / "logits.json").unlink(missing_ok=True)
+            write_json(output / "failure.json", {"schema": schema, "passed": False, "error": type(error).__name__})
     return 1
 
 
@@ -328,19 +332,24 @@ def main():
                                           f"layers, the final norm and the head: {kind}, computed in float32"),
                       compute={"weights": args.weights, "compute": "float32", "attention_rows": anchor.ROWS,
                                "embed_scale": None}, quantized=quantized)
+
     def conclude(result, observed, began):
         finished(result, observed, reference.memory(result["device"]), [item["id"] for item in records])
         result["timing"]["total_s"] = time.perf_counter() - began
         return recorded(args.output, result)
 
-    created = False
+    foreign = False
     try:
-        args.output.mkdir(parents=True)
-        created = True
+        with deferred_interrupts():
+            try:
+                args.output.mkdir(parents=True)
+            except FileExistsError:
+                foreign = True
+                raise
         interruptible()
         return reference.supervise(args.output, schema, lambda: work(record, args, records), conclude)
     except BaseException as error:
-        if not args.output.is_dir() or isinstance(error, FileExistsError) and not created:
+        if foreign or not args.output.is_dir():
             raise
         return abandoned(args.output, schema, error)
 

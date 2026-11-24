@@ -142,23 +142,51 @@ def mkdir_that(output, mode):
         if mode == "denied":
             raise PermissionError(13, "Permission denied", str(path))
         real(path, *arguments, **options)
-        if mode == "interrupted":
-            raise KeyboardInterrupt
-        return real(path, *arguments, **options)
+        if mode in ("signalled", "taken_and_signalled"):
+            signal.raise_signal(signal.SIGINT)
+        if mode in ("taken", "taken_and_signalled"):
+            return real(path, *arguments, **options)
 
     return mock.patch.object(Path, "mkdir", mkdir)
 
 
-def interrupting_write(module, call):
+def writing(module, plan):
     real, names = module.write_json, []
 
     def write(path, value):
         names.append(Path(path).name)
-        if len(names) == call:
-            raise KeyboardInterrupt
-        return real(path, value)
+        step = plan.get(len(names))
+        if step == "before":
+            signal.raise_signal(signal.SIGINT)
+        if step == "error":
+            raise OSError(28, "No space left on device")
+        real(path, value)
+        if step == "after":
+            signal.raise_signal(signal.SIGINT)
 
     return mock.patch.object(module, "write_json", side_effect=write), names
+
+
+def raised(case, error, call):
+    try:
+        call()
+    except error:
+        return
+    except BaseException as other:
+        case.fail(f"{type(other).__name__} came instead of {error.__name__}")
+    case.fail(f"{error.__name__} did not come")
+
+
+def unlinking_the_handoff():
+    real, done = Path.unlink, []
+
+    def unlink(path, *arguments, **options):
+        if path.name == "logits.json" and not done:
+            done.append(True)
+            signal.raise_signal(signal.SIGINT)
+        return real(path, *arguments, **options)
+
+    return mock.patch.object(Path, "unlink", unlink)
 
 
 def forced_record(name, inputs, generated):
@@ -433,10 +461,10 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(read_json(self.folder / "out/failure.json"),
                          {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "ValueError"})
 
-    def test_an_interrupt_inside_mkdir_after_the_folder_exists_leaves_a_failure_record_and_exit_code_1(self):
+    def test_an_interrupt_while_the_folder_is_made_is_deferred_and_ends_with_a_failure_record_and_exit_code_1(self):
         for command, extra, schema in (("run", ("--weights", "float16"), layer1_anchor.SCHEMA),
                                        ("agreement", ("--items", "ja-choice-0001"), layer1_anchor.AGREEMENT)):
-            with self.subTest(command=command), mkdir_that(self.folder / command, "interrupted"):
+            with self.subTest(command=command), mkdir_that(self.folder / command, "signalled"):
                 try:
                     code, _, _ = self.main(command, *extra, output=command)
                 except BaseException as error:
@@ -445,6 +473,11 @@ class AnchorRunTests(unittest.TestCase):
                 self.assertEqual(sorted(path.name for path in (self.folder / command).iterdir()), ["failure.json"])
                 self.assertEqual(read_json(self.folder / command / "failure.json"),
                                  {"schema": schema, "passed": False, "error": "KeyboardInterrupt"})
+
+    def test_an_interrupt_with_the_file_exists_error_of_mkdir_writes_nothing_to_the_folder_of_another_process(self):
+        with mkdir_that(self.folder / "taken-out", "taken_and_signalled"):
+            raised(self, FileExistsError, lambda: self.main("run", "--weights", "float16", output="taken-out"))
+        self.assertEqual(list((self.folder / "taken-out").iterdir()), [])
 
     def test_a_folder_that_another_process_made_is_raised_again_and_nothing_is_written_to_it(self):
         with mkdir_that(self.folder / "taken-out", "taken"), self.assertRaises(FileExistsError):
@@ -457,45 +490,69 @@ class AnchorRunTests(unittest.TestCase):
         self.assertFalse((self.folder / "denied-out").exists())
 
     def test_the_handoff_is_written_before_the_run_record(self):
-        patched, names = interrupting_write(layer1_anchor, 0)
+        patched, names = writing(layer1_anchor, {})
         with patched:
             code, _, _ = self.main("run", "--weights", "float16")
         self.assertEqual((code, names), (0, ["logits.json", "run.json"]))
 
-    def test_an_interrupt_while_the_records_are_saved_leaves_a_failed_run_record_and_no_handoff(self):
-        for call in (1, 2):
-            label = f"saving-{call}"
-            patched, names = interrupting_write(layer1_anchor, call)
-            with self.subTest(call=call), patched:
+    def test_an_interrupt_while_the_records_are_written_is_deferred_until_both_are_there_and_ends_with_exit_code_1(self):
+        for after in (1, 2):
+            label = f"written-{after}"
+            patched, names = writing(layer1_anchor, {after: "after"})
+            with self.subTest(after=after), patched:
                 try:
                     code, _, _ = self.main("run", "--weights", "float16", output=label)
                 except BaseException as error:
-                    self.fail(f"{type(error).__name__} ended the run without a failed run record")
+                    self.fail(f"{type(error).__name__} ended the run without a record")
+                folder = self.folder / label
+                self.assertEqual((code, names), (1, ["logits.json", "run.json"]))
+                self.assertEqual((read_json(folder / "run.json")["passed"], (folder / "logits.json").is_file()),
+                                 (True, True))
+                self.assertFalse((folder / "failure.json").exists())
+
+    def test_an_error_of_a_save_leaves_a_failed_run_record_and_no_handoff(self):
+        for call in (1, 2):
+            label = f"error-{call}"
+            patched, names = writing(layer1_anchor, {call: "error"})
+            with self.subTest(call=call), patched:
+                code, _, _ = self.main("run", "--weights", "float16", output=label)
                 self.assertEqual(code, 1)
                 self.assertEqual(read_json(self.folder / label / "run.json"),
-                                 {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "KeyboardInterrupt"})
+                                 {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "OSError"})
                 self.assertFalse((self.folder / label / "logits.json").exists())
 
-    def test_a_second_interrupt_while_the_handoff_is_removed_still_leaves_no_handoff_next_to_the_failure_record(self):
-        patched, _ = interrupting_write(layer1_anchor, 2)
-        real, raised = Path.unlink, []
-
-        def unlink(path, *arguments, **options):
-            if path.name == "logits.json" and not raised:
-                raised.append(True)
-                raise KeyboardInterrupt
-            return real(path, *arguments, **options)
-
-        with patched, mock.patch.object(Path, "unlink", unlink):
+    def test_an_interrupt_while_the_error_of_a_save_is_handled_is_deferred_and_leaves_no_handoff_and_a_failed_record(self):
+        patched, _ = writing(layer1_anchor, {2: "error"})
+        with patched, unlinking_the_handoff():
             try:
-                code, _, _ = self.main("run", "--weights", "float16", output="double")
+                code, _, _ = self.main("run", "--weights", "float16", output="handled")
             except BaseException as error:
                 self.fail(f"{type(error).__name__} ended the run without a record")
-        folder = self.folder / "double"
+        folder = self.folder / "handled"
         self.assertEqual(code, 1)
-        self.assertEqual(read_json(folder / "failure.json"),
-                         {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "KeyboardInterrupt"})
-        self.assertFalse((folder / "logits.json").exists() or (folder / "run.json").exists())
+        self.assertEqual(read_json(folder / "run.json"),
+                         {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "OSError"})
+        self.assertFalse((folder / "logits.json").exists())
+
+    def test_an_interrupt_while_the_failure_record_is_written_is_deferred_and_ends_with_exit_code_1(self):
+        def supervise(folder, schema, work, conclude):
+            raise RuntimeError("the monitor could not start")
+
+        patched, _ = writing(layer1_anchor, {1: "before"})
+        with patched:
+            code = self.main_ended_by(supervise, "run", "--weights", "float16", output="failing")
+        self.assertEqual(code, 1)
+        self.assertEqual(read_json(self.folder / "failing/failure.json"),
+                         {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "RuntimeError"})
+
+    def test_a_handoff_left_by_an_exception_is_removed_when_the_failure_record_is_written(self):
+        def supervise(folder, schema, work, conclude):
+            write_json(folder / "logits.json", {"schema": layer1_anchor.LOGITS, "items": []})
+            raise RuntimeError("after the handoff")
+
+        code = self.main_ended_by(supervise, "run", "--weights", "float16", output="left")
+        self.assertEqual(code, 1)
+        self.assertEqual(sorted(path.name for path in (self.folder / "left").iterdir()), ["failure.json"])
 
     def test_an_exception_after_a_record_was_written_keeps_that_record_and_still_ends_with_exit_code_1(self):
         for name in ("run.json", "failure.json"):
@@ -795,9 +852,10 @@ class CandidateRunTests(unittest.TestCase):
                    ids[4]: {"stdout": "not a record"}, ids[5]: {"drop": ["cached"]},
                    ids[6]: {"record": {"main_hash": "cd" * 32}}, ids[7]: {"record": {"prefix_chunk": other}},
                    ids[8]: {"no_output": True}, ids[9]: {"fifo": True}}
-        thread, outcome = bounded(lambda: self.run_candidate(changes), 60)
-        out = self.folder / "out"
-        self.assertFalse(release(out / f"{ids[9]}.f16", thread), "the run waited on the logits file of a launch")
+        with mock.patch.object(layer1_candidate, "deferred_interrupts", contextlib.nullcontext):
+            thread, outcome = bounded(lambda: self.run_candidate(changes), 60)
+            out = self.folder / "out"
+            self.assertFalse(release(out / f"{ids[9]}.f16", thread), "the run waited on the logits file of a launch")
         result = outcome["value"]
         self.assertFalse(result["passed"])
         self.assertEqual(read_json(out / "run.json"), result)
@@ -866,11 +924,18 @@ class CandidateRunTests(unittest.TestCase):
             self.run_candidate(output="long-out")
         self.assertFalse((self.folder / "long-out").exists() or self.launches.exists())
 
-    def test_an_interrupt_inside_mkdir_after_the_folder_exists_leaves_the_records_of_a_failed_run(self):
-        with mkdir_that(self.folder / "out", "interrupted"), self.assertRaises(KeyboardInterrupt):
+    def test_an_interrupt_while_the_folder_is_made_is_deferred_and_the_records_of_a_failed_run_are_left(self):
+        with mkdir_that(self.folder / "out", "signalled"), self.assertRaises(KeyboardInterrupt):
             self.run_candidate()
         self.assertEqual(read_json(self.folder / "out/run.json")["passed"], False)
         self.assertEqual(read_json(self.folder / "out/logits.json")["items"], [])
+
+    def test_an_interrupt_with_the_file_exists_error_of_mkdir_writes_nothing_to_the_folder_of_another_process_by_the_candidate(
+            self):
+        with mkdir_that(self.folder / "out", "taken_and_signalled"):
+            raised(self, FileExistsError, self.run_candidate)
+        self.assertEqual(list((self.folder / "out").iterdir()), [])
+        self.assertFalse(self.launches.exists())
 
     def test_a_folder_that_another_process_made_is_raised_again_and_nothing_is_written_to_it_by_the_candidate(self):
         with mkdir_that(self.folder / "out", "taken"), self.assertRaises(FileExistsError):
@@ -883,17 +948,33 @@ class CandidateRunTests(unittest.TestCase):
             self.run_candidate()
         self.assertFalse((self.folder / "out").exists() or self.launches.exists())
 
-    def test_an_interrupt_while_the_records_are_saved_leaves_a_failed_run_record(self):
+    def test_an_interrupt_while_the_records_are_made_and_written_is_deferred_until_they_are_there(self):
+        real = layer1_candidate.recorded
+        for when in ("before", "after"):
+            label = f"made-{when}"
+
+            def recorded(*arguments, when=when):
+                if when == "before":
+                    signal.raise_signal(signal.SIGINT)
+                result = real(*arguments)
+                if when == "after":
+                    signal.raise_signal(signal.SIGINT)
+                return result
+
+            with self.subTest(when=when):
+                with mock.patch.object(layer1_candidate, "recorded", recorded), self.assertRaises(KeyboardInterrupt):
+                    self.run_candidate(output=label)
+                record, handoff = read_json(self.folder / label / "run.json"), read_json(self.folder / label / "logits.json")
+                self.assertEqual((record["passed"], len(handoff["items"])), (True, len(self.records)))
+
+    def test_an_error_of_a_save_leaves_a_failed_run_record_and_no_handoff_by_the_candidate(self):
         for call in (1, 2):
-            label = f"saving-{call}"
-            patched, names = interrupting_write(layer1_candidate, call)
+            label = f"error-{call}"
+            patched, names = writing(layer1_candidate, {call: "error"})
             with self.subTest(call=call), patched:
-                try:
-                    result = self.run_candidate(output=label)
-                except BaseException as error:
-                    self.fail(f"{type(error).__name__} ended the run without a failed run record")
+                result = self.run_candidate(output=label)
                 self.assertEqual(result["passed"], False)
-                self.assertEqual(result["problems"], ["the run could not be recorded (KeyboardInterrupt)"])
+                self.assertEqual(result["problems"], ["the run could not be recorded (OSError)"])
                 self.assertEqual(read_json(self.folder / label / "run.json"), result)
 
     def test_a_failure_in_building_the_record_is_refused_before_the_folder_is_made(self):

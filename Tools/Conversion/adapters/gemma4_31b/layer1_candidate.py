@@ -9,6 +9,7 @@ import sys
 import time
 
 from Tools.LLMEvaluation import layer1
+from ...runner import deferred_interrupts
 from ...storage import write_json
 from . import native
 from .compare import CONTRACT
@@ -80,7 +81,7 @@ def recorded(output, result, handoff):
     try:
         write_json(output / "logits.json", handoff)
         write_json(output / "run.json", result)
-    except BaseException as error:
+    except Exception as error:
         result = {"schema": SCHEMA, "passed": False, "items": [],
                   "problems": [f"the run could not be recorded ({type(error).__name__})"]}
         write_json(output / "run.json", result)
@@ -119,27 +120,30 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
               "forced": {**hashes, "items": [record["id"] for record in records]}, "chunk": CHUNK,
               "prefill_chunk": native.prefill_chunk(), "items": [], "problems": []}
     began = time.perf_counter()
-    created = foreign = False
+    foreign = False
     try:
-        output.mkdir(parents=True)
-        created = True
+        with deferred_interrupts():
+            try:
+                output.mkdir(parents=True)
+            except FileExistsError:
+                foreign = True
+                raise
         for record in records:
             result["items"].append(attempted(record, facts, vocabulary, verifier, output))
             print(record["id"], result["items"][-1].get("seconds"), result["items"][-1]["problems"][:1], flush=True)
-    except FileExistsError:
-        foreign = not created
-        raise
     finally:
         if not foreign and output.is_dir():
-            done = [(entry, record) for entry, record in zip(result["items"], records) if not entry["problems"]]
-            result["problems"] = [f"{entry['id']}: {problem}" for entry in result["items"] for problem in entry["problems"]]
-            result["passed"] = not result["problems"] and len(done) == len(records)
-            result["timing"] = {"items_s": time.perf_counter() - began}
-            handoff = {"schema": LOGITS, "role": role, "weights": weights, "forced_sha256": hashes["sha256"],
-                       "items": [{"id": entry["id"], "file": entry["output"]["file"], "dtype": "float16",
-                                  "shape": [entry["rows"], vocabulary], "sha256": entry["output"]["sha256"],
-                                  "tokens_sha256": record["tokens_sha256"]} for entry, record in done]}
-            result = recorded(output, result, handoff)
+            with deferred_interrupts():
+                done = [(entry, record) for entry, record in zip(result["items"], records) if not entry["problems"]]
+                result["problems"] = [f"{entry['id']}: {problem}" for entry in result["items"]
+                                      for problem in entry["problems"]]
+                result["passed"] = not result["problems"] and len(done) == len(records)
+                result["timing"] = {"items_s": time.perf_counter() - began}
+                handoff = {"schema": LOGITS, "role": role, "weights": weights, "forced_sha256": hashes["sha256"],
+                           "items": [{"id": entry["id"], "file": entry["output"]["file"], "dtype": "float16",
+                                      "shape": [entry["rows"], vocabulary], "sha256": entry["output"]["sha256"],
+                                      "tokens_sha256": record["tokens_sha256"]} for entry, record in done]}
+                result = recorded(output, result, handoff)
     return result
 
 
