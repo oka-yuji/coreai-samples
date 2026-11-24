@@ -1241,6 +1241,39 @@ class CompareTests(unittest.TestCase):
             self.assertEqual(compare.call_args.args[:4], (Path("e"), Path("r"), Path("v"), Path("o")))
 
 
+def stop_leftovers(processes):
+    for process in processes:
+        if process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                process.kill()
+            process.wait()
+
+
+@contextlib.contextmanager
+def watched_children():
+    started, entered, real = [], threading.Event(), subprocess.Popen
+
+    def popen(*arguments, **keywords):
+        process = real(*arguments, **keywords)
+        started.append(process)
+        original = process.communicate
+
+        def communicate(*items, **options):
+            entered.set()
+            return original(*items, **options)
+
+        process.communicate = communicate
+        return process
+
+    with mock.patch.object(native.subprocess, "Popen", side_effect=popen):
+        try:
+            yield started, entered
+        finally:
+            stop_leftovers(started)
+
+
 class VerifierProcessTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
@@ -1258,8 +1291,10 @@ class VerifierProcessTests(unittest.TestCase):
             def stop(process):
                 if process.returncode is None:
                     forced.append(True)
-                    with contextlib.suppress(ProcessLookupError, PermissionError):
+                    try:
                         os.killpg(process.pid, signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError):
+                        process.kill()
 
             def popen(*arguments, **keywords):
                 process = real(*arguments, **keywords)
@@ -1283,11 +1318,7 @@ class VerifierProcessTests(unittest.TestCase):
                     for timer in timers:
                         timer.cancel()
                         timer.join(2)
-                    for process in started:
-                        if process.returncode is None:
-                            with contextlib.suppress(ProcessLookupError, PermissionError):
-                                os.killpg(process.pid, signal.SIGKILL)
-                            process.wait()
+                    stop_leftovers(started)
                     self.assertEqual([timer for timer in timers if timer.is_alive()], [])
 
     def test_a_verifier_that_is_waited_for_when_an_interruption_arrives_is_stopped_and_collected(self):
@@ -1296,21 +1327,21 @@ class VerifierProcessTests(unittest.TestCase):
             self.sleeper.write_text('#!/bin/sh\necho $$ > "$0.pid"\nexec sleep 600\n')
             pidfile.unlink(missing_ok=True)
             finished = threading.Event()
+            with self.subTest(signal=name), watched_children() as (started, entered):
+                def interrupt_when_it_waits():
+                    entered.wait(30)
+                    for _ in range(600):
+                        if pidfile.exists() and pidfile.read_text().strip():
+                            break
+                        time.sleep(0.05)
+                    os.kill(os.getpid(), number)
+                    while not finished.wait(5):
+                        forced.append(True)
+                        with contextlib.suppress(ProcessLookupError, ValueError):
+                            os.kill(int(pidfile.read_text()), signal.SIGKILL)
 
-            def interrupt_when_it_waits():
-                for _ in range(600):
-                    if pidfile.exists() and pidfile.read_text().strip():
-                        break
-                    time.sleep(0.05)
-                os.kill(os.getpid(), number)
-                while not finished.wait(5):
-                    forced.append(True)
-                    with contextlib.suppress(ProcessLookupError, ValueError):
-                        os.kill(int(pidfile.read_text()), signal.SIGKILL)
-
-            thread = threading.Thread(target=interrupt_when_it_waits, daemon=True)
-            thread.start()
-            with self.subTest(signal=name):
+                thread = threading.Thread(target=interrupt_when_it_waits, daemon=True)
+                thread.start()
                 try:
                     with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
                         native.run_verifier([str(self.sleeper)], 60, self.folder / f"wait-{name}.log")
@@ -1318,6 +1349,7 @@ class VerifierProcessTests(unittest.TestCase):
                     finished.set()
                 thread.join(10)
                 self.assertEqual(forced, [])
+                self.assertTrue(entered.is_set())
                 with self.assertRaises(ProcessLookupError):
                     os.kill(int(pidfile.read_text()), 0)
 
