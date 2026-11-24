@@ -9,7 +9,6 @@ import signal
 import sys
 import tempfile
 import threading
-import time
 import unittest
 from unittest import mock
 
@@ -911,6 +910,20 @@ def float16_restore(data, scale, minval):
     return torch.from_numpy(product + np.repeat(minval.numpy(), blocks, axis=1))
 
 
+class Clock:
+    now = 0.0
+
+    def perf_counter(self):
+        return self.now
+
+    def delaying(self, call, seconds):
+        def delayed(*arguments, **keywords):
+            self.now += seconds
+            return call(*arguments, **keywords)
+
+        return delayed
+
+
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
 class RestoredReferenceTests(unittest.TestCase):
     TEXT = {**TEXT, "hidden_size": 64}
@@ -1170,35 +1183,28 @@ class RestoredReferenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder, hidden_size=64)
-            real = layers.verify_inputs
-
-            def slow(*arguments):
-                time.sleep(0.3)
-                return real(*arguments)
-
-            with mock.patch.object(layers, "verify_inputs", side_effect=slow):
+            clock = Clock()
+            checked = clock.delaying(layers.verify_inputs, 3.0)
+            with mock.patch.object(layers, "time", clock), \
+                    mock.patch.object(layers, "verify_inputs", side_effect=checked):
                 record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "timed", "float16", None)
-            timing = record["timing"]
-            self.assertGreaterEqual(timing["input_hash_s"], 0.3)
-            self.assertGreaterEqual(timing["total_s"], timing["input_hash_s"] + timing["load_s"])
+            self.assertEqual({key: record["timing"][key] for key in ("input_hash_s", "load_s", "total_s")},
+                             {"input_hash_s": 3.0, "load_s": 0.0, "total_s": 3.0})
 
     def test_a_run_of_restored_weights_records_the_check_and_the_reading_of_its_export_in_the_time_to_load(self):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder, hidden_size=64)
             source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
-            real = layers.quantized_weights
-
-            def slow(*arguments):
-                time.sleep(0.3)
-                return real(*arguments)
-
-            with mock.patch.object(layers, "quantized_weights", side_effect=slow):
+            clock = Clock()
+            checked = clock.delaying(layers.verify_inputs, 3.0)
+            restored = clock.delaying(layers.quantized_weights, 5.0)
+            with mock.patch.object(layers, "time", clock), mock.patch.object(
+                    layers, "verify_inputs", side_effect=checked), mock.patch.object(
+                        layers, "quantized_weights", side_effect=restored):
                 record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "timed", "8bit", source)
-            timing = record["timing"]
-            self.assertLess(timing["input_hash_s"], 0.3)
-            self.assertGreaterEqual(timing["load_s"], 0.3)
-            self.assertGreaterEqual(timing["total_s"], timing["input_hash_s"] + timing["load_s"])
+            self.assertEqual({key: record["timing"][key] for key in ("input_hash_s", "load_s", "total_s")},
+                             {"input_hash_s": 3.0, "load_s": 5.0, "total_s": 8.0})
 
     def test_a_run_stopped_by_sigint_after_its_folder_is_made_leaves_a_failure_record(self):
         self.addCleanup(signal.signal, signal.SIGINT, signal.signal(signal.SIGINT, signal.default_int_handler))
