@@ -458,8 +458,9 @@ def compare(original, model_class, contract_path=CONTRACT):
             recorded_taps.append(check_taps(joined(record.get("tap_layers")), record.get("layers")))
         except ValueError as error:
             problems.append(f"the {kind} run: {error}")
-    problems += [f"the runs differ in {key}" for key in ("model", "layers", "layer_types", "tap_layers")
+    problems += [f"the runs differ in {key}" for key in ("model", "layers", "layer_types", "tap_layers", "weights")
                  if records[0].get(key) != records[1].get(key)]
+    agreed = all(records[0].get(key) == records[1].get(key) for key in ("layers", "weights"))
     taps = recorded_taps[0] if len(recorded_taps) == 2 and recorded_taps[0] == recorded_taps[1] else ()
     if same_file(*(folder / "record.json" for folder in folders)):
         problems.append("both runs read the same record.json")
@@ -500,7 +501,7 @@ def compare(original, model_class, contract_path=CONTRACT):
     return {"schema": COMPARISON, "problems": problems,
             "passed": not problems and all(all(result["checks"].values()) for result in results.values()),
             "contract_sha256": model["contract_sha256"] if all(record.get("model") == model for record in records) else None,
-            "layers": records[0].get("layers") if taps and records[0].get("layers") == records[1].get("layers") else None,
+            "layers": records[0].get("layers") if taps and agreed else None,
             "tap_layers": list(taps) or None, "ratio_limit": RATIO,
             "records_sha256": [sha256(folder / "record.json") for folder in folders], "inputs": results}
 

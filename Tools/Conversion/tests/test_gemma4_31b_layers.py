@@ -292,6 +292,26 @@ class CompareTests(unittest.TestCase):
                 (run / f"class/long.{output}.npy").unlink()
                 self.assertFalse(self.compare(run)["passed"])
 
+    def test_runs_of_other_weights_never_pass_and_the_result_names_no_layers(self):
+        cases = {"restored weights against rounded weights": (layers.RESTORED, layers.WEIGHTS),
+                 "rounded weights against restored weights": (layers.WEIGHTS, layers.RESTORED),
+                 "weights recorded for one run only": (None, layers.WEIGHTS)}
+        for label, (original, model_class) in cases.items():
+            with self.subTest(case=label):
+                run = self.pair(label.replace(" ", "-"))
+                edit_record(run / "original", lambda record: record.update(weights=original))
+                edit_record(run / "class", lambda record: record.update(weights=model_class))
+                result = self.compare(run)
+                self.assertFalse(result["passed"])
+                self.assertEqual(result["problems"], ["the runs differ in weights"])
+                self.assertEqual((result["layers"], result["tap_layers"]), (None, list(TAPS)))
+        run = self.pair("rounded")
+        for kind in ("original", "class"):
+            edit_record(run / kind, lambda record: record.update(weights=layers.WEIGHTS))
+        result = self.compare(run)
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual(result["layers"], 6)
+
     def test_records_that_both_lack_or_share_a_layer_count_layer_types_or_model_off_the_contract_never_pass(self):
         kinds = TEXT["layer_types"]
         edits = {"no layer count": lambda record: record.pop("layers"),
