@@ -1884,26 +1884,30 @@ class ExportWeightsTests(unittest.TestCase):
         (self.folder / "dangling").symlink_to(self.folder / "missing")
         (self.folder / "folder").mkdir()
         (self.folder / "folder/kept").write_text("x")
-        with mock.patch.object(mtp, "target_contract") as read, mock.patch.object(mtp, "export_assets") as work:
+        events = []
+        with opens_counted(events, [self.contract, self.assistant_contract]), \
+                mock.patch.object(mtp, "export_assets") as work:
             for name in ("file", "dangling", "folder"):
                 with self.subTest(output=name), self.assertRaises(FileExistsError):
                     self.export(output=self.folder / name)
             for steps in (0, -1, True, 1.0, None, "7", mtp.DRAFTS + 1, 2 ** 40):
                 with self.subTest(steps=steps), self.assertRaises(ValueError):
                     self.export(steps=steps)
-            read.assert_not_called()
             work.assert_not_called()
+        self.assertEqual(events, [])
         self.assertEqual(self.names(self.folder / "folder"), ["kept"])
         self.assertFalse(self.output.exists())
 
     def test_a_context_that_is_not_a_whole_number_above_the_window_and_within_int32_is_refused_before_the_table(self):
-        window = CONFIG["sliding_window"] + 1
-        with mock.patch.object(mtp, "table_shard") as shard, mock.patch.object(mtp, "export_assets") as work:
+        window, events = CONFIG["sliding_window"] + 1, []
+        with opens_counted(events, [self.target / mtp.INDEX, self.target / SHARD, self.assistant / "config.json",
+                                    self.assistant / "model.safetensors"]), \
+                mock.patch.object(mtp, "export_assets") as work:
             for context in (True, 1.0, "16896", None, -1, 0, 1, window - 1, window, 2 ** 31):
                 with self.subTest(context=context), self.assertRaises(ValueError):
                     self.export(context=context)
-            shard.assert_not_called()
             work.assert_not_called()
+        self.assertEqual(events, [])
         self.assertFalse(self.output.exists())
         with mock.patch.object(mtp, "export_assets", side_effect=fake()) as work:
             for index, (steps, context) in enumerate(((1, window + 1), (mtp.DRAFTS, 2 ** 31 - 1))):
