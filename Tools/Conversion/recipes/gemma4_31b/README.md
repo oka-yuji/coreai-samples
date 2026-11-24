@@ -946,14 +946,16 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   `--context`, the size and SHA-256 of the index and the shard of the target and of the two files of the assistant, the
   configuration of the assistant with `assistant_config`, and the names, BF16 type and shapes of every tensor of the
   checkpoint of the assistant and of the embedding table. A check that fails stops the tool, and no folder or file is
-  made. A file is hashed up to its pinned size plus one byte, and a larger file is an error. The size and SHA-256 of
-  the index, the shard and the two files of the assistant are checked a second time, with the same function, after the
-  assets are saved and inspected and before `export.json` is written; a result that is not the first one stops the tool
-  like any other error. `model.json` and `assistant.json` are opened once each, without waiting and not through a link, must be regular
-  files of at most 1,048,576 B, and are read from that one descriptor to their end or past that limit; the checks of
-  their form (`checked_contract` and `checked_target` for `model.json`, `checked_assistant` for `assistant.json`) and
-  their SHA-256 use the bytes of that read. The configuration of the assistant is read with the size that `assistant.json`
-  pins.
+  made. A file is hashed up to its pinned size plus one byte, and a larger file is an error. `model.json` and
+  `assistant.json` are opened once each, without waiting and not through a link, must be regular files of at most
+  1,048,576 B, and are read from that one descriptor to their end or past that limit; the checks of their form
+  (`checked_contract` and `checked_target` for `model.json`, `checked_assistant` for `assistant.json`) and their SHA-256
+  use the bytes of that read. The configuration of the assistant is read with the size that `assistant.json` pins.
+- The size and SHA-256 of the index, the shard and the two files of the assistant are checked a second time, with the
+  same function, after the assets are saved and inspected and before `export.json` is written; this hashes the shard
+  (49,784,788,364 B) once more. If it finds a result that is not the first one, or a file that no longer matches its
+  contract, the tool stops like on any other error: `failure.json` stays, `export.json` is not written and the assets
+  that were saved stay in the folder.
 - Assets, each a folder that holds `main.hash`, `main.mlirb` and `metadata.json`: `verification.aimodel` holds the
   function `verify_step`, one step of the drafter, with the outputs `logits` float16 [1, 1, 262144] and `post_projection`
   float16 [1, 1, 5376], in this order. `distribution.aimodel` holds the function `draft_<steps>`, the unrolled drafter,
@@ -968,7 +970,8 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   dequantizations, the elements of the PyTorch model by type, the size and SHA-256 of each file, the total size,
   `main_hash`, the content of `main.hash` in hex, read with a limit of 64 B, the seconds of the conversion and of the save,
   and `problems`), `versions`, `timing` (`load_s`, the seconds that reading the embedding table took, and `total_s`, the
-  seconds from there to the end of the inspections), `memory` (the largest resident set of the process and the lifetime
+  seconds from there to the end of the inspections; the checks of the files before and after them are in neither, so the
+  tool takes longer than `total_s`), `memory` (the largest resident set of the process and the lifetime
   peak of its footprint), `problems` of the output folder and `passed`.
 - The inspection compares each asset with definitions fixed in `mtp.py`, not with a record: the set of functions; the
   names, types and shapes, fixed and dynamic, of the inputs and outputs and no state; the order of the outputs; that
