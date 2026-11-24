@@ -53,7 +53,7 @@ swift build -c release
 .build/release/coreai-verify chat --model <bundle> --runtime own --max-tokens 64 --prompt "What is the capital of France? Answer with one word."
 ```
 
-`CoreAISamplesKit` フォルダで `swift test` を実行すると、使い回しの計画、解析器、サンプラー、文脈の詰め方、RAG の段落と日付のような、モデルの要らない試験が流れます。モデルを読む試験は、`COREAI_TEST_BUNDLES` にバンドルのフォルダを `:` で区切って並べたときだけ流れます。
+`CoreAISamplesKit` フォルダで `swift test` を実行すると、使い回しの計画、解析器、サンプラー、文脈の詰め方、RAG の段落と日付のような、モデルの要らない試験が流れます。モデルを読む試験は、バンドルのフォルダを環境変数で渡したときだけ流れます。言語モデルの試験は `COREAI_TEST_BUNDLES` にフォルダを `:` で区切って並べ、ほかの試験は専用の変数を持ちます(エンジンの追加の出力の試験は `COREAI_OUTPUT_ROWS_BUNDLE`)。流し方は `AGENTS.md` にあります。
 
 ```bash
 cd CoreAISamplesKit
