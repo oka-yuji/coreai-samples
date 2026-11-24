@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import random
+import re
 import shutil
 import signal
 import subprocess
@@ -1076,6 +1077,18 @@ class CandidateRunTests(unittest.TestCase):
         record, handoff = read_json(self.folder / "out/run.json"), read_json(self.folder / "out/logits.json")
         self.assertEqual((record["passed"], [entry["id"] for entry in record["items"]]), (False, calls[:2]))
         self.assertEqual([entry["id"] for entry in handoff["items"]], calls[:2])
+
+
+class ReadmeExampleTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("zsh"), "zsh is required to parse the command examples")
+    def test_the_command_examples_of_the_layer_1_runs_have_no_placeholders_and_parse_in_zsh(self):
+        text = (Path(__file__).resolve().parents[1] / "recipes/gemma4_31b/README.md").read_text()
+        blocks = re.findall(r"~~~sh\n(.*?)~~~", text[text.index("## Layer 1 runs"):text.index("## Layer 1 comparison")], re.S)
+        self.assertEqual(len(blocks), 3)
+        for index, block in enumerate(blocks):
+            with self.subTest(block=index):
+                self.assertIsNone(re.search(r"[<>|]", block))
+                self.assertEqual(subprocess.run(["zsh", "-n"], input=block, capture_output=True, text=True).returncode, 0)
 
 
 class InterruptTests(unittest.TestCase):

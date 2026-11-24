@@ -206,12 +206,30 @@ of the baseline is the `revision` of `model.json`.
 
 ### Baseline side
 
+The folders under `.local/conversion/work` in the examples stand for the `artifacts` folders of your own prepare and
+export runs; `--forced` is the folder that `python3 -m Tools.LLMEvaluation forced` wrote, `--layers` is 6, 12 and so on
+up to 60, and `--output` is a folder that does not exist yet.
+
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_anchor run \
-  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
-  --prepare <artifacts of the prepare step> --forced <forced folder> --layers <6, 12, ..., 60> \
-  --weights <float16 | 8bit> [--export <artifacts of the 8-bit export step>/export] [--items <id>,<id>,...] \
-  --output <new folder>
+  --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --prepare .local/conversion/work/gemma4_31b/prepare/artifacts \
+  --forced .local/conversion/gemma4_31b/forced \
+  --layers 6 --weights float16 \
+  --output .local/conversion/gemma4_31b/layer1-anchor-float16
+~~~
+
+With the weights restored from an 8-bit export:
+
+~~~sh
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_anchor run \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --prepare .local/conversion/work/gemma4_31b/prepare/artifacts \
+  --forced .local/conversion/gemma4_31b/forced \
+  --layers 6 --weights 8bit --export .local/conversion/work/gemma4_31b-8bit/export/artifacts/export \
+  --output .local/conversion/gemma4_31b/layer1-anchor-8bit
 ~~~
 
 It loads the first `--layers` layers, the final norm and the head in BF16 on MPS and computes every forced record as
@@ -251,9 +269,13 @@ MPS, so its logits carry the difference between MPS and the CPU; on the first si
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layer1_candidate \
-  --export <artifacts of the export step>/export --forced <forced folder> \
-  --verifier Tools/Verify/.build/release/coreai-verify --output <new folder>
+  --export .local/conversion/work/gemma4_31b-8bit/export/artifacts/export \
+  --forced .local/conversion/gemma4_31b/forced \
+  --verifier Tools/Verify/.build/release/coreai-verify \
+  --output .local/conversion/gemma4_31b/layer1-candidate-8bit
 ~~~
+
+Give the `export` folder of the FP16 export step for a `float16` candidate.
 
 It launches `coreai-verify logits --model <bundle> --tokens <id>.tokens.json --start <start> --chunk 1 --output
 <id>.f16` once per item: the tokens before `start` are read as the engine reads them, then the scored rows one token at a
