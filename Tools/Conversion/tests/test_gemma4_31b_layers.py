@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import sys
 import tempfile
 import threading
 import unittest
@@ -554,6 +555,17 @@ class ConditionTests(unittest.TestCase):
                                    export_folder)
                     load.assert_not_called()
                 self.assertEqual(seen(), before)
+
+    def test_the_run_command_turns_sigterm_into_an_interruption_while_it_runs(self):
+        seen, previous = [], signal.getsignal(signal.SIGTERM)
+        record = {"inputs": {"short": {"logits": {"shape": [26, 301]}}}, "timing": {}, "memory": {}}
+        arguments = ["layers", "run", "--implementation", "original", "--layers", "6", "--taps", "1", "--model", "m",
+                     "--snapshot", "s", "--output", "o", "--weights", "float16"]
+        with mock.patch.object(sys, "argv", arguments), mock.patch("sys.stdout"), mock.patch.object(
+                layers, "run", side_effect=lambda *items: seen.append(signal.getsignal(signal.SIGTERM)) or record):
+            self.assertEqual(layers.main(), 0)
+        self.assertEqual(seen, [layers.raise_interruption])
+        self.assertIs(signal.getsignal(signal.SIGTERM), previous)
 
     @unittest.skipIf(os.geteuid() == 0, "root searches a folder without permission")
     def test_a_context_run_refuses_a_link_into_a_folder_without_search_permission_before_it_reads_the_contract(self):
@@ -1107,6 +1119,22 @@ class RestoredReferenceTests(unittest.TestCase):
             self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
                              (["failure.json"], "RuntimeError", ["failure.json"]))
             self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
+
+    def test_a_run_stopped_by_sigterm_after_its_folder_is_made_leaves_a_failure_record(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            output = folder / "terminated"
+
+            def terminate(*arguments, **keywords):
+                self.assertIs(signal.getsignal(signal.SIGTERM), layers.raise_interruption)
+                signal.raise_signal(signal.SIGTERM)
+
+            with layers.terminated_as_interrupt(), mock.patch.object(layers, "original_model", side_effect=terminate), \
+                    self.assertRaises(KeyboardInterrupt):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, "float16", None)
+            self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
+            self.assertFalse((output / "record.json").exists())
 
     def test_a_run_that_finds_its_folder_made_by_another_process_writes_no_record_into_it(self):
         with tempfile.TemporaryDirectory() as folder:

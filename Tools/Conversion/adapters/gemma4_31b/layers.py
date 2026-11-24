@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import hashlib
 import importlib.metadata
 import itertools
@@ -8,6 +9,7 @@ from pathlib import Path
 import random
 import re
 import resource
+import signal
 import stat
 import sys
 import time
@@ -167,6 +169,19 @@ def outputs(model, implementation, ids, bounds, taps):
                            torch.arange(end, dtype=torch.int32).unsqueeze(0), *states) for start, end in bounds]
             found = [torch.cat([part[index] for part in parts], dim=1) for index in range(len(OUTPUTS))]
     return {name: tensor[0].float().numpy() for name, tensor in zip(OUTPUTS, found)}
+
+
+def raise_interruption(signum, frame):
+    raise KeyboardInterrupt(f"Signal {signum}")
+
+
+@contextlib.contextmanager
+def terminated_as_interrupt():
+    previous = signal.signal(signal.SIGTERM, raise_interruption)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGTERM, previous)
 
 
 def run(implementation, contract_path, snapshot, layers, taps, output, weights, export):
@@ -545,10 +560,12 @@ def main():
     contexts.add_argument("--export", type=Path)
     args = parser.parse_args()
     if args.command in ("run", "context"):
-        record = (run(args.implementation, args.model, args.snapshot, args.layers, args.taps, args.output, args.weights,
-                      args.export)
-                  if args.command == "run"
-                  else context(args.model, args.snapshot, args.layers, args.output, args.weights, args.export))
+        if args.command == "run":
+            with terminated_as_interrupt():
+                record = run(args.implementation, args.model, args.snapshot, args.layers, args.taps, args.output,
+                             args.weights, args.export)
+        else:
+            record = context(args.model, args.snapshot, args.layers, args.output, args.weights, args.export)
         print({name: entry["logits"]["shape"] for name, entry in record["inputs"].items()}, record["timing"],
               record["memory"], flush=True)
         return 0

@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import os
@@ -6,6 +7,8 @@ import shutil
 import signal
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from unittest import mock
 
@@ -444,6 +447,51 @@ class CompareTests(unittest.TestCase):
         self.assertEqual((written, error), (["failure.json"], "RuntimeError"))
         self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
 
+    def test_a_comparison_stopped_by_sigterm_after_its_folder_is_made_leaves_a_failure_record(self):
+        self.write_fake()
+        output = self.folder / "terminated"
+
+        def terminate(*arguments, **keywords):
+            self.assertIs(signal.getsignal(signal.SIGTERM), layers.raise_interruption)
+            signal.raise_signal(signal.SIGTERM)
+
+        with layers.terminated_as_interrupt(), mock.patch.object(speculation, "condition", side_effect=terminate), \
+                self.assertRaises(KeyboardInterrupt):
+            speculation.compare(self.export, self.reference, self.verifier, output, self.contract)
+        self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
+        self.assertFalse((output / "comparison.json").exists())
+
+    def test_a_comparison_stopped_by_sigterm_while_it_waits_for_the_verifier_stops_the_verifier(self):
+        self.verifier.write_text('#!/bin/sh\necho $$ > "$0.pid"\nexec sleep 600\n')
+        self.verifier.chmod(0o755)
+        pidfile, output, seen, finished = Path(f"{self.verifier}.pid"), self.folder / "terminated", {}, threading.Event()
+
+        def terminate_when_it_waits():
+            for _ in range(600):
+                if pidfile.exists() and pidfile.read_text().strip():
+                    break
+                time.sleep(0.05)
+            seen["pid"], seen["handler"] = int(pidfile.read_text()), signal.getsignal(signal.SIGTERM)
+            if seen["handler"] is layers.raise_interruption:
+                os.kill(os.getpid(), signal.SIGTERM)
+            while not finished.wait(5):
+                with contextlib.suppress(ProcessLookupError, ValueError):
+                    os.kill(int(pidfile.read_text()), signal.SIGKILL)
+
+        thread = threading.Thread(target=terminate_when_it_waits, daemon=True)
+        thread.start()
+        try:
+            with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
+                speculation.compare(self.export, self.reference, self.verifier, output, self.contract)
+        finally:
+            finished.set()
+        thread.join(10)
+        self.assertIs(seen["handler"], layers.raise_interruption)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(seen["pid"], 0)
+        self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
+        self.assertFalse((output / "comparison.json").exists())
+
     def test_a_comparison_that_finds_its_folder_made_by_another_process_writes_no_record_into_it(self):
         self.write_fake()
         taken = self.folder / "taken"
@@ -602,6 +650,16 @@ class CompareTests(unittest.TestCase):
         self.assertTrue(result["passed"], result)
         self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
         self.assertEqual(self.calls.read_text().split(), [name for name, *_ in speculation.CONDITIONS])
+
+    def test_the_command_turns_sigterm_into_an_interruption_while_it_compares(self):
+        seen, previous = [], signal.getsignal(signal.SIGTERM)
+        result = {"passed": True, "conditions": []}
+        arguments = ["speculation", "--export", "e", "--reference", "r", "--verifier", "v", "--output", "o"]
+        with mock.patch.object(sys, "argv", arguments), mock.patch("sys.stdout"), mock.patch.object(
+                speculation, "compare", side_effect=lambda *items: seen.append(signal.getsignal(signal.SIGTERM)) or result):
+            self.assertEqual(speculation.main(), 0)
+        self.assertEqual(seen, [layers.raise_interruption])
+        self.assertIs(signal.getsignal(signal.SIGTERM), previous)
 
     def test_the_command_prints_a_summary_and_exits_with_one_unless_it_passes(self):
         result = {"passed": False, "conditions": [{"name": "long-main", "passed": False, "checks": {}}]}

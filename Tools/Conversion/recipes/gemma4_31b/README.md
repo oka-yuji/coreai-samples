@@ -401,9 +401,10 @@ creates the folder or reads a weight. `--weights float16` rounds every checkpoin
 quantized tensors of an 8-bit export, as `context` does
 ([FP32 reference restored from the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), and
 records `weights` and `quantized` as `context` does. It writes `<input>.<output>.npy` for both inputs and the three
-outputs and, last, `record.json` into a new folder; an error or an interruption after the folder exists leaves
-`failure.json` with the type of the error and no `record.json`. While it makes the folder and writes `record.json` or
-`failure.json`, it holds SIGINT and SIGTERM back until that write is done and then stops as for an interruption. The
+outputs and, last, `record.json` into a new folder; an error or an interruption (SIGINT or SIGTERM) after the folder
+exists leaves `failure.json` with the type of the error and no `record.json`. While it makes the folder and writes
+`record.json` or `failure.json`, it holds SIGINT and SIGTERM back until that write is done and then stops as for an
+interruption. The
 original implementation reads each input in one call; its tap layer i is entry i of `output_hidden_states`, except for
 the last layer, whose entry the original implementation replaces with the output of the final norm: that tap is the
 output of the last layer, taken with a forward hook. The model class reads the window and then calls of 1, 2, 4 and 8
@@ -774,11 +775,11 @@ checks on the inputs, the record of `coreai-verify` and its files. Into the new 
 standard error of `coreai-verify` (`<condition>.log`), and last `comparison.json`: for every output its rows, width,
 SHA-256 and non-finite values with their rows, and for an output without them the sums of squares by layer of the
 reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
-below 0.99, and the checks. A folder is complete only with `comparison.json`: an error or an interruption after the
-folder exists removes it and leaves `failure.json` with the type of the error. While it makes the folder and writes
-`comparison.json` or `failure.json`, it holds SIGINT and SIGTERM back until that write is done and then stops as for an
-interruption. It reads the reference, the verifier and
-the files that `coreai-verify` writes only as regular files, of the recorded size where a record gives one, and the
+below 0.99, and the checks. A folder is complete only with `comparison.json`: an error or an interruption (SIGINT or
+SIGTERM) after the folder exists removes it and leaves `failure.json` with the type of the error, and an interruption
+stops `coreai-verify` too. While it makes the folder and writes `comparison.json` or `failure.json`, it holds SIGINT
+and SIGTERM back until that write is done and then stops as for an interruption. It reads the reference, the verifier
+and the files that `coreai-verify` writes only as regular files, of the recorded size where a record gives one, and the
 arrays of the reference only in the `.npy` format. It resolves `--verifier` to an absolute path, then hashes that file
 and starts that same path. It prints a short summary, and the exit code is 0 only when the comparison passed. The
 specialization cache that `coreai-verify` makes stays in place; remove it yourself.

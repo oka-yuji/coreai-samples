@@ -12,7 +12,7 @@ import time
 from ...runner import deferred_interrupts
 from ...storage import canonical, digest, write_json
 from .compare import BLOCK_ROWS, CONTRACT
-from .layers import SCHEMA as RUN_SCHEMA, tokens
+from .layers import SCHEMA as RUN_SCHEMA, terminated_as_interrupt, tokens
 from .native import (TIMEOUT_S, VERIFIER, correspondence, layer_problems, load_export, mapping, pinned_model,
                      prefill_chunk, prefix_record, printed, read_record, regular_file, run_verifier, valid)
 from .prepare import load_contract
@@ -332,7 +332,8 @@ def main():
     for name in ("export", "reference", "verifier", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
-    result = compare(args.export, args.reference, args.verifier, args.output)
+    with terminated_as_interrupt():
+        result = compare(args.export, args.reference, args.verifier, args.output)
     print(json.dumps({"passed": result["passed"],
                       "conditions": {entry["name"]: {"passed": entry["passed"], "problems": entry.get("problems", []),
                                                      "failing": sorted(key for key, value in entry["checks"].items()
