@@ -188,40 +188,47 @@ def run(implementation, contract_path, snapshot, layers, taps, output, weights, 
     import numpy as np
 
     output.mkdir(parents=True)
-    started = time.perf_counter()
-    verified = verify_inputs(snapshot, contract)
-    hashed = time.perf_counter()
-    model, scale, layer_types = (original_model(snapshot, layers) if implementation == "original"
-                                 else class_model(snapshot, layers, taps, contract))
-    apply(model, restored)
-    loaded = time.perf_counter()
-    inputs = {}
-    for name in INPUTS:
-        ids = tokens(name, config)
-        bounds = [[0, len(ids)]] if implementation == "original" else calls(len(ids), config["sliding_window"])
-        begin = time.perf_counter()
-        arrays = outputs(model, implementation, ids, bounds, taps)
-        inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids), "calls": bounds,
-                        "seconds": time.perf_counter() - begin}
-        for key, array in arrays.items():
-            path = output / f"{name}.{key}.npy"
-            np.save(path, array)
-            inputs[name][key] = {**file_record(path), "dtype": str(array.dtype), "shape": list(array.shape),
-                                 "non_finite": int(array.size - np.isfinite(array).sum())}
-    packages = PACKAGES + (CONVERTER if implementation == "class" else ())
-    record = {"schema": SCHEMA, "implementation": implementation, "layers": layers, "layer_types": layer_types,
-              "tap_layers": list(taps),
-              "model": {"id": contract["model_id"], "revision": contract["revision"],
-                        "contract_sha256": sha256(contract_path), "verified_before_loading": verified},
-              "weights": WEIGHT_KINDS[weights], **({"quantized": quantized} if quantized else {}), "embed_scale": scale,
-              "upstream_revision": contract["upstream_revision"] if implementation == "class" else None,
-              "versions": {name: importlib.metadata.version(name) for name in packages}, "inputs": inputs,
-              "timing": {"input_hash_s": hashed - started, "load_s": loaded - hashed,
-                         "total_s": time.perf_counter() - started},
-              "memory": {"max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-                         "lifetime_peak_footprint_bytes": footprint()[1]}}
-    write_json(output / "record.json", record)
-    return record
+    try:
+        started = time.perf_counter()
+        verified = verify_inputs(snapshot, contract)
+        hashed = time.perf_counter()
+        model, scale, layer_types = (original_model(snapshot, layers) if implementation == "original"
+                                     else class_model(snapshot, layers, taps, contract))
+        apply(model, restored)
+        loaded = time.perf_counter()
+        inputs = {}
+        for name in INPUTS:
+            ids = tokens(name, config)
+            bounds = [[0, len(ids)]] if implementation == "original" else calls(len(ids), config["sliding_window"])
+            begin = time.perf_counter()
+            arrays = outputs(model, implementation, ids, bounds, taps)
+            inputs[name] = {"positions": len(ids), "tokens_sha256": digest(ids), "calls": bounds,
+                            "seconds": time.perf_counter() - begin}
+            for key, array in arrays.items():
+                path = output / f"{name}.{key}.npy"
+                np.save(path, array)
+                inputs[name][key] = {**file_record(path), "dtype": str(array.dtype), "shape": list(array.shape),
+                                     "non_finite": int(array.size - np.isfinite(array).sum())}
+        packages = PACKAGES + (CONVERTER if implementation == "class" else ())
+        record = {"schema": SCHEMA, "implementation": implementation, "layers": layers, "layer_types": layer_types,
+                  "tap_layers": list(taps),
+                  "model": {"id": contract["model_id"], "revision": contract["revision"],
+                            "contract_sha256": sha256(contract_path), "verified_before_loading": verified},
+                  "weights": WEIGHT_KINDS[weights], **({"quantized": quantized} if quantized else {}),
+                  "embed_scale": scale,
+                  "upstream_revision": contract["upstream_revision"] if implementation == "class" else None,
+                  "versions": {name: importlib.metadata.version(name) for name in packages}, "inputs": inputs,
+                  "timing": {"input_hash_s": hashed - started, "load_s": loaded - hashed,
+                             "total_s": time.perf_counter() - started},
+                  "memory": {"max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                             "lifetime_peak_footprint_bytes": footprint()[1]}}
+        write_json(output / "record.json", record)
+        return record
+    except BaseException as error:
+        (output / "record.json").unlink(missing_ok=True)
+        write_json(output / "failure.json", {"schema": SCHEMA, "passed": False, "implementation": implementation,
+                                             "weights": weights, "error": type(error).__name__})
+        raise
 
 
 def tensor_sha256(tensor):

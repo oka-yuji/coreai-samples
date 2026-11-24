@@ -618,7 +618,7 @@ class OriginalRunTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed", "float16", None)
             load.assert_not_called()
-            self.assertEqual(list((Path(folder) / "changed").iterdir()), [])
+            self.assertEqual([path.name for path in (Path(folder) / "changed").iterdir()], ["failure.json"])
 
 
 def quantized_tensors(text, seed=5):
@@ -991,6 +991,37 @@ class RestoredReferenceTests(unittest.TestCase):
                         "schema": layers.CONTEXT_SCHEMA, "passed": False, "weights": weights,
                         "error": type(error).__name__})
                     self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
+
+    def test_a_run_that_fails_after_its_folder_is_made_leaves_a_record_of_its_type_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            cases = {"the check of the inputs": ("original", "float16", None, "verify_inputs"),
+                     "the load of the original implementation": ("original", "8bit", source, "original_model"),
+                     "the load of the model class": ("class", "float16", None, "class_model")}
+            for error in (RuntimeError("private-example-sentinel"), KeyboardInterrupt()):
+                for label, (implementation, weights, export_folder, target) in cases.items():
+                    output = folder / f"failed-{label.replace(' ', '-')}-{type(error).__name__}"
+                    with self.subTest(case=label, error=type(error).__name__), mock.patch.object(
+                            layers, target, side_effect=error), self.assertRaises(type(error)):
+                        layers.run(implementation, contract, snapshot, 6, "1,2,3,4,5,6", output, weights, export_folder)
+                    self.assertEqual(read_json(output / "failure.json"), {
+                        "schema": layers.SCHEMA, "passed": False, "implementation": implementation, "weights": weights,
+                        "error": type(error).__name__})
+                    self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
+            real, late = layers.write_json, folder / "late"
+
+            def interrupted_after(path, value):
+                real(path, value)
+                if Path(path).name == "record.json":
+                    raise KeyboardInterrupt
+
+            with mock.patch.object(layers, "write_json", side_effect=interrupted_after), \
+                    self.assertRaises(KeyboardInterrupt):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", late, "float16", None)
+            self.assertEqual(read_json(late / "failure.json")["error"], "KeyboardInterrupt")
+            self.assertFalse((late / "record.json").exists())
 
     def test_a_restored_reference_refuses_an_export_that_did_not_finish_did_not_pass_or_has_other_blocks(self):
         with tempfile.TemporaryDirectory() as folder:
