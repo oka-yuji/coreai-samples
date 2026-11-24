@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -18,7 +19,7 @@ from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_c
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, write_contract
-from Tools.Conversion.tests.test_gemma4_31b_native import model_record
+from Tools.Conversion.tests.test_gemma4_31b_native import bounded, model_record, release
 
 VOCABULARY = TEXT["vocab_size"]
 
@@ -41,7 +42,7 @@ class EffectTests(unittest.TestCase):
         restored["context"][rows.index(1100), 1] = restored["context"][rows.index(1100), 0] + 1.0
         rounded["context"][rows.index(16890), :2] = (30.005, 30.0)
         restored["context"][rows.index(16890), :2] = (30.0, 30.5)
-        self.arrays = rounded
+        self.arrays, self.restored_arrays = rounded, restored
         self.rounded = self.write("rounded", layers.WEIGHTS, rounded)
         self.restored = self.write("restored", layers.RESTORED, restored,
                                    quantized={"export_sha256": "1" * 64, "file": {"bytes": 1, "sha256": "2" * 64},
@@ -128,12 +129,68 @@ class EffectTests(unittest.TestCase):
                                                "tensors": 123.0},
                  "a list": ["tensors"]}
         for label, quantized in cases.items():
-            restored = self.write(label.replace(" ", "-"), layers.RESTORED, self.arrays, quantized=quantized)
+            restored = self.write(label.replace(" ", "-"), layers.RESTORED, self.restored_arrays, quantized=quantized)
             with self.subTest(case=label):
                 code, output, _ = self.run_main(restored, self.rounded)
                 result = json.loads(output)
                 self.assertEqual((code, result["conditions"]), (1, []))
                 self.assertTrue(result["problems"])
+
+    def test_references_that_hold_the_same_logits_are_refused_and_nothing_is_compared(self):
+        def shared(label, places):
+            folder = self.folder / label
+            shutil.copytree(self.rounded, folder)
+            record = read_json(folder / "record.json")
+            for name, how in places:
+                (folder / f"{name}.npy").unlink()
+                how(self.restored / f"{name}.npy", folder / f"{name}.npy")
+                record["inputs"][name]["logits"].update(layers.file_record(folder / f"{name}.npy"))
+            write_json(folder / "record.json", record)
+            return folder
+
+        link, copy = os.link, shutil.copyfile
+        cases = {"a hard link of the short logits": (("short", link),), "a copy of the short logits": (("short", copy),),
+                 "a hard link of the context logits": (("context", link),),
+                 "a copy of the context logits": (("context", copy),),
+                 "hard links of both": (("short", link), ("context", link)),
+                 "copies of both": (("short", copy), ("context", copy))}
+        for index, (label, places) in enumerate(cases.items()):
+            with self.subTest(case=label):
+                code, output, _ = self.run_main(self.restored, shared(f"shared-{index}", places))
+                result = json.loads(output)
+                self.assertEqual((code, result["conditions"], result["problems"]),
+                                 (1, [], [f"the references hold the same {name} logits" for name, _ in places]))
+        self.assertEqual(self.run_main(self.restored, self.rounded)[0], 0)
+
+    def test_a_reference_does_not_wait_on_a_pipe_and_a_link_or_a_folder_is_refused(self):
+        def piped(path):
+            path.unlink()
+            os.mkfifo(path)
+
+        def linked(path):
+            path.rename(path.with_name(path.name + ".copy"))
+            path.symlink_to(path.with_name(path.name + ".copy"))
+
+        def folder(path):
+            path.unlink()
+            path.mkdir()
+
+        places = {"an array of the rounded reference": ("rounded", "short.npy"),
+                  "the record of the rounded reference": ("rounded", "record.json"),
+                  "an array of the restored reference": ("restored", "context.npy")}
+        index = 0
+        for kind, make in {"a pipe": piped, "a link": linked, "a folder": folder}.items():
+            for label, (which, name) in places.items():
+                index += 1
+                restored, rounded = self.folder / f"restored-{index}", self.folder / f"rounded-{index}"
+                shutil.copytree(self.restored, restored)
+                shutil.copytree(self.rounded, rounded)
+                path = (restored if which == "restored" else rounded) / name
+                make(path)
+                with self.subTest(case=kind, place=label):
+                    thread, outcome = bounded(lambda: effect.effect(restored, rounded, self.contract))
+                    self.assertFalse(release(path, thread))
+                    self.assertIsInstance(outcome.get("error"), (OSError, ValueError))
 
     def test_an_unreadable_reference_stops_with_the_fixed_error_and_prints_nothing(self):
         (self.restored / "record.json").write_text("{")

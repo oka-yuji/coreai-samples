@@ -1,0 +1,8 @@
+{
+  "model_id": "google/gemma-4-31B-it-assistant",
+  "revision": "627c5ec1458b9086b841a91e0512fd31fd2fbbf1",
+  "files": {
+    "config.json": {"bytes": 2316, "sha256": "d09487c1083a334a97545f204dd41ab1a40b0438bdead19558f0e1357e26d66a"},
+    "model.safetensors": {"bytes": 939042560, "sha256": "9f80df6099fa1fd7db71220ec9ee864d5ecff769878697dd5763e4285b15a1da"}
+  }
+}

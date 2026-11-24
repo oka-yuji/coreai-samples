@@ -12,6 +12,7 @@ from .summary import HEX
 
 SCHEMA = "gemma4-31b-quantization-effect/1"
 KEPT = ("rows", "non_finite", "reference_non_finite", "max_abs_logit", "top1_mismatches")
+CRITERIA = {"near_tie": NEAR_TIE}
 
 
 def checked(record):
@@ -34,6 +35,9 @@ def effect(restored, rounded, contract_path=CONTRACT):
         loaded[kind] = record, hashed, arrays
     if loaded["restored"][0].get("layers") != loaded["rounded"][0].get("layers"):
         problems.append("the references are of other layer counts")
+    if not problems:
+        problems += [f"the references hold the same {name} logits" for name in ("short", "context")
+                     if len({record["inputs"][name]["logits"]["sha256"] for record, _, _ in loaded.values()}) == 1]
     if not problems and not checked(loaded["restored"][0]):
         problems.append("the restored reference did not check the data, scales and minimums of every quantized weight "
                         "of a passed export")
@@ -47,7 +51,7 @@ def effect(restored, rounded, contract_path=CONTRACT):
                            **{key: values[key] for key in KEPT}})
     return {"schema": SCHEMA, "problems": problems,
             **{kind: {"sha256": hashed, "layers": record.get("layers")} for kind, (record, hashed, _) in loaded.items()},
-            "criteria": {"near_tie": NEAR_TIE}, "conditions": conditions}
+            "criteria": CRITERIA, "conditions": conditions}
 
 
 def main():

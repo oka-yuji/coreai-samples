@@ -14,11 +14,13 @@ import time
 from ...storage import PipelineError, canonical, digest, write_json
 from ..jev27b.monitor import FREE_PERCENT, INTERVAL_S, STREAK, SWAP_LIMIT_BYTES
 from ..pinned import sha256
-from .anchor import parse, read
+from .anchor import parse
 from .compare import BLOCK_ROWS, CONTRACT
-from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PRECISIONS, SCHEMA as EXPORT_SCHEMA, WRITES, check_asset,
-                     metadata, name_of, quantized_names, required_bytes)
-from .layers import (CONDITIONS, CONTEXT_SCHEMA, PARTS, QUANTIZED, WEIGHT_KINDS, check_layers, check_taps, joined,
+from .export import (BUNDLE, FUNCTIONS, INCOMPLETE, MARGIN_BYTES, PACKAGES as EXPORT_PACKAGES, PRECISIONS,
+                     SCHEMA as EXPORT_SCHEMA, WRITES, check_asset, expected_functions, metadata, name_of, quantized_names,
+                     required_bytes)
+from .layers import (CONDITIONS, CONTEXT_SCHEMA, PACKAGES as REFERENCE_PACKAGES, PARTS, QUANTIZED, REFERENCE_CHUNK,
+                     WEIGHT_KINDS, check_layers, check_taps, joined, rounded_scale,
                      kept_rows, tokens)
 from .prepare import TOKENIZER_FILES, load_contract
 from .reference import LOADED_FILES, SWAP_INCREASE_LIMIT_BYTES
@@ -30,10 +32,27 @@ KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
 LARGEST = 2**63 - 1
 BLOCK_BYTES = 16 * 2**20
+CRITERIA = {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE}
+KNOWN_CALL = {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST}
+PREFILL_CHUNKS = (2048, 4096)
+FLOAT16_BYTES = 2
+LONGEST = max(length for _, _, length, _, _ in CONDITIONS)
+TOP1 = ("near_tie", "outside")
+FIELDS = ("name", "input", "tokens", "start", "chunk", "rows", "problems", "checks", "passed")
+PATHS = (("seconds",), ("verifier",), ("output",),
+         ("non_finite", "reference_non_finite", "constant_rows", "max_abs_logit", "top1_mismatches", "known"))
+PATH_FIELDS = [set(FIELDS).union(*PATHS[:index]) for index in range(len(PATHS) + 1)]
+DISK = ("weight_bytes", "estimated_write_bytes", "margin_bytes", "required_free_bytes", "free_before_bytes",
+        "lowest_free_bytes")
+SWAP = ("first_bytes", "peak_bytes", "limit_increase_bytes", "increase_bytes")
+REFERENCE_TIMING = ("input_hash_s", "load_s", "total_s")
+REFERENCE_MEMORY = ("max_rss_bytes", "lifetime_peak_footprint_bytes")
 STEPS = ("input_hash_s", "load_s", "convert_s", "save_s", "inspect_s", "bundle_hash_s")
 QUANTIZING_STEPS = ("quantize_s", "tensors_s")
 MONITOR = {"interval_s": INTERVAL_S, "abort": None, "aborts": 0, "failure": None, "unreadable_samples": 0,
            "limits": {"swap_used_bytes": SWAP_LIMIT_BYTES, "free_percent": FREE_PERCENT, "streak": STREAK}}
+READINGS = {"first": {"swap_used_bytes", "free_bytes"}, "peak": {"rss_bytes", "max_rss_bytes", "swap_used_bytes",
+                                                                  "temporary_bytes"}, "lowest": {"free_percent", "free_bytes"}}
 VERIFIER = {"record": "text", "token_count": "count", "start": "count", "chunk": "count", "tokens_sha256": "text",
             "shape": "shape", "dtype": "text", "byte_order": "text", "main_calls": "count", "main_hash": "text",
             "prefix_function": "text", "prefix_calls": "count", "prefix_chunk": "count", "cached": "flag",
@@ -58,7 +77,7 @@ def pinned_model(contract, contract_path):
 def valid(kind, value):
     if kind == "count":
         return type(value) is int and 0 <= value <= LARGEST
-    if kind == "seconds":
+    if kind in ("seconds", "number"):
         return valid("count", value) or type(value) is float and math.isfinite(value) and value >= 0
     if kind == "shape":
         return type(value) is list and all(valid("count", size) for size in value)
@@ -85,7 +104,7 @@ def known_rows(start, length, chunk):
 
 
 def prefill_chunk():
-    return 4096 if os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") >= 64 << 30 else 2048
+    return PREFILL_CHUNKS[1] if os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") >= 64 << 30 else PREFILL_CHUNKS[0]
 
 
 def call_lengths(position, count, limit):
@@ -97,6 +116,15 @@ def call_lengths(position, count, limit):
         lengths.append(length)
         end += length
     return lengths
+
+
+def expected_verifier(entry, config, main_hash, prefill, prefix_chunk):
+    ids = tokens(entry["input"], config)[:entry["tokens"]]
+    return {"record": "logits", "token_count": entry["tokens"], "start": entry["start"], "chunk": entry["chunk"],
+            "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
+            "shape": [entry["rows"], config["vocab_size"]], "dtype": "float16", "byte_order": "little",
+            "main_calls": math.ceil(entry["rows"] / entry["chunk"]), "main_hash": main_hash,
+            **prefix_record(entry["start"], prefix_chunk, prefill)}
 
 
 def prefix_record(start, chunk, prefill):
@@ -129,12 +157,104 @@ def measure(swift, reference, indices, known):
         counts["near_tie"] += int((changed & near).sum())
         counts["outside"] += int((changed & ~near).sum())
     finite = not counts["non_finite"] and not counts["reference_non_finite"]
-    return {"rows": len(swift), "non_finite": counts["non_finite"], "reference_non_finite": counts["reference_non_finite"],
-            "constant_rows": counts["constant_rows"], "max_abs_logit": largest if finite else None,
-            "top1_mismatches": {"near_tie": counts["near_tie"], "outside": counts["outside"]},
-            "known": {"rows": int(known.sum()), "max_abs_logit": known_largest if finite and known.any() else None},
-            "checks": {"finite": finite, "no_constant_rows": not counts["constant_rows"],
-                       "max_abs_logit": finite and largest < MAX_ABS_LOGIT, "top1": not counts["outside"]}}
+    result = {"rows": len(swift), "non_finite": counts["non_finite"], "reference_non_finite": counts["reference_non_finite"],
+              "constant_rows": counts["constant_rows"], "max_abs_logit": largest if finite else None,
+              "top1_mismatches": {key: counts[key] for key in TOP1},
+              "known": {"rows": int(known.sum()), "max_abs_logit": known_largest if finite and known.any() else None}}
+    return {**result, "checks": verdicts(result)}
+
+
+def measure_condition(entry, vocabulary, data, arrays):
+    import numpy as np
+
+    source, length, start, chunk, rows = (entry[key] for key in ("input", "tokens", "start", "chunk", "rows"))
+    index = {row: position for position, row in enumerate(kept_rows(source))}
+    known = np.zeros(rows, dtype=bool)
+    known[[row - start for row in known_rows(start, length, chunk)]] = True
+    return measure(np.frombuffer(data, dtype="<f2").reshape(rows, vocabulary), arrays[source],
+                   np.array([index[position] for position in range(start, length)]), known)
+
+
+def measurement_problems(entry, vocabulary, data, arrays):
+    numbers = measure_condition(entry, vocabulary, data, arrays)
+    if canonical({key: entry.get(key) for key in numbers}) == canonical(numbers):
+        return []
+    return ["the numbers of the condition are not those that its logits file and the reference give"]
+
+
+def logits_bytes(rows, vocabulary):
+    return rows * vocabulary * FLOAT16_BYTES
+
+
+def texts(value):
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def condition_problems(entry, config, main_hash, prefill):
+    if set(entry) not in PATH_FIELDS:
+        return ["the condition holds other fields than the comparison writes on its paths"]
+    reached, problems, verifier = PATH_FIELDS.index(set(entry)), entry["problems"], entry.get("verifier")
+    measured, read, ran = reached == len(PATHS), reached > 2, reached > 1
+    typed = {
+        "the problems of the condition are not a list of texts": texts(problems),
+        "the condition records other checks than its numbers give": isinstance(entry["checks"], dict),
+        "the condition records no time of the verifier": reached < 1 or valid("seconds", entry["seconds"]),
+        "the verifier record holds a field or a value that the verifier does not write":
+            not ran or isinstance(verifier, dict)
+            and all(key in VERIFIER and valid(VERIFIER[key], value) for key, value in verifier.items()),
+        "the verifier record misses a field that the verifier writes":
+            not read or isinstance(verifier, dict) and set(VERIFIER) - OPTIONAL <= set(verifier),
+        "the condition records no size of its logits file":
+            not read or isinstance(entry["output"], dict) and valid("count", entry["output"].get("bytes"))}
+    found = [message for message, holds in typed.items() if not holds]
+    if found:
+        return found
+    chunk = verifier.get("prefix_chunk") if read else None
+    expected = expected_verifier(entry, config, main_hash, prefill, chunk) if chunk in PREFILL_CHUNKS else {}
+    steps = [verifier[key] for key in ("load_s", "prefix_s", "scoring_s") if ran and key in verifier]
+    formulas = {
+        "the condition records other checks than its numbers give": measured or not entry["checks"],
+        "the condition records another verdict than its checks and problems give":
+            canonical(entry["passed"]) == canonical(condition_passed(entry)),
+        "the condition records no problem on a path that stops before its numbers": measured or bool(problems),
+        "the condition records other problems than the one of the path that stops at it":
+            reached not in (0, 3) or len(problems) == 1,
+        "the condition records more problems than the count of the verifier after its numbers":
+            not measured or len(problems) <= 1,
+        "the condition took less time than the verifier recorded for its steps": not ran or sum(steps) <= entry["seconds"],
+        "the verifier record differs from the reads of the condition":
+            not read or verifier.get("prefix_chunk") in PREFILL_CHUNKS
+            and canonical({key: verifier.get(key) for key in expected}) == canonical(expected)
+            and ("prefix_function" in verifier) == (entry["start"] > 0),
+        "the verifier recorded a specialization of the asset that it found in the cache":
+            not ran or verifier.get("cached") is not True or "specialize_s" not in verifier
+            or verifier["specialize_s"] == 0,
+        "the verifier recorded no specialization of the asset that it did not find in the cache":
+            not ran or verifier.get("cached") is not False or "specialize_s" not in verifier
+            or verifier["specialize_s"] > 0,
+        "the verifier recorded a longer specialization than its loading":
+            not ran or not all(key in verifier for key in ("specialize_s", "load_s"))
+            or verifier["specialize_s"] <= verifier["load_s"],
+        "the logits file does not hold the rows of the condition exactly when they were measured":
+            not read or (canonical(entry["output"]["bytes"]) == canonical(logits_bytes(entry["rows"], config["vocab_size"])))
+            == measured,
+        "the verifier counted other non-finite values than the file exactly when the condition records a problem":
+            not measured or (canonical(verifier["non_finite_count"]) == canonical(entry["non_finite"])) == (not problems)}
+    return [message for message, holds in formulas.items() if not holds]
+
+
+def verdicts(entry):
+    finite = not entry["non_finite"] and not entry["reference_non_finite"]
+    return {"finite": finite, "no_constant_rows": not entry["constant_rows"],
+            "max_abs_logit": finite and entry["max_abs_logit"] < MAX_ABS_LOGIT, "top1": not entry["top1_mismatches"]["outside"]}
+
+
+def condition_passed(entry):
+    return not entry["problems"] and bool(entry["checks"]) and all(entry["checks"].values())
+
+
+def comparison_passed(problems, conditions):
+    return not problems and len(conditions) == len(CONDITIONS) and all(item["passed"] for item in conditions)
 
 
 def layer_problems(record, contract, label):
@@ -149,7 +269,7 @@ def layer_problems(record, contract, label):
 def load_reference(folder, contract, contract_path):
     import numpy as np
 
-    record, hashed, _ = read(folder / "record.json")
+    record, hashed, _ = read_record(folder / "record.json")
     problems = [] if (record.get("schema"), record.get("implementation")) == (CONTEXT_SCHEMA, "original") else [
         "the reference is not a context run of the original implementation"]
     problems += layer_problems(record, contract, "reference")
@@ -160,17 +280,64 @@ def load_reference(folder, contract, contract_path):
         entry, ids, rows = (record.get("inputs") or {}).get(name) or {}, tokens(name, contract["config"]), kept_rows(name)
         if (entry.get("positions"), entry.get("tokens_sha256"), entry.get("rows")) != (len(ids), digest(ids), rows):
             problems.append(f"the reference did not keep the rows of the {name} input of the conditions")
-        content, content_hash = read_once(folder / f"{name}.npy")
         logits = entry.get("logits") or {}
-        if (len(content), content_hash) != (logits.get("bytes"), logits.get("sha256")):
+        recorded = logits.get("bytes")
+        found, content = regular_file(folder / f"{name}.npy", recorded if valid("count", recorded) else None, keep=True)
+        if (found["bytes"], found["sha256"]) != (recorded, logits.get("sha256")):
             problems.append(f"the {name} logits differ from the size and SHA-256 in the reference record")
             continue
-        array = np.load(io.BytesIO(content))
+        stream = io.BytesIO(content)
+        array = np.load(stream)
         if array.dtype != np.float32 or array.shape != (len(rows), contract["config"]["vocab_size"]):
             problems.append(f"the {name} logits are {array.dtype} {list(array.shape)}")
             continue
+        if stream.tell() != len(content):
+            problems.append(f"the {name} logits file holds {len(content) - stream.tell()} B after its array")
+            continue
         arrays[name] = array
     return record, hashed, arrays, problems
+
+
+def reference_record_problems(record, contract, arrays):
+    import numpy as np
+
+    config, problems = contract["config"], []
+    if canonical(record.get("chunk")) != canonical(REFERENCE_CHUNK):
+        problems.append("the reference was not computed in the fixed chunks")
+    if canonical(record.get("embed_scale")) != canonical(rounded_scale(config["hidden_size"])):
+        problems.append("the reference did not scale the embeddings by the rounded square root of the hidden size")
+    inputs, timing, memory = mapping(record, "inputs"), mapping(record, "timing"), mapping(record, "memory")
+    for name in ("short", "context"):
+        entry, count, rows = mapping(inputs, name), len(tokens(name, config)), len(kept_rows(name))
+        calls = [[start, min(start + REFERENCE_CHUNK, count)] for start in range(0, count, REFERENCE_CHUNK)]
+        if canonical(entry.get("calls")) != canonical(calls):
+            problems.append(f"the reference did not read the {name} input in the fixed chunks")
+        logits = mapping(entry, "logits")
+        if canonical({key: logits.get(key) for key in ("dtype", "shape")}) \
+                != canonical({"dtype": "float32", "shape": [rows, config["vocab_size"]]}):
+            problems.append(f"the reference recorded the {name} logits of another type or shape")
+        array = arrays.get(name)
+        if array is None or canonical(logits.get("non_finite")) != canonical(int(array.size - np.isfinite(array).sum())):
+            problems.append(f"the reference recorded another count of the non-finite {name} logits than its file holds")
+        if not valid("seconds", entry.get("seconds")):
+            problems.append(f"the reference recorded no time of the {name} input")
+    spent = [timing.get("input_hash_s"), timing.get("load_s"),
+             *(mapping(inputs, name).get("seconds") for name in ("short", "context"))]
+    formulas = {
+        "the reference holds other inputs than those of the conditions":
+            set(inputs) == {source for _, source, *_ in CONDITIONS},
+        "the reference recorded the versions of other packages than its writer records":
+            set(mapping(record, "versions")) == set(REFERENCE_PACKAGES),
+        "the reference recorded other times than those of its steps":
+            set(timing) == set(REFERENCE_TIMING) and all(valid("seconds", value) for value in timing.values()),
+        "the total time of the reference is shorter than its steps":
+            not all(valid("seconds", value) for value in (*spent, timing.get("total_s")))
+            or sum(spent) <= timing["total_s"],
+        "the reference recorded other memory readings than its writer records":
+            set(memory) == set(REFERENCE_MEMORY) and valid("count", memory.get("max_rss_bytes"))
+            and (memory.get("lifetime_peak_footprint_bytes") is None
+                 or valid("count", memory["lifetime_peak_footprint_bytes"]))}
+    return problems + [message for message, holds in formulas.items() if not holds]
 
 
 def regular_file(path, size=None, keep=False):
@@ -191,6 +358,11 @@ def regular_file(path, size=None, keep=False):
     if total != status.st_size:
         raise ValueError(f"{Path(path).name} changed while it was read")
     return {"bytes": total, "sha256": hasher.hexdigest()}, b"".join(kept) if keep else None
+
+
+def read_record(path):
+    found, data = regular_file(path, keep=True)
+    return parse(data), found["sha256"], found["bytes"]
 
 
 def mapping(record, key):
@@ -249,6 +421,8 @@ def relation_problems(record, precision):
     if not valid("count", increase) or increase > SWAP_INCREASE_LIMIT_BYTES:
         problems.append("the export recorded no swap increase within its limit")
     lowest, started = (mapping(mapping(monitor, key), "free_bytes") for key in ("lowest", "first"))
+    samples, total, percent = monitor.get("samples"), timing.get("total_s"), mapping(monitor, "lowest").get("free_percent")
+    readings = [mapping(monitor, "peak").get(key) for key in ("rss_bytes", "max_rss_bytes")]
     steps = [*STEPS, *(QUANTIZING_STEPS if precision == "8bit" else ()), "total_s"]
     seconds = all(valid("seconds", value) for value in timing.values())
     uint8, float16, layouts = by_dtype.get("torch.uint8", 0), by_dtype.get("torch.float16"), \
@@ -275,6 +449,29 @@ def relation_problems(record, precision):
         "the monitor did not run under the fixed limits without stopping":
             canonical({key: monitor.get(key) for key in MONITOR}) == canonical(MONITOR)
             and canonical(mapping(monitor, "peak").get("temporary_bytes")) == canonical(0),
+        "the disk record does not have the keys that the export writes": set(disk) == set(DISK),
+        "the swap record does not have the keys that the export writes": set(swap) == set(SWAP),
+        "the export recorded the versions of other packages than it records":
+            set(mapping(record, "versions")) == set(EXPORT_PACKAGES),
+        "the monitor record does not have the keys that the monitor writes":
+            set(monitor) == {*MONITOR, "samples", *READINGS}
+            and all(set(mapping(monitor, key)) == keys for key, keys in READINGS.items()),
+        "the monitor recorded no sample":
+            valid("count", samples) and samples > 0,
+        "the monitor recorded more samples than its interval allows in the time of the export":
+            not (valid("count", samples) and valid("seconds", total)) or samples <= total / INTERVAL_S + 1,
+        "the monitor recorded one sample and another peak swap than that sample":
+            samples != 1 or canonical(mapping(monitor, "peak").get("swap_used_bytes"))
+            == canonical(mapping(monitor, "first").get("swap_used_bytes")),
+        "the monitor recorded one sample and another lowest free disk than that sample":
+            samples != 1 or canonical(lowest) == canonical(started),
+        "the resident memory that ps gave the monitor is not in KiB":
+            not valid("count", mapping(monitor, "peak").get("rss_bytes")) or monitor["peak"]["rss_bytes"] % 1024 == 0,
+        "the monitor recorded no positive resident memory": all(valid("count", value) and value > 0 for value in readings),
+        "the resident memory that ps gave the monitor is above the peak resident memory that it read":
+            not all(valid("count", value) for value in readings) or readings[0] <= readings[1],
+        "the lowest free memory percentage of the monitor is not a percentage":
+            valid("count", percent) and percent <= 100,
         "the times are not those of the steps of the export":
             sorted(timing) == sorted(steps) and seconds,
         "the total time is shorter than its steps":
@@ -305,6 +502,8 @@ def load_export(folder, contract, contract_path):
         problems.append("the export was made with another converter checkout than the contract pins")
     if not valid("count", record.get("context")):
         problems.append("the export recorded no valid context limit")
+    elif record["context"] < LONGEST:
+        problems.append("the export recorded a context limit below the longest condition")
     problems += layer_problems(record, contract, "export")
     if canonical(record.get("model")) != canonical(pinned_model(contract, contract_path)):
         problems.append("the export recorded another model or contract")
@@ -322,6 +521,9 @@ def load_export(folder, contract, contract_path):
     if shape is not None:
         try:
             problems += check_asset(record, contract, *shape) + relation_problems(record, shape[4])
+            found, expected = record["asset"]["functions"], expected_functions(contract["config"], *shape[:2], shape[3])
+            if any(set(found[name]) != set(expected[name]) for name in set(found) & set(expected)):
+                problems.append("the functions of the asset hold other parts than inputs, outputs and states")
         except (AttributeError, KeyError, TypeError, ValueError):
             problems.append("the export record does not hold a complete inspection of its asset")
     folders = [bundle, bundle / "tokenizer", *([] if name is None else [bundle / f"{name}.aimodel"])]
@@ -434,13 +636,11 @@ def condition(spec, config, arrays, facts, verifier, output):
         json.dumps(entry, allow_nan=False)
     except Exception as error:
         entry = {**fixed, "problems": [f"the condition could not be compared ({type(error).__name__})"], "checks": {}}
-    entry["passed"] = not entry["problems"] and bool(entry["checks"]) and all(entry["checks"].values())
+    entry["passed"] = condition_passed(entry)
     return entry
 
 
 def measured(entry, config, arrays, facts, verifier, output):
-    import numpy as np
-
     name, source, length, start, chunk, rows = (entry[key] for key in ("name", "input", "tokens", "start", "chunk", "rows"))
     ids, vocabulary, problems = tokens(source, config)[:length], config["vocab_size"], entry["problems"]
     (output / f"{name}.tokens.json").write_text(json.dumps(ids))
@@ -462,11 +662,7 @@ def measured(entry, config, arrays, facts, verifier, output):
             entry["verifier"] = record
             problems += [f"the verifier record is malformed ({key})" for key in malformed]
             if not malformed:
-                expected = {"record": "logits", "token_count": length, "start": start, "chunk": chunk,
-                            "tokens_sha256": hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest(),
-                            "shape": [rows, vocabulary], "dtype": "float16", "byte_order": "little",
-                            "main_calls": math.ceil(rows / chunk), "main_hash": facts["main_hash"],
-                            **prefix_record(start, prefill_chunk(), facts["prefill"])}
+                expected = expected_verifier(entry, config, facts["main_hash"], facts["prefill"], prefill_chunk())
                 problems += [f"the verifier recorded {key} {record.get(key)!r}, not {value!r}"
                              for key, value in expected.items() if record.get(key) != value]
                 if start == 0 and "prefix_function" in record:
@@ -476,14 +672,10 @@ def measured(entry, config, arrays, facts, verifier, output):
         return
     data, content_hash = read_once(output / f"{name}.f16")
     entry["output"] = {"bytes": len(data), "sha256": content_hash}
-    if len(data) != rows * vocabulary * 2:
-        problems.append(f"the logits file holds {len(data)} B, not {rows * vocabulary * 2} B")
+    if len(data) != logits_bytes(rows, vocabulary):
+        problems.append(f"the logits file holds {len(data)} B, not {logits_bytes(rows, vocabulary)} B")
         return
-    index = {row: position for position, row in enumerate(kept_rows(source))}
-    known = np.zeros(rows, dtype=bool)
-    known[[row - start for row in known_rows(start, length, chunk)]] = True
-    entry.update(measure(np.frombuffer(data, dtype="<f2").reshape(rows, vocabulary), arrays[source],
-                         np.array([index[position] for position in range(start, length)]), known))
+    entry.update(measure_condition(entry, vocabulary, data, arrays))
     if entry["verifier"]["non_finite_count"] != entry["non_finite"]:
         problems.append(f"the verifier counted {entry['verifier']['non_finite_count']} non-finite values, not the "
                         f"{entry['non_finite']} of its file")
@@ -513,16 +705,14 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
     verifier_record = None
     if not problems:
         try:
-            data, verifier_hash = read_once(verifier)
-            verifier_record = {"bytes": len(data), "sha256": verifier_hash}
+            verifier = Path(verifier).resolve()
+            verifier_record = regular_file(verifier)[0]
         except Exception as error:
             problems.append(f"the verifier is unreadable ({type(error).__name__})")
     conditions = [] if problems else [condition(spec, contract["config"], arrays, facts, verifier, output)
                                       for spec in CONDITIONS]
     result = {"schema": SCHEMA, "problems": problems,
-              "passed": not problems and len(conditions) == len(CONDITIONS) and all(item["passed"] for item in conditions),
-              "criteria": {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE},
-              "known_call": {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST},
+              "passed": comparison_passed(problems, conditions), "criteria": CRITERIA, "known_call": KNOWN_CALL,
               "reference": {"sha256": reference_hash, "layers": reference.get("layers")},
               "export": {"sha256": export_hash, "layers": exported.get("layers"), "functions": exported.get("functions"),
                          "main_hash": facts["main_hash"] if facts else None},

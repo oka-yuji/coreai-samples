@@ -207,6 +207,91 @@ item ごとに、エンジンを空にし、入力を `prefill` で読み(バン
 
 モデルの要らない確認は `swift test --package-path Tools/Verify -c release --filter "EvaluationRecordTests|EvaluationRunTests"` です。
 
+## 状態を持たない関数
+
+`coreai-verify function` は、状態を持たない Core AI の資産の関数を、ファイルで渡した入力で 1 つ動かし、出力をファイルと記録に書きます。Gemma 4 31B の変換の MTP の drafter のような、言語モデルでない資産を、アプリと同じように Core AI で動かすためのものです。モデルを読むので、先に `AGENTS.md` にある重いジョブのロックを取ります。
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify function --model drafter.aimodel --function draft_7 --inputs inputs/inputs.json --output out --repeat 3
+```
+
+この例は、`drafter.aimodel`([合成の drafter の書き出し](../Tools/Conversion/recipes/gemma4_31b/README.md#export-of-a-synthetic-drafter)を `--steps 7` で流して得る `unrolled.aimodel` か `both.aimodel`。どちらにも関数 `draft_7` があります)と、`inputs.json` とそれが指すデータのファイルを入れた `inputs` のフォルダがあるフォルダで流します。
+
+| 指定 | 意味 |
+|---|---|
+| `--model` | 資産の `.aimodel` のフォルダ。バンドルのフォルダではありません。 |
+| `--function` | 関数の名前。資産は複数の関数を持てます。 |
+| `--inputs` | 入力を並べる JSON のファイル(下に書きます)。 |
+| `--output` | 新しいフォルダ。在るパスは、リンクも含めて断ります。 |
+| `--repeat` | 同じ入力で呼ぶ回数。1 以上で、既定は 1。どの呼び出しの出力も、最初の呼び出しの出力と byte で同じでなければなりません。 |
+
+入力の一覧は、鍵がちょうど `inputs` だけの JSON のオブジェクトで、値は入力ごとに 1 つのオブジェクトの配列です。各オブジェクトの鍵は、ちょうど `name`・`dtype`・`shape`・`file` です:
+
+```json
+{"inputs": [
+  {"name": "input_ids", "dtype": "int32", "shape": [1, 1], "file": "input_ids.bin"},
+  {"name": "hidden_states", "dtype": "float16", "shape": [1, 1, 48], "file": "hidden_states.bin"},
+  {"name": "position_ids", "dtype": "int32", "shape": [1, 1], "file": "position_ids.bin"},
+  {"name": "k_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "k_sliding.bin"},
+  {"name": "v_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "v_sliding.bin"},
+  {"name": "k_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "k_full.bin"},
+  {"name": "v_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "v_full.bin"}
+]}
+```
+
+これは `draft_7` の 7 つの入力の全部で、sliding window の key と value が 5 位置、full attention のものが 9 位置の場合です。ファイルの大きさは 4、96、4、320、320、576、576 バイトです。
+
+`dtype` は `int32`・`float16`・`float32` のどれかです。`shape` は、1 以上の整数の、空でない配列で、整数の書き方で書きます。`1.0` と `1e0`、0、負の数、真偽値、文字列は断ります。`file` は、入力の一覧と同じフォルダの中のファイルの名前です。空でなく、`/` と NUL 文字を含まず、`.` と `..` でないものに限ります。ファイルの中身は、要素を little-endian の値で、行優先の順に、ヘッダなしで並べたもので、大きさは形の積に型の幅(`float16` は 2 バイト、`int32` と `float32` は 4 バイト)を掛けた値とちょうど同じです。NumPy の dtype は、`int32` が `"<i4"`、`float16` が `"<f2"`、`float32` が `"<f4"` で、`array.astype("<f2").tofile(path)` で書け、`np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。同じ名前のメンバーが 1 つのオブジェクトに 2 回現れる場合は、検出しません。
+
+次の場合は、特殊化の前に、どれかを言って止まり、出力のフォルダを作りません:
+
+1. 出力先のパスが在る(リンクも含みます)。
+2. 入力の一覧が通常のファイルでない(リンク・フォルダ・名前付きパイプは通常のファイルではありません)、または中身が上の形でない。
+3. 資産にその名前の関数が無い、または関数が state を持つ。この口は、状態を持たない関数だけを動かします。
+4. 一覧の名前が、関数の入力の名前とちょうど同じでない(どの名前も 1 回だけ並べます)。
+5. 入力の型(dtype)または次元の数が資産の記述と違う、または固定の次元が違う。資産が `?` と書く動的な次元は、1 以上のどんな大きさも通します。
+6. データのファイルが通常のファイルでない(リンク・フォルダ・名前付きパイプを断ります)、または大きさが形と型から決まる値と違う。ファイルは、待たずに、リンクを辿らずに開き、種類と大きさを確かめてから読みます。
+
+入力の型は、資産の要約(特殊化しないで読めます)にある `NDArray (<型>, <次元>)` の文字列から、`Int32`・`Float16`・`Float32` のものだけを読みます。資産がこれ以外の形で書く入力は断ります。
+
+検査が全部通ったら、出力のフォルダを作り(作れないとき、例えば親のフォルダが無いときは、モデルを読む前に、理由を言って止まります)、自前のエンジンと同じ設定(計算ユニットの自動選択、`expectFrequentReshapes` は真。変える指定はありません)で資産を特殊化し、関数を `--repeat` 回呼びます。出力のフォルダの中身は次のとおりです:
+
+| ファイル | 内容 |
+|---|---|
+| `<出力の名前>.bin` | 最後の呼び出しの出力ごとに 1 つ(関数の出力の順)。要素を little-endian の値で、行優先の順に、ヘッダなしで並べたもので、型は記録がその出力について書く `dtype` です(NumPy の dtype は上のとおり)。ファイル名にできない出力の名前(空、`/` か NUL 文字を含む、ファイル名が 255 バイトを超える)は、呼び出しの後、ファイルを書く前に断ります。 |
+| `function.json` | 下の記録。標準出力に出す行と同じものです。 |
+| `failure.json` | 最初に書き、実行が成功したときに消します。在れば、その実行は成功していません(下)。 |
+
+記録は `record` が `function` の JSON の 1 行です:
+
+| 鍵 | 内容 |
+|---|---|
+| `byte_order` | `little` |
+| `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いとき、通常のファイルでないとき(リンク・フォルダ・名前付きパイプ)は無い |
+| `function` | 関数の名前 |
+| `inputs` | 入力ごとに 1 つ(入力の一覧の順): `name`・`dtype`・`shape`・`bytes`(形の積に型の幅を掛けた値で、ファイルの大きさ)・ファイルの中身の `sha256` |
+| `outputs` | 出力ごとに 1 つ: 同じ鍵と、出力のフォルダの中のファイル名 `file` |
+| `requested_compute`、`expect_frequent_reshapes`、`cached`、`cache_query_error`、`specialize_s`、`load_s` | 特殊化の要求とキャッシュの状態。`own-load` の記録と同じ。`load_s` はキャッシュの照会から関数が読み込まれるまでの秒数。`cache_query_error` は誤りの説明で、ローカルのパスを含むことがあるので、これがある生の記録をそのまま公開しない |
+| `call_s` | 呼び出しごとの秒数(順) |
+| `repeat_identical`、`repeat_differing_calls` | どの呼び出しも最初の呼び出しと同じ出力を返したか。違った呼び出しの番号(2 から)。名前・型・形・byte のどれかが違えば違いです |
+
+出力のフォルダに最初にすることは、`failure.json` を書くことです。書けないときは、作ったフォルダを消します(消せなければ、そう言います)。そして理由を言って、モデルを読む前に止まります。中身は `{"kind": ..., "record": "function-failure"}` の 1 行だけです。`kind` は最初は `incomplete` で、実行の終わり方が分かった時点で、それを表す `kind` に書き直します。書き直せなかったときは `incomplete` のまま残り、process が止められるなど、跡を残さずに止まったときも `incomplete` が残ります。
+
+| `kind` | 実行の終わり方 |
+|---|---|
+| `incomplete` | 上のとおり、書き直されなかった。 |
+| `load` | 特殊化、または関数の読み込みが失敗した。 |
+| `call` | 呼び出しが失敗した。 |
+| `write` | 出力か `function.json` の書き込み、または `failure.json` の除去が失敗した(断った出力の名前を含む)。 |
+| `cancelled` | task が取り消された。関数を読む前、各呼び出しの前、出力を書く前に確かめます。 |
+| `repeat_mismatch` | 最初の呼び出しと違う出力を返した呼び出しがあった。最後の呼び出しのファイルと、`repeat_identical` が偽の `function.json` を書き、記録を出して、終了コード 1 で終わります。 |
+
+`load`・`call`・`write`・`cancelled` は、その原因の誤りで終わります。成功する実行は、`function.json` を書いてから `failure.json` を消し、消せないときは実行が失敗します。決まりは 1 つです: 出力のフォルダに `failure.json` が在れば、その実行は成功していません。
+
+モデルの要らない確認は `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"` です。入力の一覧、関数の記述との照合、データのファイル、記録・失敗の記録・取消での停止を、モデルの代わりの偽の実装で確かめ、テンソルの変換を SDK の `NDArray` で確かめます。資産での実行は別の確認です。
+
 ## 計測項目と境界
 
 依頼ごとの計測は、明示したときだけ行います。`chat --runtime own --measure summary` は各 `turn` の記録に `measurement` を足し、`--measure trace` はさらにサンプルごとの行を足します。既定の `--measure off` では、この項目は無く、生成、停止、エラー、メタデータ、使用量は、この指定が無いときと同じです。`tools` は `--measure` を断り、`bench` にはこの指定がありません。値は `CoreAIBackend` が採り、`coreai-verify` が出力します。Verification SPI の `lastRequestMeasurement()` は、`lastGeneratedTokens()` と同じく実行に入った最後の依頼の計測を返し、その依頼が生成の前に終わったとき(文脈あふれや読み込みの失敗など)は何も返しません。`turn` の記録は、そのターンの依頼に計測が無ければ `measurement` を持ちません。実行の前に断られた依頼では SPI に前の依頼の計測が残るので、CLI は `request_id` を前のターンのものと比べます。時間は 1 つの単調な時計で測った秒、回数は整数です。

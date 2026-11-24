@@ -1,7 +1,9 @@
 import contextlib
+import copy
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -21,7 +23,7 @@ except ImportError:
 from Tools.Conversion.adapters.gemma4_31b import export, layers, native
 from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_contract
 from Tools.Conversion.adapters.pinned import sha256
-from Tools.Conversion.storage import digest, read_json, write_json
+from Tools.Conversion.storage import canonical, digest, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import (BUNDLE_DEFECTS, MAIN_ASSET, TEXT, complete_export,
                                                             write_contract)
 
@@ -64,7 +66,7 @@ record = {{"record": "logits", "token_count": len(ids), "start": start, "chunk":
           "shape": [len(ids) - start, values.shape[1]], "dtype": "float16", "byte_order": "little",
           "prefix_chunk": prefill, "prefix_calls": -(-start // prefill),
           "main_calls": -(-(len(ids) - start) // chunk), "main_hash": plan["main_hash"], "cached": True,
-          "non_finite_count": 0, "load_s": 0.1, "prefix_s": 0.0, "scoring_s": 0.2, "specialize_s": 0.0}}
+          "non_finite_count": 0, "load_s": 0.001, "prefix_s": 0.0, "scoring_s": 0.001, "specialize_s": 0.0}}
 if start:
     record["prefix_function"] = "prefill"
 record.update(change.get("record", {{}}))
@@ -300,17 +302,20 @@ class CompareTests(unittest.TestCase):
         self.verifier = self.folder / "verifier"
         self.calls = self.folder / "calls.txt"
 
-    def run_compare(self, changes=None, label="out"):
+    def run_compare(self, changes=None, label="out", verifier=None):
         plan = {"conditions": {name: [length, start, chunk] for name, _, length, start, chunk in layers.CONDITIONS},
                 "changes": changes or {}, "arrays": self.arrays, "rows": self.rows, "main_hash": MAIN_HASH,
                 "calls": str(self.calls), "prefill_chunk": native.prefill_chunk()}
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
-        return native.compare(self.export, self.reference, self.verifier, self.folder / label, self.contract)
+        return native.compare(self.export, self.reference, verifier or self.verifier, self.folder / label, self.contract)
 
     def conditions(self, result):
         return {entry["name"]: entry for entry in result["conditions"]}
+
+    def loaded(self):
+        return {name: np.load(path) for name, path in self.arrays.items()}
 
     def test_matching_logits_pass_all_twelve_conditions_and_the_comparison_is_saved(self):
         result = self.run_compare()
@@ -369,7 +374,7 @@ class CompareTests(unittest.TestCase):
         self.assertEqual({name for name, entry in conditions.items() if not entry["passed"]}, {"window-c2", "window-c4"})
 
     def test_a_verifier_record_with_a_missing_wrong_or_non_finite_field_fails_only_its_condition(self):
-        result = self.run_compare({"window-c2": {"replace": [['"load_s": 0.1', '"load_s": 1e999']]},
+        result = self.run_compare({"window-c2": {"replace": [['"load_s": 0.001', '"load_s": 1e999']]},
                                    "window-c4": {"drop": ["cached"]}, "prefix-c1": {"record": {"main_calls": "300"}},
                                    "tail": {"record": {"extra": "dropped"}}})
         self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
@@ -385,7 +390,7 @@ class CompareTests(unittest.TestCase):
         huge = str(10**400)
         result = self.run_compare({"short-c1": {"record": {"non_finite_count": 1}},
                                    "window-c1": {"replace": [['"non_finite_count": 0', '"non_finite_count": ' + huge]]},
-                                   "tail": {"replace": [['"load_s": 0.1', '"load_s": ' + huge]]}})
+                                   "tail": {"replace": [['"load_s": 0.001', '"load_s": ' + huge]]}})
         self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
         conditions = self.conditions(result)
         self.assertEqual({name: entry["problems"] for name, entry in conditions.items() if not entry["passed"]},
@@ -407,6 +412,199 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(failing, {"short-c1", "short-c26", "window-c1"})
         for name in failing:
             self.assertEqual((conditions[name]["max_abs_logit"], conditions[name]["checks"]["finite"]), (None, False))
+
+    def test_every_condition_that_the_comparison_writes_on_any_path_holds_what_the_reader_expects(self):
+        changes = {"short-c1": {"record": {"non_finite_count": 1}}, "short-c26": {"rows": -1}, "window-c1": {"exit": 1},
+                   "window-c2": {"stdout": "not a record"}, "window-c4": {"no_output": True},
+                   "window-c8": {"set": [[100, 5, 30.0]]}, "capacity-2048": {"set": [[2, 3, float("nan")]]},
+                   "capacity-4096": {"constant": [4]}, "prefix-c1": {"drop": ["cached"]},
+                   "capacity-8192": {"record": {"cached": False, "specialize_s": 0.0005}}}
+        conditions = self.conditions(self.run_compare(changes))
+        for name, entry in conditions.items():
+            with self.subTest(condition=name):
+                self.assertEqual(native.condition_problems(entry, self.config, MAIN_HASH, True), [])
+        self.assertEqual({len(set(entry) - set(native.FIELDS)) for entry in conditions.values()}, {0, 1, 2, 3, 9})
+        measured, stopped = conditions["tail"], conditions["window-c1"]
+        sized, counted = conditions["short-c26"], conditions["short-c1"]
+        verifier = measured["verifier"]
+        steps, shorter = verifier["load_s"] + verifier["prefix_s"] + verifier["scoring_s"], {
+            key: value for key, value in stopped["verifier"].items() if key != "scoring_s"}
+        took = "the condition took less time than the verifier recorded for its steps"
+        fields = "the verifier record holds a field or a value that the verifier does not write"
+        cases = {
+            "a field that the comparison does not write": (measured, {"extra": 1},
+                                                           ["the condition holds other fields than the comparison writes on "
+                                                            "its paths"]),
+            "checks on a path that stops before its numbers": (
+                stopped, {"checks": {"finite": True}}, ["the condition records other checks than its numbers give"]),
+            "a verdict that its checks and problems do not give": (
+                measured, {"passed": False}, ["the condition records another verdict than its checks and problems give"]),
+            "no problem on a path that stops before its numbers": (
+                stopped, {"problems": []}, ["the condition records no problem on a path that stops before its numbers"]),
+            "two problems on the path that stops at the size of the file": (
+                sized, {"problems": sized["problems"] * 2},
+                ["the condition records other problems than the one of the path that stops at it"]),
+            "two problems on the path that stops at an exception": (
+                conditions["window-c4"], {"problems": conditions["window-c4"]["problems"] * 2},
+                ["the condition records other problems than the one of the path that stops at it"]),
+            "another problem after the numbers": (
+                counted, {"problems": counted["problems"] * 2},
+                ["the condition records more problems than the count of the verifier after its numbers"]),
+            "a negative time of the verifier": (stopped, {"seconds": -1.0}, ["the condition records no time of the verifier"]),
+            "a field that the verifier does not write": (
+                measured, {"verifier": {**verifier, "cache_query_error": "private"}},
+                ["the verifier record holds a field or a value that the verifier does not write"]),
+            "a verifier record without the cache flag": (
+                measured, {"verifier": {key: value for key, value in verifier.items() if key != "cached"}},
+                ["the verifier record misses a field that the verifier writes"]),
+            "other calls of the verifier": (measured, {"verifier": {**verifier, "main_calls": verifier["main_calls"] + 1}},
+                                            ["the verifier record differs from the reads of the condition"]),
+            "a prefill chunk that the engine does not use": (
+                measured, {"verifier": {**verifier, "prefix_chunk": 1000}},
+                ["the verifier record differs from the reads of the condition"]),
+            "a prefix function at position 0": (
+                conditions["window-c8"], {"verifier": {**conditions["window-c8"]["verifier"], "prefix_function": "main"}},
+                ["the verifier record differs from the reads of the condition"]),
+            "a specialization of a cached asset": (
+                measured, {"verifier": {**verifier, "specialize_s": 0.0005}},
+                ["the verifier recorded a specialization of the asset that it found in the cache"]),
+            "a specialization longer than the loading": (
+                measured, {"verifier": {**verifier, "cached": False, "specialize_s": verifier["load_s"] + 1}},
+                ["the verifier recorded a longer specialization than its loading"]),
+            "measured logits of another size than the rows": (
+                measured, {"output": {**measured["output"], "bytes": measured["output"]["bytes"] - 2}},
+                ["the logits file does not hold the rows of the condition exactly when they were measured"]),
+            "a file of the size of the rows that was not measured": (
+                sized, {"output": {**sized["output"], "bytes": native.logits_bytes(sized["rows"], VOCABULARY)}},
+                ["the logits file does not hold the rows of the condition exactly when they were measured"]),
+            "another non-finite count of the verifier without its problem": (
+                measured, {"verifier": {**verifier, "non_finite_count": 1}},
+                ["the verifier counted other non-finite values than the file exactly when the condition records a problem"]),
+            "a condition that took less time than its verifier recorded": (
+                measured, {"seconds": math.nextafter(steps, 0)}, [took]),
+            "a condition that took as long as its verifier recorded": (measured, {"seconds": steps}, []),
+            "a verifier that recorded some of its steps within the time of the condition": (
+                stopped, {"verifier": shorter, "seconds": shorter["load_s"] + shorter["prefix_s"]}, []),
+            "a verifier that recorded some of its steps beyond the time of the condition": (
+                stopped, {"verifier": shorter, "seconds": math.nextafter(shorter["load_s"] + shorter["prefix_s"], 0)},
+                [took]),
+            "a verifier that did not find the asset in its cache and recorded no specialization": (
+                measured, {"verifier": {**verifier, "cached": False, "specialize_s": 0.0}},
+                ["the verifier recorded no specialization of the asset that it did not find in the cache"]),
+            "a verifier that did not find the asset in its cache and recorded the smallest specialization": (
+                measured, {"verifier": {**verifier, "cached": False, "specialize_s": math.nextafter(0.0, 1)}}, []),
+            "a time of the verifier of another type": (measured, {"verifier": {**verifier, "load_s": "1"}}, [fields]),
+            "a verifier record that is no record": (stopped, {"verifier": []}, [fields]),
+            "problems of another type": (measured, {"problems": "x"},
+                                         ["the problems of the condition are not a list of texts"]),
+            "checks of another type": (measured, {"checks": []}, ["the condition records other checks than its numbers give"]),
+            "a time of the condition of another type": (stopped, {"seconds": "4"},
+                                                        ["the condition records no time of the verifier"]),
+            "a size of the logits file of another type": (
+                measured, {"output": {**measured["output"], "bytes": "3"}},
+                ["the condition records no size of its logits file"]),
+            "a record of the logits file that is no record": (
+                measured, {"output": []}, ["the condition records no size of its logits file"])}
+        for label, (entry, change, expected) in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(native.condition_problems({**entry, **change}, self.config, MAIN_HASH, True), expected)
+        zero = {**measured, "verifier": {**verifier, "prefix_chunk": 0}}
+        with self.subTest(case="a prefill chunk of zero, which the reads of the condition are not computed for"), \
+                mock.patch.object(native, "call_lengths", side_effect=AssertionError):
+            self.assertEqual(native.condition_problems(zero, self.config, MAIN_HASH, True),
+                             ["the verifier record differs from the reads of the condition"])
+
+    def test_every_condition_that_reached_its_numbers_holds_those_that_its_file_and_the_reference_give(self):
+        changes = {"window-c8": {"set": [[100, 5, 30.0], [111, 6, 30.0]]}, "capacity-2048": {"set": [[2, 3, float("nan")]]},
+                   "capacity-4096": {"constant": [4]}, "capacity-8192": {"set": [[1, 7, 10.0]]},
+                   "capacity-16384": {"set": [[0, 9, 40.0]]}, "short-c26": {"rows": -1}, "window-c1": {"exit": 1}}
+        result, arrays = self.run_compare(changes), self.loaded()
+        measured = [entry for entry in result["conditions"] if "known" in entry]
+        self.assertEqual((len(measured), {entry["passed"] for entry in measured}), (10, {True, False}))
+        for entry in measured:
+            data = (self.folder / "out" / f"{entry['name']}.f16").read_bytes()
+            with self.subTest(condition=entry["name"]):
+                self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, arrays), [])
+
+    def test_each_number_of_a_condition_that_its_file_and_the_reference_do_not_give_is_named_on_its_own(self):
+        result, arrays = self.run_compare({"window-c8": {"set": [[100, 5, 30.0], [111, 6, 30.0]]}}), self.loaded()
+        entry, data = self.conditions(result)["window-c8"], (self.folder / "out/window-c8.f16").read_bytes()
+        named = ["the numbers of the condition are not those that its logits file and the reference give"]
+        known, top, checks = entry["known"], entry["top1_mismatches"], entry["checks"]
+        self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, arrays), [])
+        self.assertGreater(known["max_abs_logit"], 25)
+        cases = {"one more non-finite value": {"non_finite": entry["non_finite"] + 1},
+                 "one more non-finite value of the reference": {"reference_non_finite": entry["reference_non_finite"] + 1},
+                 "one more constant row": {"constant_rows": entry["constant_rows"] + 1},
+                 "the next number below the largest difference": {"max_abs_logit": math.nextafter(entry["max_abs_logit"], 0)},
+                 "the next number above the largest difference": {"max_abs_logit": math.nextafter(entry["max_abs_logit"], 9)},
+                 "no largest difference": {"max_abs_logit": None},
+                 "one more top-1 change near a tie": {"top1_mismatches": {**top, "near_tie": top["near_tie"] + 1}},
+                 "one more top-1 change outside the near tie": {"top1_mismatches": {**top, "outside": top["outside"] + 1}},
+                 "a third count of top-1 changes": {"top1_mismatches": {**top, "other": 0}},
+                 "one known row less": {"known": {**known, "rows": known["rows"] - 1}},
+                 "the next number below the largest difference of the known rows": {
+                     "known": {**known, "max_abs_logit": math.nextafter(known["max_abs_logit"], 0)}},
+                 "no largest difference of the known rows": {"known": {**known, "max_abs_logit": None}},
+                 "no known rows": {"known": None},
+                 "a check that the numbers do not give": {"checks": {**checks, "finite": not checks["finite"]}},
+                 "one more check": {"checks": {**checks, "extra": True}},
+                 "no checks": {"checks": {}}}
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertEqual(native.measurement_problems({**entry, **change}, VOCABULARY, data, arrays), named)
+        for key in ("non_finite", "reference_non_finite", "constant_rows", "max_abs_logit", "top1_mismatches", "known", "checks"):
+            for value in (None, "x", [], {}, True, -1):
+                with self.subTest(key=key, value=value):
+                    self.assertEqual(native.measurement_problems({**entry, key: value}, VOCABULARY, data, arrays), named)
+        other = bytearray(data)
+        other[:2] = np.float16(1000).astype("<f2").tobytes()
+        shifted = {name: array + 1 for name, array in arrays.items()}
+        sources = {"a logits file with one value changed": (bytes(other), arrays),
+                   "the logits file of another condition": ((self.folder / "out/window-c4.f16").read_bytes(), arrays),
+                   "a reference of other values": (data, shifted)}
+        for label, (content, held) in sources.items():
+            with self.subTest(case=label):
+                self.assertEqual(native.measurement_problems(entry, VOCABULARY, content, held), named)
+
+    def test_the_comparison_and_the_reader_measure_a_condition_with_the_same_function(self):
+        original = native.measure_condition
+        with mock.patch.object(native, "measure_condition", wraps=original) as measured:
+            result = self.run_compare()
+        self.assertEqual([call.args[0]["name"] for call in measured.call_args_list],
+                         [name for name, *_ in layers.CONDITIONS])
+        entry, data = self.conditions(result)["tail"], (self.folder / "out/tail.f16").read_bytes()
+        self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, self.loaded()), [])
+        shifted = lambda *arguments: {**original(*arguments), "max_abs_logit": 1.5}
+        with mock.patch.object(native, "measure_condition", side_effect=shifted):
+            self.assertEqual(native.measurement_problems(entry, VOCABULARY, data, self.loaded()),
+                             ["the numbers of the condition are not those that its logits file and the reference give"])
+
+    def test_a_condition_record_with_a_field_of_another_type_is_named_and_never_raises(self):
+        changes = {"short-c26": {"rows": -1}, "window-c1": {"exit": 1}, "window-c2": {"stdout": "not a record"},
+                   "window-c4": {"no_output": True}}
+        conditions, fixed, arrays = self.conditions(self.run_compare(changes)), set(native.FIELDS[:6]), self.loaded()
+        for name in ("window-c4", "window-c2", "window-c1", "short-c26", "window-c8", "tail"):
+            entry = conditions[name]
+            paths = [(key,) for key in entry if key not in fixed]
+            paths += [(key, inner) for key, value in entry.items() if key not in fixed and isinstance(value, dict)
+                      for inner in value]
+            for path in paths:
+                for value in (None, "x", [], {}, True, -1):
+                    changed = copy.deepcopy(entry)
+                    target = changed
+                    for part in path[:-1]:
+                        target = target[part]
+                    if canonical(target[path[-1]]) == canonical(value):
+                        continue
+                    target[path[-1]] = value
+                    with self.subTest(condition=name, path=path, value=value):
+                        found = native.condition_problems(changed, self.config, MAIN_HASH, True)
+                        if "known" in entry:
+                            data = (self.folder / "out" / f"{name}.f16").read_bytes()
+                            found += native.measurement_problems(changed, VOCABULARY, data, arrays)
+                        if name == "tail" and path != ("output", "sha256"):
+                            self.assertTrue(found)
 
     def test_a_condition_record_that_is_not_json_is_reset_and_the_other_conditions_are_kept(self):
         measure = native.measure
@@ -494,6 +692,31 @@ class CompareTests(unittest.TestCase):
             path.write_bytes(data)
         self.assertFalse(result["passed"])
         self.assertIn("the reference record is unreadable (ValueError)", result["problems"])
+        self.assertFalse(self.calls.exists())
+
+    def test_the_verifier_that_is_hashed_is_the_one_that_runs_when_it_is_given_by_its_name_only(self):
+        shadow = self.folder / "elsewhere" / "verifier"
+        shadow.parent.mkdir()
+        shadow.write_text("#!/bin/sh\nexit 3\n")
+        shadow.chmod(0o755)
+        previous = os.getcwd()
+        os.chdir(self.folder)
+        self.addCleanup(os.chdir, previous)
+        with mock.patch.dict(os.environ, {"PATH": f"{shadow.parent}{os.pathsep}{os.environ['PATH']}"}):
+            result = self.run_compare(verifier=Path("verifier"))
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
+        self.assertTrue(self.calls.exists())
+
+    def test_a_verifier_path_that_cannot_be_resolved_leaves_a_failed_comparison(self):
+        first, second = self.folder / "loop-a", self.folder / "loop-b"
+        first.symlink_to(second)
+        second.symlink_to(first)
+        result = self.run_compare(verifier=first)
+        self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
+        self.assertFalse(result["passed"])
+        self.assertEqual((len(result["problems"]), result["verifier"], result["conditions"]), (1, None, []))
+        self.assertRegex(result["problems"][0], r"^the verifier is unreadable \(\w+\)$")
         self.assertFalse(self.calls.exists())
 
     def test_a_verifier_that_does_not_finish_in_time_is_stopped_and_its_condition_fails(self):
@@ -735,6 +958,42 @@ class CompareTests(unittest.TestCase):
                 shutil.rmtree(self.export)
                 complete_export(self.export, self.contract)
 
+    def test_the_reference_reader_does_not_wait_on_a_pipe_and_reads_only_regular_files_of_the_recorded_size(self):
+        contract = load_contract(self.contract)
+
+        def piped(path):
+            path.unlink()
+            os.mkfifo(path)
+
+        def linked(path):
+            path.rename(path.with_name(path.name + ".copy"))
+            path.symlink_to(path.with_name(path.name + ".copy"))
+
+        def folder(path):
+            path.unlink()
+            path.mkdir()
+
+        index = 0
+        for kind, make in {"a pipe": piped, "a link": linked, "a folder": folder}.items():
+            for place in ("short.npy", "context.npy", "record.json"):
+                index += 1
+                copied = self.folder / f"reference-{index}"
+                shutil.copytree(self.reference, copied)
+                make(copied / place)
+                with self.subTest(case=kind, place=place):
+                    thread, outcome = bounded(lambda: native.load_reference(copied, contract, self.contract))
+                    self.assertFalse(release(copied / place, thread))
+                    self.assertIsInstance(outcome.get("error"), (OSError, ValueError))
+        for place in ("short.npy", "context.npy"):
+            copied = self.folder / f"reference-{place}"
+            shutil.copytree(self.reference, copied)
+            (copied / place).write_bytes((copied / place).read_bytes() + b"x")
+            with self.subTest(case="a file of another size", place=place), watched() as reads:
+                with self.assertRaises(ValueError):
+                    native.load_reference(copied, contract, self.contract)
+                self.assertNotIn(inode(copied / place), reads)
+        self.assertEqual(native.load_reference(self.reference, contract, self.contract)[3], [])
+
     def test_the_reader_names_each_number_of_the_record_that_does_not_follow_from_the_others(self):
         limit, contract = native.SWAP_INCREASE_LIMIT_BYTES, load_contract(self.contract)
 
@@ -749,6 +1008,17 @@ class CompareTests(unittest.TestCase):
             monitored("peak", swap_used_bytes=limit + 1)(record)
             swap(first_bytes=0, peak_bytes=limit + 1, increase_bytes=0)(record)
 
+        def single(swap_peak, free):
+            def change(record):
+                monitored("first", swap_used_bytes=7)(record)
+                monitored("peak", swap_used_bytes=swap_peak)(record)
+                swap(first_bytes=7, peak_bytes=swap_peak, increase_bytes=swap_peak - 7)(record)
+                record["resources"]["monitor"]["samples"] = 1
+                lowest = record["resources"]["monitor"]["first"]["free_bytes"]["volume"] if free is None else free
+                record["resources"]["monitor"]["lowest"]["free_bytes"]["volume"] = lowest
+                record["disk"]["lowest_free_bytes"] = lowest
+            return change
+
         def float16(record):
             record["weights"]["elements_by_dtype"]["torch.float16"] += 2
             record["weights"]["elements"] += 2
@@ -758,6 +1028,8 @@ class CompareTests(unittest.TestCase):
                                  "the first swap of the record is not that of the monitor",
                                  "the peak swap of the record is not that of the monitor")
         weights = "the weight elements do not follow from the checkpoint size and the quantized elements"
+        one_swap, one_free = ("the monitor recorded one sample and another peak swap than that sample",
+                              "the monitor recorded one sample and another lowest free disk than that sample")
         cases = {"a swap above its limit recorded as no increase": (False, review, increase),
                  "a swap increase other than the peak less the first swap": (False, swap(increase_bytes=1), increase),
                  "a first swap other than that of the monitor": (False, swap(first_bytes=4, increase_bytes=1), first),
@@ -773,15 +1045,48 @@ class CompareTests(unittest.TestCase):
                      max_rss_bytes=8), "the peak resident memory is below that of the monitor"),
                  "a monitor that stopped the export": (False, lambda record: record["resources"]["monitor"].update(
                      aborts=1), "the monitor did not run under the fixed limits without stopping"),
+                 "a monitor with first and peak readings and no sample": (False, lambda record: record["resources"][
+                     "monitor"].update(samples=0), "the monitor recorded no sample"),
+                 "more samples than the interval of the monitor allows in the time of the export": (
+                     False, lambda record: record["resources"]["monitor"].update(samples=100),
+                     "the monitor recorded more samples than its interval allows in the time of the export"),
+                 "a monitor record with a key that the monitor does not write": (
+                     False, lambda record: record["resources"]["monitor"].update(extra=1),
+                     "the monitor record does not have the keys that the monitor writes"),
+                 "a peak resident memory of the monitor of zero": (False, monitored("peak", rss_bytes=0),
+                                                                  "the monitor recorded no positive resident memory"),
+                 "one sample with a peak swap above it and a lowest free disk below it": (
+                     False, single(9, export.MARGIN_BYTES), [one_swap, one_free]),
+                 "one sample with a peak swap above it": (False, single(9, None), one_swap),
+                 "one sample with a lowest free disk below it": (False, single(7, export.MARGIN_BYTES), one_free),
+                 "a resident memory of the monitor that is not a whole number of KiB": (
+                     False, monitored("peak", rss_bytes=8193), "the resident memory that ps gave the monitor is not in KiB"),
+                 "a lowest free memory percentage above 100": (
+                     False, lambda record: record["resources"]["monitor"]["lowest"].update(free_percent=101),
+                     "the lowest free memory percentage of the monitor is not a percentage"),
                  "the time of a step that the export does not take": (False, lambda record: record["timing"].update(
                      quantize_s=1.0), "the times are not those of the steps of the export"),
-                 "a total time shorter than its steps": (False, lambda record: record["timing"].update(total_s=1.0),
+                 "a total time shorter than its steps": (False, lambda record: record["timing"].update(total_s=5.0),
                                                          "the total time is shorter than its steps"),
                  "float16 elements other than the checkpoint holds": (False, float16, weights),
                  "8-bit float16 elements other than the checkpoint and the quantized weights give": (True, float16,
                                                                                                     weights),
                  "a quantized shape other than the uint8 elements": (True, lambda record: record["quantized"]["layers"][
-                     0].update(shape=[2, 32]), "the uint8 elements are not those of the quantized shapes")}
+                     0].update(shape=[2, 32]), "the uint8 elements are not those of the quantized shapes"),
+                 "a disk record with a key that the export does not write": (
+                     False, lambda record: record["disk"].update(extra=1),
+                     "the disk record does not have the keys that the export writes"),
+                 "a swap record with a key that the export does not write": (
+                     False, swap(extra=1), "the swap record does not have the keys that the export writes"),
+                 "a resident memory that ps gave the monitor above the peak resident memory that it read": (
+                     False, monitored("peak", rss_bytes=17408),
+                     "the resident memory that ps gave the monitor is above the peak resident memory that it read"),
+                 "the version of a package that the export does not record": (
+                     False, lambda record: record["versions"].update(numpy="2.0"),
+                     "the export recorded the versions of other packages than it records"),
+                 "a function of the asset with a part other than its inputs, outputs and states": (
+                     False, lambda record: record["asset"]["functions"]["main"].update(extra={}),
+                     "the functions of the asset hold other parts than inputs, outputs and states")}
         for eight_bit in (False, True):
             if eight_bit:
                 self.quantized()
@@ -793,7 +1098,8 @@ class CompareTests(unittest.TestCase):
                 shutil.copytree(self.export, folder)
                 edit(folder / "export.json", change)
                 with self.subTest(case=label):
-                    self.assertEqual(native.load_export(folder, contract, self.contract)[3], [expected])
+                    self.assertEqual(native.load_export(folder, contract, self.contract)[3],
+                                     expected if isinstance(expected, list) else [expected])
 
     def test_the_export_reader_names_each_defect_of_the_record_and_of_its_folder(self):
         contract = load_contract(self.contract)
@@ -826,6 +1132,15 @@ class CompareTests(unittest.TestCase):
                 arrange(folder)
             with self.subTest(case=label):
                 self.assertEqual(native.load_export(folder, contract, self.contract)[3], [expected])
+
+    def test_an_export_whose_context_limit_is_below_the_longest_condition_is_named(self):
+        contract, message = load_contract(self.contract), "the export recorded a context limit below the longest condition"
+        self.assertEqual(native.LONGEST, 16896)
+        for context, expected in ((native.LONGEST - 1, [message]), (native.LONGEST, []), (native.LONGEST + 1, [])):
+            folder = self.folder / f"context-{context}"
+            complete_export(folder, self.contract, context=context)
+            with self.subTest(context=context):
+                self.assertEqual(native.load_export(folder, contract, self.contract)[3], expected)
 
     def test_an_export_folder_that_did_not_finish_stops_before_the_verifier_runs(self):
         def recorded_as_true():
