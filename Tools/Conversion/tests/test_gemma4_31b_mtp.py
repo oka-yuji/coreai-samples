@@ -1530,10 +1530,6 @@ def first_output(found):
     return next(iter(outputs_of(found).values()))
 
 
-def last_output(found):
-    return list(outputs_of(found).values())[-1]
-
-
 def inspected(name, change=None, steps=7, expected_steps=7):
     found, held = found_of(name, steps), copy.deepcopy(HELD)
     if change:
@@ -1631,8 +1627,7 @@ class AssetInspectionTests(unittest.TestCase):
                  "full keys of fixed length": set_dimension(inputs_of, "v_full", 3, 16896),
                  "a hidden state of dynamic width": set_dimension(inputs_of, "hidden_states", 2, None),
                  "a dynamic dimension of the anchor token": set_dimension(inputs_of, "input_ids", 1, None),
-                 "a position that is fixed at one place and dynamic at another": set_dimension(
-                     inputs_of, "v_sliding", 4, None),
+                 "a head width that is dynamic": set_dimension(inputs_of, "v_sliding", 4, None),
                  "an output that is missing": lambda found, held: outputs_of(found).pop(next(reversed(outputs_of(found)))),
                  "an extra output": add(outputs_of, "extra", shaped("float16", 1, 1, 5376)),
                  "an output in float32": set_output(0, dtype="float32"),
