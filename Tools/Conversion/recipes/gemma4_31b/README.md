@@ -777,12 +777,15 @@ SHA-256 and non-finite values with their rows, and for an output without them th
 reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
 below 0.99, and the checks. A folder is complete only with `comparison.json`: an error or an interruption (SIGINT or
 SIGTERM) after the folder exists removes it and leaves `failure.json` with the type of the error, and an interruption
-stops `coreai-verify` too. While it makes the folder and writes `comparison.json` or `failure.json`, it holds SIGINT
-and SIGTERM back until that write is done and then stops as for an interruption. It reads the reference, the verifier
-and the files that `coreai-verify` writes only as regular files, of the recorded size where a record gives one, and the
-arrays of the reference only in the `.npy` format. It refuses a reference record above 1 MiB, and a reference array
-whose recorded size is not that of its shape (the rows × width × 4 bytes of its values, plus up to 64 KiB of header),
-before it reads them. It resolves `--verifier` to an absolute path, then hashes that file and starts that same path. It
+stops `coreai-verify` too, also when it arrives as the process starts. While it makes the folder and writes
+`comparison.json` or `failure.json`, it holds SIGINT and SIGTERM back until that write is done and then stops as for an
+interruption. It reads the reference, the verifier and the files that `coreai-verify` writes only as regular files,
+opened without waiting and not through a link, of the recorded size where a record gives one, and no further than a
+limit on the open file: 1 MiB for the reference record; for an array of the reference, the rows × width × 4 bytes of
+its values plus up to 64 KiB of header, and a recorded size outside that range is refused before the file is opened;
+and the rows × width × 2 bytes of the file for each output of `coreai-verify`. It reads the header of an array of the
+reference first and refuses a shape, type (little-endian float32) or order other than the record's before it makes the
+array from the values. It resolves `--verifier` to an absolute path, then hashes that file and starts that same path. It
 prints a short summary, and the exit code is 0 only when the comparison passed. The specialization cache that
 `coreai-verify` makes stays in place; remove it yourself.
 
