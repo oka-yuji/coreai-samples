@@ -979,11 +979,17 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   names, types and shapes, fixed and dynamic, of the inputs and outputs and no state; the order of the outputs; that
   every parameter and buffer of the PyTorch model is float16 without a quantized layout; and that the asset folder holds
   exactly the three files, as regular files and not links. The output folder must hold exactly the two asset folders.
-  `passed` is true only when none of them gives a problem, and the exit code is 0 only then.
-- After the output folder is made, an error or an interruption leaves `failure.json` (the schema and the name of the
-  error) and no `export.json`; the assets that were saved stay in the folder. SIGINT and SIGTERM are interruptions: in
-  the main thread, SIGTERM raises `KeyboardInterrupt`, as SIGINT does by default, from the start of the command until it
-  returns, and the handler that was set before is set again. While the output folder is made and while `export.json` or
+  `passed` is true only when none of them gives a problem, and the exit code is 0 only then. When a check gives a
+  problem, the tool still ends normally: it keeps the assets, writes `export.json` with `passed` false and the problems
+  (`problems` of the output folder and of each asset), writes no `failure.json` and exits with code 1.
+- After the output folder is made, an error that stops the tool or an interruption leaves `failure.json` (the schema and
+  the name of the error) and no `export.json`; the assets that were saved stay in the folder. A problem that the
+  inspection gives is not such an error. SIGINT and SIGTERM are interruptions: in the main thread, SIGTERM raises
+  `KeyboardInterrupt`, as SIGINT does by default, from the start of the command until the handler that was set before is
+  set again, the last step before it returns, and SIGINT does so until it returns. An interruption that arrives in these
+  spans, that last step included, leaves `failure.json` if the output folder is already made (before that, nothing is
+  written). One that arrives after the command has returned, while the tool prints its result and returns the exit code,
+  does not change `export.json` or `failure.json`. While the output folder is made and while `export.json` or
   `failure.json` is written, a signal is held until the write is done and then handled as an interruption; one that
   arrives while `export.json` is written replaces it by `failure.json`.
 
