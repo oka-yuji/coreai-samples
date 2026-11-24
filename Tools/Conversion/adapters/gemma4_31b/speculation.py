@@ -24,6 +24,9 @@ CONDITIONS = (("short-c1", "short", 0, 1), ("short-c8", "short", 0, 8), ("long-m
 RECORD = {**VERIFIER, "scoring_call_s": "seconds"}
 FILE = {"function": "text", "name": "text", "rows": "count", "width": "count", "sha256": "text"}
 OUTPUTS = ("hidden_states", "tap_hidden_states")
+FLOAT32_BYTES = 4
+HEADER_LIMIT = 1 << 16
+RECORD_LIMIT = 1 << 20
 
 
 def cosines(x, y):
@@ -116,6 +119,8 @@ def npy(data):
 def load_reference(folder, contract, contract_path):
     import numpy as np
 
+    if (folder / "record.json").stat().st_size > RECORD_LIMIT:
+        raise ValueError("The reference record is larger than a record of a run can be")
     record, hashed, _ = read_record(folder / "record.json")
     if not isinstance(record, dict):
         raise ValueError("The reference record is not an object")
@@ -142,6 +147,11 @@ def load_reference(folder, contract, contract_path):
                     or canonical({key: recorded.get(key) for key in expected}) != canonical(expected):
                 problems.append(f"the reference record does not give the {name} {output} as finite float32 "
                                 f"{expected['shape']}")
+                continue
+            data_bytes = len(ids) * width * FLOAT32_BYTES
+            if not data_bytes <= recorded["bytes"] <= data_bytes + HEADER_LIMIT:
+                problems.append(f"the reference record gives a size of the {name} {output} that its shape does not "
+                                f"allow")
                 continue
             try:
                 found, content = read_file(folder / f"{name}.{output}.npy", recorded["bytes"])

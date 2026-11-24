@@ -780,9 +780,11 @@ SIGTERM) after the folder exists removes it and leaves `failure.json` with the t
 stops `coreai-verify` too. While it makes the folder and writes `comparison.json` or `failure.json`, it holds SIGINT
 and SIGTERM back until that write is done and then stops as for an interruption. It reads the reference, the verifier
 and the files that `coreai-verify` writes only as regular files, of the recorded size where a record gives one, and the
-arrays of the reference only in the `.npy` format. It resolves `--verifier` to an absolute path, then hashes that file
-and starts that same path. It prints a short summary, and the exit code is 0 only when the comparison passed. The
-specialization cache that `coreai-verify` makes stays in place; remove it yourself.
+arrays of the reference only in the `.npy` format. It refuses a reference record above 1 MiB, and a reference array
+whose recorded size is not that of its shape (the rows × width × 4 bytes of its values, plus up to 64 KiB of header),
+before it reads them. It resolves `--verifier` to an absolute path, then hashes that file and starts that same path. It
+prints a short summary, and the exit code is 0 only when the comparison passed. The specialization cache that
+`coreai-verify` makes stays in place; remove it yourself.
 
 ## MTP drafter
 

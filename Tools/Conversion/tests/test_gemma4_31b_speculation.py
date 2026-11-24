@@ -553,6 +553,30 @@ class CompareTests(unittest.TestCase):
                 raise MemoryError("a range of a number from a record")
             return range(*arguments)
 
+        read_file, read_record = speculation.read_file, speculation.read_record
+
+        def bounded_file(path, size):
+            if size is not None and size > 10**8:
+                raise MemoryError("a read of a size from a record")
+            return read_file(path, size)
+
+        def bounded_record(path):
+            if os.stat(path).st_size > 10**8:
+                raise MemoryError("a read of a file of any size")
+            return read_record(path)
+
+        def sized(name, output, size):
+            def make():
+                edit(self.reference / "record.json", lambda record: record["inputs"][name][output].update(bytes=size))
+                os.truncate(self.reference / f"{name}.{output}.npy", size)
+            return make
+
+        no_size = "the reference record gives a size of the short hidden_states that its shape does not allow"
+        data = 26 * HIDDEN * 4
+
+        def padded(path, size):
+            with path.open("ab") as handle:
+                handle.write(b" " * size)
         entry_problem = "the reference record does not give the short hidden_states"
         cases = {"a reference without the last layer": (
                      reference_of(lambda record: record.update(tap_layers=[1, 2, 3, 4, 5])), every_layer),
@@ -580,6 +604,12 @@ class CompareTests(unittest.TestCase):
                      entry_of("short", "hidden_states", shape=[26, HIDDEN + 1]), entry_problem),
                  "a recorded dtype of float16": (entry_of("short", "hidden_states", dtype="float16"), entry_problem),
                  "a recorded non-finite value": (entry_of("short", "hidden_states", non_finite=1), entry_problem),
+                 "a reference array of a size far above its shape": (sized("short", "hidden_states", 10**10), no_size),
+                 "a reference array of a size just above its shape and header": (
+                     sized("short", "hidden_states", data + speculation.HEADER_LIMIT + 1), no_size),
+                 "a reference array of a size just below its shape": (sized("short", "hidden_states", data - 1), no_size),
+                 "a reference record above the size of a record": (
+                     lambda: padded(self.reference / "record.json", 2 << 20), unreadable),
                  "a reference array that differs from its record": (
                      array_changed, "the short hidden_states differ from the SHA-256"),
                  "a non-finite reference": (non_finite, "the long tap_hidden_states of the reference hold non-finite"),
@@ -604,7 +634,9 @@ class CompareTests(unittest.TestCase):
                     make()
                     output = self.folder / label.replace(" ", "-")
                     with mock.patch.object(speculation, "run_verifier") as run, \
-                            mock.patch.object(speculation, "range", guarded, create=True):
+                            mock.patch.object(speculation, "range", guarded, create=True), \
+                            mock.patch.object(speculation, "read_file", side_effect=bounded_file), \
+                            mock.patch.object(speculation, "read_record", side_effect=bounded_record):
                         thread, outcome = bounded(lambda: speculation.compare(
                             self.export, self.reference, self.verifier, output, self.contract))
                     self.assertFalse(thread.is_alive())
