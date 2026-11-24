@@ -366,12 +366,12 @@ class CompareTests(unittest.TestCase):
     def test_files_that_are_not_regular_files_of_the_recorded_size_fail_their_condition(self):
         original = speculation.regular_file
 
-        def swapped(path, size=None, keep=False):
+        def swapped(path, size=None, keep=False, limit=None):
             if Path(path).name == "long-main.hidden_states.f16":
                 target = Path(path).with_name("long-main.target.f16")
                 Path(path).rename(target)
                 Path(path).symlink_to(target)
-            return original(path, size, keep)
+            return original(path, size, keep, limit)
 
         with mock.patch.object(speculation, "regular_file", side_effect=swapped):
             result = self.run_compare()
@@ -380,6 +380,39 @@ class CompareTests(unittest.TestCase):
         self.assertTrue(entry["problems"][0].startswith(
             "the main.hidden_states file: long-main.hidden_states.f16 is not a regular file of"), entry["problems"])
         self.assertNotIn("main.hidden_states", entry["outputs"])
+
+    def test_every_array_and_the_reference_record_are_read_with_a_limit_that_their_shape_or_the_record_gives(self):
+        calls, read_file, read_record = [], speculation.read_file, speculation.read_record
+
+        def recording(path, size, limit=None):
+            calls.append((Path(path).name, size, limit))
+            return read_file(path, size, limit)
+
+        def recording_record(path, limit=None):
+            calls.append((Path(path).name, None, limit))
+            return read_record(path, limit)
+
+        with mock.patch.object(speculation, "read_file", side_effect=recording), mock.patch.object(
+                speculation, "read_record", side_effect=recording_record):
+            self.assertTrue(self.run_compare()["passed"])
+        limits = {name: (size, limit) for name, size, limit in calls}
+        self.assertEqual(limits["record.json"], (None, speculation.RECORD_LIMIT))
+        values = {"short": 26, "long": 1400}
+        for name, rows in values.items():
+            for output, width in (("hidden_states", HIDDEN), ("tap_hidden_states", 6 * HIDDEN)):
+                data = rows * width * 4
+                size, limit = limits[f"{name}.{output}.npy"]
+                self.assertEqual((limit, size is not None and data <= size <= limit),
+                                 (data + speculation.HEADER_LIMIT, True))
+        for condition, source, start, chunk in speculation.CONDITIONS:
+            rows = values[source] - start
+            size, limit = limits[f"{condition}.hidden_states.f16"]
+            self.assertEqual((size, limit), (rows * HIDDEN * 2, rows * HIDDEN * 2))
+            size, limit = limits[f"{condition}.tap_hidden_states.f16"]
+            self.assertEqual((size, limit), (rows * 5 * HIDDEN * 2, rows * 5 * HIDDEN * 2))
+            if start:
+                size, limit = limits[f"{condition}.prefill.tap_hidden_states.f16"]
+                self.assertEqual((size, limit), (start * 5 * HIDDEN * 2, start * 5 * HIDDEN * 2))
 
     def test_a_failure_after_the_output_is_created_leaves_a_failure_record(self):
         with mock.patch.object(speculation, "run_verifier", side_effect=KeyboardInterrupt), \
@@ -557,15 +590,32 @@ class CompareTests(unittest.TestCase):
 
         read_file, read_record = speculation.read_file, speculation.read_record
 
-        def bounded_file(path, size):
+        def bounded_file(path, size, limit=None):
             if size is not None and size > 10**8:
                 raise MemoryError("a read of a size from a record")
-            return read_file(path, size)
+            return read_file(path, size, limit)
 
-        def bounded_record(path):
+        def bounded_record(path, limit=None):
             if os.stat(path).st_size > 10**8:
                 raise MemoryError("a read of a file of any size")
-            return read_record(path)
+            return read_record(path, limit)
+
+        def never(*arguments, **keywords):
+            raise AssertionError("an array was read before its header was checked")
+
+        def array_file(shape, dtype="<f4", fortran=False, values=26 * HIDDEN * 4):
+            buffer = io.BytesIO()
+            np.lib.format.write_array_header_1_0(buffer, {"descr": dtype, "fortran_order": fortran, "shape": shape})
+            return buffer.getvalue() + bytes(values)
+
+        def headed(content):
+            def make():
+                (self.reference / "short.hidden_states.npy").write_bytes(content)
+                edit(self.reference / "record.json",
+                     lambda record: record["inputs"]["short"]["hidden_states"].update(bytes=len(content)))
+            return make
+
+        wrong_header = "the header gives another shape, type or order than the reference record"
 
         def sized(name, output, size):
             def make():
@@ -612,6 +662,17 @@ class CompareTests(unittest.TestCase):
                  "a reference array of a size just below its shape": (sized("short", "hidden_states", data - 1), no_size),
                  "a reference record above the size of a record": (
                      lambda: padded(self.reference / "record.json", 2 << 20), unreadable),
+                 "a reference array whose header names a trillion rows": (
+                     headed(array_file((10**12, HIDDEN))), wrong_header),
+                 "a reference array whose header names another type": (
+                     headed(array_file((26, HIDDEN), "<f8")), wrong_header),
+                 "a reference array whose header names the order of Fortran": (
+                     headed(array_file((26, HIDDEN), fortran=True)), wrong_header),
+                 "a reference array whose header names a flipped byte order": (
+                     headed(array_file((26, HIDDEN), ">f4")), wrong_header),
+                 "a reference array with more values than its header gives": (
+                     headed(array_file((26, HIDDEN), values=26 * HIDDEN * 4 + 4)),
+                     "the values are not those that the header gives"),
                  "a reference array that differs from its record": (
                      array_changed, "the short hidden_states differ from the SHA-256"),
                  "a non-finite reference": (non_finite, "the long tap_hidden_states of the reference hold non-finite"),
@@ -638,7 +699,8 @@ class CompareTests(unittest.TestCase):
                     with mock.patch.object(speculation, "run_verifier") as run, \
                             mock.patch.object(speculation, "range", guarded, create=True), \
                             mock.patch.object(speculation, "read_file", side_effect=bounded_file), \
-                            mock.patch.object(speculation, "read_record", side_effect=bounded_record):
+                            mock.patch.object(speculation, "read_record", side_effect=bounded_record), \
+                            mock.patch("numpy.lib.format.read_array", side_effect=never):
                         thread, outcome = bounded(lambda: speculation.compare(
                             self.export, self.reference, self.verifier, output, self.contract))
                     self.assertFalse(thread.is_alive())

@@ -343,15 +343,17 @@ def reference_record_problems(record, contract, arrays):
     return problems + [message for message, holds in formulas.items() if not holds]
 
 
-def regular_file(path, size=None, keep=False):
+def regular_file(path, size=None, keep=False, limit=None):
     descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
     try:
         status = os.fstat(descriptor)
         if not stat.S_ISREG(status.st_mode) or size is not None and status.st_size != size:
             raise ValueError(f"{Path(path).name} is not a regular file of the recorded size")
+        if limit is not None and status.st_size > limit:
+            raise ValueError(f"{Path(path).name} is larger than {limit} B")
         hasher, kept, total = hashlib.sha256(), [], 0
         with open(descriptor, "rb", closefd=False) as handle:
-            while block := handle.read(BLOCK_BYTES):
+            while block := handle.read(BLOCK_BYTES if limit is None else min(BLOCK_BYTES, limit + 1 - total)):
                 hasher.update(block)
                 total += len(block)
                 if keep:
@@ -363,8 +365,8 @@ def regular_file(path, size=None, keep=False):
     return {"bytes": total, "sha256": hasher.hexdigest()}, b"".join(kept) if keep else None
 
 
-def read_record(path):
-    found, data = regular_file(path, keep=True)
+def read_record(path, limit=None):
+    found, data = regular_file(path, keep=True, limit=limit)
     return parse(data), found["sha256"], found["bytes"]
 
 

@@ -27,6 +27,7 @@ OUTPUTS = ("hidden_states", "tap_hidden_states")
 FLOAT32_BYTES = 4
 HEADER_LIMIT = 1 << 16
 RECORD_LIMIT = 1 << 20
+NPY_HEADERS = {(1, 0): "read_array_header_1_0", (2, 0): "read_array_header_2_0"}
 
 
 def cosines(x, y):
@@ -99,29 +100,35 @@ def validated(record):
     return kept, malformed
 
 
-def read_file(path, size):
+def read_file(path, size, limit=None):
     try:
-        return regular_file(path, size, keep=True)
+        return regular_file(path, size, keep=True, limit=limit)
     except (OSError, ValueError) as error:
         raise ValueError(f"{Path(path).name} is not a regular file{'' if size is None else f' of {size} B'} "
                          f"({type(error).__name__})") from None
 
 
-def npy(data):
+def npy(data, shape):
     import numpy as np
 
+    stream = io.BytesIO(data)
     try:
-        return np.lib.format.read_array(io.BytesIO(data), allow_pickle=False)
+        version = np.lib.format.read_magic(stream)
+        found, fortran, dtype = getattr(np.lib.format, NPY_HEADERS[version])(stream)
     except Exception as error:
         raise ValueError(f"not an array in the .npy format ({type(error).__name__})") from None
+    if (tuple(found), fortran, dtype) != (tuple(shape), False, np.dtype("<f4")):
+        raise ValueError("the header gives another shape, type or order than the reference record")
+    offset = stream.tell()
+    if len(data) - offset != math.prod(shape) * FLOAT32_BYTES:
+        raise ValueError("the values are not those that the header gives")
+    return np.frombuffer(data, dtype="<f4", offset=offset).reshape(shape)
 
 
 def load_reference(folder, contract, contract_path):
     import numpy as np
 
-    if (folder / "record.json").stat().st_size > RECORD_LIMIT:
-        raise ValueError("The reference record is larger than a record of a run can be")
-    record, hashed, _ = read_record(folder / "record.json")
+    record, hashed, _ = read_record(folder / "record.json", RECORD_LIMIT)
     if not isinstance(record, dict):
         raise ValueError("The reference record is not an object")
     problems = [] if (record.get("schema"), record.get("implementation")) == (RUN_SCHEMA, "original") else [
@@ -154,8 +161,9 @@ def load_reference(folder, contract, contract_path):
                                 f"allow")
                 continue
             try:
-                found, content = read_file(folder / f"{name}.{output}.npy", recorded["bytes"])
-                array = npy(content)
+                found, content = read_file(folder / f"{name}.{output}.npy", recorded["bytes"],
+                                           data_bytes + HEADER_LIMIT)
+                array = npy(content, (len(ids), width))
             except ValueError as error:
                 problems.append(f"the {name} {output} of the reference: {error}")
                 continue
@@ -274,7 +282,7 @@ def measured(entry, found, contract, verifier, output):
     for key, (count, width) in expected_files.items():
         label = ".".join(key)
         try:
-            found_file, data = read_file(paths[key], count * width * 2)
+            found_file, data = read_file(paths[key], count * width * 2, count * width * 2)
         except ValueError as error:
             problems.append(f"the {label} file: {error}")
             continue
