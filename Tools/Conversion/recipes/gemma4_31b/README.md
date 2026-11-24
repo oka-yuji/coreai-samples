@@ -1038,7 +1038,7 @@ and safetensors.
   assets of #713) and `--output` a path that does not exist, a link included.
 - Checks before the output folder is made, in this order: the output path, `--steps`, `model.json` and `assistant.json`
   (opened once each, without waiting and not through a link, regular files of at most 1,048,576 B, read from the one
-  descriptor; their form and SHA-256 come from those bytes), and then the checks of `run` and `compare`: the size and
+  descriptor; their form and SHA-256 come from those bytes), and then the checks that `run` makes: the size and
   SHA-256 of the index and the shard of the target and of the two files of the assistant, the records of #691, the
   features and the shapes and types of every tensor that is read (see the start of MTP drafter). A check that fails
   stops the tool, and no folder or file is made. The same checks, with the contracts that were read once, are made a
@@ -1075,7 +1075,7 @@ and safetensors.
   best token of its step; a kind of input with a value that is not finite after the rounding is a problem; so is a
   value that is not finite in `logits.bin` or `top2_probabilities.bin`. A problem does not stop the tool: it keeps all
   files, writes `record.json` with `passed` false and the problems and exits with code 1, and writes no `failure.json`.
-  The problems name rows and kinds of input, no token.
+  The problems name rows, kinds of input and files, no token.
 - Records and interruptions. `record.json` is written last, after every row and array is written and the files are
   checked a second time; where it exists, the folder is complete. An error that stops the tool after the output folder
   is made (an exception, an interruption, or a second check that differs from the first) leaves `failure.json` (the
