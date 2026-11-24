@@ -263,7 +263,7 @@ class RowProblemTests(unittest.TestCase):
             self.assertNotIn(str(token), text)
 
 
-@unittest.skipIf(torch is None, "PyTorch is required")
+@unittest.skipIf(np is None or torch is None, "NumPy and PyTorch are required")
 class RoundingTests(unittest.TestCase):
     def arguments(self, hidden, sliding):
         return (torch.tensor([[7]], dtype=torch.int32), torch.tensor(hidden, dtype=torch.float32).reshape(1, 1, -1),

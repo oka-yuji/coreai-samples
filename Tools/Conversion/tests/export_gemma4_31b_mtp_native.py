@@ -18,6 +18,10 @@ SEED, STEPS = 11, 7
 NUMPY = {"int32": "<i4", "float16": "<f2", "float32": "<f4", "float64": "<f8"}
 
 
+def assistant_part(state):
+    return {name: tensor for name, tensor in state.items() if name != "target_embed.weight"}
+
+
 class RealClassTests(unittest.TestCase):
     def setUp(self):
         for name, value in (("SUBSET", FIXED), ("RECORDS", FIXTURE_RECORDS)):
@@ -26,11 +30,10 @@ class RealClassTests(unittest.TestCase):
             self.addCleanup(patcher.stop)
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
-        state = drafter.synthetic(SEED, 1).state_dict()
+        self.state = drafter.synthetic(SEED, 1).state_dict()
         self.records, self.inputs, self.outputs = write_records(self.folder)
-        self.target, self.contract = write_target(self.folder, state["target_embed.weight"])
-        self.assistant, self.assistant_contract = write_assistant(
-            self.folder, ASSISTANT, {name: tensor for name, tensor in state.items() if name != "target_embed.weight"})
+        self.target, self.contract = write_target(self.folder, self.state["target_embed.weight"])
+        self.assistant, self.assistant_contract = write_assistant(self.folder, ASSISTANT, assistant_part(self.state))
         self.output = self.folder / "inputs"
         self.record = mtp_native.write_inputs(self.contract, self.assistant_contract, self.target, self.assistant,
                                               self.records, self.inputs, self.outputs, STEPS, self.output)
@@ -82,15 +85,23 @@ class RealClassTests(unittest.TestCase):
                     self.assertEqual(int(arrays["drafts"][number, step]), ranked[0])
                     token = values.argmax(dim=-1).to(torch.int32)
 
-    def test_the_weights_come_from_the_checkpoint_of_the_assistant(self):
-        other = drafter.synthetic(SEED + 1, 1).state_dict()
-        folder = self.folder / "other"
+    def run_with(self, label, table_of, assistant_of):
+        folder = self.folder / label
         folder.mkdir()
-        target, contract = write_target(folder, other["target_embed.weight"])
-        assistant_folder, assistant_contract = write_assistant(
-            folder, ASSISTANT, {name: tensor for name, tensor in other.items() if name != "target_embed.weight"})
+        target, contract = write_target(folder, table_of["target_embed.weight"])
+        assistant_folder, assistant_contract = write_assistant(folder, ASSISTANT, assistant_part(assistant_of))
         record = mtp_native.write_inputs(contract, assistant_contract, target, assistant_folder, self.records, self.inputs,
                                          self.outputs, STEPS, folder / "inputs")
+        return contract, record
+
+    def test_the_logits_follow_the_weights_of_the_assistant_when_the_table_of_the_target_is_the_same(self):
+        contract, record = self.run_with("another-assistant", self.state, drafter.synthetic(SEED + 1, 1).state_dict())
+        self.assertEqual(read_json(contract)["files"], read_json(self.contract)["files"])
         self.assertNotEqual(record["arrays"]["logits"]["sha256"], self.record["arrays"]["logits"]["sha256"])
-        self.assertEqual(record["rows"][0]["files"], self.record["rows"][0]["files"])
-        self.assertEqual(read_json(folder / "inputs/record.json"), record)
+        self.assertEqual([row["files"] for row in record["rows"]], [row["files"] for row in self.record["rows"]])
+
+    def test_the_logits_follow_the_table_of_the_target_when_the_weights_of_the_assistant_are_the_same(self):
+        contract, record = self.run_with("another-table", drafter.synthetic(SEED + 1, 1).state_dict(), self.state)
+        self.assertNotEqual(read_json(contract)["files"], read_json(self.contract)["files"])
+        self.assertNotEqual(record["arrays"]["logits"]["sha256"], self.record["arrays"]["logits"]["sha256"])
+        self.assertEqual([row["files"] for row in record["rows"]], [row["files"] for row in self.record["rows"]])
