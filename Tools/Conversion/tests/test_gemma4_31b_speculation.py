@@ -816,14 +816,19 @@ class CompareTests(unittest.TestCase):
         self.assertIs(signal.getsignal(signal.SIGTERM), signal.SIG_DFL)
 
     def test_the_command_prints_a_summary_and_exits_with_one_unless_it_passes(self):
-        result = {"passed": False, "conditions": [{"name": "long-main", "passed": False, "checks": {}}]}
+        conditions = [{"name": "long-main", "passed": False, "problems": ["shape"], "checks": {"finite": True, "mixup": False}},
+                      {"name": "short-c1", "passed": True, "checks": {"finite": True, "mixup": True}}]
         arguments = ["speculation", "--export", "e", "--reference", "r", "--verifier", "v", "--output", "o"]
         for passed in (True, False):
-            with self.subTest(passed=passed), mock.patch.object(sys, "argv", arguments), \
-                    mock.patch.object(speculation, "compare", return_value={**result, "passed": passed}) as compare, \
-                    mock.patch("sys.stdout"):
+            printed = io.StringIO()
+            with self.subTest(passed=passed), mock.patch.object(sys, "argv", arguments), contextlib.redirect_stdout(
+                    printed), mock.patch.object(
+                        speculation, "compare", return_value={"passed": passed, "conditions": conditions}) as compare:
                 self.assertEqual(speculation.main(), 0 if passed else 1)
             self.assertEqual(compare.call_args.args[:4], (Path("e"), Path("r"), Path("v"), Path("o")))
+            self.assertEqual(json.loads(printed.getvalue()), {"passed": passed, "conditions": {
+                "long-main": {"passed": False, "problems": ["shape"], "failing": ["mixup"]},
+                "short-c1": {"passed": True, "problems": [], "failing": []}}})
 
 
 if __name__ == "__main__":
