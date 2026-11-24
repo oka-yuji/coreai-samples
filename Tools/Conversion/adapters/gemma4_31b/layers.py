@@ -12,6 +12,7 @@ import stat
 import sys
 import time
 
+from ...runner import deferred_interrupts
 from ...storage import PipelineError, digest, read_json, write_json
 from ..pinned import sha256
 from .compare import BLOCK_ROWS, CONTRACT, recorded
@@ -187,8 +188,11 @@ def run(implementation, contract_path, snapshot, layers, taps, output, weights, 
         quantized["tensors"] = len(digests)
     import numpy as np
 
-    output.mkdir(parents=True)
+    made = False
     try:
+        with deferred_interrupts():
+            output.mkdir(parents=True)
+            made = True
         started = time.perf_counter()
         verified = verify_inputs(snapshot, contract)
         hashed = time.perf_counter()
@@ -222,12 +226,16 @@ def run(implementation, contract_path, snapshot, layers, taps, output, weights, 
                              "total_s": time.perf_counter() - started},
                   "memory": {"max_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                              "lifetime_peak_footprint_bytes": footprint()[1]}}
-        write_json(output / "record.json", record)
+        with deferred_interrupts():
+            write_json(output / "record.json", record)
         return record
     except BaseException as error:
-        (output / "record.json").unlink(missing_ok=True)
-        write_json(output / "failure.json", {"schema": SCHEMA, "passed": False, "implementation": implementation,
-                                             "weights": weights, "error": type(error).__name__})
+        if not made:
+            raise
+        with deferred_interrupts():
+            (output / "record.json").unlink(missing_ok=True)
+            write_json(output / "failure.json", {"schema": SCHEMA, "passed": False, "implementation": implementation,
+                                                 "weights": weights, "error": type(error).__name__})
         raise
 
 

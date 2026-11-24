@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 
+from ...runner import deferred_interrupts
 from ...storage import canonical, digest, write_json
 from .compare import BLOCK_ROWS, CONTRACT
 from .layers import SCHEMA as RUN_SCHEMA, tokens
@@ -297,8 +298,11 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
         raise FileExistsError(f"The comparison must be written to a new folder: {output}")
     contract = load_contract(contract_path)
     found = inputs(export_folder, reference_folder, verifier, contract, contract_path)
-    output.mkdir(parents=True)
+    made = False
     try:
+        with deferred_interrupts():
+            output.mkdir(parents=True)
+            made = True
         conditions = [condition(spec, found, contract, found["path"], output) for spec in CONDITIONS]
         reference, exported = found["reference"], found["exported"]
         result = {"schema": SCHEMA, "passed": all(entry["passed"] for entry in conditions),
@@ -309,11 +313,15 @@ def compare(export_folder, reference_folder, verifier, output, contract_path=CON
                              "functions": exported["functions"], "tap_layers": exported["metadata"]["tap_layers"],
                              "main_hash": found["facts"]["main_hash"]},
                   "verifier": found["verifier"], "conditions": conditions}
-        write_json(output / "comparison.json", result)
+        with deferred_interrupts():
+            write_json(output / "comparison.json", result)
         return result
     except BaseException as error:
-        (output / "comparison.json").unlink(missing_ok=True)
-        write_json(output / "failure.json", {"schema": SCHEMA, "passed": False, "error": type(error).__name__})
+        if not made:
+            raise
+        with deferred_interrupts():
+            (output / "comparison.json").unlink(missing_ok=True)
+            write_json(output / "failure.json", {"schema": SCHEMA, "passed": False, "error": type(error).__name__})
         raise
 
 

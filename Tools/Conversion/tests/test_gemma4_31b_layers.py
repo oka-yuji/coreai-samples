@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import tempfile
 import threading
 import unittest
@@ -1064,6 +1065,55 @@ class RestoredReferenceTests(unittest.TestCase):
                 layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", late, "float16", None)
             self.assertEqual(read_json(late / "failure.json")["error"], "KeyboardInterrupt")
             self.assertFalse((late / "record.json").exists())
+
+    def test_a_run_holds_an_interruption_back_until_its_folder_or_one_of_its_records_is_written(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            real_mkdir, real_write = os.mkdir, layers.write_json
+
+            def interrupted_at(label, point, failure=None):
+                output, written = folder / label, []
+
+                def after_mkdir(path, *arguments, **keywords):
+                    real_mkdir(path, *arguments, **keywords)
+                    if point == "mkdir" and Path(path) == output:
+                        signal.raise_signal(signal.SIGINT)
+
+                def around_write(path, value):
+                    if point == Path(path).name:
+                        signal.raise_signal(signal.SIGINT)
+                    real_write(path, value)
+                    written.append(Path(path).name)
+
+                with mock.patch("os.mkdir", side_effect=after_mkdir), \
+                        mock.patch.object(layers, "write_json", side_effect=around_write), \
+                        mock.patch.object(layers, "original_model", side_effect=failure or layers.original_model), \
+                        self.assertRaises(KeyboardInterrupt):
+                    layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, "float16", None)
+                return output, written, read_json(output / "failure.json")["error"]
+
+            output, written, error = interrupted_at("folder", "mkdir")
+            self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                             (["failure.json"], "KeyboardInterrupt", ["failure.json"]))
+            output, written, error = interrupted_at("record", "record.json")
+            self.assertEqual((written, error), (["record.json", "failure.json"], "KeyboardInterrupt"))
+            self.assertFalse((output / "record.json").exists())
+            output, written, error = interrupted_at("failure", "failure.json", RuntimeError("private-example-sentinel"))
+            self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                             (["failure.json"], "RuntimeError", ["failure.json"]))
+            self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
+
+    def test_a_run_that_finds_its_folder_made_by_another_process_writes_no_record_into_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            (folder / "taken").mkdir()
+            with mock.patch("os.path.lexists", return_value=False), mock.patch.object(
+                    layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "taken", "float16", None)
+            verify.assert_not_called()
+            self.assertEqual(list((folder / "taken").iterdir()), [])
 
     def test_a_restored_reference_refuses_an_export_that_did_not_finish_did_not_pass_or_has_other_blocks(self):
         with tempfile.TemporaryDirectory() as folder:

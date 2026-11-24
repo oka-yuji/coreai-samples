@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import sys
 import tempfile
 import unittest
@@ -406,6 +407,52 @@ class CompareTests(unittest.TestCase):
                 self.assertEqual(read_json(self.folder / label / "failure.json"),
                                  {"schema": speculation.SCHEMA, "passed": False, "error": error})
                 self.assertFalse((self.folder / label / "comparison.json").exists())
+
+    def test_a_comparison_holds_an_interruption_back_until_its_folder_or_one_of_its_records_is_written(self):
+        real_mkdir, real_write = os.mkdir, speculation.write_json
+        self.write_fake()
+
+        def interrupted_at(label, point, failure=None):
+            output, written = self.folder / label, []
+
+            def after_mkdir(path, *arguments, **keywords):
+                real_mkdir(path, *arguments, **keywords)
+                if point == "mkdir" and Path(path) == output:
+                    signal.raise_signal(signal.SIGINT)
+
+            def around_write(path, value):
+                if point == Path(path).name:
+                    signal.raise_signal(signal.SIGINT)
+                real_write(path, value)
+                written.append(Path(path).name)
+
+            with mock.patch("os.mkdir", side_effect=after_mkdir), \
+                    mock.patch.object(speculation, "write_json", side_effect=around_write), \
+                    mock.patch.object(speculation, "condition", side_effect=failure or speculation.condition), \
+                    self.assertRaises(KeyboardInterrupt):
+                speculation.compare(self.export, self.reference, self.verifier, output, self.contract)
+            return output, written, read_json(output / "failure.json")["error"]
+
+        output, written, error = interrupted_at("folder", "mkdir")
+        self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                         (["failure.json"], "KeyboardInterrupt", ["failure.json"]))
+        self.assertFalse(self.calls.exists())
+        output, written, error = interrupted_at("record", "comparison.json")
+        self.assertEqual((written, error), (["comparison.json", "failure.json"], "KeyboardInterrupt"))
+        self.assertFalse((output / "comparison.json").exists())
+        output, written, error = interrupted_at("failure", "failure.json", RuntimeError("private-example-sentinel"))
+        self.assertEqual((written, error), (["failure.json"], "RuntimeError"))
+        self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
+
+    def test_a_comparison_that_finds_its_folder_made_by_another_process_writes_no_record_into_it(self):
+        self.write_fake()
+        taken = self.folder / "taken"
+        taken.mkdir()
+        with mock.patch("os.path.lexists", return_value=False), mock.patch.object(
+                speculation, "run_verifier") as run, self.assertRaises(FileExistsError):
+            speculation.compare(self.export, self.reference, self.verifier, taken, self.contract)
+        run.assert_not_called()
+        self.assertEqual(list(taken.iterdir()), [])
 
     def test_inputs_that_must_not_be_compared_stop_before_anything_is_written(self):
         def reference_of(change):
