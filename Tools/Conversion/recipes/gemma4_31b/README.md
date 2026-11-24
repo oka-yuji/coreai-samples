@@ -393,23 +393,25 @@ of either implementation for two fixed inputs, `short` (26 tokens) and `long` (1
   --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
 ~~~
 
-`run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
-layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses
-any other before it creates the folder or reads a weight. `--weights float16` rounds every checkpoint tensor to
-float16. `--weights 8bit --export <export folder>`, for the original implementation only, puts in the weights restored
-from the quantized tensors of an 8-bit export, as `context` does
-([FP32 reference restored from the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), refuses
-an existing output before it reads the export, and records `weights` and `quantized` as `context` does. It writes
-`<input>.<output>.npy` for both inputs and the three outputs and, last, `record.json` into a new folder; an error or an
-interruption after the folder exists leaves `failure.json` with the type of the error and no `record.json`. The
+`run` loads the weights: start it under the shared machine lock, which it does not take itself. It refuses an existing
+output first, before it reads the contract or checks any other argument. It accepts only a layer count whose last
+layer is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses any other before it
+creates the folder or reads a weight. `--weights float16` rounds every checkpoint tensor to float16.
+`--weights 8bit --export <export folder>`, for the original implementation only, puts in the weights restored from the
+quantized tensors of an 8-bit export, as `context` does
+([FP32 reference restored from the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), and
+records `weights` and `quantized` as `context` does. It writes `<input>.<output>.npy` for both inputs and the three
+outputs and, last, `record.json` into a new folder; an error or an interruption after the folder exists leaves
+`failure.json` with the type of the error and no `record.json`. While it makes the folder and writes `record.json` or
+`failure.json`, it holds SIGINT and SIGTERM back until that write is done and then stops as for an interruption. The
 original implementation reads each input in one call; its tap layer i is entry i of `output_hidden_states`, except for
 the last layer, whose entry the original implementation replaces with the output of the final norm: that tap is the
 output of the last layer, taken with a forward hook. The model class reads the window and then calls of 1, 2, 4 and 8
 tokens with its caches. `compare` passes only for a run of the original implementation and a run of the model class on
-the same inputs, tap layers and kind of weights whose differences stay below the criteria: for `short` a largest
-absolute logit difference below 1e-3, and for `long` a largest absolute logit difference below 5e-3, a largest
-probability difference below 1e-6 and no position with another `argmax`; for both inputs, at every position of
-`hidden_states` and of each tap layer of `tap_hidden_states`, a largest absolute difference below 1e-3
+the same inputs, tap layers and kind of weights, a kind that `run` writes, whose differences stay below the criteria:
+for `short` a largest absolute logit difference below 1e-3, and for `long` a largest absolute logit difference below
+5e-3, a largest probability difference below 1e-6 and no position with another `argmax`; for both inputs, at every
+position of `hidden_states` and of each tap layer of `tap_hidden_states`, a largest absolute difference below 1e-3
 (`ratio_limit`) times the largest absolute value of the original implementation at that position. `largest_ratio` is
 the largest quotient of the two over the positions.
 `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` fixes the criteria, and `ModelClassTests` in
@@ -773,7 +775,9 @@ standard error of `coreai-verify` (`<condition>.log`), and last `comparison.json
 SHA-256 and non-finite values with their rows, and for an output without them the sums of squares by layer of the
 reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
 below 0.99, and the checks. A folder is complete only with `comparison.json`: an error or an interruption after the
-folder exists removes it and leaves `failure.json` with the type of the error. It reads the reference, the verifier and
+folder exists removes it and leaves `failure.json` with the type of the error. While it makes the folder and writes
+`comparison.json` or `failure.json`, it holds SIGINT and SIGTERM back until that write is done and then stops as for an
+interruption. It reads the reference, the verifier and
 the files that `coreai-verify` writes only as regular files, of the recorded size where a record gives one, and the
 arrays of the reference only in the `.npy` format. It resolves `--verifier` to an absolute path, then hashes that file
 and starts that same path. It prints a short summary, and the exit code is 0 only when the comparison passed. The
