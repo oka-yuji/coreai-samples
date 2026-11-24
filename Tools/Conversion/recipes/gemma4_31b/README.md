@@ -233,7 +233,8 @@ in that order.
 
 `passed` is true only when every check in `run.json` is. `run.json` is the last file that a run writes: an exception
 while the records are saved removes `logits.json` and leaves a `run.json` with `passed` false and the type name in
-`error`. `AnchorRunTests` and `RestoredRunTests` fix the records and the refusals.
+`error`, and a folder with a `failure.json` has no `logits.json`. `AnchorRunTests` and `RestoredRunTests` fix the
+records and the refusals.
 
 `layer1_anchor agreement` takes the same options without `--weights` and with `--items` required, and writes
 `run.json` without array files or `logits.json`. It computes the scored rows of the items as `run` does with

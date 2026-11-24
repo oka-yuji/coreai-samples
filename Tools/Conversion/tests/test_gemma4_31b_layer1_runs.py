@@ -470,6 +470,27 @@ class AnchorRunTests(unittest.TestCase):
                                  {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "KeyboardInterrupt"})
                 self.assertFalse((self.folder / label / "logits.json").exists())
 
+    def test_a_second_interrupt_while_the_handoff_is_removed_still_leaves_no_handoff_next_to_the_failure_record(self):
+        patched, _ = interrupting_write(layer1_anchor, 2)
+        real, raised = Path.unlink, []
+
+        def unlink(path, *arguments, **options):
+            if path.name == "logits.json" and not raised:
+                raised.append(True)
+                raise KeyboardInterrupt
+            return real(path, *arguments, **options)
+
+        with patched, mock.patch.object(Path, "unlink", unlink):
+            try:
+                code, _, _ = self.main("run", "--weights", "float16", output="double")
+            except BaseException as error:
+                self.fail(f"{type(error).__name__} ended the run without a record")
+        folder = self.folder / "double"
+        self.assertEqual(code, 1)
+        self.assertEqual(read_json(folder / "failure.json"),
+                         {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "KeyboardInterrupt"})
+        self.assertFalse((folder / "logits.json").exists() or (folder / "run.json").exists())
+
     def test_an_exception_after_a_record_was_written_keeps_that_record_and_still_ends_with_exit_code_1(self):
         for name in ("run.json", "failure.json"):
             def supervise(folder, schema, work, conclude, name=name):

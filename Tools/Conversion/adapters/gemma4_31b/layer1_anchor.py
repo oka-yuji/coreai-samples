@@ -269,6 +269,7 @@ def recorded(output, record):
 
 def abandoned(output, schema, error):
     if not any((output / name).exists() for name in ("run.json", "failure.json")):
+        (output / "logits.json").unlink(missing_ok=True)
         write_json(output / "failure.json", {"schema": schema, "passed": False, "error": type(error).__name__})
     return 1
 
