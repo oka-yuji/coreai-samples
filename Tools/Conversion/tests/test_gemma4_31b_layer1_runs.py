@@ -567,7 +567,7 @@ class AnchorRunTests(unittest.TestCase):
             code, _, _ = self.main("agreement", "--items", "ja-choice-0001,ja-choice-0003", device="mps",
                                    original=lambda *arguments: (None, 6.9375, kinds))
         record = read_json(self.folder / "out/run.json")
-        self.assertEqual((code, record["checks"]["agreement"]), (0, True))
+        self.assertEqual((code, record["checks"]["agreement"], record["checks"]["shapes"]), (0, True, True))
         self.assertEqual(calls, [("anchor", "mps"), ("anchor", "cpu"), ("original", "cpu", "sdpa"),
                                  ("original", "cpu", "eager"), ("original", "mps", "sdpa")])
         self.assertEqual(record["compared"], ["anchor_cpu", "original_cpu"])
@@ -590,6 +590,28 @@ class AnchorRunTests(unittest.TestCase):
             with self.subTest(case=label):
                 self.assertEqual((code == 0, record["checks"]["agreement"]), (passed, passed))
                 self.assertEqual(record["items"][0]["max_abs_difference"], difference)
+
+    def test_the_agreement_fails_when_a_variant_returns_another_number_of_rows_than_the_item_scores(self):
+        kinds = layers.check_layers(load_contract(self.contract)["config"], 6)
+        cases = {"the anchor on the CPU": ("anchor", "cpu"), "the original on the CPU": ("original", "cpu", "sdpa"),
+                 "the original on the device": ("original", "mps", "sdpa")}
+        for label, short in cases.items():
+            def rows(key, records, short=short):
+                return [np.zeros((1 if key == short and item["rows"] > 1 else item["rows"], VOCABULARY))
+                        for item in records]
+
+            anchored = lambda args, records, device, rows=rows: (rows(("anchor", device), records),
+                                                                 {"after_load": dict(MEMORY)}, True)
+            originals = lambda model, records, device, attention, rows=rows: rows(("original", device, attention), records)
+            with self.subTest(case=label), mock.patch.object(layer1_anchor, "anchor_rows", side_effect=anchored), \
+                    mock.patch.object(layer1_anchor, "original_rows", side_effect=originals):
+                code, _, _ = self.main("agreement", "--items", "ja-choice-0001,ja-choice-0003", device="mps",
+                                       output=label.replace(" ", "-"), original=lambda *arguments: (None, 6.9375, kinds))
+                record = read_json(self.folder / label.replace(" ", "-") / "run.json")
+                self.assertEqual(code, 1)
+                self.assertEqual((record["checks"]["shapes"], record["checks"]["agreement"]), (False, False))
+                self.assertEqual([item["max_abs_difference"] for item in record["items"]], [0.0, None])
+                self.assertEqual(set(record["items"][1]["recorded"].values()), {None})
 
 
 class CandidateRunTests(unittest.TestCase):

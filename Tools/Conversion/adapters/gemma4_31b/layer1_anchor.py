@@ -211,7 +211,8 @@ def agreement(record, args, records):
         record["timing"]["variants_s"] = time.perf_counter() - started
         for index, item in enumerate(records):
             rows = {name: values[index] for name, values in found.items()}
-            difference = lambda pair: reference.finite(np.max(np.abs(rows[pair[0]] - rows[pair[1]])))
+            matched = all(list(value.shape) == [item["rows"], args.vocabulary] for value in rows.values())
+            difference = lambda pair: reference.finite(np.max(np.abs(rows[pair[0]] - rows[pair[1]]))) if matched else None
             record["items"].append({"id": item["id"], "input_tokens": item["input_tokens"], "tokens": len(item["tokens"]),
                                     "rows": item["rows"], "beyond_window": item["input_tokens"] > args.window,
                                     "shapes": {name: list(value.shape) for name, value in rows.items()},
@@ -223,6 +224,8 @@ def agreement(record, args, records):
         record["error"] = type(error).__name__
     differences = [item["max_abs_difference"] for item in record["items"]]
     record["checks"].update(finite=not any(any(item["non_finite"].values()) for item in record["items"]),
+                            shapes=all(shape == [item["rows"], args.vocabulary]
+                                       for item in record["items"] for shape in item["shapes"].values()),
                             agreement=None not in differences and max(differences, default=1.0) <= anchor.LIMIT,
                             beyond_window=any(item["beyond_window"] for item in record["items"]))
     return record
