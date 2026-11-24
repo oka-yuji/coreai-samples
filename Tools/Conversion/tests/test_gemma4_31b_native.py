@@ -1253,17 +1253,20 @@ class VerifierProcessTests(unittest.TestCase):
     def test_a_verifier_that_is_started_when_an_interruption_arrives_is_stopped_and_collected(self):
         real = subprocess.Popen
         for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
-            started, forced = [], []
+            started, forced, timers = [], [], []
 
             def stop(process):
-                forced.append(True)
-                with contextlib.suppress(ProcessLookupError, PermissionError):
-                    os.killpg(process.pid, signal.SIGKILL)
+                if process.returncode is None:
+                    forced.append(True)
+                    with contextlib.suppress(ProcessLookupError, PermissionError):
+                        os.killpg(process.pid, signal.SIGKILL)
 
             def popen(*arguments, **keywords):
                 process = real(*arguments, **keywords)
                 started.append(process)
-                threading.Timer(5, stop, [process]).start()
+                timers.append(threading.Timer(5, stop, [process]))
+                timers[-1].daemon = True
+                timers[-1].start()
                 signal.raise_signal(number)
                 return process
 
@@ -1277,10 +1280,15 @@ class VerifierProcessTests(unittest.TestCase):
                     with self.assertRaises(ProcessLookupError):
                         os.kill(started[0].pid, 0)
                 finally:
+                    for timer in timers:
+                        timer.cancel()
+                        timer.join(2)
                     for process in started:
-                        with contextlib.suppress(ProcessLookupError, PermissionError):
-                            os.killpg(process.pid, signal.SIGKILL)
-                        process.poll()
+                        if process.returncode is None:
+                            with contextlib.suppress(ProcessLookupError, PermissionError):
+                                os.killpg(process.pid, signal.SIGKILL)
+                            process.wait()
+                    self.assertEqual([timer for timer in timers if timer.is_alive()], [])
 
     def test_a_verifier_that_is_waited_for_when_an_interruption_arrives_is_stopped_and_collected(self):
         for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
