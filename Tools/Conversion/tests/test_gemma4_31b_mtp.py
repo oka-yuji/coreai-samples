@@ -452,6 +452,55 @@ class PureTests(unittest.TestCase):
         self.assertEqual([entry["id"] for entry in mtp.first_per_category(record)], ["a-9", "b-0002"])
 
 
+class DigestTests(unittest.TestCase):
+    def test_a_file_that_grows_after_its_size_was_checked_is_hashed_no_further_than_one_byte_past_its_size(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "file"
+            path.write_bytes(b"x" * 100)
+            requested = []
+
+            def growing(descriptor, length):
+                requested.append(length)
+                if sum(requested) > 10 * 1024 * 1024:
+                    raise AssertionError("the read did not stop")
+                return b"y" * length
+
+            with mock.patch.object(os, "read", growing), self.assertRaisesRegex(ValueError, "holds more than 100 B"):
+                mtp.digest(path, 100)
+            self.assertEqual(sum(requested), 101)
+            expected = {"bytes": 100, "sha256": hashlib.sha256(b"x" * 100).hexdigest()}
+            self.assertEqual((mtp.digest(path, 100), mtp.digest(path)), (expected, expected))
+            path.write_bytes(b"")
+            self.assertEqual(mtp.digest(path), {"bytes": 0, "sha256": hashlib.sha256(b"").hexdigest()})
+
+    def test_a_file_that_is_read_in_short_pieces_is_asked_for_no_more_than_what_remains_up_to_one_byte_past_its_size(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path, real = Path(folder) / "file", os.read
+            content = bytes(range(100))
+            path.write_bytes(content)
+            for label, growing in (("a file of its size", False), ("a file that keeps growing", True)):
+                requested, returned = [], []
+
+                def piece(descriptor, length, growing=growing, requested=requested, returned=returned):
+                    requested.append(length)
+                    if sum(returned) > 10 * 1024 * 1024:
+                        raise AssertionError("the read did not stop")
+                    block = b"y" * min(length, 60) if growing else real(descriptor, min(length, 60))
+                    returned.append(len(block))
+                    return block
+
+                with self.subTest(file=label), mock.patch.object(os, "read", piece):
+                    if growing:
+                        with self.assertRaisesRegex(ValueError, "holds more than 100 B"):
+                            mtp.digest(path, 100)
+                    else:
+                        self.assertEqual(mtp.digest(path, 100),
+                                         {"bytes": 100, "sha256": hashlib.sha256(content).hexdigest()})
+                    self.assertTrue(all(length <= 101 - sum(returned[:index]) for index, length in enumerate(requested)),
+                                    requested)
+                    self.assertEqual(sum(returned), 101 if growing else 100)
+
+
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the records")
 @mock.patch.object(mtp, "SUBSET", FIXED)
 @mock.patch.object(mtp, "RECORDS", FIXTURE_RECORDS)
@@ -1140,53 +1189,6 @@ class ReadTests(unittest.TestCase):
                     self.assertFalse(waited)
                     self.assertIsInstance(outcome.get("error"), ValueError)
                     self.assertRegex(str(outcome["error"]), "is not a regular file")
-
-    def test_a_file_that_grows_after_its_size_was_checked_is_hashed_no_further_than_one_byte_past_its_size(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "file"
-            path.write_bytes(b"x" * 100)
-            requested = []
-
-            def growing(descriptor, length):
-                requested.append(length)
-                if sum(requested) > 10 * 1024 * 1024:
-                    raise AssertionError("the read did not stop")
-                return b"y" * length
-
-            with mock.patch.object(os, "read", growing), self.assertRaisesRegex(ValueError, "holds more than 100 B"):
-                mtp.digest(path, 100)
-            self.assertEqual(sum(requested), 101)
-            expected = {"bytes": 100, "sha256": hashlib.sha256(b"x" * 100).hexdigest()}
-            self.assertEqual((mtp.digest(path, 100), mtp.digest(path)), (expected, expected))
-            path.write_bytes(b"")
-            self.assertEqual(mtp.digest(path), {"bytes": 0, "sha256": hashlib.sha256(b"").hexdigest()})
-
-    def test_a_file_that_is_read_in_short_pieces_is_asked_for_no_more_than_what_remains_up_to_one_byte_past_its_size(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path, real = Path(folder) / "file", os.read
-            content = bytes(range(100))
-            path.write_bytes(content)
-            for label, growing in (("a file of its size", False), ("a file that keeps growing", True)):
-                requested, returned = [], []
-
-                def piece(descriptor, length, growing=growing, requested=requested, returned=returned):
-                    requested.append(length)
-                    if sum(returned) > 10 * 1024 * 1024:
-                        raise AssertionError("the read did not stop")
-                    block = b"y" * min(length, 60) if growing else real(descriptor, min(length, 60))
-                    returned.append(len(block))
-                    return block
-
-                with self.subTest(file=label), mock.patch.object(os, "read", piece):
-                    if growing:
-                        with self.assertRaisesRegex(ValueError, "holds more than 100 B"):
-                            mtp.digest(path, 100)
-                    else:
-                        self.assertEqual(mtp.digest(path, 100),
-                                         {"bytes": 100, "sha256": hashlib.sha256(content).hexdigest()})
-                    self.assertTrue(all(length <= 101 - sum(returned[:index]) for index, length in enumerate(requested)),
-                                    requested)
-                    self.assertEqual(sum(returned), 101 if growing else 100)
 
     def test_a_target_contract_that_changes_between_its_two_reads_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -2117,13 +2119,23 @@ class ExportWeightsTests(unittest.TestCase):
             path.write_bytes(saved)
 
     def test_each_contract_is_opened_once_by_its_path_and_the_checks_use_the_bytes_that_were_read(self):
-        events = []
+        events, plans = [], []
+
+        def keeping(plan, output):
+            plans.append(plan)
+            return fake_assets(output)
+
         with opens_counted(events, [self.contract, self.assistant_contract]), \
                 mock.patch.object(mtp, "load_contract") as reread, \
-                mock.patch.object(mtp, "export_assets", side_effect=fake()):
+                mock.patch.object(mtp, "export_assets", side_effect=keeping):
             record = self.export()
         self.assertEqual(sorted(events), sorted(os.path.realpath(path) for _, path in self.contracts()))
         reread.assert_not_called()
+        self.assertNotEqual(self.contract.read_bytes(), self.assistant_contract.read_bytes())
+        self.assertEqual(len(plans), 1)
+        self.assertEqual({name: plans[0]["sources"][name]["contract_sha256"] for name in ("model", "assistant")},
+                         {"model": hashlib.sha256(self.contract.read_bytes()).hexdigest(),
+                          "assistant": hashlib.sha256(self.assistant_contract.read_bytes()).hexdigest()})
         self.assertEqual((record["passed"], self.names()),
                          (True, ["distribution.aimodel", "export.json", "verification.aimodel"]))
 
