@@ -1203,3 +1203,150 @@ it accepted the function, the names, the types and the shapes of the seven input
   --assistant-snapshot .local/conversion/models/google--gemma-4-31B-it-assistant \
   --steps 7 --context 16896 --output .local/conversion/gemma4_31b/drafter-assets
 ~~~
+
+## MTP drafter inputs and reference values (#716)
+
+This section copies the numbers of the `record.json` that `mtp_native.py inputs` wrote for the MTP drafter
+`google/gemma-4-31B-it-assistant`
+([Inputs and reference values for checking the assets](../../../Tools/Conversion/recipes/gemma4_31b/README.md#inputs-and-reference-values-for-checking-the-assets)):
+the seven input files of the drafter assets of [#713](#mtp-drafter-assets-with-the-real-weights-713) for 47 rows of the
+features of #691, and the values that the drafter class computes in float32 on the CPU from the same inputs. No asset
+was run here: the next work (#714) runs the two assets on these files and compares their outputs with these values.
+
+### Conditions
+
+- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a). The tool ran in the converter environment of the
+  recipe (Python 3.11, torch 2.9.0, numpy 2.3.5, safetensors 0.7.0) with `HF_HUB_OFFLINE=1`, in one run that held the
+  shared machine lock from 2026-11-24 16:42:02 to 16:43:09 JST (67 s, on AC power with the battery at 100%; no
+  `coreai-verify`, `coreai-chat` or demo-app process was running). The times below are those of that run, not timing
+  measurements.
+- Commit 56d091f3 with no local changes; the sources of the tool, `mtp.py` and `mtp_native.py`, are the same in the
+  commit of this document.
+- Inputs: `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`, SHA-256
+  `0878b84df2892e4db2f019255f3f6f1f8bb5afcceda09c873f6262852bac160f`), the embedding table of
+  `google/gemma-4-31B-it@842da3794eaa0b77d5f08bae87a17459d91ff475` (`model.json`, SHA-256
+  `8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531`), every tensor rounded to float16, and the
+  records of #691 (`subset.json` SHA-256 `7ec2c60f8d453a3626f167d0a2187dcbbd4e056db70dab5ccc9adda4bfcc6dc9`, the input records
+  `a5606837d5cf300ea46fcdbb51e9380fbd69a5d0e0d5d6c027b39d4e4a260aa6` and the reference outputs `1d84643d3d623fabc4ad66645ce3f862994a4afc8a7f40d6091ca6984ad5f5a9`). `--steps 7`.
+
+### Rows
+
+`passed` is true and `problems` is empty: the unrolled drafts equal the tokens of the steps run one at a time in all 47
+rows, each of those tokens is the best token of its step, and every value is finite. The rows are those of
+`mtp.py run`, the first item of each of the 13 categories with the anchors of `anchors` (the anchors fall together for
+an item with a short output, so `ja-choice-0001` has one row and `ja-reading-0001` two). `w` is the length of the
+sliding-window keys and values of a row, the smaller of the anchor a and 1,025; the length n of the full-attention keys
+and values equals the anchor a.
+
+| Item | Rows | Anchors a (output index) | w | Input files (bytes) |
+|---|---:|---|---|---:|
+| `ja-choice-0001` | 1 | 91 (0) | 91 | 2,248,356 |
+| `ja-reading-0001` | 2 | 156 (0), 157 (1) | 156, 157 | 7,716,176 |
+| `code-gen-he-0001` | 4 | 176 (0), 239 (63), 303 (127), 366 (190) | 176, 239, 303, 366 | 26,688,160 |
+| `code-gen-mbpp-0001` | 4 | 202 (0), 225 (23), 248 (46), 271 (69) | 202, 225, 248, 271 | 23,296,672 |
+| `code-fix-0001` | 4 | 242 (0), 257 (15), 272 (30), 287 (45) | 242, 257, 272, 287 | 26,049,184 |
+| `extract-ja-0001` | 4 | 137 (0), 172 (35), 208 (71), 243 (106) | 137, 172, 208, 243 | 18,725,536 |
+| `long-ja-4k-0001` | 4 | 3,647 (0), 3,648 (1), 3,649 (2), 3,650 (3) | 1,025 | 186,776,240 |
+| `long-ja-16k-0001` | 4 | 14,875 (0), 14,876 (1), 14,878 (3), 14,879 (4) | 1,025 | 554,711,736 |
+| `synth-extract-0001` | 4 | 209 (0), 294 (85), 380 (171), 465 (256) | 209, 294, 380, 465 | 33,176,224 |
+| `synth-format-0001` | 4 | 120 (0), 129 (9), 138 (18), 147 (27) | 120, 129, 138, 147 | 13,171,360 |
+| `free-ja-0001` | 4 | 28 (0), 113 (85), 198 (170), 283 (255) | 28, 113, 198, 283 | 15,334,044 |
+| `synth-long-4k-0001` | 4 | 3,791 (0), 3,804 (13), 3,817 (26), 3,830 (39) | 1,025 | 192,084,656 |
+| `synth-long-16k-0001` | 4 | 15,345 (0), 15,372 (27), 15,399 (54), 15,426 (81) | 1,025 | 571,374,264 |
+
+The anchors a range from 28 to 15,426, w from 28 to 1,025 and n from 28 to 15,426.
+
+### Input files
+
+47 folders of 8 files, 376 files: the seven `.bin` files hold 1,671,296,888 B and the `inputs.json` files
+55,720 B, 1,671,352,608 B in all (the output folder is 1.6 GB). Each row has the seven inputs of
+the two assets with the types and shapes below; `input_ids` and `position_ids` hold the token at the anchor and the
+anchor.
+
+| Input | Type | Shape |
+|---|---|---|
+| `input_ids` | int32 | [1, 1] |
+| `hidden_states` | float16 | [1, 1, 5376] |
+| `position_ids` | int32 | [1, 1] |
+| `k_sliding`, `v_sliding` | float16 | [1, 1, 16, w, 256] |
+| `k_full`, `v_full` | float16 | [1, 1, 4, n, 512] |
+
+The five float inputs are the BF16 features taken through float32 and rounded to float16. The rounding changed these
+values (all rows together); a value that is not finite after the rounding would be a problem, and there is none:
+
+| Input | Elements | Changed by the rounding | Largest absolute difference | Not finite |
+|---|---:|---:|---:|---:|
+| `hidden_states` | 252,672 | 0 | 0 | 0 |
+| `k_full` | 322,850,816 | 18,005 | 2.98e-08 | 0 |
+| `k_sliding` | 94,846,976 | 38 | 2.98e-08 | 0 |
+| `v_full` | 322,850,816 | 1,582 | 2.98e-08 | 0 |
+| `v_sliding` | 94,846,976 | 633 | 2.98e-08 | 0 |
+
+Every difference is at most 2.98e-08, half the spacing of the float16 values below 6.10e-05; a BF16 value in the normal
+range of float16 is stored exactly, and the 20,258 values that changed are the ones below that range. The reference
+values below are computed from the rounded values.
+
+### Reference values
+
+| File | Type | Shape | Bytes | SHA-256 |
+|---|---|---|---:|---|
+| `drafts.bin` | int32 | [47, 7] | 1,316 | `310e87cfbec866f7c4115b48c507751d81de7d7e8112a6619017b7f06015688a` |
+| `logits.bin` | float32 | [47, 262144] | 49,283,072 | `2e7ca4e9a4aa8d408e32ec7d1a0ed5334b16e467c88d354f7999ac1ded56a958` |
+| `top2_ids.bin` | int32 | [47, 7, 2] | 2,632 | `2845464ffbced1b4b065820ea69cb1c2c2deef612554e17e22c55fc072fe9e1f` |
+| `top2_probabilities.bin` | float64 | [47, 7, 2] | 5,264 | `2d742aebb689059b9f78ff910675765b8d7426514feff2e0e1db6d1da992f9b7` |
+
+`logits.bin` holds the logits of the first step of each row over the whole vocabulary, `drafts.bin` the tokens of the
+unrolled drafter, and `top2_ids.bin` and `top2_probabilities.bin` the two best tokens and their probabilities (a softmax
+of temperature 1 in float64) of each of the seven steps run one at a time; equal logits are ordered by the smaller token
+ID. There is no `NaN` or infinity in `logits.bin` and `top2_probabilities.bin`.
+
+### Resources
+
+The tool took 26.34 s in the record (`load_s` 1.76 s for the table and the model, `rows_s` 24.58 s for the 47 rows and
+the files) and 67.91 s in all (`/usr/bin/time -l`); the checks of the files before and after the rows, the start of the
+process and the write of `record.json` are outside the record's times, and the time of each was not measured on its own.
+The largest resident set of the process was 19,380,781,056 B and the lifetime peak of its footprint 19,319,536,424 B; it
+had no swaps. The swap in use of the machine, 11,239.94 MB of 12,288 MB, was the same before and after the run.
+
+### Form that the verification CLI accepts
+
+`coreai-verify function` of #710, in the build that #713 used to check the form of its assets, was given the inputs of rows
+000 (the first row, `ja-choice-0001`, a = 91) and 046 (the longest full attention, `synth-long-16k-0001`, n = 15,426) for
+`verification.aimodel` with `verify_step` and for `distribution.aimodel` with `draft_7` of #713, with `v_full.bin` one
+byte short. In all four calls it accepted the function, the names, the types and the shapes of the seven inputs and
+stopped at the size of the file (`v_full.bin has 372735 bytes, but its shape and dtype need 372736.` for row 000 and
+`v_full.bin has 63184895 bytes, but its shape and dtype need 63184896.` for row 046, exit code 64), before it specialized
+the asset.
+
+### Limits
+
+- No asset was specialized or run; nothing here says that Core AI computes the drafter as the class does. The reference
+  values are those of the class in float32 on the CPU with the weights rounded to float16.
+- The five float inputs of the assets are the rounded values; the changes that the rounding made are in the table above.
+  The features themselves are those of #691: the original implementation in BF16 on MPS under teacher forcing.
+- The tool does not read its own files again to check them; the next work checks the sizes and SHA-256 of the files against
+  `record.json`.
+- Between its two checks of the files the tool opens the weights and the features again by their paths. A file that is
+  replaced in between is read as it was replaced, and the second check then finds a difference that is still there when
+  it runs (`failure.json` stays and `record.json` is not written); a change that was undone before then is not found.
+- An output folder that holds neither `record.json` nor `failure.json` is unfinished; the cases that are not guaranteed
+  are in the recipe README.
+- One run of this commit.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| `record.json` of the run | `e09d31ae19f0e945c8298985d4b5dbda9185b8f49cbdb51677c0ea1244522921` |
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp_native \
+  inputs --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --assistant-snapshot .local/conversion/models/google--gemma-4-31B-it-assistant \
+  --records .local/conversion/gemma4_31b/spike-691/records \
+  --inputs .local/conversion/gemma4_31b/evaluation/G31-QC-v1-primary-inputs/inputs.jsonl \
+  --outputs .local/conversion/gemma4_31b/evaluation/runs/G31-QC-v1-primary-reference/outputs.jsonl \
+  --steps 7 --output .local/conversion/gemma4_31b/drafter-inputs
+~~~
