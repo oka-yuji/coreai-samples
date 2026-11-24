@@ -798,7 +798,8 @@ full), neither record remains; SIGINT and SIGTERM are held back while it makes t
 or `failure.json`, and an interruption stops `coreai-verify` too, also when it arrives as the
 process starts. What `run` does not promise is not promised here either, and a folder with no record is unfinished. It
 reads the reference, the verifier, the export record and the files that `coreai-verify` writes only as regular files,
-opened without waiting and refusing a link as the last part of the path, of the recorded size where a record gives one,
+opened without waiting and refusing a link as the last part of the path (a link given for `--verifier` is followed,
+because the path is resolved first), of the recorded size where a record gives one,
 and no further than a limit on the open file: 1 MiB for the reference record; for an array of the reference, the rows ×
 width × 4 bytes of its values plus up to 64 KiB of header, and a recorded size outside that range is refused before the
 file is opened; the rows × width × 2 bytes of the file for each output of `coreai-verify`; and 16 MiB for the export
