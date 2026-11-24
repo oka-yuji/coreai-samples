@@ -1385,6 +1385,47 @@ class VerifierProcessTests(unittest.TestCase):
                 with self.assertRaises(ProcessLookupError):
                     os.kill(int(pidfile.read_text()), 0)
 
+    def test_a_verifier_that_has_a_child_of_its_own_is_stopped_with_it_when_an_interruption_arrives(self):
+        parent_file, child_file = Path(f"{self.sleeper}.pid"), Path(f"{self.sleeper}.child")
+        self.sleeper.write_text('#!/bin/sh\nsleep 600 &\necho $! > "$0.child"\necho $$ > "$0.pid"\nwait\n')
+
+        def numbers():
+            found = []
+            for path in (parent_file, child_file):
+                with contextlib.suppress(ValueError, FileNotFoundError):
+                    found.append(int(path.read_text()))
+            return found
+
+        def vanished(number):
+            for _ in range(100):
+                try:
+                    os.kill(number, 0)
+                except ProcessLookupError:
+                    return True
+                time.sleep(0.05)
+            return False
+
+        for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            forced, finished = [], threading.Event()
+            for leftover in (parent_file, child_file):
+                leftover.unlink(missing_ok=True)
+            with self.subTest(signal=name), watched_children() as (started, entered):
+                thread = threading.Thread(target=interrupt_when_waiting, daemon=True, args=(
+                    number, entered, finished, lambda: recorded(parent_file, child_file),
+                    lambda: kill_recorded(parent_file, child_file), forced))
+                thread.start()
+                gone = []
+                try:
+                    with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
+                        native.run_verifier([str(self.sleeper)], 60, self.folder / f"child-{name}.log")
+                    gone = [vanished(found) for found in numbers()]
+                finally:
+                    finished.set()
+                    thread.join(10)
+                    kill_recorded(parent_file, child_file)
+                self.assertEqual(forced, [])
+                self.assertEqual(gone, [True, True])
+
     def test_a_verifier_that_fails_to_start_leaves_no_process_and_raises_its_error(self):
         with self.assertRaises(OSError):
             native.run_verifier([str(self.folder / "absent")], 30, self.folder / "absent.log")
