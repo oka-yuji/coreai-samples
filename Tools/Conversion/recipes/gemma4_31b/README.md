@@ -946,7 +946,10 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   `--context`, the size and SHA-256 of the index and the shard of the target and of the two files of the assistant, the
   configuration of the assistant with `assistant_config`, and the names, BF16 type and shapes of every tensor of the
   checkpoint of the assistant and of the embedding table. A check that fails stops the tool, and no folder or file is
-  made. `model.json` and `assistant.json` are opened once each, without waiting and not through a link, must be regular
+  made. A file is hashed up to its pinned size plus one byte, and a larger file is an error. The size and SHA-256 of
+  the index, the shard and the two files of the assistant are checked a second time, with the same function, after the
+  assets are saved and inspected and before `export.json` is written; a result that is not the first one stops the tool
+  like any other error. `model.json` and `assistant.json` are opened once each, without waiting and not through a link, must be regular
   files of at most 1,048,576 B, and are read from that one descriptor to their end or past that limit; the checks of
   their form (`checked_contract` and `checked_target` for `model.json`, `checked_assistant` for `assistant.json`) and
   their SHA-256 use the bytes of that read. The configuration of the assistant is read with the size that `assistant.json`
@@ -981,7 +984,8 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
 
 The numbers of a run are in [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-assets-with-the-real-weights-713).
 `AssetInspectionTests` and `ExportWeightsTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix the inspection,
-the refusals, the reads, the records and the signals with fake assets and synthetic folders; `VerificationStepTests` and
+the refusals, the reads, the two checks of the files, the records and the signals with fake assets and synthetic
+folders; `VerificationStepTests` and
 `WeightsExportTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py` convert the synthetic drafter through the
 command and check the descriptors, the files and the record. `checked_contract` of `prepare.py` is the checks of
 `load_contract` on a parsed contract, and `ContractTests` in `Tools/Conversion/tests/test_gemma4_31b_prepare.py` fix that

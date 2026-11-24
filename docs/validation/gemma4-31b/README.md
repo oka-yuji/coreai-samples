@@ -1089,18 +1089,19 @@ This section copies the numbers of the `export.json` that `mtp.py export-weights
 ([Export with the real weights](../../../Tools/Conversion/recipes/gemma4_31b/README.md#export-with-the-real-weights)):
 two Core AI assets of the drafter class with the real weights in float16, `verification.aimodel` (one step, with the
 logits over the whole vocabulary and the output of `post_projection`) and `distribution.aimodel` (seven unrolled steps,
-with the draft tokens). The assets were inspected here, not run: the next work runs them through Core AI and compares them
-with the class.
+with the draft tokens). The assets were inspected here, not run: the next work (#714) runs them through Core AI and
+compares them with the class.
 
 ### Conditions
 
 - Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a). The tool ran in the converter environment of the
   recipe (Python 3.11, torch 2.9.0, transformers 5.12.1, coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-opt 0.4.0,
   coreai-models 0.1.0, numpy 2.3.5, safetensors 0.7.0) with `HF_HUB_OFFLINE=1`, in one run that held the shared machine lock
-  from 2026-11-24 12:07:59 to 12:09:06 JST (67 s, on AC power with the battery at 93%; no `coreai-verify`, `coreai-chat` or
+  from 2026-11-24 12:21:54 to 12:23:21 JST (87 s, on AC power with the battery at 97%; no `coreai-verify`, `coreai-chat` or
   demo-app process was running). The times below are those of that run, not timing measurements.
-- Commit 542f17c4 with no local changes. An earlier run at commit 475e9134, before the tool read the contracts once
-  and `main.hash` first, gave the same descriptors and weights.
+- Commit ffab7889 with no local changes. Two earlier runs, at commit 475e9134 and at commit 542f17c4, before the tool
+  read the contracts once, read `main.hash` first and checked the files again after the assets were made, gave the same
+  descriptors and weights.
 - Inputs: `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`, SHA-256
   `0878b84df2892e4db2f019255f3f6f1f8bb5afcceda09c873f6262852bac160f`; `config.json` 2,316 B and `model.safetensors`
   939,042,560 B) and the embedding table of `model-00001-of-00002.safetensors` of
@@ -1113,8 +1114,8 @@ with the class.
 
 | Asset | Function | Outputs | Bytes | `main.mlirb` | Conversion | Save |
 |---|---|---|---:|---:|---:|---:|
-| `verification.aimodel` | `verify_step` | `logits` float16 [1, 1, 262144], `post_projection` float16 [1, 1, 5376] | 3,757,639,762 | 3,757,639,625 | 6.25 s | 2.20 s |
-| `distribution.aimodel` | `draft_7` | `draft_tokens` int32 [1, 7] | 3,757,696,213 | 3,757,696,076 | 29.96 s | 2.20 s |
+| `verification.aimodel` | `verify_step` | `logits` float16 [1, 1, 262144], `post_projection` float16 [1, 1, 5376] | 3,757,639,754 | 3,757,639,617 | 6.67 s | 2.46 s |
+| `distribution.aimodel` | `draft_7` | `draft_tokens` int32 [1, 7] | 3,757,696,205 | 3,757,696,068 | 30.29 s | 2.19 s |
 
 Both functions have no state and the seven inputs `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 5376],
 `position_ids` int32 [1, 1], `k_sliding` and `v_sliding` float16 [1, 1, 16, ?, 256] and `k_full` and `v_full` float16
@@ -1123,15 +1124,15 @@ files, which `export.json` records:
 
 | File | SHA-256 |
 |---|---|
-| `verification.aimodel/main.hash` | `b7a49f1ecf45bca9ed36b0ad70549a3e0f7ed71e06e6ba38c28c25537db5fa6d` |
-| `verification.aimodel/main.mlirb` | `909661e38d3b16d52faadfa08e95c488b3abe55883c425b12057c5fc6a3a416f` |
-| `verification.aimodel/metadata.json` | `1a706f49e2d6143bbe7e5b474176266987ee0752ad1aeedbdcfa88a353f7dfcf` |
-| `distribution.aimodel/main.hash` | `a6708ea83c5c6de2814dcffd82a2d349cdc4de33932a889939774e1b1f25a96b` |
-| `distribution.aimodel/main.mlirb` | `f398e2a5649e43cefcc60199c16292f75cbb37cd5619535babbfeab7450f2752` |
-| `distribution.aimodel/metadata.json` | `d58ca522cb74e0f4e38c8bf80663d8ded220f76462b8175e758e9523e02f6548` |
+| `verification.aimodel/main.hash` | `5729758cf190b9abaab5ea25f592dd6d34265faada5085c93721318c695b2355` |
+| `verification.aimodel/main.mlirb` | `70af005c29893d58948ef0252848e32b72d642296d53ab2373bec769654498ff` |
+| `verification.aimodel/metadata.json` | `e466c633c0ad12fa12a8b2d7c44f70b90ff13f0c1ba3c80a94b665715a111ba5` |
+| `distribution.aimodel/main.hash` | `24230e485cd5431350f256315db4176f86f44c1d558b1a221ab88ce29675e350` |
+| `distribution.aimodel/main.mlirb` | `6e3f9c24448f6061bddb1f3cf05268ecc0db88fefd0d4b37b63703bc3b3ccae5` |
+| `distribution.aimodel/metadata.json` | `fbf049046a672f24cb3686643b43f0c844070d01900c857ff6915341aa67d039` |
 
 The content of `main.hash` is the SHA-256 of `main.mlirb` in both assets (`main_hash` of the record is
-`909661e38d3b…` and `f398e2a5649e…`).
+`70af005c2989…` and `6e3f9c24448f…`).
 
 ### Inspection
 
@@ -1143,14 +1144,15 @@ and 1,878,804,231 (`distribution`) Float16 elements next to 386 Float32, 113 Int
 
 ### Resources
 
-The tool took 66.67 s in all (`/usr/bin/time -l`). Of that, 44.12 s are `total_s` of the record, from the load of the
-embedding table (`load_s` 0.30 s) to the end of the inspections; the other 22.55 s are the start of the process, the checks
-before the output folder is made (the hashing of the shard among them) and the write of `export.json`. The largest
-resident set of the process was 19,286,622,208 B and the lifetime peak of its footprint 15,754,115,520 B; it had no swaps.
-The earlier run at
-commit 475e9134 took 66.71 s, with 19,287,031,808 B and 15,753,165,296 B, and wrote `main.mlirb` files of 3,757,639,619 B
-(`verification`) and 3,757,696,070 B (`distribution`) with other `main.hash` values; the cause of the difference of 6 B was
-not examined.
+The tool took 87.15 s in all (`/usr/bin/time -l`). Of that, 45.09 s are `total_s` of the record, from the load of the
+embedding table (`load_s` 0.31 s) to the end of the inspections; the other 42.06 s are the start of the process, the checks
+of the files before the output folder is made and the same checks again after the assets were made (the hashing of the
+shard in each) and the write of `export.json`. The largest resident set of the process was 19,285,114,880 B and the
+lifetime peak of its footprint 15,753,001,456 B; it had no swaps. The run at commit 542f17c4, which checked the files
+once, took 66.67 s, with 19,286,622,208 B and 15,754,115,520 B, and wrote `main.mlirb` files of 3,757,639,625 B
+(`verification`) and 3,757,696,076 B (`distribution`); the run at commit 475e9134 took 66.71 s, with 19,287,031,808 B and
+15,753,165,296 B, and wrote 3,757,639,619 B and 3,757,696,070 B. The three runs differ in the size of `main.mlirb` by a
+few bytes and in every `main.hash`; the cause was not examined.
 
 ### Form that the verification CLI accepts
 
@@ -1167,13 +1169,13 @@ it accepted the function, the names, the types and the shapes of the seven input
   their values.
 - The tool does not check that the converter environment is at the `upstream_revision` of `model.json`; the record names
   the versions of the packages only, as `run` and the export of a synthetic drafter do.
-- One run of this commit; the two runs wrote different bytes for the same inputs.
+- One run of this commit; the three runs wrote different bytes for the same inputs.
 
 ### Sources
 
 | File | SHA-256 |
 |---|---|
-| `export.json` of the run | `d9cf60f5cecba2fd2746d7fcc7e4fc9f1daf83814216e28efa06164c1dfe4c04` |
+| `export.json` of the run | `cef8b67bd6e236ea548a99d44c43267040ef0ded5161a0990f951466ae21171f` |
 
 ~~~sh
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
