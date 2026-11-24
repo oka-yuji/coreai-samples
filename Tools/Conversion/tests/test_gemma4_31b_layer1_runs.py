@@ -127,6 +127,11 @@ sys.exit(code)
 """
 
 
+def restoring_sigint(case):
+    case.addCleanup(signal.signal, signal.SIGINT, signal.getsignal(signal.SIGINT))
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+
+
 def mkdir_that(output, mode):
     real, done = Path.mkdir, []
 
@@ -336,6 +341,7 @@ class AnchorRunTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
+        restoring_sigint(self)
         self.contract = tiny_contract(self.folder)
         prepare = self.folder / "prepare"
         prepare.mkdir()
@@ -719,6 +725,7 @@ class CandidateRunTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
+        restoring_sigint(self)
         (self.folder / "snapshot").mkdir()
         for index, item in enumerate(TOKENIZER_FILES):
             (self.folder / "snapshot" / item).write_text("abc"[index])
@@ -983,6 +990,7 @@ class RestoredRunTests(unittest.TestCase):
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
+        restoring_sigint(self)
         self.snapshot, self.contract = write_snapshot(self.folder, hidden_size=64)
         self.tensors = quantized_tensors(self.TEXT)
         self.export = write_export(self.folder / "export", self.contract, self.tensors)
