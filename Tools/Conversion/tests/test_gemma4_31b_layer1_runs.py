@@ -976,6 +976,15 @@ class CandidateRunTests(unittest.TestCase):
                 self.assertEqual(result["passed"], False)
                 self.assertEqual(result["problems"], ["the run could not be recorded (OSError)"])
                 self.assertEqual(read_json(self.folder / label / "run.json"), result)
+                self.assertFalse((self.folder / label / "logits.json").exists())
+
+    def test_an_interrupt_while_the_error_of_a_save_is_handled_is_deferred_by_the_candidate(self):
+        patched, _ = writing(layer1_candidate, {2: "error"})
+        with patched, unlinking_the_handoff(), self.assertRaises(KeyboardInterrupt):
+            self.run_candidate(output="handled")
+        folder = self.folder / "handled"
+        self.assertEqual(read_json(folder / "run.json")["problems"], ["the run could not be recorded (OSError)"])
+        self.assertFalse((folder / "logits.json").exists())
 
     def test_a_failure_in_building_the_record_is_refused_before_the_folder_is_made(self):
         self.write_plan()
