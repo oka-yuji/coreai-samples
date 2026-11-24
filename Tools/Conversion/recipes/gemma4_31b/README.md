@@ -741,15 +741,16 @@ holding the same logits as the restored one) or did not start from the record of
 `--main-output` and `--prefill-output` (`hidden_states` and `tap_hidden_states` of `main`, `tap_hidden_states` of
 `prefill`) with a run of `layers.py` of the original implementation that holds the output of every layer, with the
 weights of the export: `--weights float16` for an FP16 export, and `--weights 8bit --export "$EXPORT_FOLDER"`
-for an 8-bit export. `EXPORT_FOLDER` is the `export` folder of the artifacts of the export step. Start both
-under the shared machine lock, which they do not take themselves. The two outputs are new folders, one for the
-reference and one for the comparison:
+for an 8-bit export. `EXPORT_FOLDER` is the `export` folder of the artifacts of the export step; the commands below
+stop before the first one when it is not set. Start both under the shared machine lock, which they do not take
+themselves. The two outputs are new folders, one for the reference and one for the comparison:
 
 ~~~sh
+: "${EXPORT_FOLDER:?set it to the export folder of the artifacts of the export step}" &&
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
   --implementation original --layers 6 --taps 1,2,3,4,5,6 --weights float16 \
   --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
-  --output .local/conversion/gemma4_31b/speculation/reference-float16
+  --output .local/conversion/gemma4_31b/speculation/reference-float16 &&
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.speculation \
   --export "$EXPORT_FOLDER" --reference .local/conversion/gemma4_31b/speculation/reference-float16 \
   --verifier Tools/Verify/.build/release/coreai-verify \

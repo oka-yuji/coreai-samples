@@ -1075,10 +1075,11 @@ function. The cache of the testing helper (21,660,884 KiB) was removed after the
 | `coreai-verify` (release) | `e1754211fb67f045fcbc8beb4ac497776cc48270b3362785ccf9644c7b37337f` |
 
 ~~~sh
+: "${EXPORT_FOLDER:?set it to the export folder of the artifacts of the export step}" &&
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
   --implementation original --layers 6 --taps 1,2,3,4,5,6 --weights float16 \
   --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
-  --output .local/conversion/gemma4_31b/speculation/reference-float16
+  --output .local/conversion/gemma4_31b/speculation/reference-float16 &&
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.speculation \
   --export "$EXPORT_FOLDER" --reference .local/conversion/gemma4_31b/speculation/reference-float16 \
   --verifier Tools/Verify/.build/release/coreai-verify \
