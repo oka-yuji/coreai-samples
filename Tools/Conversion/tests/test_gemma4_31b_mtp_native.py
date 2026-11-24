@@ -1,4 +1,3 @@
-import contextlib
 import hashlib
 import importlib.metadata
 import io
@@ -24,11 +23,11 @@ except ImportError:
     torch = None
 
 from Tools.Conversion.adapters.gemma4_31b import mtp, mtp_native
-from Tools.Conversion.adapters.gemma4_31b.assistant import SYNTHETIC
+from Tools.Conversion.adapters.gemma4_31b.assistant import SLIDING, SYNTHETIC
 from Tools.Conversion.storage import read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_mtp import (CONFIG, FIXED, FIXTURE_RECORDS, SHARD, assistant_state, decoded,
-                                                         opens_counted, reads_counted, reported_small, tensor_reads,
-                                                         write_assistant, write_records, write_target)
+                                                         inode, opens_counted, reads_counted, reported_small,
+                                                         tensor_reads, write_assistant, write_records, write_target)
 
 SEED = 11
 STEPS = 3
@@ -625,6 +624,61 @@ class RefusalTests(Folder, unittest.TestCase):
             self.outputs.write_bytes(saved_outputs)
             self.inputs.write_bytes(saved_inputs)
             write_json(self.records / "subset.json", subset)
+
+    def test_an_unsupported_assistant_or_tensors_of_other_shapes_are_refused_before_the_output_or_any_tensor_is_read(self):
+        vocabulary, hidden, place = CONFIG["vocab_size"], CONFIG["hidden_size"], mtp.layout(CONFIG)
+
+        def tensor(name, shape):
+            return lambda state: state.update({name: torch.zeros(shape)})
+
+        def features():
+            save_file({key: torch.zeros(2, 2, dtype=torch.bfloat16) for key in ("postnorm", f"k{place['sliding']}")},
+                      str(self.records / "tf/features/alpha-0001.safetensors"))
+
+        unsupported, weights = "Unsupported Gemma 4 assistant", "model.safetensors differs from the expected"
+        cases = {"ordered embeddings": (lambda document: document.update(use_ordered_embeddings=True), None, None,
+                                        unsupported),
+                 "a width as a float": (lambda document: document["text_config"].update(hidden_size=32.0), None, None,
+                                        "hidden_size"),
+                 "a target width as a float": (None, None, "target width", "model.json holds configuration values"),
+                 "another width of the target": (lambda document: document.update(backbone_hidden_size=64), None, None,
+                                                 unsupported),
+                 "a sliding-window layer in place of the full-attention layer": (
+                     lambda document: document["text_config"].update(layer_types=[SLIDING] * 4), None, None, unsupported),
+                 "a query projection of another shape": (None, tensor("model.layers.0.self_attn.q_proj.weight", (64, 33)),
+                                                         None, weights),
+                 "a missing tensor": (None, lambda state: state.pop("model.norm.weight"), None, weights),
+                 "an extra tensor": (None, tensor("model.layers.4.layer_scalar", (1,)), None, weights),
+                 "a table of another width": (None, None, (vocabulary, hidden + 2), f"{SHARD} differs from the expected"),
+                 "features of another shape": (None, None, features, "alpha-0001.safetensors does not hold")}
+        backup = {path: path.read_bytes() for path in (self.records / "tf/features").iterdir()}
+        events, watched = tensor_reads()
+        for label, (configured, changed, other, message) in cases.items():
+            for path, data in backup.items():
+                path.write_bytes(data)
+            case = self.folder / label.replace(" ", "-")
+            case.mkdir()
+            document, state = json.loads(json.dumps(SYNTHETIC["assistant"])), assistant_state()
+            if configured:
+                configured(document)
+            if changed:
+                changed(state)
+            if callable(other):
+                other()
+            table = torch.zeros(*(other if isinstance(other, tuple) else (vocabulary, hidden)))
+            target, contract = write_target(case, table)
+            if other == "target width":
+                pinned = read_json(contract)
+                write_json(contract, {**pinned, "config": {**pinned["config"], "hidden_size": float(hidden)}})
+            assistant, assistant_contract = write_assistant(case, document, state)
+            with self.subTest(case=label), watched(), self.assertRaisesRegex(ValueError, message):
+                mtp_native.write_inputs(contract, assistant_contract, target, assistant, self.records, self.inputs,
+                                        self.outputs, STEPS, case / "inputs")
+            self.assertFalse((case / "inputs").exists())
+        self.assertEqual(events, [])
+        with watched():
+            mtp.table(target / SHARD, CONFIG)
+        self.assertEqual(events, [(inode(target / SHARD), mtp.TABLE)])
 
     def contracts(self):
         return (("the target contract", self.contract), ("the assistant contract", self.assistant_contract))
