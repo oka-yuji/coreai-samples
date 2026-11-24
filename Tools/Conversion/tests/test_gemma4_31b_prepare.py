@@ -9,10 +9,11 @@ from unittest import mock
 
 from Tools.Conversion import local
 from Tools.Conversion.adapters.gemma4_31b.prepare import (
-    TOKENIZER_FILES, check_config, check_hashes, check_record, check_setup, check_special_tokens, load_contract,
+    TOKENIZER_FILES, check_config, check_hashes, check_record, check_setup, check_special_tokens, checked_contract,
+    load_contract,
 )
 from Tools.Conversion.adapters.pinned import sha256
-from Tools.Conversion.storage import PipelineError
+from Tools.Conversion.storage import PipelineError, read_json
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes/gemma4_31b"
 SHARDS = ("model-00001-of-00002.safetensors", "model-00002-of-00002.safetensors")
@@ -98,6 +99,28 @@ class ContractTests(unittest.TestCase):
                 path.write_text(json.dumps(contract))
                 with self.subTest(index=index), self.assertRaises(ValueError):
                     load_contract(path)
+
+
+    def test_the_checks_of_a_parsed_contract_give_what_the_checks_of_its_file_give(self):
+        original = json.loads((RECIPE / "model.json").read_text())
+        mutations = [lambda c: None, lambda c: c.update(extra=1), lambda c: c["config"].pop("sliding_window"),
+                     lambda c: c["reference"].update(compute="float32"), lambda c: c["files"][SHARDS[0]].update(sha256="eeef"),
+                     lambda c: c["tokenizer"].update(policy="resave"), lambda c: c["config"].update(eos_token_id=[1, 1])]
+        with tempfile.TemporaryDirectory() as folder:
+            for index, mutate in enumerate(mutations):
+                contract = copy.deepcopy(original)
+                mutate(contract)
+                path = Path(folder) / f"{index}.json"
+                path.write_text(json.dumps(contract))
+                outcomes = []
+                for check in (lambda: load_contract(path), lambda: checked_contract(read_json(path))):
+                    try:
+                        outcomes.append(("value", check()))
+                    except ValueError as error:
+                        outcomes.append((type(error), str(error)))
+                with self.subTest(index=index):
+                    self.assertEqual(outcomes[0], outcomes[1])
+                    self.assertEqual(outcomes[0][0] == "value", index == 0)
 
 
 class SnapshotTests(unittest.TestCase):

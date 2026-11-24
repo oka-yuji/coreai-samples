@@ -29,7 +29,10 @@ DOWNLOAD_STATE = ".cache"
 
 
 def load_contract(path):
-    contract = read_json(path)
+    return checked_contract(read_json(path))
+
+
+def checked_contract(contract):
     if set(contract) != CONTRACT or set(contract["config"]) != CONFIG \
             or set(contract["tokenizer"]) != {"policy", "files"}:
         raise ValueError("Model contract has missing or unknown fields")
