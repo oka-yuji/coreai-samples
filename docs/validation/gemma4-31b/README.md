@@ -1077,10 +1077,11 @@ function. The cache of the testing helper (21,660,884 KiB) was removed after the
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
   --implementation original --layers 6 --taps 1,2,3,4,5,6 --weights float16 \
   --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
-  --output <new folder>
+  --output .local/conversion/gemma4_31b/speculation/reference-float16
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.speculation \
-  --export <artifacts of the export step>/export --reference <folder of the run> \
-  --verifier Tools/Verify/.build/release/coreai-verify --output <new folder>
+  --export "$EXPORT_FOLDER" --reference .local/conversion/gemma4_31b/speculation/reference-float16 \
+  --verifier Tools/Verify/.build/release/coreai-verify \
+  --output .local/conversion/gemma4_31b/speculation/comparison-float16
 ~~~
 
 ## MTP drafter class (#704)
