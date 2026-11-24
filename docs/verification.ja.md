@@ -117,7 +117,7 @@ swift build -c release
 | `main_calls` | `start` から後の `main` の呼び出しの回数 |
 | `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いときは無い |
 | `requested_compute`、`expect_frequent_reshapes`、`cached`、`cache_query_error`、`specialize_s` | 自前のエンジンの特殊化の要求とキャッシュの状態。`own-load` の記録と同じ |
-| `non_finite_count` | 書き出した行の NaN と無限大の数。0 でなくてもコマンドは成功するので、この数を確かめます。 |
+| `non_finite_count` | 書き出した logits の行の NaN と無限大の数。`--main-output` と `--prefill-output` のファイルは数えません。0 でなくてもコマンドは成功するので、この数を確かめます。 |
 | `load_s`、`prefix_s`、`scoring_s` | エンジンの読み込み、`start` より前のトークンの読み込み、`start` から後の読み込みと書き出しの秒数 |
 | `scoring_call_s` | `start` から後の `main` の呼び出しの中の秒数(行の読み出しとファイルの書き出しを含まない) |
 | `outputs` | `--main-output` か `--prefill-output` を指定したときだけ。そのファイルごとの `function`(`main` か `prefill`)、`name`、`rows`、`width` と、中身の `sha256` |

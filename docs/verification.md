@@ -118,7 +118,7 @@ The command prints one JSON line with `record` set to `logits`:
 | `main_calls` | The number of `main` calls from `start` |
 | `main_hash` | The asset's `main.hash` in hex, the SHA-256 of `main.mlirb`; absent when the file is missing |
 | `requested_compute`, `expect_frequent_reshapes`, `cached`, `cache_query_error`, `specialize_s` | The own engine's specialization request and cache state, as in the `own-load` record |
-| `non_finite_count` | NaN and infinite values in the written rows. The command still succeeds, so check this count. |
+| `non_finite_count` | NaN and infinite values in the written rows of the logits. The files of `--main-output` and `--prefill-output` are not counted. The command still succeeds, so check this count. |
 | `load_s`, `prefix_s`, `scoring_s` | Seconds to load the engine, to read the tokens before `start`, and to read and write the positions from `start` |
 | `scoring_call_s` | Seconds in the `main` calls from `start`, without reading their rows and writing the files |
 | `outputs` | Only with `--main-output` or `--prefill-output`: for each of those files, `function` (`main` or `prefill`), `name`, `rows`, `width` and the `sha256` of its bytes |
