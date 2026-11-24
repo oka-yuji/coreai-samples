@@ -23,9 +23,13 @@ from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_c
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, complete_export, write_contract
-from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, bounded, edit, model_record
+from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, bounded, edit, model_record, watched_children
 
 HIDDEN = TEXT["hidden_size"]
+MAIN_OUTPUTS = ("main.hidden_states", "main.tap_hidden_states")
+CONDITIONS = (("short-c1", "short", 26, 0, 1, MAIN_OUTPUTS), ("short-c8", "short", 26, 0, 8, MAIN_OUTPUTS),
+              ("long-main", "long", 1400, 0, 1400, MAIN_OUTPUTS),
+              ("long-prefill", "long", 1400, 1100, 1, (*MAIN_OUTPUTS, "prefill.tap_hidden_states")))
 
 
 def npz(array):
@@ -69,7 +73,7 @@ name = next(key for key, value in plan["conditions"].items() if value == [len(id
 change = plan["changes"].get(name, {{}})
 with Path(plan["calls"]).open("a") as calls:
     calls.write(name + "\\n")
-source = "short" if name.startswith("short") else "long"
+source = plan["sources"][name]
 hidden = plan["hidden"]
 reference = {{key: np.load(path) for key, path in plan["arrays"][source].items()}}
 rows = len(ids) - start
@@ -219,9 +223,9 @@ class CompareTests(unittest.TestCase):
         self.calls = self.folder / "calls.txt"
 
     def write_fake(self, changes=None):
-        conditions = {name: [len(layers.tokens(source, self.config)), start, chunk]
-                      for name, source, start, chunk in speculation.CONDITIONS}
-        plan = {"conditions": conditions, "changes": changes or {}, "arrays": self.arrays, "hidden": HIDDEN,
+        conditions = {name: [count, start, chunk] for name, _, count, start, chunk, _ in CONDITIONS}
+        plan = {"conditions": conditions, "sources": {name: source for name, source, *_ in CONDITIONS},
+                "changes": changes or {}, "arrays": self.arrays, "hidden": HIDDEN,
                 "taps": [1, 2, 3, 4, 5], "vocab": TEXT["vocab_size"], "main_hash": MAIN_HASH, "calls": str(self.calls),
                 "prefill_chunk": native.prefill_chunk()}
         self.verifier.write_text(FAKE.format(python=sys.executable))
@@ -242,11 +246,14 @@ class CompareTests(unittest.TestCase):
         result = self.run_compare()
         self.assertTrue(result["passed"], result)
         self.assertEqual(read_json(self.folder / "out/comparison.json"), result)
-        self.assertEqual(self.calls.read_text().split(), [name for name, *_ in speculation.CONDITIONS])
+        self.assertEqual(self.calls.read_text().split(), [name for name, *_ in CONDITIONS])
         conditions = self.conditions(result)
-        self.assertEqual(sorted(conditions["long-prefill"]["outputs"]),
-                         ["main.hidden_states", "main.tap_hidden_states", "prefill.tap_hidden_states"])
-        self.assertEqual(sorted(conditions["short-c1"]["outputs"]), ["main.hidden_states", "main.tap_hidden_states"])
+        self.assertEqual(list(conditions), [name for name, *_ in CONDITIONS])
+        for name, source, count, start, chunk, outputs in CONDITIONS:
+            entry = conditions[name]
+            self.assertEqual((entry["input"], entry["tokens"], entry["start"], entry["chunk"], entry["rows"]),
+                             (source, count, start, chunk, count - start))
+            self.assertEqual(sorted(entry["outputs"]), sorted(outputs))
         taps = conditions["long-prefill"]["outputs"]["prefill.tap_hidden_states"]
         self.assertEqual((taps["rows"], taps["width"], len(taps["sections"])), (1100, 5 * HIDDEN, 5))
         self.assertEqual([section["layer"] for section in taps["sections"]], [1, 2, 3, 4, 5])
@@ -427,7 +434,7 @@ class CompareTests(unittest.TestCase):
                 size, limit = limits[f"{name}.{output}.npy"]
                 self.assertEqual((limit, size is not None and data <= size <= limit),
                                  (data + speculation.HEADER_LIMIT, True))
-        for condition, source, start, chunk in speculation.CONDITIONS:
+        for condition, source, count, start, chunk, outputs in CONDITIONS:
             rows = values[source] - start
             size, limit = limits[f"{condition}.hidden_states.f16"]
             self.assertEqual((size, limit), (rows * HIDDEN * 2, rows * HIDDEN * 2))
@@ -488,37 +495,41 @@ class CompareTests(unittest.TestCase):
         real_mkdir, real_write = os.mkdir, speculation.write_json
         self.write_fake()
 
-        def interrupted_at(label, point, failure=None):
+        def interrupted_at(label, number, point, failure=None):
             output, written = self.folder / label, []
 
             def after_mkdir(path, *arguments, **keywords):
                 real_mkdir(path, *arguments, **keywords)
                 if point == "mkdir" and Path(path) == output:
-                    signal.raise_signal(signal.SIGINT)
+                    signal.raise_signal(number)
 
             def around_write(path, value):
                 if point == Path(path).name:
-                    signal.raise_signal(signal.SIGINT)
+                    signal.raise_signal(number)
                 real_write(path, value)
                 written.append(Path(path).name)
 
-            with mock.patch("os.mkdir", side_effect=after_mkdir), \
+            with layers.terminated_as_interrupt(), mock.patch("os.mkdir", side_effect=after_mkdir), \
                     mock.patch.object(speculation, "write_json", side_effect=around_write), \
                     mock.patch.object(speculation, "condition", side_effect=failure or speculation.condition), \
                     self.assertRaises(KeyboardInterrupt):
                 speculation.compare(self.export, self.reference, self.verifier, output, self.contract)
             return output, written, read_json(output / "failure.json")["error"]
 
-        output, written, error = interrupted_at("folder", "mkdir")
-        self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
-                         (["failure.json"], "KeyboardInterrupt", ["failure.json"]))
-        self.assertFalse(self.calls.exists())
-        output, written, error = interrupted_at("record", "comparison.json")
-        self.assertEqual((written, error), (["comparison.json", "failure.json"], "KeyboardInterrupt"))
-        self.assertFalse((output / "comparison.json").exists())
-        output, written, error = interrupted_at("failure", "failure.json", RuntimeError("private-example-sentinel"))
-        self.assertEqual((written, error), (["failure.json"], "RuntimeError"))
-        self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
+        for name, number in (("sigint", signal.SIGINT), ("sigterm", signal.SIGTERM)):
+            with self.subTest(signal=name):
+                self.calls.unlink(missing_ok=True)
+                output, written, error = interrupted_at(f"folder-{name}", number, "mkdir")
+                self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                                 (["failure.json"], "KeyboardInterrupt", ["failure.json"]))
+                self.assertFalse(self.calls.exists())
+                output, written, error = interrupted_at(f"record-{name}", number, "comparison.json")
+                self.assertEqual((written, error), (["comparison.json", "failure.json"], "KeyboardInterrupt"))
+                self.assertFalse((output / "comparison.json").exists())
+                output, written, error = interrupted_at(f"failure-{name}", number, "failure.json",
+                                                        RuntimeError("private-example-sentinel"))
+                self.assertEqual((written, error), (["failure.json"], "RuntimeError"))
+                self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
 
     def test_a_comparison_stopped_by_sigterm_after_its_folder_is_made_leaves_a_failure_record(self):
         self.write_fake()
@@ -538,34 +549,36 @@ class CompareTests(unittest.TestCase):
         self.verifier.write_text('#!/bin/sh\necho $$ > "$0.pid"\nexec sleep 600\n')
         self.verifier.chmod(0o755)
         pidfile, output, seen, finished = Path(f"{self.verifier}.pid"), self.folder / "terminated", {}, threading.Event()
+        with watched_children() as (started, entered):
+            def terminate_when_it_waits():
+                entered.wait(30)
+                for _ in range(600):
+                    if pidfile.exists() and pidfile.read_text().strip():
+                        break
+                    time.sleep(0.05)
+                seen["pid"], seen["handler"] = int(pidfile.read_text()), signal.getsignal(signal.SIGTERM)
+                if seen["handler"] is layers.raise_interruption:
+                    os.kill(os.getpid(), signal.SIGTERM)
+                while not finished.wait(5):
+                    seen["forced"] = True
+                    with contextlib.suppress(ProcessLookupError, ValueError):
+                        os.kill(int(pidfile.read_text()), signal.SIGKILL)
 
-        def terminate_when_it_waits():
-            for _ in range(600):
-                if pidfile.exists() and pidfile.read_text().strip():
-                    break
-                time.sleep(0.05)
-            seen["pid"], seen["handler"] = int(pidfile.read_text()), signal.getsignal(signal.SIGTERM)
-            if seen["handler"] is layers.raise_interruption:
-                os.kill(os.getpid(), signal.SIGTERM)
-            while not finished.wait(5):
-                seen["forced"] = True
-                with contextlib.suppress(ProcessLookupError, ValueError):
-                    os.kill(int(pidfile.read_text()), signal.SIGKILL)
-
-        thread = threading.Thread(target=terminate_when_it_waits, daemon=True)
-        thread.start()
-        try:
-            with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
-                speculation.compare(self.export, self.reference, self.verifier, output, self.contract)
-        finally:
-            finished.set()
-        thread.join(10)
-        self.assertNotIn("forced", seen)
-        self.assertIs(seen["handler"], layers.raise_interruption)
-        with self.assertRaises(ProcessLookupError):
-            os.kill(seen["pid"], 0)
-        self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
-        self.assertFalse((output / "comparison.json").exists())
+            thread = threading.Thread(target=terminate_when_it_waits, daemon=True)
+            thread.start()
+            try:
+                with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
+                    speculation.compare(self.export, self.reference, self.verifier, output, self.contract)
+            finally:
+                finished.set()
+            thread.join(10)
+            self.assertNotIn("forced", seen)
+            self.assertTrue(entered.is_set())
+            self.assertIs(seen["handler"], layers.raise_interruption)
+            with self.assertRaises(ProcessLookupError):
+                os.kill(seen["pid"], 0)
+            self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
+            self.assertFalse((output / "comparison.json").exists())
 
     def test_a_comparison_that_finds_its_folder_made_by_another_process_writes_no_record_into_it(self):
         self.write_fake()
@@ -784,7 +797,7 @@ class CompareTests(unittest.TestCase):
                                          self.contract)
         self.assertTrue(result["passed"], result)
         self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
-        self.assertEqual(self.calls.read_text().split(), [name for name, *_ in speculation.CONDITIONS])
+        self.assertEqual(self.calls.read_text().split(), [name for name, *_ in CONDITIONS])
 
     def test_the_command_turns_sigterm_into_an_interruption_while_it_compares(self):
         seen, previous = [], signal.getsignal(signal.SIGTERM)
