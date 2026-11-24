@@ -978,10 +978,10 @@ The 8-bit reference restored 123 tensors from the quantized file of the export (
 four conditions; the checks and values are those of
 [`speculation`](../../../Tools/Conversion/recipes/gemma4_31b/README.md#outputs-for-speculation-read-by-the-own-engine):
 for every output and every tap layer the sum of the squared differences from the reference of the same layer is at most
-1/2 of the sum from every other layer, the cosine of every row is at least 0.99 and the median at least 0.999, and every
-value is finite. For `hidden_states` the other layer is the last layer, and for each tap layer the table gives the
-largest ratio to the nearest other layer (the criterion: at most 0.5) and the smallest cosine and median cosine over the
-tap layers.
+1/2 of the sum from every other layer (the smallest of them above 0), the cosine of every row is at least 0.99 and the
+median at least 0.999, and every value is finite. For `hidden_states` the other layer is the last layer, and for each
+tap layer the table gives the largest ratio to the nearest other layer (the criterion: at most 0.5) and the smallest
+cosine and median cosine over the tap layers.
 
 | Condition | Output | FP16: largest ratio | Smallest cosine | Smallest median | 8-bit: largest ratio | Smallest cosine | Smallest median |
 |---|---|---:|---:|---:|---:|---:|---:|

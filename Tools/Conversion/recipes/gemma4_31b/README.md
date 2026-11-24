@@ -774,7 +774,7 @@ For each output, and for `tap_hidden_states` for each of its tap layers, a condi
 
 | Check | Value |
 |---|---|
-| Mixup | the sum over the rows of the squared differences from the reference of the same layer is at most 1/2 of the sum from every other layer of the reference (1 to the layer count); for `hidden_states`, from the final norm at most 1/2 of the sum from the last layer before the norm |
+| Mixup | the sum over the rows of the squared differences from the reference of the same layer is at most 1/2 of the sum from every other layer of the reference (1 to the layer count), and the smallest of those sums is above 0 (when it is 0 the check fails and has no ratio); for `hidden_states`, from the final norm at most 1/2 of the sum from the last layer before the norm |
 | Cosine | the cosine of every row with the reference of the same layer (for `hidden_states`, the final norm) at least 0.99, and their median at least 0.999 |
 | Finite | no non-finite value |
 
