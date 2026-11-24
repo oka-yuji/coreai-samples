@@ -259,7 +259,7 @@ class RowProblemTests(unittest.TestCase):
         found = mtp_native.row_problems(5, [111, 222, 333], [111, 222, 444], [[111, 555], [222, 666], [777, 888]])
         self.assertEqual(len(found), 2)
         text = " ".join(found)
-        for token in (111, 222, 333, 444, 555, 666, 777, 888):
+        for token in range(111, 999, 111):
             self.assertNotIn(str(token), text)
 
 
