@@ -452,6 +452,12 @@ class CompareTests(unittest.TestCase):
             self.verifier.symlink_to(self.verifier)
 
         every_layer, unreadable = "does not hold the output of every layer", "the reference record is unreadable"
+
+        def guarded(*arguments):
+            if max(arguments) > 10**6:
+                raise MemoryError("a range of a number from a record")
+            return range(*arguments)
+
         entry_problem = "the reference record does not give the short hidden_states"
         cases = {"a reference without the last layer": (
                      reference_of(lambda record: record.update(tap_layers=[1, 2, 3, 4, 5])), every_layer),
@@ -461,7 +467,11 @@ class CompareTests(unittest.TestCase):
                      reference_of(lambda record: record.update(implementation="class")), "not a run of the original"),
                  "a reference of restored weights": (
                      reference_of(lambda record: record.update(weights=layers.RESTORED)), "does not use the weights"),
-                 "a reference of other layers": (reference_of(lambda record: record.update(layers=12)), every_layer),
+                 "a reference of other layers": (
+                     reference_of(lambda record: record.update(layers=12)), "recorded layer types that differ"),
+                 "a reference of a trillion layers": (
+                     reference_of(lambda record: record.update(layers=10**12)),
+                     "The first 1000000000000 layers must end with a full-attention layer"),
                  "a reference of another input": (
                      reference_of(lambda record: record["inputs"]["long"].update(positions=1399)),
                      "did not read the long input"),
@@ -498,7 +508,8 @@ class CompareTests(unittest.TestCase):
                 try:
                     make()
                     output = self.folder / label.replace(" ", "-")
-                    with mock.patch.object(speculation, "run_verifier") as run:
+                    with mock.patch.object(speculation, "run_verifier") as run, \
+                            mock.patch.object(speculation, "range", guarded, create=True):
                         thread, outcome = bounded(lambda: speculation.compare(
                             self.export, self.reference, self.verifier, output, self.contract))
                     self.assertFalse(thread.is_alive())

@@ -120,16 +120,16 @@ def load_reference(folder, contract, contract_path):
         raise ValueError("The reference record is not an object")
     problems = [] if (record.get("schema"), record.get("implementation")) == (RUN_SCHEMA, "original") else [
         "the reference is not a run of the original implementation"]
-    problems += layer_problems(record, contract, "reference")
-    count = record.get("layers")
-    if type(count) is not int or canonical(record.get("tap_layers")) != canonical(list(range(1, count + 1))):
+    layered = layer_problems(record, contract, "reference")
+    problems += layered
+    if not layered and canonical(record.get("tap_layers")) != canonical(list(range(1, record["layers"] + 1))):
         problems.append("the reference does not hold the output of every layer")
     if canonical(record.get("model")) != canonical(pinned_model(contract, contract_path)):
         problems.append("the reference recorded another model or contract")
     arrays = {}
     if problems:
         return record, hashed, arrays, problems
-    size = contract["config"]["hidden_size"]
+    size, count = contract["config"]["hidden_size"], record["layers"]
     for name in ("short", "long"):
         ids, entry = tokens(name, contract["config"]), mapping(mapping(record, "inputs"), name)
         if canonical([entry.get("positions"), entry.get("tokens_sha256")]) != canonical([len(ids), digest(ids)]):
