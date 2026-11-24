@@ -169,6 +169,8 @@ def outputs(model, implementation, ids, bounds, taps):
 
 
 def run(implementation, contract_path, snapshot, layers, taps, output, weights, export):
+    if os.path.lexists(output):
+        raise FileExistsError(f"The outputs must be written to a new folder: {output}")
     if weights not in WEIGHT_KINDS or (weights == "8bit") != (export is not None) \
             or (weights == "8bit" and implementation != "original"):
         raise ValueError("Give an export exactly for the weights restored from its quantized tensors, which only the "
@@ -179,8 +181,6 @@ def run(implementation, contract_path, snapshot, layers, taps, output, weights, 
     taps = check_taps(taps, layers)
     quantized, restored = {}, {}
     if export is not None:
-        if os.path.lexists(output):
-            raise FileExistsError(f"The outputs must be written to a new folder: {output}")
         quantized, digests = quantized_export(export, contract, contract_path, kinds)
         names = sorted({key.rsplit(".", 1)[0] for key in digests})
         restored = quantized_weights(export / QUANTIZED, digests, checkpoint_shapes(snapshot, names))

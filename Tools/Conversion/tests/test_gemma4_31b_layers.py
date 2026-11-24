@@ -528,6 +528,28 @@ class ConditionTests(unittest.TestCase):
                 load.assert_not_called()
                 self.assertEqual(seen(), before)
 
+    def test_a_run_refuses_an_existing_output_before_it_reads_the_contract_or_checks_its_other_arguments(self):
+        with tempfile.TemporaryDirectory() as folder:
+            broken = Path(folder) / "broken.json"
+            broken.write_text("{")
+            outputs = {"file": lambda path: path.write_text("earlier"), "folder": lambda path: path.mkdir(),
+                       "dangling link": lambda path: path.symlink_to(Path(folder) / "missing")}
+            for label, make in outputs.items():
+                output = Path(folder) / label.replace(" ", "-")
+                make(output)
+                seen = lambda: (os.readlink(output) if output.is_symlink() else None,
+                                output.read_bytes() if output.is_file() else None)
+                before = seen()
+                for weights, export_folder in (("float16", None), ("8bit", Path(folder) / "export"),
+                                               ("bfloat16", None)):
+                    with self.subTest(output=label, weights=weights), mock.patch.object(
+                            layers, "load_contract", wraps=layers.load_contract) as load, \
+                            self.assertRaises(FileExistsError):
+                        layers.run("original", broken, Path(folder) / "snapshot", 6, "1", output, weights,
+                                   export_folder)
+                    load.assert_not_called()
+                self.assertEqual(seen(), before)
+
     @unittest.skipIf(os.geteuid() == 0, "root searches a folder without permission")
     def test_a_context_run_refuses_a_link_into_a_folder_without_search_permission_before_it_reads_the_contract(self):
         with tempfile.TemporaryDirectory() as folder:
