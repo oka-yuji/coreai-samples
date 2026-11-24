@@ -341,6 +341,15 @@ class ScoredRowsTests(unittest.TestCase):
                 self.assertLessEqual(float(np.abs(found - plain_rows(plain, record)).max()), anchor.LIMIT)
         self.assertEqual({str(parameter.dtype) for parameter in model.parameters()}, {"torch.bfloat16"})
 
+    def test_only_the_scored_rows_reach_the_head(self):
+        model, seen, records = copy.deepcopy(self.model), [], made(VOCABULARY)
+        model.lm_head.register_forward_hook(lambda module, arguments, output: seen.append(arguments[0].shape[-2]))
+        for record in records:
+            with torch.no_grad():
+                layer1_anchor.scored(model, record, layer1_anchor.rounded(model), "cpu", 5)
+        self.assertEqual(seen, [record["rows"] for record in records])
+        self.assertGreater(min(len(record["tokens"]) - record["rows"] for record in records), 0)
+
     def test_the_weights_are_the_resident_values_rounded_to_float16_with_the_bf16_embedding_scale(self):
         model = copy.deepcopy(self.model)
         name = "model.language_model.layers.0.mlp.down_proj.weight"
