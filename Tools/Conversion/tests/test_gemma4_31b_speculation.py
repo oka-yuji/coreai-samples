@@ -9,6 +9,7 @@ import sys
 import tempfile
 import threading
 import time
+import tracemalloc
 import unittest
 from unittest import mock
 
@@ -31,6 +32,28 @@ def npz(array):
     buffer = io.BytesIO()
     np.savez(buffer, array=array)
     return buffer.getvalue()
+
+
+def array_bytes(shape, dtype="<f4", fortran=False, values=0):
+    buffer = io.BytesIO()
+    np.lib.format.write_array_header_1_0(buffer, {"descr": dtype, "fortran_order": fortran, "shape": shape})
+    return buffer.getvalue() + bytes(values)
+
+
+def watched_arrays():
+    real = np.ndarray
+
+    class Watching(type):
+        def __instancecheck__(cls, item):
+            return isinstance(item, real)
+
+        def __subclasscheck__(cls, item):
+            return issubclass(item, real)
+
+        def __call__(cls, *arguments, **keywords):
+            raise AssertionError("an array was made before its header was checked")
+
+    return Watching("ndarray", (), {})
 
 FAKE = """#!{python}
 import hashlib, json, math, sys
@@ -414,6 +437,23 @@ class CompareTests(unittest.TestCase):
                 size, limit = limits[f"{condition}.prefill.tap_hidden_states.f16"]
                 self.assertEqual((size, limit), (start * 5 * HIDDEN * 2, start * 5 * HIDDEN * 2))
 
+    def test_a_header_that_names_far_more_values_than_the_file_holds_makes_no_array_and_allocates_little(self):
+        claimed = 2**29 // (HIDDEN * 4)
+        content = array_bytes((claimed, HIDDEN), values=26 * HIDDEN * 4)
+        tracemalloc.start()
+        try:
+            with mock.patch("numpy.ndarray", watched_arrays()), mock.patch(
+                    "numpy.lib.format.read_array", side_effect=AssertionError("an array was read before its header")), \
+                    self.assertRaises(ValueError) as caught:
+                speculation.npy(content, (26, HIDDEN))
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertIn("the header gives another shape, type or order", str(caught.exception))
+        self.assertLess(peak, 1 << 20)
+        made = speculation.npy(array_bytes((26, HIDDEN), values=26 * HIDDEN * 4), (26, HIDDEN))
+        self.assertEqual((made.shape, made.dtype), ((26, HIDDEN), np.dtype("<f4")))
+
     def test_a_failure_after_the_output_is_created_leaves_a_failure_record(self):
         with mock.patch.object(speculation, "run_verifier", side_effect=KeyboardInterrupt), \
                 self.assertRaises(KeyboardInterrupt):
@@ -604,9 +644,7 @@ class CompareTests(unittest.TestCase):
             raise AssertionError("an array was read before its header was checked")
 
         def array_file(shape, dtype="<f4", fortran=False, values=26 * HIDDEN * 4):
-            buffer = io.BytesIO()
-            np.lib.format.write_array_header_1_0(buffer, {"descr": dtype, "fortran_order": fortran, "shape": shape})
-            return buffer.getvalue() + bytes(values)
+            return array_bytes(shape, dtype, fortran, values)
 
         def headed(content):
             def make():
@@ -700,7 +738,8 @@ class CompareTests(unittest.TestCase):
                             mock.patch.object(speculation, "range", guarded, create=True), \
                             mock.patch.object(speculation, "read_file", side_effect=bounded_file), \
                             mock.patch.object(speculation, "read_record", side_effect=bounded_record), \
-                            mock.patch("numpy.lib.format.read_array", side_effect=never):
+                            mock.patch("numpy.lib.format.read_array", side_effect=never), \
+                            mock.patch("numpy.ndarray", watched_arrays()):
                         thread, outcome = bounded(lambda: speculation.compare(
                             self.export, self.reference, self.verifier, output, self.contract))
                     self.assertFalse(thread.is_alive())
