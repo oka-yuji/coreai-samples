@@ -957,7 +957,8 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   contract, the tool stops like on any other error: `failure.json` stays, `export.json` is not written and the assets
   that were saved stay in the folder. Between the two checks the tool opens the configuration and the weights of the
   assistant and the embedding table again by their paths and reads them; it does not keep a file that is replaced in
-  between from being read as it was replaced, and the second check finds the difference.
+  between from being read as it was replaced. The second check finds a difference that is still there when it runs; a
+  change that was undone before then is not found.
 - Assets, each a folder that holds `main.hash`, `main.mlirb` and `metadata.json`: `verification.aimodel` holds the
   function `verify_step`, one step of the drafter, with the outputs `logits` float16 [1, 1, 262144] and `post_projection`
   float16 [1, 1, 5376], in this order. `distribution.aimodel` holds the function `draft_<steps>`, the unrolled drafter,
@@ -974,8 +975,8 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   its path relative to the output folder, such as `verification.aimodel/main.mlirb`, the total size, `main_hash`, the
   content of `main.hash` in hex, read with a limit of 64 B, the seconds of the conversion and of the save, and
   `problems`), `versions`, `timing` (`load_s`, the seconds that reading the embedding table took, and `total_s`, the
-  seconds from there to the end of the inspections; the checks of the files before and after them are in neither, so the
-  tool takes longer than `total_s`), `memory` (the largest resident set of the process and the lifetime
+  seconds from there to the end of the inspections and of the reading of the versions of the packages; the checks of the
+  files before and after them are in neither, so the tool takes longer than `total_s`), `memory` (the largest resident set of the process and the lifetime
   peak of its footprint), `problems` of the output folder and `passed`.
 - The inspection compares each asset with definitions fixed in `mtp.py`, not with a record: the set of functions; the
   names, types and shapes, fixed and dynamic, of the inputs and outputs and no state; the order of the outputs; that
@@ -984,18 +985,20 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   `passed` is true only when none of them gives a problem, and the exit code is 0 only then. When a check gives a
   problem, the tool still ends normally: it keeps the assets, writes `export.json` with `passed` false and the problems
   (`problems` of the output folder and of each asset), writes no `failure.json` and exits with code 1.
-- After the output folder is made, an error that stops the tool or an interruption leaves `failure.json` (the schema and
-  the name of the error) and no `export.json`; the assets that were saved stay in the folder. A problem that the
-  inspection gives is not such an error. SIGINT and SIGTERM are interruptions: in the main thread, SIGTERM raises
-  `KeyboardInterrupt`, as SIGINT does by default, from the start of the command until the handler that was set before is
-  set again, the last step before it returns, and SIGINT does so until it returns. An interruption that arrives in these
-  spans, that last step included, leaves `failure.json` if the output folder is already made (before that, nothing is
-  written). One that arrives after the command has returned, while the tool prints its result and returns the exit code,
-  does not change `export.json` or `failure.json`. A SIGTERM that arrives after the handler that was set before is set
-  again is handled by that handler (by default, it ends the process), and the `export.json` that was written before
-  stays; the boundary is the setting of that handler again. While the output folder is made and while `export.json` or
-  `failure.json` is written, a signal is held until the write is done and then handled as an interruption; one that
-  arrives while `export.json` is written replaces it by `failure.json`.
+- Records and interruptions. `export.json` is written last, after the assets are saved and inspected and the files are
+  checked a second time; where `export.json` has `passed` true, the assets are complete. An error that stops the tool
+  after the output folder is made leaves `failure.json` (the schema and the name of the error) and no `export.json`, and
+  the assets that were saved stay in the folder; a problem that the inspection gives is not such an error (see the
+  previous item). SIGINT and SIGTERM are held while the output folder is made and while `export.json` or `failure.json`
+  is written, and are raised as an interruption when the section ends; one that arrives outside these three sections is
+  raised at once, as `KeyboardInterrupt`, and takes the path of an error (in the main thread SIGTERM raises it from the
+  start of the command until the handler that was set before is set again, as SIGINT does by default). After the
+  command has returned, an interruption does not change the records. This is not guaranteed when a second interruption
+  arrives within a few instructions of three points: between the start of the handling of an error or an interruption
+  and the start of the section that writes `failure.json`, where no record may be left; after the handler that was set
+  before is set again, where that handler handles SIGTERM (by default it ends the process) and the records that were
+  written before stay; and while that handler is being set again, where the handler of the tool can stay in the process
+  (the command ends afterwards). An output folder that holds neither `export.json` nor `failure.json` is unfinished.
 
 The numbers of a run are in [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-assets-with-the-real-weights-713).
 `AssetInspectionTests` and `ExportWeightsTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix the inspection,

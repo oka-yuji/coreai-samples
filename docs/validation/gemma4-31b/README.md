@@ -1151,18 +1151,18 @@ and 1,878,804,231 (`distribution`) Float16 elements next to 386 Float32, 113 Int
 ### Resources
 
 The tool took 84.56 s in all (`/usr/bin/time -l`). Of that, 44.81 s are `total_s` of the record, from the load of the
-embedding table (`load_s` 0.30 s) to the end of the inspections. The other 39.75 s lie outside `total_s`; they contain
-the start of the process, the checks of the files before the output folder is made, the same checks again after the
-assets were made (the hashing of the shard in each) and the write of `export.json`, and the time of each of these was
-not measured on its own. This run and the run at commit ffab7889, which checked the files a second time, took 84.56 s
-and 87.15 s; the runs at commits 542f17c4 and 475e9134, which checked them once, took 66.67 s and 66.71 s. The time of
-the second check was not measured on its own, and it is not in `total_s`. The largest resident set of the process was
-19,285,934,080 B and the lifetime peak of its footprint 15,753,804,248 B; it had no swaps. At commit ffab7889 the two
-values were 19,285,114,880 B and 15,753,001,456 B, and the run wrote `main.mlirb` files of 3,757,639,617 B
-(`verification`) and 3,757,696,068 B (`distribution`); at commit 542f17c4 they were 19,286,622,208 B and 15,754,115,520
-B, and the run wrote 3,757,639,625 B and 3,757,696,076 B; at commit 475e9134 they were 19,287,031,808 B and
-15,753,165,296 B, and the run wrote 3,757,639,619 B and 3,757,696,070 B. The four runs differ in the size of
-`main.mlirb` by a few bytes and in every `main.hash`; the cause was not examined.
+embedding table (`load_s` 0.30 s) to the end of the inspections and of the reading of the versions of the packages. The
+other 39.75 s lie outside `total_s`; they contain the start of the process, the checks of the files before the output
+folder is made, the same checks again after the assets were made (the hashing of the shard in each) and the write of
+`export.json`, and the time of each of these was not measured on its own. This run and the run at commit ffab7889, which
+checked the files a second time, took 84.56 s and 87.15 s; the runs at commits 542f17c4 and 475e9134, which checked them
+once, took 66.67 s and 66.71 s. The time of the second check was not measured on its own, and it is not in `total_s`.
+The largest resident set of the process was 19,285,934,080 B and the lifetime peak of its footprint 15,753,804,248 B; it
+had no swaps. At commit ffab7889 the two values were 19,285,114,880 B and 15,753,001,456 B, and the run wrote
+`main.mlirb` files of 3,757,639,617 B (`verification`) and 3,757,696,068 B (`distribution`); at commit 542f17c4 they
+were 19,286,622,208 B and 15,754,115,520 B, and the run wrote 3,757,639,625 B and 3,757,696,076 B; at commit 475e9134
+they were 19,287,031,808 B and 15,753,165,296 B, and the run wrote 3,757,639,619 B and 3,757,696,070 B. The four runs
+differ in the size of `main.mlirb` by a few bytes and in every `main.hash`; the cause was not examined.
 
 ### Form that the verification CLI accepts
 
@@ -1181,8 +1181,10 @@ it accepted the function, the names, the types and the shapes of the seven input
   the versions of the packages only, as `run` and the export of a synthetic drafter do.
 - Between its two checks of the files the tool opens the configuration and the weights of the assistant and the embedding
   table again by their paths. A file that is replaced in between is read as it was replaced, and the second check then
-  finds the difference (`failure.json` stays and `export.json` is not written); a change that is undone before the second
-  check is not found.
+  finds a difference that is still there when it runs (`failure.json` stays and `export.json` is not written); a change
+  that was undone before then is not found.
+- An output folder that holds neither `export.json` nor `failure.json` is unfinished; the interruptions that can leave no
+  record are in [Export with the real weights](../../../Tools/Conversion/recipes/gemma4_31b/README.md#export-with-the-real-weights).
 - One run of this commit; the four runs wrote different bytes for the same inputs.
 
 ### Sources
