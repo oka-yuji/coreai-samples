@@ -993,12 +993,14 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   is written, and are raised as an interruption when the section ends; one that arrives outside these three sections is
   raised at once, as `KeyboardInterrupt`, and takes the path of an error (in the main thread SIGTERM raises it from the
   start of the command until the handler that was set before is set again, as SIGINT does by default). After the
-  command has returned, an interruption does not change the records. This is not guaranteed when a second interruption
-  arrives within a few instructions of three points: between the start of the handling of an error or an interruption
-  and the start of the section that writes `failure.json`, where no record may be left; after the handler that was set
-  before is set again, where that handler handles SIGTERM (by default it ends the process) and the records that were
-  written before stay; and while that handler is being set again, where the handler of the tool can stay in the process
-  (the command ends afterwards). An output folder that holds neither `export.json` nor `failure.json` is unfinished.
+  command has returned, an interruption does not change the records. Three cases are not guaranteed, each within a few
+  instructions: (1) another interruption that arrives between the start of the handling of an error or an interruption
+  and the start of the section that writes `failure.json`, where no record may be left; (2) a SIGTERM that arrives after
+  the handler that was set before is set again, where that handler handles it (by default it ends the process) and the
+  records that were written before stay; (3) an interruption, the first one too, that arrives just as that handler is
+  being set again, where the handler of the tool can stay in the process (the command ends afterwards) and the records
+  are those of any other interruption, so `failure.json` replaces an `export.json` that was already written. An output
+  folder that holds neither `export.json` nor `failure.json` is unfinished.
 
 The numbers of a run are in [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-assets-with-the-real-weights-713).
 `AssetInspectionTests` and `ExportWeightsTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix the inspection,

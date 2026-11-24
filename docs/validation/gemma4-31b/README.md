@@ -1183,8 +1183,10 @@ it accepted the function, the names, the types and the shapes of the seven input
   table again by their paths. A file that is replaced in between is read as it was replaced, and the second check then
   finds a difference that is still there when it runs (`failure.json` stays and `export.json` is not written); a change
   that was undone before then is not found.
-- An output folder that holds neither `export.json` nor `failure.json` is unfinished; the interruptions that can leave no
-  record are in [Export with the real weights](../../../Tools/Conversion/recipes/gemma4_31b/README.md#export-with-the-real-weights).
+- An output folder that holds neither `export.json` nor `failure.json` is unfinished. Another interruption that arrives
+  after the handling of an error or an interruption has started and before `failure.json` is written can leave it so; the
+  two other cases that are not guaranteed are in
+  [Export with the real weights](../../../Tools/Conversion/recipes/gemma4_31b/README.md#export-with-the-real-weights).
 - One run of this commit; the four runs wrote different bytes for the same inputs.
 
 ### Sources
