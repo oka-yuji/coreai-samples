@@ -195,17 +195,17 @@ def run(implementation, contract_path, snapshot, layers, taps, output, weights, 
     config = contract["config"]
     kinds = check_layers(config, layers)
     taps = check_taps(taps, layers)
+    import numpy as np
+
+    started = time.perf_counter()
+    verified = verify_inputs(snapshot, contract)
+    hashed = time.perf_counter()
     quantized, restored = {}, {}
     if export is not None:
         quantized, digests = quantized_export(export, contract, contract_path, kinds)
         names = sorted({key.rsplit(".", 1)[0] for key in digests})
         restored = quantized_weights(export / QUANTIZED, digests, checkpoint_shapes(snapshot, names))
         quantized["tensors"] = len(digests)
-    import numpy as np
-
-    started = time.perf_counter()
-    verified = verify_inputs(snapshot, contract)
-    hashed = time.perf_counter()
     made = False
     try:
         with deferred_interrupts():

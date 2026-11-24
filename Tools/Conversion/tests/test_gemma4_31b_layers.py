@@ -1155,12 +1155,15 @@ class RestoredReferenceTests(unittest.TestCase):
                 output = folder / label.replace(" ", "-")
                 shard.write_bytes(original if failure else changed)
                 with self.subTest(case=label), mock.patch.object(layers, "original_model") as load, \
-                        mock.patch.object(layers, "write_json") as write, mock.patch.object(
-                            layers, "verify_inputs", side_effect=failure or layers.verify_inputs), \
+                        mock.patch.object(layers, "write_json") as write, \
+                        mock.patch.object(layers, "quantized_export", wraps=layers.quantized_export) as exported, \
+                        mock.patch.object(layers, "checkpoint_shapes", wraps=layers.checkpoint_shapes) as shapes, \
+                        mock.patch.object(layers, "quantized_weights", wraps=layers.quantized_weights) as restored, \
+                        mock.patch.object(layers, "verify_inputs", side_effect=failure or layers.verify_inputs), \
                         self.assertRaises(expected):
                     layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, weights, export_folder)
-                load.assert_not_called()
-                write.assert_not_called()
+                for untouched in (load, write, exported, shapes, restored):
+                    untouched.assert_not_called()
                 self.assertFalse(os.path.lexists(output))
 
     def test_a_run_records_the_time_of_the_check_of_its_inputs_as_the_time_to_hash_them(self):
@@ -1178,6 +1181,25 @@ class RestoredReferenceTests(unittest.TestCase):
             timing = record["timing"]
             self.assertGreaterEqual(timing["input_hash_s"], 0.3)
             self.assertGreaterEqual(timing["total_s"], timing["input_hash_s"] + timing["load_s"])
+
+    def test_a_run_of_restored_weights_records_the_check_and_the_reading_of_its_export_in_the_time_to_load(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            real = layers.quantized_weights
+
+            def slow(*arguments):
+                time.sleep(0.3)
+                return real(*arguments)
+
+            with mock.patch.object(layers, "quantized_weights", side_effect=slow):
+                record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "timed", "8bit", source)
+            timing = record["timing"]
+            self.assertLess(timing["input_hash_s"], 0.3)
+            self.assertGreaterEqual(timing["load_s"], 0.3)
+            self.assertGreaterEqual(timing["total_s"], timing["input_hash_s"] + timing["load_s"])
+
 
     def test_a_run_stopped_by_sigterm_after_its_folder_is_made_leaves_a_failure_record(self):
         with tempfile.TemporaryDirectory() as folder:
