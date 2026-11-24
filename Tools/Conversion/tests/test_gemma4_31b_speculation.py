@@ -23,7 +23,8 @@ from Tools.Conversion.adapters.gemma4_31b.prepare import TOKENIZER_FILES, load_c
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import digest, read_json, write_json
 from Tools.Conversion.tests.test_gemma4_31b_layers import TEXT, complete_export, write_contract
-from Tools.Conversion.tests.test_gemma4_31b_native import MAIN_HASH, bounded, edit, model_record, watched_children
+from Tools.Conversion.tests.test_gemma4_31b_native import (MAIN_HASH, bounded, edit, model_record, release,
+                                                           watched_children)
 
 HIDDEN = TEXT["hidden_size"]
 MAIN_OUTPUTS = ("main.hidden_states", "main.tap_hidden_states")
@@ -755,7 +756,11 @@ class CompareTests(unittest.TestCase):
                             mock.patch("numpy.ndarray", watched_arrays()):
                         thread, outcome = bounded(lambda: speculation.compare(
                             self.export, self.reference, self.verifier, output, self.contract))
-                    self.assertFalse(thread.is_alive())
+                    waited = thread.is_alive()
+                    for pipe in (*self.reference.iterdir(), *self.export.iterdir(), self.verifier):
+                        if pipe.is_fifo():
+                            release(pipe, thread)
+                    self.assertFalse(waited)
                     self.assertIsInstance(outcome.get("error"), ValueError, outcome)
                     self.assertIn(problem, str(outcome.get("error")))
                     run.assert_not_called()
