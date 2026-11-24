@@ -390,6 +390,14 @@ class AnchorRunTests(unittest.TestCase):
                     self.assertEqual(read_json(self.folder / label / "failure.json"),
                                      {"schema": schema, "passed": False, "error": type(error).__name__})
 
+    def test_an_exception_of_the_interrupt_setting_leaves_a_failure_record_and_exit_code_1(self):
+        with mock.patch.object(layer1_anchor, "interruptible",
+                               side_effect=ValueError("signal only works in the main thread")):
+            code, _, _ = self.main("run", "--weights", "float16")
+        self.assertEqual(code, 1)
+        self.assertEqual(read_json(self.folder / "out/failure.json"),
+                         {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "ValueError"})
+
     def test_an_exception_after_a_record_was_written_keeps_that_record_and_still_ends_with_exit_code_1(self):
         for name in ("run.json", "failure.json"):
             def supervise(folder, schema, work, conclude, name=name):
@@ -751,6 +759,12 @@ class CandidateRunTests(unittest.TestCase):
             self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
         self.assertFalse(marker.exists())
         self.assertEqual(self.called(), [record["id"] for record in self.records] * 2)
+
+    def test_an_item_longer_than_the_context_of_the_export_is_refused_before_anything_is_written_or_launched(self):
+        self.forced = write_forced(self.folder / "long", made(self.vocabulary, [(self.exported["context"], 2)]))
+        with self.assertRaisesRegex(ValueError, "longer than the context of the export"):
+            self.run_candidate(output="long-out")
+        self.assertFalse((self.folder / "long-out").exists() or self.launches.exists())
 
     def test_a_failure_in_building_the_record_is_refused_before_the_folder_is_made(self):
         self.write_plan()
