@@ -558,7 +558,8 @@ class ConditionTests(unittest.TestCase):
                 self.assertEqual(seen(), before)
 
     def test_the_run_command_turns_sigterm_into_an_interruption_while_it_runs(self):
-        seen, previous = [], signal.getsignal(signal.SIGTERM)
+        seen = []
+        self.addCleanup(signal.signal, signal.SIGTERM, signal.signal(signal.SIGTERM, signal.SIG_DFL))
         record = {"inputs": {"short": {"logits": {"shape": [26, 301]}}}, "timing": {}, "memory": {}}
         arguments = ["layers", "run", "--implementation", "original", "--layers", "6", "--taps", "1", "--model", "m",
                      "--snapshot", "s", "--output", "o", "--weights", "float16"]
@@ -566,7 +567,7 @@ class ConditionTests(unittest.TestCase):
                 layers, "run", side_effect=lambda *items: seen.append(signal.getsignal(signal.SIGTERM)) or record):
             self.assertEqual(layers.main(), 0)
         self.assertEqual(seen, [layers.raise_interruption])
-        self.assertIs(signal.getsignal(signal.SIGTERM), previous)
+        self.assertIs(signal.getsignal(signal.SIGTERM), signal.SIG_DFL)
 
     def test_the_run_command_passes_its_arguments_and_the_kind_of_weights_and_the_export_to_the_run(self):
         record = {"inputs": {"short": {"logits": {"shape": [26, 301]}}}, "timing": {}, "memory": {}}

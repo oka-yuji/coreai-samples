@@ -800,14 +800,15 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(self.calls.read_text().split(), [name for name, *_ in CONDITIONS])
 
     def test_the_command_turns_sigterm_into_an_interruption_while_it_compares(self):
-        seen, previous = [], signal.getsignal(signal.SIGTERM)
+        seen = []
+        self.addCleanup(signal.signal, signal.SIGTERM, signal.signal(signal.SIGTERM, signal.SIG_DFL))
         result = {"passed": True, "conditions": []}
         arguments = ["speculation", "--export", "e", "--reference", "r", "--verifier", "v", "--output", "o"]
         with mock.patch.object(sys, "argv", arguments), mock.patch("sys.stdout"), mock.patch.object(
                 speculation, "compare", side_effect=lambda *items: seen.append(signal.getsignal(signal.SIGTERM)) or result):
             self.assertEqual(speculation.main(), 0)
         self.assertEqual(seen, [layers.raise_interruption])
-        self.assertIs(signal.getsignal(signal.SIGTERM), previous)
+        self.assertIs(signal.getsignal(signal.SIGTERM), signal.SIG_DFL)
 
     def test_the_command_prints_a_summary_and_exits_with_one_unless_it_passes(self):
         result = {"passed": False, "conditions": [{"name": "long-main", "passed": False, "checks": {}}]}
