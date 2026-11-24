@@ -404,19 +404,22 @@ tensor that it loads to float16. `--weights 8bit --export "$EXPORT_FOLDER"`, for
 in the weights restored from the quantized tensors of an 8-bit export, as `context` does ([FP32 reference restored from
 the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), and records `weights` and `quantized` as
 `context` does. It writes `<input>.<output>.npy` for both inputs and the three outputs and, last, `record.json` into a
-new folder; an error or an interruption (SIGINT or SIGTERM) after the folder exists leaves `failure.json` with the type
-of the error and no `record.json`. While it makes the folder and writes `record.json` or `failure.json`, it holds SIGINT
-and SIGTERM back until that write is done and then stops as for an interruption. The original implementation reads each
-input in one call; its tap layer i is entry i of `output_hidden_states`, except for the last layer, whose entry the
-original implementation replaces with the output of the final norm: that tap is the output of the last layer, taken with
-a forward hook. The model class reads the window and then calls of 1, 2, 4 and 8 tokens with its caches. `compare`
-passes only for a run of the original implementation and a run of the model class on the same inputs, tap layers and
-kind of weights, a kind that `run` writes, whose differences stay below the criteria: for `short` a largest absolute
-logit difference below 1e-3, and for `long` a largest absolute logit difference below 5e-3, a largest probability
-difference below 1e-6 and no position with another `argmax`; for both inputs, at every position of `hidden_states` and
-of each tap layer of `tap_hidden_states`, a largest absolute difference below 1e-3 (`ratio_limit`) times the largest
-absolute value of the original implementation at that position. `largest_ratio` is the largest quotient of the two over
-the positions.
+new folder, so a folder with `record.json` is complete. An error leaves `failure.json` with the type of the error and no
+`record.json`. SIGINT and SIGTERM are held back while it makes the folder and writes `record.json` or `failure.json`,
+and then stop it as for an interruption; one that arrives anywhere else stops it as an error does. It does not promise a
+record when a second interruption arrives after it has begun to handle an error and before it writes `failure.json`, nor
+for a SIGTERM that arrives after it has put back the earlier handler of SIGTERM (the records written before stay), and
+an interruption that arrives while it puts the handler back can leave its handler in the process. Treat a folder with no
+record as unfinished. The original implementation reads each input in one call; its tap layer i is entry i of
+`output_hidden_states`, except for the last layer, whose entry the original implementation replaces with the output of
+the final norm: that tap is the output of the last layer, taken with a forward hook. The model class reads the window
+and then calls of 1, 2, 4 and 8 tokens with its caches. `compare` passes only for a run of the original implementation
+and a run of the model class on the same inputs, tap layers and kind of weights, a kind that `run` writes, whose
+differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for `long` a
+largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position with another
+`argmax`; for both inputs, at every position of `hidden_states` and of each tap layer of `tap_hidden_states`, a largest
+absolute difference below 1e-3 (`ratio_limit`) times the largest absolute value of the original implementation at that
+position. `largest_ratio` is the largest quotient of the two over the positions.
 `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` fixes the criteria, and `ModelClassTests` in
 `Tools/Conversion/tests/export_gemma4_31b_model.py` the outputs of the class against the original implementation on a
 synthetic model.
@@ -782,23 +785,24 @@ SHA-256 and non-finite values with their rows, and for an output without them th
 reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
 below 0.99, and the checks. When `coreai-verify` exits with an error, does not answer within 1,800 s, prints no record
 or writes a file that differs from its record, that condition fails and its `problems` say why: the comparison is still
-written, with `passed` false, and the exit code is 1, so look at `comparison.json`. A folder is complete only with
-`comparison.json`: an error that reaches the tool itself (for example a full disk while it writes `comparison.json`) or
-an interruption (SIGINT or SIGTERM) after the folder exists removes `comparison.json` and leaves `failure.json` with the
-type of the error, and an interruption stops `coreai-verify` too, also when it arrives as the process starts. While it
-makes the folder and writes `comparison.json` or `failure.json`, it holds SIGINT and SIGTERM back until that write is
-done and then stops as for an interruption. It reads the reference, the verifier, the export record and the files that
-`coreai-verify` writes only as regular files, opened without waiting and refusing a link as the last part of the path,
-of the recorded size where a record gives one, and no further than a limit on the open file: 1 MiB for the reference
-record; for an array of the reference, the rows × width × 4 bytes of its values plus up to 64 KiB of header, and a
-recorded size outside that range is refused before the file is opened; the rows × width × 2 bytes of the file for each
-output of `coreai-verify`; and 16 MiB for the export record and for the two bundle files that it keeps in memory
-(`main.hash` and `metadata.json`). It only hashes the other bundle files and the verifier, without keeping them: a
-bundle file must have its recorded size, and the verifier has no limit. It reads the header of an array of the reference
-first and refuses a shape, type (little-endian float32) or order other than the record's before it makes the array from
-the values. It resolves `--verifier` to an absolute path, then hashes that file and starts that same path. It prints a
-short summary, and the exit code is 0 only when the comparison passed. The specialization cache that `coreai-verify`
-makes stays in place; remove it yourself.
+written, with `passed` false, and the exit code is 1, so look at `comparison.json`. It writes `comparison.json` last,
+after every condition, so a folder with `comparison.json` is complete (its `passed` says whether the comparison passed).
+Its records follow the promises of `run` ([FP32 outputs of the first layers](#fp32-outputs-of-the-first-layers)): an
+error that reaches the tool itself (for example a full disk while it writes `comparison.json`) leaves `failure.json`
+with the type of the error and no `comparison.json`, SIGINT and SIGTERM are held back while it makes the folder and
+writes `comparison.json` or `failure.json`, and an interruption stops `coreai-verify` too, also when it arrives as the
+process starts. What `run` does not promise is not promised here either, and a folder with no record is unfinished. It
+reads the reference, the verifier, the export record and the files that `coreai-verify` writes only as regular files,
+opened without waiting and refusing a link as the last part of the path, of the recorded size where a record gives one,
+and no further than a limit on the open file: 1 MiB for the reference record; for an array of the reference, the rows ×
+width × 4 bytes of its values plus up to 64 KiB of header, and a recorded size outside that range is refused before the
+file is opened; the rows × width × 2 bytes of the file for each output of `coreai-verify`; and 16 MiB for the export
+record and for the two bundle files that it keeps in memory (`main.hash` and `metadata.json`). It only hashes the other
+bundle files and the verifier, without keeping them: a bundle file must have its recorded size, and the verifier has no
+limit. It reads the header of an array of the reference first and refuses a shape, type (little-endian float32) or order
+other than the record's before it makes the array from the values. It resolves `--verifier` to an absolute path, then
+hashes that file and starts that same path. It prints a short summary, and the exit code is 0 only when the comparison
+passed. The specialization cache that `coreai-verify` makes stays in place; remove it yourself.
 
 The numbers of the first six layers are in
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-read-by-the-own-engine-in-the-first-six-layers-702).
