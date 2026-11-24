@@ -16,11 +16,12 @@ from transformers.models.gemma4_assistant.configuration_gemma4_assistant import 
 from transformers.models.gemma4_assistant.modeling_gemma4_assistant import Gemma4AssistantForCausalLM
 
 from Tools.Conversion.adapters.gemma4_31b import assistant, drafter, layers, mtp
+from Tools.Conversion.adapters.gemma4_31b.export import inspect_asset, weights
 from Tools.Conversion.adapters.gemma4_31b.prepare import load_contract
 from Tools.Conversion.adapters.pinned import sha256
 from Tools.Conversion.storage import read_json, write_json
-from Tools.Conversion.tests.test_gemma4_31b_mtp import (CONFIG, FIXED, FIXTURE_RECORDS, write_assistant, write_records,
-                                                         write_target)
+from Tools.Conversion.tests.test_gemma4_31b_mtp import (CONFIG, FIXED, FIXTURE_RECORDS, SHARD, write_assistant,
+                                                         write_records, write_target)
 
 ASSISTANT, TARGET = assistant.SYNTHETIC["assistant"], assistant.SYNTHETIC["target"]
 TEXT = ASSISTANT["text_config"]
@@ -594,6 +595,188 @@ class ExportTests(unittest.TestCase):
                 self.assertFalse((Path(folder) / f"refused-{steps}-{context}").exists())
             with self.assertRaises(FileExistsError):
                 mtp.export_synthetic(output, 7, 16896, SEED)
+
+
+class VerificationStepTests(unittest.TestCase):
+    def test_the_verification_step_returns_the_logits_and_the_projection_of_one_step_and_refuses_the_same_inputs(self):
+        model, found = drafter.synthetic(SEED, 3), case(1500, 7)
+        step = drafter.VerificationStep(model)
+        arguments = ours(found)
+        with torch.no_grad():
+            logits, projected = step(*arguments)
+            expected = model.outputs(*arguments)
+        self.assertEqual((drafter.VERIFY_FUNCTION, drafter.VERIFY_OUTPUTS), ("verify_step", ("logits", "post_projection")))
+        self.assertEqual((tuple(logits.shape), tuple(projected.shape)), ((1, 1, VOCABULARY), (1, 1, BACKBONE)))
+        self.assertTrue(torch.equal(logits, expected[0]) and torch.equal(projected, expected[1]))
+        self.assertEqual(sorted(name for name, _ in step.named_parameters()), sorted(
+            f"drafter.{name}" for name, _ in model.named_parameters()))
+        wrong = [arguments[0].long(), *arguments[1:]]
+        with self.assertRaisesRegex(ValueError, "differ from the contract"):
+            step(*wrong)
+
+
+class WeightsExportTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.folder = Path(self.directory.name)
+        state = drafter.synthetic(SEED, 1).state_dict()
+        self.target, self.contract = write_target(self.folder, state["target_embed.weight"])
+        self.assistant, self.assistant_contract = write_assistant(
+            self.folder, ASSISTANT, {name: tensor for name, tensor in state.items() if name != "target_embed.weight"})
+
+    def export(self, output, steps=7, context=16896):
+        return mtp.export_weights(self.contract, self.assistant_contract, self.target, self.assistant, steps, context, output)
+
+    def test_two_assets_of_a_synthetic_assistant_are_exported_with_their_functions_and_pass_the_inspection(self):
+        output = self.folder / "export"
+        record = self.export(output)
+        self.assertTrue(record["passed"], {name: entry["problems"] for name, entry in record["assets"].items()})
+        self.assertEqual((record["problems"], record["schema"], record["steps"], record["context"]),
+                         ([], mtp.EXPORT_WEIGHTS, 7, 16896))
+        self.assertEqual(read_json(output / "export.json"), record)
+        self.assertEqual(sorted(path.name for path in output.iterdir()),
+                         ["distribution.aimodel", "export.json", "verification.aimodel"])
+        pinned, assistant_pinned = read_json(self.contract), read_json(self.assistant_contract)
+        self.assertEqual(record["model"], {"id": pinned["model_id"], "revision": pinned["revision"],
+                                           "contract_sha256": sha256(self.contract),
+                                           "verified_before_loading": {mtp.INDEX: pinned["files"][mtp.INDEX],
+                                                                       SHARD: pinned["files"][SHARD]}})
+        self.assertEqual(record["assistant"], {"id": assistant_pinned["model_id"], "revision": assistant_pinned["revision"],
+                                               "contract_sha256": sha256(self.assistant_contract),
+                                               "verified_before_loading": assistant_pinned["files"]})
+        self.assertEqual(sorted(record["assets"]), ["distribution", "verification"])
+        wanted = {"verification": ("verify_step", {"logits": [1, 1, VOCABULARY, "float16"],
+                                                   "post_projection": [1, 1, BACKBONE, "float16"]}),
+                  "distribution": ("draft_7", {"draft_tokens": [1, 7, "int32"]})}
+        hashes = set()
+        for name, (function, outputs) in wanted.items():
+            entry, folder = record["assets"][name], output / mtp.ASSET_FOLDERS[name]
+            with self.subTest(asset=name):
+                self.assertEqual(entry["functions"], [function])
+                found = entry["asset"]["functions"][function]
+                self.assertEqual(found["outputs"], {key: {"dtype": value[-1], "shape": value[:-1]}
+                                                    for key, value in outputs.items()})
+                self.assertEqual(entry["asset"]["output_order"], {function: list(outputs)})
+                self.assertEqual(found["states"], {})
+                self.assertEqual(found["inputs"]["k_sliding"], {"dtype": "float16", "shape": [1, 1, 2, None, 16]})
+                self.assertEqual(found["inputs"]["k_full"], {"dtype": "float16", "shape": [1, 1, 1, None, 32]})
+                self.assertEqual(entry["weights"]["elements_by_dtype"], {"torch.float16": 74372})
+                self.assertEqual(entry["weights"]["quantized_layouts"], 0)
+                self.assertEqual(sorted(entry["files"]), [f"{mtp.ASSET_FOLDERS[name]}/{item}" for item in mtp.ASSET_ITEMS])
+                for relative, recorded in entry["files"].items():
+                    self.assertEqual(recorded, {"bytes": (output / relative).stat().st_size,
+                                                "sha256": sha256(output / relative)})
+                self.assertEqual(entry["bytes"], sum(item["bytes"] for item in entry["files"].values()))
+                self.assertEqual(entry["main_hash"], (folder / "main.hash").read_bytes().hex())
+                self.assertEqual(entry["problems"], [])
+                self.assertTrue(entry["timing"]["convert_s"] > 0 and entry["timing"]["save_s"] > 0)
+                hashes.add(entry["main_hash"])
+        self.assertEqual(len(hashes), 2)
+        self.assertEqual(record["versions"], mtp.versions("class"))
+        self.assertEqual(sorted(record["memory"]), ["lifetime_peak_footprint_bytes", "max_rss_bytes"])
+        text = json.dumps(record)
+        for value in (str(self.folder), str(Path.home()), "/Users", "/private", "/var/folders"):
+            self.assertNotIn(value, text)
+
+    def test_assets_of_another_number_of_steps_another_precision_or_another_function_do_not_pass_the_inspection(self):
+        config = assistant.assistant_config(ASSISTANT, TARGET)
+        two = drafter.synthetic(SEED, 2).to(torch.float16)
+        cases = {"two steps as expected": (two, "distribution", 2, False),
+                 "three steps in place of two": (drafter.synthetic(SEED, 3).to(torch.float16), "distribution", 2, True),
+                 "float32 weights and inputs": (drafter.synthetic(SEED, 2), "distribution", 2, True),
+                 "the unrolled function in place of the logits": (drafter.synthetic(SEED, 1).to(torch.float16),
+                                                                  "verification", 1, True)}
+        for label, (model, name, steps, differs) in cases.items():
+            path = self.folder / f"{label.replace(' ', '-')}.aimodel"
+            drafter.export([model], 16896).save_asset(path)
+            found = mtp.asset_problems(inspect_asset(path), mtp.expected_assets(config, steps)[name], weights(model))
+            with self.subTest(case=label):
+                self.assertEqual(bool(found), differs, found)
+
+    def exported_with_fakes(self, output, extra_in_output=False, extra_in_asset=False, functions=True, missing=None,
+                            link=None, hash_size=32):
+        config = assistant.assistant_config(ASSISTANT, TARGET)
+        expected = mtp.expected_assets(config, 7)
+        folders = {folder: name for name, folder in mtp.ASSET_FOLDERS.items()}
+
+        class Program:
+            def save_asset(self, path):
+                path = Path(path)
+                path.mkdir()
+                for item in mtp.ASSET_ITEMS:
+                    (path / item).write_bytes(b"h" * hash_size if item == "main.hash" else b"data")
+                if path.name == "distribution.aimodel":
+                    if missing:
+                        (path / missing).unlink()
+                    if link:
+                        (path / link).unlink()
+                        (path / link).symlink_to(path / "main.hash")
+                    if extra_in_asset:
+                        (path / "notes.txt").write_bytes(b"data")
+                    if extra_in_output:
+                        (path.parent / "extra.bin").write_bytes(b"data")
+
+        def inspect(path):
+            if not functions:
+                return {"functions": {}, "output_order": {}}
+            found = expected[folders[Path(path).name]]
+            return {"functions": found, "output_order": {name: list(entry["outputs"]) for name, entry in found.items()}}
+
+        with mock.patch.object(drafter, "export", lambda models, context: Program()), \
+                mock.patch.object(drafter, "export_verification", lambda model, context: Program()), \
+                mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset", inspect):
+            return self.export(output)
+
+    def test_a_main_hash_above_the_size_limit_stops_the_export_with_a_failure_record_and_one_at_the_limit_is_recorded(self):
+        self.assertEqual(mtp.MAIN_HASH_LIMIT, 64)
+        record = self.exported_with_fakes(self.folder / "at-the-limit", hash_size=64)
+        self.assertEqual([entry["main_hash"] for entry in record["assets"].values()], ["68" * 64] * 2)
+        output = self.folder / "above"
+        with self.assertRaisesRegex(ValueError, "main.hash holds more than 64 B"):
+            self.exported_with_fakes(output, hash_size=65)
+        self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json", "verification.aimodel"])
+        self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS, "failure": "ValueError"})
+        self.assertFalse((output / "export.json").exists())
+
+    def test_the_configuration_of_the_assistant_is_read_with_its_pinned_size_by_the_class_and_by_the_export(self):
+        values, size = mtp.table(self.target / SHARD, CONFIG), (self.assistant / "config.json").stat().st_size
+        self.assertEqual(mtp.class_drafter(self.assistant, values, CONFIG, 2, size).steps, 2)
+        self.assertEqual(mtp.class_drafter(self.assistant, values, CONFIG, 2).steps, 2)
+        for wrong in (size - 1, size + 1):
+            with self.subTest(size=wrong), self.assertRaisesRegex(ValueError, "B, not"):
+                mtp.class_drafter(self.assistant, values, CONFIG, 2, wrong)
+        with mock.patch.object(mtp, "class_drafter", wraps=mtp.class_drafter) as built:
+            self.exported_with_fakes(self.folder / "sized")
+        self.assertEqual([call.args[4] for call in built.call_args_list], [size, size])
+
+    def test_the_record_passes_only_when_the_assets_and_the_output_folder_pass_their_checks(self):
+        nothing = {"verification": [], "distribution": []}
+        cases = {"nothing wrong": ({}, True, [], nothing),
+                 "a file next to the asset folders": ({"extra_in_output": True}, False, ["extra.bin"], nothing),
+                 "a file in an asset folder": ({"extra_in_asset": True}, False, [],
+                                               {"verification": [], "distribution": ["notes.txt"]}),
+                 "no main.hash in an asset folder": ({"missing": "main.hash"}, False, [],
+                                                     {"verification": [], "distribution": ["main.hash"]}),
+                 "a link in place of main.mlirb": ({"link": "main.mlirb"}, False, [],
+                                                   {"verification": [], "distribution": ["main.mlirb"]}),
+                 "assets without functions": ({"functions": False}, False, [],
+                                              dict.fromkeys(nothing, ["the asset has the functions []"]))}
+        for label, (change, passed, in_output, in_assets) in cases.items():
+            output = self.folder / label.replace(" ", "-")
+            record = self.exported_with_fakes(output, **change)
+            with self.subTest(case=label):
+                self.assertEqual(record["passed"], passed)
+                self.assertEqual(read_json(output / "export.json"), record)
+                self.assertEqual(bool(record["problems"]), bool(in_output))
+                self.assertTrue(all(word in " ".join(record["problems"]) for word in in_output))
+                for name, words in in_assets.items():
+                    self.assertEqual(bool(record["assets"][name]["problems"]), bool(words))
+                    self.assertTrue(all(word in " ".join(record["assets"][name]["problems"]) for word in words))
+                if change.get("missing"):
+                    self.assertIsNone(record["assets"]["distribution"]["main_hash"])
+                if change.get("link"):
+                    self.assertNotIn("distribution.aimodel/main.mlirb", record["assets"]["distribution"]["files"])
 
 
 if __name__ == "__main__":
