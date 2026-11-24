@@ -792,9 +792,10 @@ SHA-256 are recorded as found): the comparison is still written, with `passed` f
 at `comparison.json`. It writes `comparison.json` last, after every condition, so a folder with `comparison.json` is
 complete (its `passed` says whether the comparison passed).
 Its records follow the promises of `run` ([FP32 outputs of the first layers](#fp32-outputs-of-the-first-layers)): an
-error that reaches the tool itself (for example a full disk while it writes `comparison.json`) leaves `failure.json`
-with the type of the error and no `comparison.json`, SIGINT and SIGTERM are held back while it makes the folder and
-writes `comparison.json` or `failure.json`, and an interruption stops `coreai-verify` too, also when it arrives as the
+error that reaches the tool itself (for example a failure while it writes `comparison.json`) leaves `failure.json`
+with the type of the error and no `comparison.json`, and when it cannot write `failure.json` either (a disk that stays
+full), neither record remains; SIGINT and SIGTERM are held back while it makes the folder and writes `comparison.json`
+or `failure.json`, and an interruption stops `coreai-verify` too, also when it arrives as the
 process starts. What `run` does not promise is not promised here either, and a folder with no record is unfinished. It
 reads the reference, the verifier, the export record and the files that `coreai-verify` writes only as regular files,
 opened without waiting and refusing a link as the last part of the path, of the recorded size where a record gives one,
