@@ -11,7 +11,7 @@ FP32 ([Converter environment and model class](#converter-environment-and-model-c
 `recipe-fp16.json`, exports the first layers to a dynamic-shape FP16 Core AI bundle with the outputs that the drafters
 of speculative decoding read, and compares the logits of the own engine with an FP32 reference of the same layers
 ([FP16 export of the first layers](#fp16-export-of-the-first-layers)). A model class of the MTP drafter is compared with
-the original drafter in FP32 ([MTP drafter](#mtp-drafter)).
+the original drafter in FP32 and exported with the real weights ([MTP drafter](#mtp-drafter)).
 
 - `model.json`: the contract. It pins the size and SHA-256 of all twelve files of the revision, the main
   text configuration values (60 layers as five sliding-window layers followed by one full-attention layer,
@@ -724,8 +724,8 @@ holding the same logits as the restored one) or did not start from the record of
 [google/gemma-4-31B-it-assistant](https://huggingface.co/google/gemma-4-31B-it-assistant) for a macOS export with
 dynamic shapes. It imports the converter, so it runs only in the converter environment. `adapters/gemma4_31b/mtp.py`
 compares it in float32 on the CPU (with the weights rounded to float16) with the drafter of the reference environment
-(Transformers 5.16.1) on the features that #691 recorded, follows the accepted drafts on the teacher path, and exports a
-synthetic drafter. `assistant.json` pins the revision `627c5ec1458b9086b841a91e0512fd31fd2fbbf1` and the size and
+(Transformers 5.16.1) on the features that #691 recorded, follows the accepted drafts on the teacher path, exports a
+synthetic drafter and exports the drafter with the real weights. `assistant.json` pins the revision `627c5ec1458b9086b841a91e0512fd31fd2fbbf1` and the size and
 SHA-256 of the two files that are read, `config.json` and `model.safetensors`. Before `run` creates its folder and
 before `run` or `acceptance` reads a tensor, they check the arguments (`--steps` a whole number from 1; for `run` also
 that `--implementation` is `original` or `class` and that its output folder does not exist) and then, in this order: the
@@ -798,6 +798,10 @@ must not be links. A hash that a tool records is taken from the bytes it read fo
   `AssertionError` (for 1: `Cannot create Dim with inconsistent min=1, max=1`), which `torch.export.Dim` raises before
   the converter is called. The assistant of the 31B model (window 1,024) and the synthetic model of `mtp.py export`
   (window 1,024, `--context` above 1,025) meet both bounds.
+- `VerificationStep(drafter)` is a module whose `forward` returns the two outputs of `outputs(...)` of the drafter that it
+  holds, and `export_verification(model, context)` stages it as the function `verify_step` (`VERIFY_FUNCTION`) with the
+  outputs `logits` and `post_projection` (`VERIFY_OUTPUTS`), the seven inputs and the dynamic dimensions of `export`. The
+  class and `export` are the same as before.
 
 ### Comparison with the original drafter
 
@@ -917,6 +921,71 @@ folder that does not exist, and refuses a call that does not meet them before it
 or `FileExistsError` and without making a folder. `ExportTests` in
 `Tools/Conversion/tests/export_gemma4_31b_drafter.py` runs it.
 The published record is [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-class-704).
+
+### Export with the real weights
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
+  export-weights --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --assistant-snapshot .local/conversion/models/google--gemma-4-31B-it-assistant \
+  --steps 7 --context 16896 --output .local/conversion/gemma4_31b/drafter-assets
+~~~
+
+It converts the drafter class with the weights of the assistant and the embedding table of the target, every tensor
+rounded to float16, into two Core AI assets in a new folder, inspects them and writes `export.json`. It does not run an
+asset. Run it under the shared machine lock, which the tool does not take itself. Of the target snapshot it hashes the
+index and the whole shard that holds the embedding table (49,784,788,364 B) and reads only that table from the shard.
+
+- Arguments: `--steps`, the number of drafts of the unrolled asset, is a whole number from 1 to 15 (the longest drafting
+  of #691). `--context` is a whole number above the 1,025 positions of the window and up to 2,147,483,647 (the largest
+  value of an int32 position); the conversion declares it as the upper limit of the length n of the full-attention keys
+  and values. `--output` is a path that does not exist, a link included.
+- Checks before the output folder is made, in this order: the output path, `--steps`, `model.json` and `assistant.json`,
+  `--context`, the size and SHA-256 of the index and the shard of the target and of the two files of the assistant, the
+  configuration of the assistant with `assistant_config`, and the names, BF16 type and shapes of every tensor of the
+  checkpoint of the assistant and of the embedding table. A check that fails stops the tool, and no folder or file is
+  made. `model.json` and `assistant.json` are opened once each, without waiting and not through a link, must be regular
+  files of at most 1,048,576 B, and are read from that one descriptor to their end or past that limit; the checks of
+  their form (`checked_contract` and `checked_target` for `model.json`, `checked_assistant` for `assistant.json`) and
+  their SHA-256 use the bytes of that read. The configuration of the assistant is read with the size that `assistant.json`
+  pins.
+- Assets, each a folder that holds `main.hash`, `main.mlirb` and `metadata.json`: `verification.aimodel` holds the
+  function `verify_step`, one step of the drafter, with the outputs `logits` float16 [1, 1, 262144] and `post_projection`
+  float16 [1, 1, 5376], in this order. `distribution.aimodel` holds the function `draft_<steps>`, the unrolled drafter,
+  with the output `draft_tokens` int32 [1, steps]. Both have the seven inputs of the drafter class and no state:
+  `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 5376], `position_ids` int32 [1, 1], `k_sliding` and
+  `v_sliding` float16 [1, 1, 16, w, 256] and `k_full` and `v_full` float16 [1, 1, 4, n, 512], with w declared from 1 to
+  1,025 and n from 1 to `--context`.
+- `export.json` is written last and holds no path: `schema`, `steps`, `context`, `model` and `assistant` (the ID, the
+  revision, the SHA-256 of the contract, and the size and SHA-256 of the files that were checked before loading),
+  `assets` (for each asset: its folder, its functions, `asset`, the summary that the inspection read, with the
+  descriptors of the inputs, outputs and states, the order of the outputs, the storage types and the number of
+  dequantizations, the elements of the PyTorch model by type, the size and SHA-256 of each file, the total size,
+  `main_hash`, the content of `main.hash` in hex, read with a limit of 64 B, the seconds of the conversion and of the save,
+  and `problems`), `versions`, `timing` (`load_s`, the seconds that reading the embedding table took, and `total_s`, the
+  seconds from there to the end of the inspections), `memory` (the largest resident set of the process and the lifetime
+  peak of its footprint), `problems` of the output folder and `passed`.
+- The inspection compares each asset with definitions fixed in `mtp.py`, not with a record: the set of functions; the
+  names, types and shapes, fixed and dynamic, of the inputs and outputs and no state; the order of the outputs; that
+  every parameter and buffer of the PyTorch model is float16 without a quantized layout; and that the asset folder holds
+  exactly the three files, as regular files and not links. The output folder must hold exactly the two asset folders.
+  `passed` is true only when none of them gives a problem, and the exit code is 0 only then.
+- After the output folder is made, an error or an interruption leaves `failure.json` (the schema and the name of the
+  error) and no `export.json`; the assets that were saved stay in the folder. SIGINT and SIGTERM are interruptions: in
+  the main thread, SIGTERM raises `KeyboardInterrupt`, as SIGINT does by default, from the start of the command until it
+  returns, and the handler that was set before is set again. While the output folder is made and while `export.json` or
+  `failure.json` is written, a signal is held until the write is done and then handled as an interruption; one that
+  arrives while `export.json` is written replaces it by `failure.json`.
+
+The numbers of a run are in [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-assets-with-the-real-weights-713).
+`AssetInspectionTests` and `ExportWeightsTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix the inspection,
+the refusals, the reads, the records and the signals with fake assets and synthetic folders; `VerificationStepTests` and
+`WeightsExportTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py` convert the synthetic drafter through the
+command and check the descriptors, the files and the record. `checked_contract` of `prepare.py` is the checks of
+`load_contract` on a parsed contract, and `ContractTests` in `Tools/Conversion/tests/test_gemma4_31b_prepare.py` fix that
+it gives the same result and errors.
 
 ## Terms
 

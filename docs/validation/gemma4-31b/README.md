@@ -926,7 +926,8 @@ This section copies the numbers of the drafter class of the recipe for the MTP d
 `google/gemma-4-31B-it-assistant` ([MTP drafter](../../../Tools/Conversion/recipes/gemma4_31b/README.md#mtp-drafter)):
 its comparison with the drafter of the original implementation on the features that #691 recorded, the accepted drafts
 on the teacher path, and the export of a synthetic drafter. The class is the drafter in PyTorch; no Core AI asset of the
-real weights was made or run here.
+real weights was made or run here (the assets of the real weights are in
+[MTP drafter assets with the real weights](#mtp-drafter-assets-with-the-real-weights-713)).
 [`mtp-drafter-comparison-20261123.json`](mtp-drafter-comparison-20261123.json) and
 [`mtp-drafter-acceptance-20261123.json`](mtp-drafter-acceptance-20261123.json) are the JSON results that
 `mtp.py compare` and `acceptance` print, and [`mtp-drafter-export-20261123.json`](mtp-drafter-export-20261123.json) is
@@ -1057,7 +1058,8 @@ with both functions, 74,372 − 1,536 = 72,836 for the one-step asset.
   drafts are teacher forcing on the reference outputs, not generation.
 - The synthetic checks compare with the drafter of the converter environment (Transformers 5.12.1); the comparison on
   the real weights is with Transformers 5.16.1.
-- The export is of a synthetic drafter; the size of the asset of the real drafter is not known from it.
+- The export is of a synthetic drafter; the size of the asset of the real drafter is not known from it (see the next
+  section).
 
 ### Sources
 
@@ -1078,4 +1080,106 @@ with both functions, 74,372 − 1,536 = 72,836 for the one-step asset.
   --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json --snapshot <target snapshot> \
   --assistant-snapshot <assistant snapshot> --records <records of #691> --inputs <inputs.jsonl> \
   --outputs <outputs.jsonl> --steps 7 > docs/validation/gemma4-31b/mtp-drafter-acceptance-20261123.json
+~~~
+
+## MTP drafter assets with the real weights (#713)
+
+This section copies the numbers of the `export.json` that `mtp.py export-weights` wrote for the MTP drafter
+`google/gemma-4-31B-it-assistant`
+([Export with the real weights](../../../Tools/Conversion/recipes/gemma4_31b/README.md#export-with-the-real-weights)):
+two Core AI assets of the drafter class with the real weights in float16, `verification.aimodel` (one step, with the
+logits over the whole vocabulary and the output of `post_projection`) and `distribution.aimodel` (seven unrolled steps,
+with the draft tokens). The assets were inspected here, not run: the next work runs them through Core AI and compares them
+with the class.
+
+### Conditions
+
+- Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a). The tool ran in the converter environment of the
+  recipe (Python 3.11, torch 2.9.0, transformers 5.12.1, coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-opt 0.4.0,
+  coreai-models 0.1.0, numpy 2.3.5, safetensors 0.7.0) with `HF_HUB_OFFLINE=1`, in one run that held the shared machine lock
+  from 2026-11-24 12:07:59 to 12:09:06 JST (67 s, on AC power with the battery at 93%; no `coreai-verify`, `coreai-chat` or
+  demo-app process was running). The times below are those of that run, not timing measurements.
+- Commit 542f17c4 with no local changes. An earlier run at commit 475e9134, before the tool read the contracts once
+  and `main.hash` first, gave the same descriptors and weights.
+- Inputs: `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`, SHA-256
+  `0878b84df2892e4db2f019255f3f6f1f8bb5afcceda09c873f6262852bac160f`; `config.json` 2,316 B and `model.safetensors`
+  939,042,560 B) and the embedding table of `model-00001-of-00002.safetensors` of
+  `google/gemma-4-31B-it@842da3794eaa0b77d5f08bae87a17459d91ff475` (`model.json`, SHA-256
+  `8729e7d4e1d4c9dcc8616bc968e9292f4fa35b952567c2a220aa3c8321ab9531`; the shard is 49,784,788,364 B, SHA-256
+  `eeef8791537bc04f110967c513149e037d2a9ae97d49add7291ebfa62806bbfa`, and the index 120,246 B), every tensor rounded to
+  float16. `--steps 7`, `--context 16896`.
+
+### Assets
+
+| Asset | Function | Outputs | Bytes | `main.mlirb` | Conversion | Save |
+|---|---|---|---:|---:|---:|---:|
+| `verification.aimodel` | `verify_step` | `logits` float16 [1, 1, 262144], `post_projection` float16 [1, 1, 5376] | 3,757,639,762 | 3,757,639,625 | 6.25 s | 2.20 s |
+| `distribution.aimodel` | `draft_7` | `draft_tokens` int32 [1, 7] | 3,757,696,213 | 3,757,696,076 | 29.96 s | 2.20 s |
+
+Both functions have no state and the seven inputs `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 5376],
+`position_ids` int32 [1, 1], `k_sliding` and `v_sliding` float16 [1, 1, 16, ?, 256] and `k_full` and `v_full` float16
+[1, 1, 4, ?, 512]. Each asset folder holds `main.hash` (32 B), `main.mlirb` and `metadata.json` (105 B); the SHA-256 of the
+files, which `export.json` records:
+
+| File | SHA-256 |
+|---|---|
+| `verification.aimodel/main.hash` | `b7a49f1ecf45bca9ed36b0ad70549a3e0f7ed71e06e6ba38c28c25537db5fa6d` |
+| `verification.aimodel/main.mlirb` | `909661e38d3b16d52faadfa08e95c488b3abe55883c425b12057c5fc6a3a416f` |
+| `verification.aimodel/metadata.json` | `1a706f49e2d6143bbe7e5b474176266987ee0752ad1aeedbdcfa88a353f7dfcf` |
+| `distribution.aimodel/main.hash` | `a6708ea83c5c6de2814dcffd82a2d349cdc4de33932a889939774e1b1f25a96b` |
+| `distribution.aimodel/main.mlirb` | `f398e2a5649e43cefcc60199c16292f75cbb37cd5619535babbfeab7450f2752` |
+| `distribution.aimodel/metadata.json` | `d58ca522cb74e0f4e38c8bf80663d8ded220f76462b8175e758e9523e02f6548` |
+
+The content of `main.hash` is the SHA-256 of `main.mlirb` in both assets (`main_hash` of the record is
+`909661e38d3b…` and `f398e2a5649e…`).
+
+### Inspection
+
+`passed` is true and `problems` is empty for both assets and for the output folder: exactly the functions `verify_step`
+and `draft_7`, the inputs and outputs above with the dynamic dimensions where `?` stands, no state, the outputs in the
+order above, and exactly the three files in each asset folder, as regular files. The PyTorch model of each asset holds
+1,878,804,740 elements in 49 tensors, all float16, with no quantized layout. The asset stores 1,878,804,230 (`verification`)
+and 1,878,804,231 (`distribution`) Float16 elements next to 386 Float32, 113 Int32, 61 UInt32 and 1 UInt64 element.
+
+### Resources
+
+The tool took 66.67 s in all (`/usr/bin/time -l`). Of that, 44.12 s are `total_s` of the record, from the load of the
+embedding table (`load_s` 0.30 s) to the end of the inspections; the other 22.55 s are the start of the process, the checks
+before the output folder is made (the hashing of the shard among them) and the write of `export.json`. The largest
+resident set of the process was 19,286,622,208 B and the lifetime peak of its footprint 15,754,115,520 B; it had no swaps.
+The earlier run at
+commit 475e9134 took 66.71 s, with 19,287,031,808 B and 15,753,165,296 B, and wrote `main.mlirb` files of 3,757,639,619 B
+(`verification`) and 3,757,696,070 B (`distribution`) with other `main.hash` values; the cause of the difference of 6 B was
+not examined.
+
+### Form that the verification CLI accepts
+
+`coreai-verify function` of #710 (the build of the `Tools/Verify` tree of this commit) was given the inputs of both
+assets in the shapes of `k_sliding` and `v_sliding` [1, 1, 16, 5, 256] and `k_full` and `v_full` [1, 1, 4, 9, 512], with
+`v_full.bin` one byte short. For `verification.aimodel` with `verify_step` and for `distribution.aimodel` with `draft_7`
+it accepted the function, the names, the types and the shapes of the seven inputs and stopped at the size of the file
+(`v_full.bin has 36863 bytes, but its shape and dtype need 36864.`, exit code 64), before it specialized the asset.
+
+### Limits
+
+- The assets were not specialized or run; nothing here says that Core AI computes the drafter as the class does.
+- The inspection compares the descriptors, the types of the weights of the PyTorch model and the files of the assets, not
+  their values.
+- The tool does not check that the converter environment is at the `upstream_revision` of `model.json`; the record names
+  the versions of the packages only, as `run` and the export of a synthetic drafter do.
+- One run of this commit; the two runs wrote different bytes for the same inputs.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| `export.json` of the run | `d9cf60f5cecba2fd2746d7fcc7e4fc9f1daf83814216e28efa06164c1dfe4c04` |
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp \
+  export-weights --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --assistant-snapshot .local/conversion/models/google--gemma-4-31B-it-assistant \
+  --steps 7 --context 16896 --output .local/conversion/gemma4_31b/drafter-assets
 ~~~
