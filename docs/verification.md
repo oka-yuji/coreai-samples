@@ -54,7 +54,7 @@ swift build -c release
 .build/release/coreai-verify chat --model <bundle> --runtime own --max-tokens 64 --prompt "What is the capital of France? Answer with one word."
 ```
 
-From the `CoreAISamplesKit` folder, `swift test` runs the tests that need no model, such as the reuse plan, the parsers, the sampler, the context fitting and the RAG passages and dates. The tests that load a model run only when an environment variable names their bundle folders: `COREAI_TEST_BUNDLES` for the language-model tests, with the folders separated by `:`, and a variable of their own for the others, such as `COREAI_OUTPUT_ROWS_BUNDLE` for the test of the extra outputs of the engine. `AGENTS.md` gives the commands.
+From the `CoreAISamplesKit` folder, `swift test` runs the tests that need no model, such as the reuse plan, the parsers, the sampler, the context fitting and the RAG passages and dates. The tests that load a model run only when an environment variable enables them. `COREAI_TEST_BUNDLES`, with bundle folders separated by `:`, enables some of them; the others have a variable of their own, for example `COREAI_GEMMA4_SHAPE_BUNDLES` for the call shapes of Gemma 4 31B and `COREAI_OUTPUT_ROWS_BUNDLE` for the extra outputs of the engine. `AGENTS.md` gives the variable and the command of the ones that it describes; the others name their variable in their test source.
 
 ```bash
 cd CoreAISamplesKit
