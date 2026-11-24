@@ -41,7 +41,7 @@ def frozen():
 def record_problems(record, vocabulary, rule):
     return layer1.inconsistencies(record, rule) or [text for text, failed in (
         ("its id is not an item id", ITEM.fullmatch(record["id"]) is None),
-        ("a token is outside the vocabulary", max(record["tokens"]) >= vocabulary)) if failed]
+        ("a token is outside the vocabulary", max(record["tokens"] + record["targets"]) >= vocabulary)) if failed]
 
 
 def forced(folder, vocabulary):

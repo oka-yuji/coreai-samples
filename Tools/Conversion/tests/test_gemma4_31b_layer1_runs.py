@@ -277,6 +277,8 @@ class ForcedInputTests(unittest.TestCase):
                    "a token outside the vocabulary": lambda record: tokens(record, [2, vocabulary] + record["tokens"][2:]),
                    "a negative token": lambda record: tokens(record, [-1] + record["tokens"][1:]),
                    "a token of true": lambda record: tokens(record, [True] + record["tokens"][1:]),
+                   "the last target outside the vocabulary": lambda record: record.update(
+                       targets=[*record["targets"][:-1], vocabulary]),
                    "no targets": lambda record: record.pop("targets"),
                    "an id with a path": lambda record: record.update(id="../ja-choice-0001"),
                    "an id in upper case": lambda record: record.update(id="JA-choice-0001"),
@@ -659,6 +661,11 @@ class AnchorRunTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "forced.json is not the summary"):
             self.main("run", "--weights", "float16", output="other-forced")
         self.forced = self.folder / "forced"
+        last = {**self.records[-1], "targets": [*self.records[-1]["targets"][:-1], VOCABULARY]}
+        self.forced = write_forced(self.folder / "last-target", [*self.records[:-1], last])
+        with self.assertRaisesRegex(ValueError, "a token is outside the vocabulary"):
+            self.main("run", "--weights", "float16", output="last-target-out")
+        self.forced = self.folder / "forced"
         with self.assertRaisesRegex(ValueError, "differs"):
             self.main("agreement", "--items", "ja-choice-0001", verify=stale, output="snapshot")
         (self.folder / "taken").mkdir()
@@ -679,7 +686,7 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(str(outcome.get("error")), "model-fifo.json is not a regular file")
         self.contract = contract
         self.assertEqual(sorted(path.name for path in self.folder.iterdir()),
-                         ["forced", "model-fifo.json", "model.json", "other", "prepare", "taken"])
+                         ["forced", "last-target", "model-fifo.json", "model.json", "other", "prepare", "taken"])
         self.assertEqual(self.loads, [])
 
     def test_the_agreement_passes_only_when_the_original_gives_the_same_rows_with_an_item_beyond_the_window(self):
