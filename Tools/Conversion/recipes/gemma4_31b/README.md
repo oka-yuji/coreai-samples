@@ -398,8 +398,9 @@ of either implementation for two fixed inputs, `short` (26 tokens) and `long` (1
 `run` loads the weights: start it under the shared machine lock, which it does not take itself. It refuses an existing
 output first, before it reads the contract or checks any other argument. It accepts only a layer count whose last layer
 is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses any other before it creates the
-folder or reads a weight. It checks the size and SHA-256 of the files to load against the contract before it creates the
-folder too, so a snapshot that differs from the contract leaves no folder. `--weights float16` rounds every checkpoint
+folder or reads a weight. It checks the size and SHA-256 of the files to load against the contract before it checks or
+reads the export and before it creates the folder, so a snapshot that differs from the contract leaves no folder and
+its index and shards are not parsed. `--weights float16` rounds every checkpoint
 tensor that it loads to float16. `--weights 8bit --export "$EXPORT_FOLDER"`, for the original implementation only, puts
 in the weights restored from the quantized tensors of an 8-bit export, as `context` does ([FP32 reference restored from
 the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), and records `weights` and `quantized` as
