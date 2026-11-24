@@ -819,17 +819,18 @@ class CandidateRunTests(unittest.TestCase):
         contract = write_snapshot(self.folder / "eight", hidden_size=64)[1]
         return write_export(self.folder / "export-8bit", contract, quantized_tensors({**TEXT, "hidden_size": 64})), contract
 
-    def write_plan(self, changes=None, main_hash=MAIN_HASH):
+    def write_plan(self, changes=None, main_hash=MAIN_HASH, literal=None):
         prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
                   for record in self.records}
+        prefix.update(literal or {})
         plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": main_hash,
                 "prefix": prefix, "launches": str(self.launches), "models": str(self.models)}
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
 
-    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH, contract=None, verifier=None):
-        self.write_plan(changes, main_hash)
+    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH, contract=None, verifier=None, literal=None):
+        self.write_plan(changes, main_hash, literal)
         with contextlib.redirect_stdout(io.StringIO()):
             return layer1_candidate.run(self.export, self.forced, verifier or self.verifier, self.folder / output,
                                         contract or self.contract)
@@ -863,6 +864,18 @@ class CandidateRunTests(unittest.TestCase):
                 mock.patch.object(layer1_candidate, "run", return_value={**result, "passed": False}), \
                 contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(layer1_candidate.main(), 1)
+
+    def test_the_prefix_after_a_chunk_boundary_and_inside_the_known_ends_is_checked_by_literal_values(self):
+        chunk = native.prefill_chunk()
+        self.records = made(self.vocabulary, [(4105, 3), (101, 2)])
+        self.forced = write_forced(self.folder / "prefixes", self.records)
+        long, near = (record["id"] for record in self.records)
+        literal = {long: {"prefix_function": "prefill", "prefix_calls": {4096: 2, 2048: 3}[chunk], "prefix_chunk": chunk},
+                   near: {"prefix_function": "main", "prefix_calls": 2, "prefix_chunk": chunk}}
+        result = self.run_candidate(literal=literal)
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual([(entry["start"], entry["verifier"]["prefix_calls"]) for entry in result["items"]],
+                         [(4104, literal[long]["prefix_calls"]), (100, 2)])
 
     def test_a_failing_item_is_recorded_as_a_problem_and_the_other_items_are_still_read(self):
         ids = [record["id"] for record in self.records]
