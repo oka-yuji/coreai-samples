@@ -1,4 +1,5 @@
 import ArgumentParser
+import CryptoKit
 import Foundation
 import Testing
 
@@ -123,22 +124,119 @@ import Testing
         #expect(PositionLogits.pieces(0..<10, size: .max) == [0..<10])
     }
 
-    @Test("The record has the keys and the shape of a fixed example")
-    func recordMatchesFixedExample() throws {
-        let record = PositionLogitsRecord(
+    private static func record(outputs: [OutputFileRecord]?) -> PositionLogitsRecord {
+        PositionLogitsRecord(
             tokenCount: 10, tokensSha256: "digest", start: 3, chunk: 4, shape: [7, 151_936],
             prefixFunction: "prefill", prefixChunk: 4096, prefixCalls: 1, mainCalls: 2, mainHash: "hash",
             requestedCompute: "default", expectFrequentReshapes: true, cached: true, cacheQueryError: nil,
-            specializeS: 0, nonFiniteCount: 0, loadS: 1.5, prefixS: 0.25, scoringS: 0.5)
-        let encoded = try #require(
-            JSONSerialization.jsonObject(with: JSONEncoder.records.encode(record)) as? NSDictionary)
-        let expected: NSDictionary = [
+            specializeS: 0, nonFiniteCount: 0, loadS: 1.5, prefixS: 0.25, scoringS: 0.5, scoringCallS: 0.125,
+            outputs: outputs)
+    }
+
+    private static var fixedKeys: [String: Any] {
+        [
             "record": "logits", "token_count": 10, "tokens_sha256": "digest", "start": 3, "chunk": 4,
             "shape": [7, 151_936], "dtype": "float16", "byte_order": "little", "prefix_function": "prefill",
             "prefix_chunk": 4096, "prefix_calls": 1, "main_calls": 2, "main_hash": "hash",
             "requested_compute": "default", "expect_frequent_reshapes": true, "cached": true, "specialize_s": 0,
-            "non_finite_count": 0, "load_s": 1.5, "prefix_s": 0.25, "scoring_s": 0.5,
+            "non_finite_count": 0, "load_s": 1.5, "prefix_s": 0.25, "scoring_s": 0.5, "scoring_call_s": 0.125,
         ]
-        #expect(encoded == expected)
+    }
+
+    @Test("The record has the keys and the shape of a fixed example, and no outputs key when no output was written")
+    func recordMatchesFixedExample() throws {
+        let encoded = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder.records.encode(Self.record(outputs: nil))) as? NSDictionary)
+        #expect(encoded == Self.fixedKeys as NSDictionary)
+    }
+
+    @Test("The record lists the function, name, rows, width and SHA-256 of every output file that was written")
+    func recordListsTheOutputFiles() throws {
+        let outputs = [
+            OutputFileRecord(function: "main", name: "hidden_states", rows: 7, width: 5376, sha256: "a"),
+            OutputFileRecord(function: "prefill", name: "tap_hidden_states", rows: 3, width: 26_880, sha256: "b"),
+        ]
+        let encoded = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder.records.encode(Self.record(outputs: outputs)))
+                as? NSDictionary)
+        var expected = Self.fixedKeys
+        expected["outputs"] = [
+            ["function": "main", "name": "hidden_states", "rows": 7, "width": 5376, "sha256": "a"],
+            ["function": "prefill", "name": "tap_hidden_states", "rows": 3, "width": 26_880, "sha256": "b"],
+        ]
+        #expect(encoded == expected as NSDictionary)
+    }
+
+    @Test("NAME=FILE arguments become pairs, and a missing name, file or equals sign, or a repeated name, is rejected")
+    func parsesNamedFiles() throws {
+        let files = try PositionLogits.namedFiles(["hidden_states=/a=b.f16", "tap_hidden_states=c"], option: "--x")
+        #expect(files.map(\.name) == ["hidden_states", "tap_hidden_states"])
+        #expect(files.map(\.path) == ["/a=b.f16", "c"])
+        #expect(try PositionLogits.namedFiles([], option: "--x").isEmpty)
+        for (arguments, message) in [
+            (["hidden_states"], "--x takes NAME=FILE, not hidden_states."),
+            (["=file"], "--x takes NAME=FILE, not =file."), (["name="], "--x takes NAME=FILE, not name=."),
+            (["a=one", "a=two"], "--x names an output more than once."),
+        ] {
+            let error = #expect(throws: ValidationError.self) {
+                try PositionLogits.namedFiles(arguments, option: "--x")
+            }
+            #expect(error?.message == message)
+        }
+    }
+
+    @Test(
+        "Output files of main and of the prefill function are accepted when they are new, and an existing one, a repeated name or a prefill output without positions before the start is rejected"
+    )
+    func validatesOutputFiles() throws {
+        let (base, folder) = try commandLine(tokens: [1, 2, 3], start: 2, chunk: 4)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let hidden = folder.appending(path: "hidden.f16").path
+        let taps = folder.appending(path: "taps.f16").path
+        let command = try PositionLogits.parse(
+            base + ["--main-output", "hidden_states=\(hidden)", "--prefill-output", "tap_hidden_states=\(taps)"])
+        #expect(command.mainOutputs == ["hidden_states=\(hidden)"])
+        #expect(command.prefillOutputs == ["tap_hidden_states=\(taps)"])
+        try Data().write(to: URL(filePath: taps))
+        let (atZero, zeroFolder) = try commandLine(tokens: [1, 2, 3], start: 0, chunk: 4)
+        defer { try? FileManager.default.removeItem(at: zeroFolder) }
+        for (arguments, message) in [
+            (base + ["--prefill-output", "tap_hidden_states=\(taps)"], "The output file already exists: \(taps)"),
+            (
+                base + ["--main-output", "hidden_states=\(hidden)", "--main-output", "hidden_states=\(hidden)x"],
+                "--main-output names an output more than once."
+            ),
+            (
+                atZero + ["--prefill-output", "tap_hidden_states=\(hidden)"],
+                "--prefill-output needs a start position after 0."
+            ),
+        ] {
+            let error = #expect(throws: (any Error).self) { try PositionLogits.parse(arguments) }
+            #expect(PositionLogits.message(for: try #require(error)).hasPrefix(message))
+        }
+    }
+
+    @Test("An output file holds the rows as little-endian float16 and its record has their count, width and SHA-256")
+    func writerRecordsTheRows() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "output-file-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appending(path: "hidden.f16")
+        try Data().write(to: url)
+        var writer = try OutputFileWriter(function: "main", name: "hidden_states", path: url.path)
+        try writer.append([1, -2, 0.5])
+        try writer.append([3, 4, -0.25])
+        let record = try writer.finish()
+        let bytes = try Data(contentsOf: url)
+        let expected = Data(
+            [Float16(1), -2, 0.5, 3, 4, -0.25].flatMap { value in
+                [UInt8(value.bitPattern & 0xFF), UInt8(value.bitPattern >> 8)]
+            })
+        #expect(bytes == expected)
+        #expect(
+            record
+                == OutputFileRecord(
+                    function: "main", name: "hidden_states", rows: 2, width: 3,
+                    sha256: hex(Data(SHA256.hash(data: expected)))))
     }
 }
