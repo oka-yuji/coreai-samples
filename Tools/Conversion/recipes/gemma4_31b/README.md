@@ -415,7 +415,8 @@ record as unfinished. The original implementation reads each input in one call; 
 `output_hidden_states`, except for the last layer, whose entry the original implementation replaces with the output of
 the final norm: that tap is the output of the last layer, taken with a forward hook. The model class reads the window
 and then calls of 1, 2, 4 and 8 tokens with its caches. `compare` passes only for a run of the original implementation
-and a run of the model class on the same inputs, tap layers and kind of weights, a kind that `run` writes, whose
+and a run of the model class on the same inputs and tap layers, both with the weights rounded to float16 (a run of
+restored weights, or of no known kind, is a problem of the comparison and the result names no layers), whose
 differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for `long` a
 largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position with another
 `argmax`; for both inputs, at every position of `hidden_states` and of each tap layer of `tap_hidden_states`, a largest

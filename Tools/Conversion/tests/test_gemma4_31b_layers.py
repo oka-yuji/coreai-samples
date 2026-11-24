@@ -297,9 +297,14 @@ class CompareTests(unittest.TestCase):
 
     def test_runs_of_other_or_unknown_weights_never_pass_and_the_result_names_no_layers(self):
         unknown = "the {} run recorded no known kind of weights"
+        restored = "the {} run used the restored weights, not the weights rounded to float16"
         differ = "the runs differ in weights"
-        cases = {"restored weights against rounded weights": (layers.RESTORED, layers.WEIGHTS, [differ]),
-                 "rounded weights against restored weights": (layers.WEIGHTS, layers.RESTORED, [differ]),
+        cases = {"restored weights against rounded weights": (layers.RESTORED, layers.WEIGHTS,
+                                                              [restored.format("original"), differ]),
+                 "rounded weights against restored weights": (layers.WEIGHTS, layers.RESTORED,
+                                                              [restored.format("class"), differ]),
+                 "restored weights in both runs": (layers.RESTORED, layers.RESTORED,
+                                                   [restored.format("original"), restored.format("class")]),
                  "weights recorded for one run only": (None, layers.WEIGHTS, [unknown.format("original"), differ]),
                  "weights recorded for neither run": (None, None, [unknown.format("original"), unknown.format("class")]),
                  "another kind of weights in both runs": ("bfloat16", "bfloat16",
