@@ -71,7 +71,7 @@ class ToyDrafter:
         generator = torch.Generator().manual_seed(SEED)
         self.steps, width = steps, CONFIG["hidden_size"]
         self.table = torch.randn(CONFIG["vocab_size"], 16, generator=generator)
-        self.mixes = [torch.randn(size, 16, generator=generator) for size in (width, 16, 16, 32, 32)]
+        self.mixes = [torch.randn(size, 16, generator=generator) for size in (width, 32, 32, 32, 32)]
         self.back = torch.randn(16, width, generator=generator)
 
     def check(self, input_ids, hidden_states, position_ids, k_sliding, v_sliding, k_full, v_full):
@@ -87,8 +87,8 @@ class ToyDrafter:
 
     def outputs(self, input_ids, hidden_states, position_ids, k_sliding, v_sliding, k_full, v_full):
         self.check(input_ids, hidden_states, position_ids, k_sliding, v_sliding, k_full, v_full)
-        parts = (hidden_states[0, 0], k_sliding[0, 0].mean(dim=(0, 1)), v_sliding[0, 0].mean(dim=(0, 1)),
-                 k_full[0, 0].mean(dim=(0, 1)), v_full[0, 0].mean(dim=(0, 1)))
+        parts = (hidden_states[0, 0], k_sliding[0, 0].mean(dim=1).reshape(-1), v_sliding[0, 0].mean(dim=1).reshape(-1),
+                 k_full[0, 0].mean(dim=1).reshape(-1), v_full[0, 0].mean(dim=1).reshape(-1))
         mixed = sum(part @ mix for part, mix in zip(parts, self.mixes)) / 32
         feature = torch.tanh(self.table[input_ids[0, 0]] + mixed + position_ids[0, 0].to(torch.float32) / 2048)
         return (feature @ self.table.T).reshape(1, 1, -1), (feature @ self.back).reshape(1, 1, -1)
@@ -113,11 +113,23 @@ def fixtures(cls):
             mock.patch.object(mtp, "class_drafter", toy_drafter)(cls))))
 
 
+def headed(records):
+    place = mtp.layout(CONFIG)
+    for path in sorted((Path(records) / "tf/features").iterdir()):
+        tensors = load_file(str(path))
+        keys = tensors[f"k{place['sliding']}"].to(torch.float32)
+        for head in range(keys.shape[0]):
+            keys[head, :, 2] = head + 1
+        tensors[f"k{place['sliding']}"], tensors[f"v{place['sliding']}"] = keys.to(torch.bfloat16), (-keys).to(torch.bfloat16)
+        save_file({name: tensor.contiguous() for name, tensor in tensors.items()}, str(path))
+
+
 class Folder:
     def setUp(self):
         self.folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.folder)
         self.records, self.inputs, self.outputs = write_records(self.folder)
+        headed(self.records)
         self.target, self.contract = write_target(self.folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
         self.assistant, self.assistant_contract = write_assistant(self.folder, SYNTHETIC["assistant"], assistant_state())
         self.output = self.folder / "inputs"
@@ -360,11 +372,14 @@ class WrittenTests(Folder, unittest.TestCase):
                 self.assertEqual(found["input_ids"].tolist(), [[sequences[name][anchor]]])
                 self.assertEqual(found["position_ids"].tolist(), [[anchor]])
                 self.assertEqual(decoded(floats["hidden_states"][0, 0]), anchor - 1)
-                for heads in range(2):
-                    self.assertEqual(decoded(floats["k_sliding"][0, 0, heads]), list(range(anchor - sliding, anchor)))
-                    self.assertEqual(decoded(-floats["v_sliding"][0, 0, heads]), list(range(anchor - sliding, anchor)))
-                self.assertEqual(decoded(floats["k_full"][0, 0, 0]), list(range(anchor)))
-                self.assertEqual(decoded(-floats["v_full"][0, 0, 0]), list(range(anchor)))
+                for head in range(2):
+                    marker = torch.full((sliding,), float(head + 1))
+                    self.assertTrue(decoded(floats["k_sliding"][0, 0, head]) == list(range(anchor - sliding, anchor)))
+                    self.assertTrue(decoded(-floats["v_sliding"][0, 0, head]) == list(range(anchor - sliding, anchor)))
+                    self.assertTrue(torch.equal(floats["k_sliding"][0, 0, head, :, 2], marker))
+                    self.assertTrue(torch.equal(-floats["v_sliding"][0, 0, head, :, 2], marker))
+                self.assertTrue(decoded(floats["k_full"][0, 0, 0]) == list(range(anchor)))
+                self.assertTrue(decoded(-floats["v_full"][0, 0, 0]) == list(range(anchor)))
 
     def test_the_arrays_have_the_fixed_types_and_shapes_and_row_i_of_each_belongs_to_row_i(self):
         record = self.write()
@@ -720,6 +735,8 @@ class FailureTests(Folder, unittest.TestCase):
         return read_json((output or self.output) / "failure.json") == {"schema": SCHEMA, "failure": name}
 
     def test_a_run_that_stops_after_creating_its_output_leaves_only_the_name_of_the_error(self):
+        self.guarded()
+
         def signalled(*arguments):
             signal.raise_signal(signal.SIGINT)
 
@@ -742,6 +759,7 @@ class FailureTests(Folder, unittest.TestCase):
             self.assertTrue(self.failure(error.__name__, output))
 
     def test_a_signal_while_the_output_is_made_lets_the_creation_finish_and_leaves_a_failure_record(self):
+        self.guarded()
         real = Path.mkdir
         for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
             output, fired = self.folder / label, []
@@ -760,6 +778,7 @@ class FailureTests(Folder, unittest.TestCase):
             self.assertTrue(self.failure("KeyboardInterrupt", output))
 
     def test_a_signal_while_the_record_is_written_lets_the_write_finish_and_replaces_it_by_a_failure_record(self):
+        self.guarded()
         real = mtp_native.write_json
         for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
             events, output = [], self.folder / label
@@ -779,6 +798,7 @@ class FailureTests(Folder, unittest.TestCase):
             self.assertTrue(self.failure("KeyboardInterrupt", output))
 
     def test_a_signal_while_the_failure_record_is_written_lets_the_write_finish(self):
+        self.guarded()
         real = mtp_native.write_json
         for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
             events, output = [], self.folder / label
@@ -968,16 +988,17 @@ class FailureTests(Folder, unittest.TestCase):
         self.assertEqual(events, ["check", "rows", "check", "record.json"])
 
 
-@fixtures
-class CommandTests(Folder, unittest.TestCase):
+COMMAND = ["inputs", "--model", "a.json", "--assistant", "b.json", "--snapshot", "target", "--assistant-snapshot",
+           "assistant", "--records", "records", "--inputs", "i.jsonl", "--outputs", "o.jsonl", "--steps", "7", "--output",
+           "out"]
+
+
+class CommandTests(unittest.TestCase):
     def test_the_command_passes_its_arguments_prints_the_summary_and_exits_with_one_unless_the_run_passed(self):
         for passed in (True, False):
             record = {"rows": [{}, {}, {}], "passed": passed}
             with self.subTest(passed=passed), mock.patch.object(mtp_native, "write_inputs", return_value=record) as write, \
-                    mock.patch("sys.argv", ["mtp_native", "inputs", "--model", "a.json", "--assistant", "b.json",
-                                            "--snapshot", "target", "--assistant-snapshot", "assistant", "--records",
-                                            "records", "--inputs", "i.jsonl", "--outputs", "o.jsonl", "--steps", "7",
-                                            "--output", "out"]), \
+                    mock.patch("sys.argv", ["mtp_native", *COMMAND]), \
                     mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
                 code = mtp_native.main()
             write.assert_called_once_with(Path("a.json"), Path("b.json"), Path("target"), Path("assistant"),
@@ -985,11 +1006,20 @@ class CommandTests(Folder, unittest.TestCase):
             self.assertEqual(json.loads(printed.getvalue()), {"passed": passed, "rows": 3})
             self.assertEqual(code, 0 if passed else 1)
 
-    def test_the_command_has_one_subcommand_and_no_implementation_choice(self):
-        for arguments in (["--implementation", "class"], ["run"], []):
-            with self.subTest(arguments=arguments), mock.patch("sys.argv", ["mtp_native", *arguments]), \
-                    mock.patch("sys.stderr", new_callable=io.StringIO), self.assertRaises(SystemExit):
+    def test_the_command_has_one_subcommand(self):
+        for arguments in (["run"], ["acceptance"], ["export-weights"], []):
+            with self.subTest(arguments=arguments), mock.patch.object(mtp_native, "write_inputs") as write, \
+                    mock.patch("sys.argv", ["mtp_native", *arguments]), \
+                    mock.patch("sys.stderr", new_callable=io.StringIO), self.assertRaises(SystemExit) as raised:
                 mtp_native.main()
-        with mock.patch("sys.argv", ["mtp_native", "inputs", "--implementation", "class", "--model", "a"]), \
-                mock.patch("sys.stderr", new_callable=io.StringIO), self.assertRaises(SystemExit):
+            write.assert_not_called()
+            self.assertEqual(raised.exception.code, 2)
+
+    def test_the_command_refuses_an_option_that_chooses_an_implementation_when_every_other_argument_is_valid(self):
+        with mock.patch.object(mtp_native, "write_inputs", return_value={"rows": [], "passed": True}) as write, \
+                mock.patch("sys.argv", ["mtp_native", *COMMAND, "--implementation", "class"]), \
+                mock.patch("sys.stderr", new_callable=io.StringIO) as printed, self.assertRaises(SystemExit) as raised:
             mtp_native.main()
+        write.assert_not_called()
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("unrecognized arguments: --implementation class", printed.getvalue())
