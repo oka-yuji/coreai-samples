@@ -955,7 +955,9 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   same function, after the assets are saved and inspected and before `export.json` is written; this hashes the shard
   (49,784,788,364 B) once more. If it finds a result that is not the first one, or a file that no longer matches its
   contract, the tool stops like on any other error: `failure.json` stays, `export.json` is not written and the assets
-  that were saved stay in the folder.
+  that were saved stay in the folder. Between the two checks the tool opens the configuration and the weights of the
+  assistant and the embedding table again by their paths and reads them; it does not keep a file that is replaced in
+  between from being read as it was replaced, and the second check finds the difference.
 - Assets, each a folder that holds `main.hash`, `main.mlirb` and `metadata.json`: `verification.aimodel` holds the
   function `verify_step`, one step of the drafter, with the outputs `logits` float16 [1, 1, 262144] and `post_projection`
   float16 [1, 1, 5376], in this order. `distribution.aimodel` holds the function `draft_<steps>`, the unrolled drafter,
@@ -989,7 +991,9 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   set again, the last step before it returns, and SIGINT does so until it returns. An interruption that arrives in these
   spans, that last step included, leaves `failure.json` if the output folder is already made (before that, nothing is
   written). One that arrives after the command has returned, while the tool prints its result and returns the exit code,
-  does not change `export.json` or `failure.json`. While the output folder is made and while `export.json` or
+  does not change `export.json` or `failure.json`. A SIGTERM that arrives after the handler that was set before is set
+  again is handled by that handler (by default, it ends the process), and the `export.json` that was written before
+  stays; the boundary is the setting of that handler again. While the output folder is made and while `export.json` or
   `failure.json` is written, a signal is held until the write is done and then handled as an interruption; one that
   arrives while `export.json` is written replaces it by `failure.json`.
 

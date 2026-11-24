@@ -1179,6 +1179,10 @@ it accepted the function, the names, the types and the shapes of the seven input
   their values.
 - The tool does not check that the converter environment is at the `upstream_revision` of `model.json`; the record names
   the versions of the packages only, as `run` and the export of a synthetic drafter do.
+- Between its two checks of the files the tool opens the configuration and the weights of the assistant and the embedding
+  table again by their paths. A file that is replaced in between is read as it was replaced, and the second check then
+  finds the difference (`failure.json` stays and `export.json` is not written); a change that is undone before the second
+  check is not found.
 - One run of this commit; the four runs wrote different bytes for the same inputs.
 
 ### Sources
