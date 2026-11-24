@@ -23,7 +23,7 @@ from .baseline import read_inputs
 from .export import ASSET_FILES
 from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, rounded_scale, same_file
 from .native import valid
-from .prepare import HEX40, HEX64, REPOSITORY, load_contract
+from .prepare import HEX40, HEX64, REPOSITORY, checked_contract, load_contract
 from .reference import file_record, footprint
 
 SCHEMA = "gemma4-31b-mtp-run/1"
@@ -91,19 +91,23 @@ def digest(path, size=None):
     return {"bytes": read, "sha256": found.hexdigest()}
 
 
+def checked_target(contract, name):
+    config = contract["config"]
+    pattern, stops = config["layer_pattern"], config["eos_token_id"]
+    if not all(KINDS["count"](config[key]) for key in (*TARGET, "num_hidden_layers")) \
+            or not isinstance(pattern, list) or not all(kind in (SLIDING, FULL) for kind in pattern) \
+            or SLIDING not in pattern or FULL not in pattern or not isinstance(stops, list) \
+            or not all(type(token) is int and 0 <= token < config["vocab_size"] for token in stops):
+        raise ValueError(f"{name} holds configuration values of another kind than the tool reads")
+    return contract
+
+
 def target_contract(path):
     data = file_bytes(path)
     contract = load_contract(path)
     if strict(data) != contract:
         raise ValueError(f"{Path(path).name} changed while it was read")
-    config = contract["config"]
-    pattern, stops = config["layer_pattern"], config["eos_token_id"]
-    if not all(KINDS["count"](config[name]) for name in (*TARGET, "num_hidden_layers")) \
-            or not isinstance(pattern, list) or not all(kind in (SLIDING, FULL) for kind in pattern) \
-            or SLIDING not in pattern or FULL not in pattern or not isinstance(stops, list) \
-            or not all(type(token) is int and 0 <= token < config["vocab_size"] for token in stops):
-        raise ValueError(f"{Path(path).name} holds configuration values of another kind than the tool reads")
-    return contract, hashlib.sha256(data).hexdigest()
+    return checked_target(contract, Path(path).name), hashlib.sha256(data).hexdigest()
 
 
 def cut(tokens, stops):
@@ -150,8 +154,7 @@ def check_steps(steps):
     return steps
 
 
-def load_assistant(path):
-    contract, found = hashed(path)
+def checked_assistant(contract):
     files = contract.get("files") if isinstance(contract, dict) else None
     if not isinstance(files, dict) or set(contract) != {"model_id", "revision", "files"} \
             or set(files) != set(ASSISTANT_FILES) or not isinstance(contract["model_id"], str) \
@@ -162,7 +165,12 @@ def load_assistant(path):
                    for entry in files.values()):
         raise ValueError("The assistant contract needs an owner/name ID, a full revision and the size and SHA-256 of "
                          + " and ".join(ASSISTANT_FILES))
-    return contract, found
+    return contract
+
+
+def load_assistant(path):
+    contract, found = hashed(path)
+    return checked_assistant(contract), found
 
 
 def verified(folder, files, names):
@@ -851,15 +859,11 @@ def export_synthetic(output, steps, context, seed):
         raise
 
 
-def limited(path, limit):
-    if os.stat(path).st_size > limit:
-        raise ValueError(f"{Path(path).name} holds more than {limit} B")
-
-
 def small(path, limit):
-    descriptor = regular(path)
+    descriptor, data = regular(path), b""
     try:
-        data = os.read(descriptor, limit + 1)
+        while len(data) <= limit and (block := os.read(descriptor, limit + 1 - len(data))):
+            data += block
     finally:
         os.close(descriptor)
     if len(data) > limit:
@@ -938,10 +942,14 @@ def inspected(output, name, expected, held, timing):
 
     folder = ASSET_FOLDERS[name]
     found, kinds = inspect_asset(output / folder), listing(output / folder)
-    files = {f"{folder}/{item}": digest(output / folder / item) for item in ASSET_ITEMS if kinds.get(item) == "file"}
-    main_hash = small(output / folder / "main.hash", MAIN_HASH_LIMIT).hex() if kinds.get("main.hash") == "file" else None
+    main_hash = small(output / folder / "main.hash", MAIN_HASH_LIMIT) if kinds.get("main.hash") == "file" else None
+    files = {f"{folder}/{item}": digest(output / folder / item)
+             for item in ASSET_ITEMS if item != "main.hash" and kinds.get(item) == "file"}
+    if main_hash is not None:
+        files[f"{folder}/main.hash"] = {"bytes": len(main_hash), "sha256": hashlib.sha256(main_hash).hexdigest()}
     return {"folder": folder, "functions": list(expected), "asset": found, "weights": held, "files": files,
-            "bytes": sum(entry["bytes"] for entry in files.values()), "main_hash": main_hash, "timing": timing,
+            "bytes": sum(entry["bytes"] for entry in files.values()),
+            "main_hash": None if main_hash is None else main_hash.hex(), "timing": timing,
             "problems": asset_problems(found, expected, held)
             + layout_problems(kinds, dict.fromkeys(ASSET_ITEMS, "file"))}
 
@@ -985,10 +993,11 @@ def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, 
         if os.path.lexists(output):
             raise FileExistsError(f"The export must be written to a new folder: {output}")
         check_export_steps(steps)
-        limited(contract_path, CONTRACT_LIMIT)
-        contract, contract_sha256 = target_contract(contract_path)
-        limited(assistant_path, CONTRACT_LIMIT)
-        assistant, assistant_sha256 = load_assistant(assistant_path)
+        data = small(contract_path, CONTRACT_LIMIT)
+        contract = checked_target(checked_contract(strict(data)), Path(contract_path).name)
+        contract_sha256 = hashlib.sha256(data).hexdigest()
+        data = small(assistant_path, CONTRACT_LIMIT)
+        assistant, assistant_sha256 = checked_assistant(strict(data)), hashlib.sha256(data).hexdigest()
         config = contract["config"]
         check_context(context, config)
         files, shard = table_shard(snapshot, contract)

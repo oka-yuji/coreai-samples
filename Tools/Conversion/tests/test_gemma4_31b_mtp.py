@@ -1,4 +1,5 @@
 import builtins
+import contextlib
 import copy
 import hashlib
 import io
@@ -1209,7 +1210,7 @@ class ReadTests(unittest.TestCase):
                     self.assertNotIn(pipe, events)
                     self.assertEqual(tensors, [])
                     self.assertFalse(output.exists())
-                    self.assertEqual(load.call_count, 0 if label == "the target contract" else 1)
+                    self.assertEqual(load.call_count, 0 if label == "the target contract" or name == "export_weights" else 1)
             path.unlink()
             path.write_bytes(saved)
         item = mtp.items_of(load_contract(contract), records, inputs, outputs, mtp.first_per_category)[2][0]
@@ -1735,6 +1736,34 @@ class AssetInspectionTests(unittest.TestCase):
                     self.assertTrue(mtp.layout_problems(mtp.listing(changed), wanted))
                 shutil.rmtree(changed)
 
+    def test_main_hash_is_read_once_with_its_limit_before_any_file_of_the_asset_is_hashed(self):
+        found = found_of("verification")
+        expected = mtp.expected_assets(REAL, 7)["verification"]
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            asset = output / "verification.aimodel"
+            asset.mkdir()
+            (asset / "main.mlirb").write_bytes(b"m" * 100)
+            (asset / "metadata.json").write_bytes(b"{}")
+            (asset / "main.hash").write_bytes(b"h" * (4 << 20))
+            total, events = [], []
+            with mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset", return_value=found), \
+                    reads_counted(total), opens_counted(events, [asset / "main.hash"]), \
+                    self.assertRaisesRegex(ValueError, "main.hash holds more than 64 B"):
+                mtp.inspected(output, "verification", expected, copy.deepcopy(HELD), {})
+            self.assertEqual((sum(total), len(events)), (65, 1))
+            (asset / "main.hash").write_bytes(b"h" * 32)
+            total, events = [], []
+            with mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset", return_value=found), \
+                    reads_counted(total), opens_counted(events, [asset / "main.hash"]):
+                record = mtp.inspected(output, "verification", expected, copy.deepcopy(HELD), {})
+            self.assertEqual(len(events), 1)
+            self.assertEqual(record["main_hash"], "68" * 32)
+            self.assertEqual(record["files"]["verification.aimodel/main.hash"],
+                             {"bytes": 32, "sha256": hashlib.sha256(b"h" * 32).hexdigest()})
+            self.assertEqual(sorted(record["files"]), [f"verification.aimodel/{item}" for item in mtp.ASSET_ITEMS])
+            self.assertEqual(record["bytes"], 32 + 100 + 2)
+
     def test_the_output_folder_holds_exactly_the_two_asset_folders(self):
         wanted = {folder: "folder" for folder in mtp.ASSET_FOLDERS.values()}
         cases = {"another file": lambda path: (path / "export.json").write_bytes(b"{}"),
@@ -1756,6 +1785,47 @@ class AssetInspectionTests(unittest.TestCase):
                     change(path)
                 with self.subTest(case=label):
                     self.assertEqual(bool(mtp.layout_problems(mtp.listing(path), wanted)), change is not None)
+
+
+def reported_small(real):
+    def call(*arguments, **options):
+        status = real(*arguments, **options)
+        return os.stat_result((*tuple(status)[:6], 10, *tuple(status)[7:]))
+
+    return call
+
+
+@contextlib.contextmanager
+def reads_counted(total, limit=None):
+    real = os.read
+
+    def call(descriptor, length):
+        block = real(descriptor, length if limit is None else min(length, limit))
+        total.append(len(block))
+        return block
+
+    with mock.patch.object(os, "read", call):
+        yield
+
+
+@contextlib.contextmanager
+def opens_counted(events, paths):
+    names, real_os, real_io = {os.path.realpath(path) for path in paths}, os.open, io.open
+
+    def count(file):
+        if isinstance(file, (str, os.PathLike)) and os.path.realpath(file) in names:
+            events.append(os.path.realpath(file))
+
+    def by_os(path, *arguments, **options):
+        count(path)
+        return real_os(path, *arguments, **options)
+
+    def by_io(file, *arguments, **options):
+        count(file)
+        return real_io(file, *arguments, **options)
+
+    with mock.patch.object(os, "open", by_os), mock.patch.object(io, "open", by_io):
+        yield
 
 
 def fake_assets(output, passed=True, partly=False):
@@ -1873,31 +1943,82 @@ class ExportWeightsTests(unittest.TestCase):
             self.assertFalse(self.output.exists())
         write_json(self.assistant_contract, pinned)
         good = read_json(self.contract)
-        for label, config in {"a width as a float": {**good["config"], "hidden_size": 48.0},
-                              "a window as a boolean": {**good["config"], "sliding_window": True},
-                              "a stop token beyond the vocabulary": {**good["config"], "eos_token_id": [1, 301]}}.items():
-            write_json(self.contract, {**good, "config": config})
+        documents = {"a width as a float": {**good, "config": {**good["config"], "hidden_size": 48.0}},
+                     "a window as a boolean": {**good, "config": {**good["config"], "sliding_window": True}},
+                     "a stop token beyond the vocabulary": {**good, "config": {**good["config"], "eos_token_id": [1, 301]}},
+                     "a field that the contract does not have": {**good, "extra": 1},
+                     "a revision that is not a full hash": {**good, "revision": "main"},
+                     "another reference": {**good, "reference": {**good["reference"], "compute": "float32"}},
+                     "another tokenizer policy": {**good, "tokenizer": {**good["tokenizer"], "policy": "resave"}}}
+        for label, document in documents.items():
+            write_json(self.contract, document)
             with self.subTest(change=label), self.assertRaises(ValueError):
                 self.export()
             self.assertFalse(self.output.exists())
 
-    def test_a_contract_above_the_size_limit_is_refused_before_it_is_read_and_one_at_the_limit_is_read(self):
+    def contracts(self):
+        return (("the target contract", self.contract), ("the assistant contract", self.assistant_contract))
+
+    def test_a_contract_that_is_a_link_to_a_valid_contract_is_refused(self):
+        for label, path in self.contracts():
+            saved, copy_of = path.read_bytes(), self.folder / f"{path.name}.copy"
+            copy_of.write_bytes(saved)
+            path.unlink()
+            path.symlink_to(copy_of)
+            with self.subTest(file=label), mock.patch.object(mtp, "export_assets", side_effect=fake()), \
+                    self.assertRaisesRegex(ValueError, "is a link"):
+                self.export()
+            self.assertFalse(self.output.exists())
+            path.unlink()
+            path.write_bytes(saved)
+
+    def test_a_contract_above_the_size_limit_is_refused_by_what_is_read_whatever_size_is_reported(self):
         limit = mtp.CONTRACT_LIMIT
         self.assertEqual(limit, 2 ** 20)
-        for label, path, reader in (("the target contract", self.contract, "target_contract"),
-                                    ("the assistant contract", self.assistant_contract, "load_assistant")):
+        for label, path in self.contracts():
             saved = path.read_bytes()
-            path.write_bytes(saved + b" " * (limit - len(saved) + 1))
-            with self.subTest(file=label), mock.patch.object(mtp, reader) as read, \
+            before = 0 if path == self.contract else len(self.contract.read_bytes())
+            path.write_bytes(saved + b" " * (limit + 100000 - len(saved)))
+            total = []
+            with self.subTest(file=label), reads_counted(total), mock.patch.object(os, "stat", reported_small(os.stat)), \
+                    mock.patch.object(os, "fstat", reported_small(os.fstat)), \
                     mock.patch.object(mtp, "export_assets", side_effect=fake()), \
                     self.assertRaisesRegex(ValueError, "holds more than 1048576 B"):
                 self.export()
-            read.assert_not_called()
+            self.assertEqual(sum(total), before + limit + 1)
             self.assertFalse(self.output.exists())
             path.write_bytes(saved + b" " * (limit - len(saved)))
             with self.subTest(file=label, size="at the limit"), mock.patch.object(mtp, "export_assets", side_effect=fake()):
-                self.export(output=self.folder / f"at-the-limit-{reader}")
+                self.export(output=self.folder / f"at-the-limit-{path.name}")
             path.write_bytes(saved)
+
+    def test_a_contract_is_read_to_its_end_and_its_limit_is_judged_when_a_read_returns_less_than_asked(self):
+        limit = mtp.CONTRACT_LIMIT
+        for label, path in self.contracts():
+            saved = path.read_bytes()
+            with self.subTest(file=label, size="as written"), reads_counted([], 7), \
+                    mock.patch.object(mtp, "export_assets", side_effect=fake()):
+                self.export(output=self.folder / f"short-{path.name}")
+            path.write_bytes(saved + b" " * (limit - len(saved)))
+            with self.subTest(file=label, size="at the limit"), reads_counted([], 4099), \
+                    mock.patch.object(mtp, "export_assets", side_effect=fake()):
+                self.export(output=self.folder / f"short-at-the-limit-{path.name}")
+            path.write_bytes(saved + b" " * (limit - len(saved) + 1))
+            with self.subTest(file=label, size="above the limit"), reads_counted([], 4099), \
+                    mock.patch.object(mtp, "export_assets", side_effect=fake()), \
+                    self.assertRaisesRegex(ValueError, "holds more than 1048576 B"):
+                self.export()
+            path.write_bytes(saved)
+
+    def test_each_contract_is_opened_once_by_its_path_and_the_checks_use_the_bytes_that_were_read(self):
+        events = []
+        with opens_counted(events, [self.contract, self.assistant_contract]), \
+                mock.patch.object(mtp, "load_contract") as reread, \
+                mock.patch.object(mtp, "export_assets", side_effect=fake()):
+            record = self.export()
+        self.assertEqual(sorted(events), sorted(os.path.realpath(path) for _, path in self.contracts()))
+        reread.assert_not_called()
+        self.assertEqual((record["passed"], self.names()), (True, ["distribution.aimodel", "export.json", "verification.aimodel"]))
 
     def test_an_export_that_stops_after_creating_its_output_leaves_only_the_name_of_the_error(self):
         def signalled(*arguments):
