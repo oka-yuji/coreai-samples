@@ -1141,6 +1141,26 @@ class ReadTests(unittest.TestCase):
                     self.assertIsInstance(outcome.get("error"), ValueError)
                     self.assertRegex(str(outcome["error"]), "is not a regular file")
 
+    def test_a_file_that_grows_after_its_size_was_checked_is_hashed_no_further_than_one_byte_past_its_size(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "file"
+            path.write_bytes(b"x" * 100)
+            requested = []
+
+            def growing(descriptor, length):
+                requested.append(length)
+                if sum(requested) > 10 * 1024 * 1024:
+                    raise AssertionError("the read did not stop")
+                return b"y" * length
+
+            with mock.patch.object(os, "read", growing), self.assertRaisesRegex(ValueError, "holds more than 100 B"):
+                mtp.digest(path, 100)
+            self.assertEqual(sum(requested), 101)
+            expected = {"bytes": 100, "sha256": hashlib.sha256(b"x" * 100).hexdigest()}
+            self.assertEqual((mtp.digest(path, 100), mtp.digest(path)), (expected, expected))
+            path.write_bytes(b"")
+            self.assertEqual(mtp.digest(path), {"bytes": 0, "sha256": hashlib.sha256(b"").hexdigest()})
+
     def test_a_target_contract_that_changes_between_its_two_reads_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
             path = write_contract(folder, {name: {"bytes": 1, "sha256": "0" * 64} for name in TOKENIZER_FILES})
@@ -1894,6 +1914,61 @@ class ExportWeightsTests(unittest.TestCase):
             self.assertEqual([(call.args[0]["steps"], call.args[0]["context"]) for call in work.call_args_list],
                              [(1, window + 1), (mtp.DRAFTS, 2 ** 31 - 1)])
 
+    def test_a_file_that_changes_after_it_was_checked_and_while_the_assets_are_made_leaves_a_failure_record_only(self):
+        files = {"the assistant weights": self.assistant / "model.safetensors",
+                 "the assistant configuration": self.assistant / "config.json",
+                 "the shard of the table": self.target / SHARD, "the index of the target": self.target / mtp.INDEX}
+        for label, path in files.items():
+            saved, middle, output = path.read_bytes(), len(path.read_bytes()) // 2, self.folder / label.replace(" ", "-")
+
+            def changing(plan, folder, path=path, saved=saved, middle=middle):
+                record = fake_assets(folder)
+                path.write_bytes(saved[:middle] + bytes([saved[middle] ^ 1]) + saved[middle + 1:])
+                return record
+
+            with self.subTest(file=label), mock.patch.object(mtp, "export_assets", side_effect=changing), \
+                    self.assertRaisesRegex(ValueError, "differs from its contract"):
+                self.export(output=output)
+            self.assertEqual(self.names(output), ["distribution.aimodel", "failure.json", "verification.aimodel"])
+            self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS, "failure": "ValueError"})
+            path.write_bytes(saved)
+
+    def test_the_results_of_the_check_before_the_assets_and_the_check_after_them_must_be_the_same(self):
+        real, calls = mtp.verified, []
+
+        def changing(folder, files, names):
+            calls.append(names)
+            found = real(folder, files, names)
+            if len(calls) <= 3:
+                return found
+            return {name: {**entry, "bytes": entry["bytes"] + 1} for name, entry in found.items()}
+
+        with mock.patch.object(mtp, "verified", changing), mock.patch.object(mtp, "export_assets", side_effect=fake()), \
+                self.assertRaisesRegex(ValueError, "changed while the assets were made"):
+            self.export()
+        self.assertEqual(len(calls), 6)
+        self.assertEqual(self.names(), ["distribution.aimodel", "failure.json", "verification.aimodel"])
+
+    def test_the_files_are_checked_before_the_assets_are_made_and_again_before_the_record_is_written(self):
+        events, real_verified, real_write = [], mtp.verified, mtp.write_json
+
+        def verified(*arguments):
+            events.append("check")
+            return real_verified(*arguments)
+
+        def assets(plan, output):
+            events.append("assets")
+            return fake_assets(output)
+
+        def written(path, value):
+            events.append(Path(path).name)
+            real_write(path, value)
+
+        with mock.patch.object(mtp, "verified", verified), mock.patch.object(mtp, "export_assets", side_effect=assets), \
+                mock.patch.object(mtp, "write_json", written):
+            self.export()
+        self.assertEqual(events, ["check"] * 3 + ["assets"] + ["check"] * 3 + ["export.json"])
+
     def test_a_file_that_differs_from_its_pinned_size_or_hash_is_refused_before_the_output_and_any_tensor(self):
         files = {"the assistant weights": self.assistant / "model.safetensors",
                  "the assistant configuration": self.assistant / "config.json",
@@ -2018,7 +2093,8 @@ class ExportWeightsTests(unittest.TestCase):
             record = self.export()
         self.assertEqual(sorted(events), sorted(os.path.realpath(path) for _, path in self.contracts()))
         reread.assert_not_called()
-        self.assertEqual((record["passed"], self.names()), (True, ["distribution.aimodel", "export.json", "verification.aimodel"]))
+        self.assertEqual((record["passed"], self.names()),
+                         (True, ["distribution.aimodel", "export.json", "verification.aimodel"]))
 
     def test_an_export_that_stops_after_creating_its_output_leaves_only_the_name_of_the_error(self):
         def signalled(*arguments):

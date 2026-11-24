@@ -83,9 +83,11 @@ def regular(path, size=None):
 def digest(path, size=None):
     descriptor, found, read = regular(path, size), hashlib.sha256(), 0
     try:
-        while block := os.read(descriptor, 8 * 1024 * 1024):
+        while block := os.read(descriptor, 8 * 1024 * 1024 if size is None else min(8 * 1024 * 1024, size + 1 - read)):
             found.update(block)
             read += len(block)
+            if size is not None and read > size:
+                raise ValueError(f"{Path(path).name} holds more than {size} B")
     finally:
         os.close(descriptor)
     return {"bytes": read, "sha256": found.hexdigest()}
@@ -987,6 +989,12 @@ def export_assets(plan, output):
             "problems": problems, "passed": not problems and not any(entry["problems"] for entry in assets.values())}
 
 
+def snapshot_checks(snapshot, assistant_snapshot, contract, assistant):
+    files, shard = table_shard(snapshot, contract)
+    files.update(verified(snapshot, contract["files"], (shard,)))
+    return shard, files, verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
+
+
 def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, steps, context, output):
     output = Path(output)
     with terminating_as_interruption():
@@ -1000,9 +1008,8 @@ def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, 
         assistant, assistant_sha256 = checked_assistant(strict(data)), hashlib.sha256(data).hexdigest()
         config = contract["config"]
         check_context(context, config)
-        files, shard = table_shard(snapshot, contract)
-        files.update(verified(snapshot, contract["files"], (shard,)))
-        verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
+        checks = snapshot_checks(snapshot, assistant_snapshot, contract, assistant)
+        shard, files, assistant_files = checks
         config_bytes = assistant["files"]["config.json"]["bytes"]
         settings = assistant_config(document(Path(assistant_snapshot) / "config.json", config_bytes),
                                     {key: config[key] for key in TARGET})
@@ -1014,14 +1021,15 @@ def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, 
                                       "contract_sha256": contract_sha256, "verified_before_loading": files},
                             "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
                                           "contract_sha256": assistant_sha256,
-                                          "verified_before_loading": {name: dict(assistant["files"][name])
-                                                                      for name in ASSISTANT_FILES}}}}
+                                          "verified_before_loading": assistant_files}}}
         made = False
         try:
             with deferred_interrupts():
                 output.mkdir(parents=True)
                 made = True
             record = export_assets(plan, output)
+            if snapshot_checks(snapshot, assistant_snapshot, contract, assistant) != checks:
+                raise ValueError("A file that was read changed while the assets were made")
             with deferred_interrupts():
                 write_json(output / "export.json", record)
             return record
