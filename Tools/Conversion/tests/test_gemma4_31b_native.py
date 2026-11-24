@@ -1341,31 +1341,31 @@ class ReadLimitTests(unittest.TestCase):
         self.path = self.folder / "file"
         self.path.write_bytes(bytes(range(256)) * 160)
 
-    def read_counting(self, call):
-        reads, real = [], open
+    def read_counting(self, call, short=None):
+        reads, real = [], os.read
 
-        class Counting:
-            def __init__(self, handle):
-                self.handle = handle
+        def counting(descriptor, count):
+            block = real(descriptor, count if short is None else min(count, short))
+            reads.append((count, len(block), os.lseek(descriptor, 0, os.SEEK_CUR)))
+            return block
 
-            def read(self, size=-1):
-                block = self.handle.read(size)
-                reads.append(len(block))
-                return block
-
-            def __enter__(self):
-                self.handle.__enter__()
-                return self
-
-            def __exit__(self, *arguments):
-                return self.handle.__exit__(*arguments)
-
-        with mock.patch.object(native, "open", side_effect=lambda *a, **k: Counting(real(*a, **k)), create=True), \
+        with mock.patch.object(native.os, "read", side_effect=counting), \
                 mock.patch.object(native, "BLOCK_BYTES", 4096):
             try:
                 return call(), reads
             except ValueError as error:
                 return error, reads
+
+    def taken(self, reads):
+        return sum(length for _, length, _ in reads)
+
+    def assertWithin(self, reads, budget):
+        before = 0
+        for count, length, position in reads:
+            self.assertLessEqual(count, budget - before)
+            before += length
+            self.assertEqual(position, before)
+        self.assertLessEqual(before, budget)
 
     def test_a_file_above_the_limit_is_refused_before_it_is_read_and_a_file_up_to_it_is_read(self):
         size = self.path.stat().st_size
@@ -1375,18 +1375,30 @@ class ReadLimitTests(unittest.TestCase):
         for limit in (size, size + 1, 10**9):
             with self.subTest(limit=limit):
                 (found, data), reads = self.read_counting(lambda: native.regular_file(self.path, keep=True, limit=limit))
-                self.assertEqual((found["bytes"], len(data), sum(reads)), (size, size, size))
+                self.assertEqual((found["bytes"], len(data), self.taken(reads)), (size, size, size))
         (found, data), _ = self.read_counting(lambda: native.regular_file(self.path, keep=True))
         self.assertEqual((found["bytes"], len(data)), (size, size))
 
-    def test_a_file_that_grows_after_its_size_was_read_is_not_read_beyond_the_limit_and_one_block(self):
+    def test_a_file_that_grows_after_its_size_was_read_is_not_read_beyond_the_limit_and_one_byte_from_its_descriptor(self):
         real = os.fstat
         lying = lambda descriptor: types.SimpleNamespace(st_mode=real(descriptor).st_mode, st_size=100)
-        with mock.patch.object(native.os, "fstat", side_effect=lying):
-            refused, reads = self.read_counting(lambda: native.regular_file(self.path, keep=True, limit=10000))
-        self.assertIsInstance(refused, ValueError)
-        self.assertLessEqual(sum(reads), 10000 + 4096)
-        self.assertEqual(sum(reads), 10001)
+        for short in (None, 700):
+            with self.subTest(short=short), mock.patch.object(native.os, "fstat", side_effect=lying):
+                refused, reads = self.read_counting(
+                    lambda: native.regular_file(self.path, keep=True, limit=10000), short=short)
+            self.assertIsInstance(refused, ValueError)
+            self.assertEqual(self.taken(reads), 10001)
+            self.assertWithin(reads, 10001)
+        self.assertGreater(len(reads), 10)
+
+    def test_a_file_is_read_completely_when_the_descriptor_returns_short_reads(self):
+        for limit in (None, 10**9):
+            with self.subTest(limit=limit):
+                (found, data), reads = self.read_counting(
+                    lambda: native.regular_file(self.path, keep=True, limit=limit), short=333)
+                self.assertEqual(data, self.path.read_bytes())
+                self.assertEqual(found, {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+                self.assertGreater(len(reads), len(data) // 333)
 
     def test_a_record_is_read_up_to_its_limit_only(self):
         record = self.folder / "record.json"
@@ -1416,7 +1428,7 @@ class ReadLimitTests(unittest.TestCase):
         with mock.patch.object(native, "EXPORT_LIMIT", size - 1), mock.patch.object(native.os, "fstat", side_effect=lying):
             refused, reads = self.read_counting(lambda: native.load_export(export, contract, contract_path))
         self.assertIsInstance(refused, ValueError)
-        self.assertEqual(sum(reads), size)
+        self.assertEqual(self.taken(reads), size)
         with mock.patch.object(native, "EXPORT_LIMIT", size):
             self.assertEqual(native.load_export(export, contract, contract_path)[3], [])
 

@@ -353,12 +353,11 @@ def regular_file(path, size=None, keep=False, limit=None):
         if limit is not None and status.st_size > limit:
             raise ValueError(f"{Path(path).name} is larger than {limit} B")
         hasher, kept, total = hashlib.sha256(), [], 0
-        with open(descriptor, "rb", closefd=False) as handle:
-            while block := handle.read(BLOCK_BYTES if limit is None else min(BLOCK_BYTES, limit + 1 - total)):
-                hasher.update(block)
-                total += len(block)
-                if keep:
-                    kept.append(block)
+        while block := os.read(descriptor, BLOCK_BYTES if limit is None else min(BLOCK_BYTES, limit + 1 - total)):
+            hasher.update(block)
+            total += len(block)
+            if keep:
+                kept.append(block)
     finally:
         os.close(descriptor)
     if total != status.st_size:
