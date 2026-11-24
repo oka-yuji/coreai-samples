@@ -1850,6 +1850,16 @@ class ExportWeightsTests(unittest.TestCase):
             self.export()
         self.assertEqual(self.names(), ["distribution.aimodel", "export.json", "verification.aimodel"])
 
+    def test_the_configuration_of_the_assistant_is_read_with_its_pinned_size_even_when_the_check_before_is_skipped(self):
+        path = self.assistant / "config.json"
+        path.write_bytes(path.read_bytes() + b" ")
+        unchecked = {"side_effect": lambda folder, files, names: {name: dict(files[name]) for name in names}}
+        events, watched = tensor_reads()
+        with mock.patch.object(mtp, "verified", **unchecked), watched(), self.assertRaisesRegex(ValueError, "B, not"):
+            self.export()
+        self.assertEqual(events, [])
+        self.assertFalse(self.output.exists())
+
     def test_contracts_that_are_not_in_the_pinned_form_are_refused_before_the_output(self):
         pinned = read_json(self.assistant_contract)
         entries = pinned["files"]
@@ -1875,6 +1885,24 @@ class ExportWeightsTests(unittest.TestCase):
             with self.subTest(change=label), self.assertRaises(ValueError):
                 self.export()
             self.assertFalse(self.output.exists())
+
+    def test_a_contract_above_the_size_limit_is_refused_before_it_is_read_and_one_at_the_limit_is_read(self):
+        limit = mtp.CONTRACT_LIMIT
+        self.assertEqual(limit, 2 ** 20)
+        for label, path, reader in (("the target contract", self.contract, "target_contract"),
+                                    ("the assistant contract", self.assistant_contract, "load_assistant")):
+            saved = path.read_bytes()
+            path.write_bytes(saved + b" " * (limit - len(saved) + 1))
+            with self.subTest(file=label), mock.patch.object(mtp, reader) as read, \
+                    mock.patch.object(mtp, "export_assets", side_effect=fake()), \
+                    self.assertRaisesRegex(ValueError, "holds more than 1048576 B"):
+                self.export()
+            read.assert_not_called()
+            self.assertFalse(self.output.exists())
+            path.write_bytes(saved + b" " * (limit - len(saved)))
+            with self.subTest(file=label, size="at the limit"), mock.patch.object(mtp, "export_assets", side_effect=fake()):
+                self.export(output=self.folder / f"at-the-limit-{reader}")
+            path.write_bytes(saved)
 
     def test_an_export_that_stops_after_creating_its_output_leaves_only_the_name_of_the_error(self):
         def signalled(*arguments):
@@ -1939,22 +1967,63 @@ class ExportWeightsTests(unittest.TestCase):
                                                                   "failure": "KeyboardInterrupt"})
 
     def test_a_signal_while_the_failure_record_is_written_lets_the_write_finish(self):
-        real, events = mtp.write_json, []
+        real = mtp.write_json
+        for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            events, output = [], self.folder / label
 
-        def logged(path, value):
-            if Path(path).name == "failure.json":
-                events.append("signal")
-                signal.raise_signal(signal.SIGINT)
-            real(path, value)
-            events.append(Path(path).name)
+            def logged(path, value, events=events, number=number):
+                if Path(path).name == "failure.json":
+                    events.append("signal")
+                    signal.raise_signal(number)
+                real(path, value)
+                events.append(Path(path).name)
 
-        with mock.patch.object(mtp, "write_json", logged), \
-                mock.patch.object(mtp, "export_assets", side_effect=RuntimeError("a message")), \
-                self.assertRaises(KeyboardInterrupt):
+            with self.subTest(signal=label), mock.patch.object(mtp, "write_json", logged), \
+                    mock.patch.object(mtp, "export_assets", side_effect=RuntimeError("a message")), \
+                    self.assertRaises(KeyboardInterrupt):
+                self.export(output=output)
+            self.assertEqual(events, ["signal", "failure.json"])
+            self.assertEqual(self.names(output), ["failure.json"])
+            self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS, "failure": "RuntimeError"})
+
+    def guarded(self):
+        def terminated(number, frame):
+            raise RuntimeError("SIGTERM reached the handler that was set before the export")
+
+        def interrupted(number, frame):
+            raise KeyboardInterrupt("the handler that was set before the export")
+
+        for number, handler in ((signal.SIGTERM, terminated), (signal.SIGINT, interrupted)):
+            self.addCleanup(signal.signal, number, signal.signal(number, handler))
+        return terminated, interrupted
+
+    def test_a_sigterm_after_the_output_is_made_is_an_interruption_that_leaves_a_failure_record(self):
+        terminated, interrupted = self.guarded()
+        seen = {}
+
+        def terminate(*arguments):
+            seen.update(term=signal.getsignal(signal.SIGTERM), interrupt=signal.getsignal(signal.SIGINT))
+            signal.raise_signal(signal.SIGTERM)
+
+        with mock.patch.object(mtp, "export_assets", side_effect=terminate), self.assertRaises(KeyboardInterrupt):
             self.export()
-        self.assertEqual(events, ["signal", "failure.json"])
         self.assertEqual(self.names(), ["failure.json"])
-        self.assertEqual(read_json(self.output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS, "failure": "RuntimeError"})
+        self.assertEqual(read_json(self.output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS,
+                                                                   "failure": "KeyboardInterrupt"})
+        self.assertIsNot(seen["term"], terminated)
+        self.assertIs(seen["interrupt"], interrupted)
+
+    def test_the_handlers_that_were_set_before_are_set_again_after_a_success_a_failure_and_a_refusal(self):
+        terminated, interrupted = self.guarded()
+        with mock.patch.object(mtp, "export_assets", side_effect=fake()):
+            self.export(output=self.folder / "succeeded")
+        self.assertEqual((signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT)), (terminated, interrupted))
+        with mock.patch.object(mtp, "export_assets", side_effect=RuntimeError("a message")), self.assertRaises(RuntimeError):
+            self.export(output=self.folder / "failed")
+        self.assertEqual((signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT)), (terminated, interrupted))
+        with mock.patch.object(mtp, "export_assets", side_effect=fake()), self.assertRaises(FileExistsError):
+            self.export(output=self.folder / "succeeded")
+        self.assertEqual((signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT)), (terminated, interrupted))
 
     def test_an_output_that_another_process_made_after_the_check_is_refused_without_a_file_written_into_it(self):
         real, fired = Path.mkdir, []

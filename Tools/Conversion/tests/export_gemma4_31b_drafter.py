@@ -695,7 +695,7 @@ class WeightsExportTests(unittest.TestCase):
                 self.assertEqual(bool(found), differs, found)
 
     def exported_with_fakes(self, output, extra_in_output=False, extra_in_asset=False, functions=True, missing=None,
-                            link=None):
+                            link=None, hash_size=32):
         config = assistant.assistant_config(ASSISTANT, TARGET)
         expected = mtp.expected_assets(config, 7)
         folders = {folder: name for name, folder in mtp.ASSET_FOLDERS.items()}
@@ -705,7 +705,7 @@ class WeightsExportTests(unittest.TestCase):
                 path = Path(path)
                 path.mkdir()
                 for item in mtp.ASSET_ITEMS:
-                    (path / item).write_bytes(b"data")
+                    (path / item).write_bytes(b"h" * hash_size if item == "main.hash" else b"data")
                 if path.name == "distribution.aimodel":
                     if missing:
                         (path / missing).unlink()
@@ -727,6 +727,28 @@ class WeightsExportTests(unittest.TestCase):
                 mock.patch.object(drafter, "export_verification", lambda model, context: Program()), \
                 mock.patch("Tools.Conversion.adapters.gemma4_31b.export.inspect_asset", inspect):
             return self.export(output)
+
+    def test_a_main_hash_above_the_size_limit_stops_the_export_with_a_failure_record_and_one_at_the_limit_is_recorded(self):
+        self.assertEqual(mtp.MAIN_HASH_LIMIT, 64)
+        record = self.exported_with_fakes(self.folder / "at-the-limit", hash_size=64)
+        self.assertEqual([entry["main_hash"] for entry in record["assets"].values()], ["68" * 64] * 2)
+        output = self.folder / "above"
+        with self.assertRaisesRegex(ValueError, "main.hash holds more than 64 B"):
+            self.exported_with_fakes(output, hash_size=65)
+        self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json", "verification.aimodel"])
+        self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS, "failure": "ValueError"})
+        self.assertFalse((output / "export.json").exists())
+
+    def test_the_configuration_of_the_assistant_is_read_with_its_pinned_size_by_the_class_and_by_the_export(self):
+        values, size = mtp.table(self.target / SHARD, CONFIG), (self.assistant / "config.json").stat().st_size
+        self.assertEqual(mtp.class_drafter(self.assistant, values, CONFIG, 2, size).steps, 2)
+        self.assertEqual(mtp.class_drafter(self.assistant, values, CONFIG, 2).steps, 2)
+        for wrong in (size - 1, size + 1):
+            with self.subTest(size=wrong), self.assertRaisesRegex(ValueError, "B, not"):
+                mtp.class_drafter(self.assistant, values, CONFIG, 2, wrong)
+        with mock.patch.object(mtp, "class_drafter", wraps=mtp.class_drafter) as built:
+            self.exported_with_fakes(self.folder / "sized")
+        self.assertEqual([call.args[4] for call in built.call_args_list], [size, size])
 
     def test_the_record_passes_only_when_the_assets_and_the_output_folder_pass_their_checks(self):
         nothing = {"verification": [], "distribution": []}
