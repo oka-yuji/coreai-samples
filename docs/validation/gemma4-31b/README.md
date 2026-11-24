@@ -940,14 +940,14 @@ directory.
 - The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power, battery 100
   %). Every model job held the shared machine lock and started only when no process of the model tools (`coreai-chat`,
   `coreai-verify`, `CoreAISamples` and the Python conversion tools) was running. The two references,
-  the two comparisons, the checks of the command and the costs ran in one hold from 14:41:21 to 14:45:52 JST on
+  the two comparisons, the checks of the command and the costs ran in one hold from 16:12:26 to 16:17:14 JST on
   2026-11-24, taken as a timing measurement with no wait for the lock; the other processes of the machine were not
-  stopped. The test of the engine ran in a second hold (14:46:02 to 14:46:25), which is not a timing measurement.
-- Commit ac954297 with no local changes (the jobs ran from a `git archive` of the commit). The reference environment is
+  stopped. The test of the engine ran in a second hold (16:19:29 to 16:19:57), which is not a timing measurement.
+- Commit 4c88220b with no local changes (the jobs ran from a `git archive` of the commit). The reference environment is
   that of the sections above (numpy 2.4.6, safetensors 0.8.0, torch 2.15.0, transformers 5.16.1). `coreai-verify` was
-  built in release from d89fd838 and built again from ac954297 (`swift build --package-path Tools/Verify -c release`),
-  both with the SHA-256 `e1754211fb67f045fcbc8beb4ac497776cc48270b3362785ccf9644c7b37337f`; their Swift sources are the
-  same.
+  built in release from d89fd838, from ac954297 and from 4c88220b (`swift build --package-path Tools/Verify -c release`),
+  each time with the SHA-256 `e1754211fb67f045fcbc8beb4ac497776cc48270b3362785ccf9644c7b37337f`; their Swift sources
+  are the same.
 - Assets: the FP16 export `20261122T202000-cacdae94` (`main.hash` `8a242c80a12e…`) and the 8-bit export
   `20261123T043147-264994c4` (`main.hash` `4284357701f6…`), each with the tap layers 1 to 5.
 - References: `layers.py run` of the original implementation with `--layers 6 --taps 1,2,3,4,5,6`, which holds the
@@ -960,13 +960,18 @@ directory.
 
 | | FP16 weights | 8-bit weights |
 |---|---:|---:|
-| Run | 32.3 s | 31.0 s |
-| Hashing the files to load | 24.1 s | 23.2 s |
-| Loading | 2.6 s | 2.2 s |
-| `short` (26 rows) | 0.23 s | 0.23 s |
-| `long` (1,400 rows) | 4.44 s | 4.46 s |
-| Peak resident memory | 26,734,919,680 B | 30,040,195,072 B |
-| Kernel lifetime footprint peak | 24,621,369,392 B | 28,401,849,200 B |
+| Run | 32.2 s | 36.6 s |
+| Hashing the files to load | 24.2 s | 22.7 s |
+| Loading | 2.1 s | 7.8 s |
+| `short` (26 rows) | 0.22 s | 0.23 s |
+| `long` (1,400 rows) | 4.33 s | 4.29 s |
+| Peak resident memory | 26,721,943,552 B | 29,637,787,648 B |
+| Kernel lifetime footprint peak | 24,625,989,704 B | 28,403,782,488 B |
+
+`Run` is the whole run, from the check of the files to load to the last array, and `Hashing the files to load` is that
+check against the contract, which comes first. `Loading` is what lies between that check and the first input: for the
+8-bit reference it includes the check of its export and the reading of its quantized tensors (which is why it is longer
+than that of the FP16 reference), then, for both, the loading of the model and the application of the weights.
 
 The 8-bit reference restored 123 tensors from the quantized file of the export (3,294,771,912 B,
 `5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833`), whose export record has the SHA-256
@@ -1002,12 +1007,12 @@ in 26 and in 4 calls.
 
 | Condition | Seconds (FP16 / 8-bit) | Scoring seconds (FP16 / 8-bit) |
 |---|---:|---:|
-| `short-c1` | 17.0 / 5.5 | 0.76 / 0.56 |
-| `short-c8` | 4.4 / 1.7 | 0.43 / 0.19 |
-| `long-main` | 5.0 / 2.9 | 1.40 / 1.52 |
-| `long-prefill` | 11.2 / 7.3 | 7.19 / 5.46 |
+| `short-c1` | 20.0 / 5.7 | 0.75 / 0.56 |
+| `short-c8` | 3.7 / 1.7 | 0.23 / 0.18 |
+| `long-main` | 5.0 / 3.0 | 1.45 / 1.49 |
+| `long-prefill` | 11.3 / 7.5 | 7.26 / 5.39 |
 
-The first condition of each asset specialized the asset (12.1 s and 3.5 s); the others used the specialization cache.
+The first condition of each asset specialized the asset (15.1 s and 3.6 s); the others used the specialization cache.
 The caches took 21,660,884 KiB and 8,739,724 KiB after the comparisons, and were removed after the comparisons and
 again after the checks.
 
@@ -1035,17 +1040,17 @@ place; two runs of each kind, alternating, in this order of plain, with outputs,
 
 | | Seconds of the call | Peak resident set | Peak memory footprint |
 |---|---|---:|---:|
-| FP16, without outputs | 0.980, 0.942 | 35,682,648,064 B | 2,288,124,632 B |
-| FP16, with both outputs | 0.964, 0.992 | 35,682,729,984 B | 2,288,370,464 B |
-| 8-bit, without outputs | 1.152, 1.214 | 12,255,625,216 B | 2,154,798,592 B |
-| 8-bit, with both outputs | 1.202, 1.256 | 12,255,805,440 B | 2,154,012,136 B |
+| FP16, without outputs | 0.946, 0.986 | 35,682,795,520 B | 2,287,502,040 B |
+| FP16, with both outputs | 1.500, 0.963 | 35,682,779,136 B | 2,288,124,656 B |
+| 8-bit, without outputs | 1.265, 1.544 | 12,255,838,208 B | 2,153,848,296 B |
+| 8-bit, with both outputs | 1.486, 1.927 | 12,255,821,824 B | 2,153,979,320 B |
 
 The logits of the four runs of each asset are identical (SHA-256). Peak values are the largest of the two runs.
 
 ### Test of the engine
 
 `ModelIntegrationTests.outputRowsFollowTheLastCall` ran on the FP16 export (opt-in with `COREAI_OUTPUT_ROWS_BUNDLE`,
-under the shared lock) and passed in 14.337 s. It reads both outputs in one call and by row, and checks that a row out
+under the shared lock) and passed in 13.993 s. It reads both outputs in one call and by row, and checks that a row out
 of range, an output that the last read did not ask for, `logits` or a name that the function does not have as an output
 (the engine's tokens stay as they were), and `hidden_states` from `prefill` are refused, and that the outputs are
 unavailable after the next read, a reset, a restore or an unload. The test requires the asset to have the `prefill`
@@ -1066,12 +1071,12 @@ function. The cache of the testing helper (21,660,884 KiB) was removed after the
 
 | File | SHA-256 |
 |---|---|
-| `record.json` of the FP32 reference with the FP16 weights | `7dc8a30c0a9ce6c2583ceb4425a2c2e6b1b7a36ea77f93efbbc098bcf42cfa04` |
-| `record.json` of the FP32 reference with the 8-bit weights | `7bf7ce92a7dc77882ce80708962fc4bebbd40c8564964fa49e206f48557249a7` |
+| `record.json` of the FP32 reference with the FP16 weights | `ad043097d1796a773ecee410b5690844c2e472682da4b322b4ebb0491714d540` |
+| `record.json` of the FP32 reference with the 8-bit weights | `3b1edbc607604b1170e0ce253b4a34645dc04796f7781860339345520427ea0b` |
 | `export.json` of the FP16 export | `e67ff01f72625b6118972c81c9889b60f3e4ee59d471cc558aa36078fb680353` |
 | `export.json` of the 8-bit export | `ce5a3eb725214faac782150e2606476b666da7a1c7ec43cbcea889d6aec7b025` |
-| `comparison.json` of the FP16 export | `f941c50931b7855a1c6120ba9d7f0064ad9b77a9316ad851c9429d2776a5d321` |
-| `comparison.json` of the 8-bit export | `9e45589bfdeabbd06f40452517affb50eecd70c2057ae4fc8a7eef3de4e7e979` |
+| `comparison.json` of the FP16 export | `aab3ba5ba8cc68a74ef357fe74b3e9e6a1db367dbd2764d9241a37d6dbd60dc4` |
+| `comparison.json` of the 8-bit export | `553a52529e21f54756374eeb1cd4fd0b30985b86b9d4e7a769b14f3dcf566d7c` |
 | `coreai-verify` (release) | `e1754211fb67f045fcbc8beb4ac497776cc48270b3362785ccf9644c7b37337f` |
 
 ~~~sh
