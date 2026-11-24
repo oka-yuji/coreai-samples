@@ -1148,15 +1148,17 @@ and 1,878,804,231 (`distribution`) Float16 elements next to 386 Float32, 113 Int
 ### Resources
 
 The tool took 87.15 s in all (`/usr/bin/time -l`). Of that, 45.09 s are `total_s` of the record, from the load of the
-embedding table (`load_s` 0.31 s) to the end of the inspections; the other 42.06 s are the start of the process, the checks
-of the files before the output folder is made and the same checks again after the assets were made (the hashing of the
-shard in each) and the write of `export.json`. The second check, which is not in `total_s`, is why this run took about
-20 s longer than the run at commit 542f17c4 (87.15 s against 66.67 s). The largest resident set of the process was
-19,285,114,880 B and the lifetime peak of its footprint 15,753,001,456 B; it had no swaps. The run at commit 542f17c4,
-which checked the files once, took 66.67 s, with 19,286,622,208 B and 15,754,115,520 B, and wrote `main.mlirb` files of 3,757,639,625 B
-(`verification`) and 3,757,696,076 B (`distribution`); the run at commit 475e9134 took 66.71 s, with 19,287,031,808 B and
-15,753,165,296 B, and wrote 3,757,639,619 B and 3,757,696,070 B. The three runs differ in the size of `main.mlirb` by a
-few bytes and in every `main.hash`; the cause was not examined.
+embedding table (`load_s` 0.31 s) to the end of the inspections. The other 42.06 s lie outside `total_s`; they contain
+the start of the process, the checks of the files before the output folder is made, the same checks again after the
+assets were made (the hashing of the shard in each) and the write of `export.json`, and the time of each of these was
+not measured on its own. This run, which checked the files a second time, took 87.15 s; the run at commit 542f17c4,
+which checked them once, took 66.67 s. The time of the second check was not measured on its own, and it is not in
+`total_s`. The largest resident set of the process was 19,285,114,880 B and the lifetime peak of its footprint
+15,753,001,456 B; it had no swaps. At commit 542f17c4 the two values were 19,286,622,208 B and 15,754,115,520 B, and the
+run wrote `main.mlirb` files of 3,757,639,625 B (`verification`) and 3,757,696,076 B (`distribution`); at commit
+475e9134, which also checked the files once and took 66.71 s, they were 19,287,031,808 B and 15,753,165,296 B, and the
+run wrote 3,757,639,619 B and 3,757,696,070 B. The three runs differ in the size of `main.mlirb` by a few bytes and in
+every `main.hash`; the cause was not examined.
 
 ### Form that the verification CLI accepts
 
