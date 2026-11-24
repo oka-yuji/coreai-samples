@@ -575,7 +575,7 @@ class CandidateRunTests(unittest.TestCase):
         contract = write_snapshot(self.folder / "eight", hidden_size=64)[1]
         return write_export(self.folder / "export-8bit", contract, quantized_tensors({**TEXT, "hidden_size": 64})), contract
 
-    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH, contract=None):
+    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH, contract=None, verifier=None):
         prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
                   for record in self.records}
         plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": main_hash,
@@ -584,7 +584,7 @@ class CandidateRunTests(unittest.TestCase):
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
         with contextlib.redirect_stdout(io.StringIO()):
-            return layer1_candidate.run(self.export, self.forced, self.verifier, self.folder / output,
+            return layer1_candidate.run(self.export, self.forced, verifier or self.verifier, self.folder / output,
                                         contract or self.contract)
 
     def called(self):
@@ -671,6 +671,33 @@ class CandidateRunTests(unittest.TestCase):
         self.assertFalse((self.folder / "other-forced").exists() or (self.folder / "unlaunched").exists())
         self.assertEqual(self.called(), [])
         self.assertFalse(self.launches.exists())
+
+    def test_a_verifier_given_by_a_name_alone_is_the_file_of_the_current_folder_that_is_hashed_and_launched(self):
+        here, there, marker = self.folder / "here", self.folder / "there", self.folder / "decoy-launched"
+        here.mkdir()
+        there.mkdir()
+        decoy = there / "fake-verify"
+        decoy.write_text(f"#!{sys.executable}\nfrom pathlib import Path\nPath({str(marker)!r}).write_text('launched')\n")
+        decoy.chmod(0o755)
+        self.verifier = here / "fake-verify"
+        for label, name in (("a bare name", "fake-verify"), ("a name with a dot and a slash", "./fake-verify")):
+            with self.subTest(case=label), contextlib.chdir(here), \
+                    mock.patch.dict(os.environ, {"PATH": f"{there}{os.pathsep}{os.environ.get('PATH', '')}"}):
+                result = self.run_candidate(output=f"named-{len(self.called())}", verifier=name)
+            self.assertTrue(result["passed"], result["problems"])
+            self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
+        self.assertFalse(marker.exists())
+        self.assertEqual(self.called(), [record["id"] for record in self.records] * 2)
+
+    def test_a_verifier_path_that_cannot_be_resolved_is_refused_before_anything_is_written_or_launched(self):
+        loop = self.folder / "loop"
+        loop.symlink_to(loop.name)
+        self.run_candidate()
+        launched = self.launches.read_text()
+        with self.assertRaises((ValueError, OSError)):
+            self.run_candidate(output="loop-out", verifier=loop / "fake-verify")
+        self.assertFalse((self.folder / "loop-out").exists())
+        self.assertEqual(self.launches.read_text(), launched)
 
     @unittest.skipIf(not GEMMA4, "Transformers with Gemma 4 and PyTorch are required to write the quantized tensors")
     def test_an_8bit_export_gives_the_role_w8(self):

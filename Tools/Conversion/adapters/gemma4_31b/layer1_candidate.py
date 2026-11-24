@@ -91,6 +91,10 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
     output = Path(output)
     if os.path.lexists(output):
         raise FileExistsError(f"The candidate logits must be written to a new folder: {output}")
+    try:
+        verifier = Path(verifier).resolve()
+    except (OSError, RuntimeError) as error:
+        raise ValueError(f"The verifier path cannot be resolved ({type(error).__name__})") from error
     contract = load_contract(contract_path)
     vocabulary = contract["config"]["vocab_size"]
     exported, export_hash, facts, problems = native.load_export(Path(export_folder), contract, contract_path)
