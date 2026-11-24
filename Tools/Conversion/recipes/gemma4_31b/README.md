@@ -791,6 +791,9 @@ it makes the array from the values. It resolves `--verifier` to an absolute path
 same path. It prints a short summary, and the exit code is 0 only when the comparison passed. The specialization cache
 that `coreai-verify` makes stays in place; remove it yourself.
 
+The numbers of the first six layers are in
+[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-read-by-the-own-engine-in-the-first-six-layers-702).
+
 ## MTP drafter
 
 `adapters/gemma4_31b/drafter.py` defines `Gemma4AssistantDrafter`, a model class of the MTP drafter
