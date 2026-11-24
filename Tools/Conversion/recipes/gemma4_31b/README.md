@@ -786,9 +786,11 @@ standard error of `coreai-verify` (`<condition>.log`), and last `comparison.json
 SHA-256 and non-finite values with their rows, and for an output without them the sums of squares by layer of the
 reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
 below 0.99, and the checks. When `coreai-verify` exits with an error, does not answer within 1,800 s, prints no record
-or writes a file that differs from its record, that condition fails and its `problems` say why: the comparison is still
-written, with `passed` false, and the exit code is 1, so look at `comparison.json`. It writes `comparison.json` last,
-after every condition, so a folder with `comparison.json` is complete (its `passed` says whether the comparison passed).
+or writes a `hidden_states` or `tap_hidden_states` file whose size or SHA-256 differs from its record, that condition
+fails and its `problems` say why (the logits file is not compared with the record beyond its shape: its size and
+SHA-256 are recorded as found): the comparison is still written, with `passed` false, and the exit code is 1, so look
+at `comparison.json`. It writes `comparison.json` last, after every condition, so a folder with `comparison.json` is
+complete (its `passed` says whether the comparison passed).
 Its records follow the promises of `run` ([FP32 outputs of the first layers](#fp32-outputs-of-the-first-layers)): an
 error that reaches the tool itself (for example a full disk while it writes `comparison.json`) leaves `failure.json`
 with the type of the error and no `comparison.json`, SIGINT and SIGTERM are held back while it makes the folder and
