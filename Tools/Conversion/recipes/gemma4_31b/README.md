@@ -412,8 +412,9 @@ new folder, so a folder with `record.json` is complete. An error leaves `failure
 and then stop it as for an interruption; one that arrives anywhere else stops it as an error does. It does not promise a
 record when a second interruption arrives after it has begun to handle an error and before it writes `failure.json`, nor
 for a SIGTERM that arrives after it has put back the earlier handler of SIGTERM (the records written before stay), and
-an interruption that arrives while it puts the handler back can leave its handler in the process. Treat a folder with no
-record as unfinished. The original implementation reads each input in one call; its tap layer i is entry i of
+an interruption that arrives while it puts the handler back can leave its handler in the process. When it cannot write
+`failure.json` either (for example when the volume of the output folder is full), neither record remains. Treat a folder
+with no record as unfinished. The original implementation reads each input in one call; its tap layer i is entry i of
 `output_hidden_states`, except for the last layer, whose entry the original implementation replaces with the output of
 the final norm: that tap is the output of the last layer, taken with a forward hook. The model class reads the window
 and then calls of 1, 2, 4 and 8 tokens with its caches. `compare` passes only for a run of the original implementation
