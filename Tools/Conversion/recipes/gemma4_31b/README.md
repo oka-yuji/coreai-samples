@@ -295,6 +295,21 @@ passed. `CandidateRunTests` fixes the records, the refusals and the checks on th
 launch on a bundle writes the specialization cache of `coreai-verify` and the later launches read it; it stays in place,
 so remove it yourself.
 
+### Records and interrupts
+
+Both commands guarantee three things. (1) The success record is written last, after all of the processing: a `run.json`
+with `passed` true means that the files of the run are complete, and `logits.json` is written before it. (2) A run that
+ends with an error leaves a failure record in the output folder and no success record: a `failure.json`, or a `run.json`
+with `passed` false; a folder of the baseline side that has a `failure.json` has no `logits.json`. (3) An interrupt
+(SIGINT) is deferred while the output folder is made and while a success or a failure record is written; an interrupt
+that comes at another time is handled as `KeyboardInterrupt`, in the same way as an error. `AnchorRunTests` and
+`CandidateRunTests` fix these.
+
+Two cases are not guaranteed, both of them a few instructions long: another interrupt between the start of the handling
+of an error or an interrupt and the start of the writing of the failure record, after which no record can be left, and an
+interrupt at the moment in which the command restores the signal handlers, after which a handler of the command can stay
+in the process. A folder without a record is an unfinished run.
+
 ## Layer 1 comparison
 
 `layer1_compare` judges layer 1 of the quality contract (§4, #697). It compares the logits that two implementations give
