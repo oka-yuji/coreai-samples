@@ -15,6 +15,7 @@ extension ModelIntegrationTests {
         .enabled(if: !outputRowsBundlePath.isEmpty))
     func outputRowsFollowTheLastCall() async throws {
         let engine = try await Engine(bundle: try ModelBundle(url: URL(filePath: outputRowsBundlePath)))
+        try #require(engine.hasPrefillFunction)
         let tokens: [Int32] = [2] + (1...11).map { Int32(1_000 + $0) }
         let both: Set<String> = ["hidden_states", "tap_hidden_states"]
         try await engine.readInOneCall(Array(tokens[0..<4]), outputs: both)
@@ -49,19 +50,17 @@ extension ModelIntegrationTests {
         engine.reset()
         #expect(throws: OutputRowError.notRead("tap_hidden_states")) { try engine.output("tap_hidden_states", row: 0) }
 
-        if engine.hasPrefillFunction {
-            await #expect(throws: OutputRowError.unreadableOutput("hidden_states")) {
-                try await engine.readInOneCall(
-                    Array(tokens[0..<3]), usePrefillFunction: true, outputs: ["hidden_states"])
-            }
+        await #expect(throws: OutputRowError.unreadableOutput("hidden_states")) {
             try await engine.readInOneCall(
-                Array(tokens[0..<3]), usePrefillFunction: true, outputs: ["tap_hidden_states"])
-            #expect(try engine.output("tap_hidden_states", row: 2).count == taps.count)
-            #expect(throws: LogitRowError.noLogits) { try engine.logits(row: 0) }
-            try await engine.readInOneCall([tokens[3]])
-            #expect(throws: OutputRowError.notRead("tap_hidden_states")) {
-                try engine.output("tap_hidden_states", row: 0)
-            }
+                Array(tokens[0..<3]), usePrefillFunction: true, outputs: ["hidden_states"])
+        }
+        try await engine.readInOneCall(
+            Array(tokens[0..<3]), usePrefillFunction: true, outputs: ["tap_hidden_states"])
+        #expect(try engine.output("tap_hidden_states", row: 2).count == taps.count)
+        #expect(throws: LogitRowError.noLogits) { try engine.logits(row: 0) }
+        try await engine.readInOneCall([tokens[3]])
+        #expect(throws: OutputRowError.notRead("tap_hidden_states")) {
+            try engine.output("tap_hidden_states", row: 0)
         }
         try await engine.readInOneCall([tokens[engine.tokens.count]], outputs: both)
         engine.unload()
