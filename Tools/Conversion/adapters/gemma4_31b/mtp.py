@@ -996,34 +996,33 @@ def snapshot_checks(snapshot, assistant_snapshot, contract, assistant):
 
 
 def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, steps, context, output):
-    output = Path(output)
-    with terminating_as_interruption():
-        if os.path.lexists(output):
-            raise FileExistsError(f"The export must be written to a new folder: {output}")
-        check_export_steps(steps)
-        data = small(contract_path, CONTRACT_LIMIT)
-        contract = checked_target(checked_contract(strict(data)), Path(contract_path).name)
-        contract_sha256 = hashlib.sha256(data).hexdigest()
-        data = small(assistant_path, CONTRACT_LIMIT)
-        assistant, assistant_sha256 = checked_assistant(strict(data)), hashlib.sha256(data).hexdigest()
-        config = contract["config"]
-        check_context(context, config)
-        checks = snapshot_checks(snapshot, assistant_snapshot, contract, assistant)
-        shard, files, assistant_files = checks
-        config_bytes = assistant["files"]["config.json"]["bytes"]
-        settings = assistant_config(document(Path(assistant_snapshot) / "config.json", config_bytes),
-                                    {key: config[key] for key in TARGET})
-        expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
-        expect(Path(snapshot) / shard, table_shape(config), False)
-        plan = {"assistant": Path(assistant_snapshot), "shard": Path(snapshot) / shard, "config": config,
-                "settings": settings, "config_bytes": config_bytes, "steps": steps, "context": context,
-                "sources": {"model": {"id": contract["model_id"], "revision": contract["revision"],
-                                      "contract_sha256": contract_sha256, "verified_before_loading": files},
-                            "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
-                                          "contract_sha256": assistant_sha256,
-                                          "verified_before_loading": assistant_files}}}
-        made = False
-        try:
+    output, made = Path(output), False
+    try:
+        with terminating_as_interruption():
+            if os.path.lexists(output):
+                raise FileExistsError(f"The export must be written to a new folder: {output}")
+            check_export_steps(steps)
+            data = small(contract_path, CONTRACT_LIMIT)
+            contract = checked_target(checked_contract(strict(data)), Path(contract_path).name)
+            contract_sha256 = hashlib.sha256(data).hexdigest()
+            data = small(assistant_path, CONTRACT_LIMIT)
+            assistant, assistant_sha256 = checked_assistant(strict(data)), hashlib.sha256(data).hexdigest()
+            config = contract["config"]
+            check_context(context, config)
+            checks = snapshot_checks(snapshot, assistant_snapshot, contract, assistant)
+            shard, files, assistant_files = checks
+            config_bytes = assistant["files"]["config.json"]["bytes"]
+            settings = assistant_config(document(Path(assistant_snapshot) / "config.json", config_bytes),
+                                        {key: config[key] for key in TARGET})
+            expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
+            expect(Path(snapshot) / shard, table_shape(config), False)
+            plan = {"assistant": Path(assistant_snapshot), "shard": Path(snapshot) / shard, "config": config,
+                    "settings": settings, "config_bytes": config_bytes, "steps": steps, "context": context,
+                    "sources": {"model": {"id": contract["model_id"], "revision": contract["revision"],
+                                          "contract_sha256": contract_sha256, "verified_before_loading": files},
+                                "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
+                                              "contract_sha256": assistant_sha256,
+                                              "verified_before_loading": assistant_files}}}
             with deferred_interrupts():
                 output.mkdir(parents=True)
                 made = True
@@ -1032,13 +1031,13 @@ def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, 
                 raise ValueError("A file that was read changed while the assets were made")
             with deferred_interrupts():
                 write_json(output / "export.json", record)
-            return record
-        except BaseException as error:
-            if made:
-                with deferred_interrupts():
-                    (output / "export.json").unlink(missing_ok=True)
-                    write_json(output / "failure.json", {"schema": EXPORT_WEIGHTS, "failure": type(error).__name__})
-            raise
+        return record
+    except BaseException as error:
+        if made:
+            with deferred_interrupts():
+                (output / "export.json").unlink(missing_ok=True)
+                write_json(output / "failure.json", {"schema": EXPORT_WEIGHTS, "failure": type(error).__name__})
+        raise
 
 
 def main():

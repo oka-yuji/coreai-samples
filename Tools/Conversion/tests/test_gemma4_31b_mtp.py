@@ -1161,6 +1161,33 @@ class ReadTests(unittest.TestCase):
             path.write_bytes(b"")
             self.assertEqual(mtp.digest(path), {"bytes": 0, "sha256": hashlib.sha256(b"").hexdigest()})
 
+    def test_a_file_that_is_read_in_short_pieces_is_asked_for_no_more_than_what_remains_up_to_one_byte_past_its_size(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path, real = Path(folder) / "file", os.read
+            content = bytes(range(100))
+            path.write_bytes(content)
+            for label, growing in (("a file of its size", False), ("a file that keeps growing", True)):
+                requested, returned = [], []
+
+                def piece(descriptor, length, growing=growing, requested=requested, returned=returned):
+                    requested.append(length)
+                    if sum(returned) > 10 * 1024 * 1024:
+                        raise AssertionError("the read did not stop")
+                    block = b"y" * min(length, 60) if growing else real(descriptor, min(length, 60))
+                    returned.append(len(block))
+                    return block
+
+                with self.subTest(file=label), mock.patch.object(os, "read", piece):
+                    if growing:
+                        with self.assertRaisesRegex(ValueError, "holds more than 100 B"):
+                            mtp.digest(path, 100)
+                    else:
+                        self.assertEqual(mtp.digest(path, 100),
+                                         {"bytes": 100, "sha256": hashlib.sha256(content).hexdigest()})
+                    self.assertTrue(all(length <= 101 - sum(returned[:index]) for index, length in enumerate(requested)),
+                                    requested)
+                    self.assertEqual(sum(returned), 101 if growing else 100)
+
     def test_a_target_contract_that_changes_between_its_two_reads_is_refused(self):
         with tempfile.TemporaryDirectory() as folder:
             path = write_contract(folder, {name: {"bytes": 1, "sha256": "0" * 64} for name in TOKENIZER_FILES})
@@ -2231,6 +2258,47 @@ class ExportWeightsTests(unittest.TestCase):
         with mock.patch.object(mtp, "export_assets", side_effect=fake()), self.assertRaises(FileExistsError):
             self.export(output=self.folder / "succeeded")
         self.assertEqual((signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT)), (terminated, interrupted))
+
+    def signalled_while_the_handlers_are_set_again(self, number, terminated, seen, output):
+        real = signal.signal
+
+        def setting(signum, handler):
+            if signum == signal.SIGTERM and handler is terminated:
+                seen.append((output / "export.json").exists())
+                signal.raise_signal(number)
+            return real(signum, handler)
+
+        return mock.patch.object(signal, "signal", setting)
+
+    def test_a_signal_while_the_handlers_are_set_again_after_the_success_record_is_written_replaces_it_by_a_failure_record(self):
+        for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            terminated, _ = self.guarded()
+            output, seen = self.folder / label, []
+            with self.subTest(signal=label), self.signalled_while_the_handlers_are_set_again(
+                    number, terminated, seen, output), mock.patch.object(mtp, "export_assets", side_effect=fake()), \
+                    self.assertRaises(KeyboardInterrupt):
+                self.export(output=output)
+            self.assertEqual(seen, [True])
+            self.assertEqual(self.names(output), ["distribution.aimodel", "failure.json", "verification.aimodel"])
+            self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS,
+                                                                  "failure": "KeyboardInterrupt"})
+
+    def test_a_signal_while_the_handlers_are_set_again_after_a_refusal_before_the_output_is_made_writes_nothing(self):
+        (self.folder / "folder").mkdir()
+        (self.folder / "folder/kept").write_text("x")
+        for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            for case, arguments in (("a bad number of steps", {"steps": 0, "output": self.folder / label}),
+                                    ("an existing output", {"output": self.folder / "folder"})):
+                terminated, _ = self.guarded()
+                seen = []
+                with self.subTest(signal=label, case=case), self.signalled_while_the_handlers_are_set_again(
+                        number, terminated, seen, arguments["output"]), \
+                        mock.patch.object(mtp, "export_assets") as work, self.assertRaises(KeyboardInterrupt):
+                    self.export(**arguments)
+                work.assert_not_called()
+                self.assertEqual(seen, [False])
+                self.assertFalse((self.folder / label).exists())
+                self.assertEqual(self.names(self.folder / "folder"), ["kept"])
 
     def test_an_output_that_another_process_made_after_the_check_is_refused_without_a_file_written_into_it(self):
         real, fired = Path.mkdir, []
