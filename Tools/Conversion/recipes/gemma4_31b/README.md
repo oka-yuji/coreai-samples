@@ -786,10 +786,11 @@ standard error of `coreai-verify` (`<condition>.log`), and last `comparison.json
 SHA-256 and non-finite values with their rows, and for an output without them the sums of squares by layer of the
 reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
 below 0.99, and the checks. When `coreai-verify` exits with an error, does not answer within 1,800 s, prints no record
-or writes a `hidden_states` or `tap_hidden_states` file whose size or SHA-256 differs from its record, that condition
-fails and its `problems` say why (the logits file is not compared with the record beyond its shape: its size and
-SHA-256 are recorded as found): the comparison is still written, with `passed` false, and the exit code is 1, so look
-at `comparison.json`. It writes `comparison.json` last, after every condition, so a folder with `comparison.json` is
+or writes a `hidden_states` or `tap_hidden_states` file that is not rows × width × 2 bytes or whose SHA-256 is not the
+one in its record, that condition fails and its `problems` say why (the comparison does not open the logits file: it
+compares only the `shape` that the record of `coreai-verify` gives for it with the expected one, and records neither
+its size nor its SHA-256): the comparison is still written, with `passed` false, and the exit code is 1, so look at
+`comparison.json`. It writes `comparison.json` last, after every condition, so a folder with `comparison.json` is
 complete (its `passed` says whether the comparison passed).
 Its records follow the promises of `run` ([FP32 outputs of the first layers](#fp32-outputs-of-the-first-layers)): an
 error that reaches the tool itself (for example a failure while it writes `comparison.json`) leaves `failure.json`
@@ -797,12 +798,12 @@ with the type of the error and no `comparison.json`, and when it cannot write `f
 full), neither record remains; SIGINT and SIGTERM are held back while it makes the folder and writes `comparison.json`
 or `failure.json`, and an interruption stops `coreai-verify` too, also when it arrives as the
 process starts. What `run` does not promise is not promised here either, and a folder with no record is unfinished. It
-reads the reference, the verifier, the export record and the files that `coreai-verify` writes only as regular files,
-opened without waiting and refusing a link as the last part of the path (a link given for `--verifier` is followed,
-because the path is resolved first), of the recorded size where a record gives one,
-and no further than a limit on the open file: 1 MiB for the reference record; for an array of the reference, the rows ×
-width × 4 bytes of its values plus up to 64 KiB of header, and a recorded size outside that range is refused before the
-file is opened; the rows × width × 2 bytes of the file for each output of `coreai-verify`; and 16 MiB for the export
+reads the reference, the verifier, the export record and the `hidden_states` and `tap_hidden_states` files that
+`coreai-verify` writes only as regular files, opened without waiting and refusing a link as the last part of the path
+(a link given for `--verifier` is followed, because the path is resolved first), of the recorded size where a record
+gives one, and no further than a limit on the open file: 1 MiB for the reference record; for an array of the reference,
+the rows × width × 4 bytes of its values plus up to 64 KiB of header, and a recorded size outside that range is refused
+before the file is opened; the rows × width × 2 bytes of the file for each of those files; and 16 MiB for the export
 record and for the two bundle files that it keeps in memory (`main.hash` and `metadata.json`). It only hashes the other
 bundle files and the verifier, without keeping them: a bundle file must have its recorded size, and the verifier has no
 limit. It reads the header of an array of the reference first and refuses a shape, type (little-endian float32) or order
