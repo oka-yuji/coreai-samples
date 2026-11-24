@@ -80,7 +80,7 @@ def recorded(output, result, handoff):
     try:
         write_json(output / "logits.json", handoff)
         write_json(output / "run.json", result)
-    except Exception as error:
+    except BaseException as error:
         result = {"schema": SCHEMA, "passed": False, "items": [],
                   "problems": [f"the run could not be recorded ({type(error).__name__})"]}
         write_json(output / "run.json", result)

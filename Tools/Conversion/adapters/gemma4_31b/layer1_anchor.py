@@ -257,12 +257,12 @@ def handoff(record):
 
 def recorded(output, record):
     try:
-        write_json(output / "run.json", record)
         if record["passed"] and record["schema"] == SCHEMA:
             write_json(output / "logits.json", handoff(record))
-    except Exception as error:
-        write_json(output / "run.json", {"schema": record["schema"], "passed": False,
-                                         "error": f"the record could not be written ({type(error).__name__})"})
+        write_json(output / "run.json", record)
+    except BaseException as error:
+        (output / "logits.json").unlink(missing_ok=True)
+        write_json(output / "run.json", {"schema": record["schema"], "passed": False, "error": type(error).__name__})
         return 1
     return 0 if record["passed"] else 1
 

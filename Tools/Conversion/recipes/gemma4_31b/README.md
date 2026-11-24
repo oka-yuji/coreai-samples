@@ -228,11 +228,12 @@ in that order.
 |---|---|
 | `<id>.f32` | The logits of the scored rows: float32, little-endian, row-major, [rows, vocabulary] |
 | `run.json` | `passed`, `checks`, `error` (the type name of an exception after the folder was made), `weights`, `compute`, `loading`, `forced` and per item the token counts, `seconds`, the size and SHA-256 of its file, the memory after it and the swap use before and after it, then `resources` and `timing` |
-| `logits.json` | Written only when the run passed: role `anchor`, `weights`, `forced_sha256` and one entry per item |
+| `logits.json` | Written only when the run passed, before `run.json`: role `anchor`, `weights`, `forced_sha256` and one entry per item |
 | `monitor.tsv`, `failure.json` | The monitor of `reference` and its record of a stop, or, when an exception ended the run before `run.json` was written, the `schema`, `passed` and the type name of the exception in `error` |
 
-`passed` is true only when every check in `run.json` is. `AnchorRunTests` and `RestoredRunTests` fix the records and
-the refusals.
+`passed` is true only when every check in `run.json` is. `run.json` is the last file that a run writes: an exception
+while the records are saved removes `logits.json` and leaves a `run.json` with `passed` false and the type name in
+`error`. `AnchorRunTests` and `RestoredRunTests` fix the records and the refusals.
 
 `layer1_anchor agreement` takes the same options without `--weights` and with `--items` required, and writes
 `run.json` without array files or `logits.json`. It computes the scored rows of the items as `run` does with

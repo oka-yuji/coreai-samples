@@ -127,6 +127,18 @@ sys.exit(code)
 """
 
 
+def interrupting_write(module, call):
+    real, names = module.write_json, []
+
+    def write(path, value):
+        names.append(Path(path).name)
+        if len(names) == call:
+            raise KeyboardInterrupt
+        return real(path, value)
+
+    return mock.patch.object(module, "write_json", side_effect=write), names
+
+
 def forced_record(name, inputs, generated):
     tokens = inputs + generated[:-1]
     return {"id": name, "input_sha256": tokens_sha256(inputs), "tokens": tokens, "tokens_sha256": tokens_sha256(tokens),
@@ -397,6 +409,26 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(read_json(self.folder / "out/failure.json"),
                          {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "ValueError"})
+
+    def test_the_handoff_is_written_before_the_run_record(self):
+        patched, names = interrupting_write(layer1_anchor, 0)
+        with patched:
+            code, _, _ = self.main("run", "--weights", "float16")
+        self.assertEqual((code, names), (0, ["logits.json", "run.json"]))
+
+    def test_an_interrupt_while_the_records_are_saved_leaves_a_failed_run_record_and_no_handoff(self):
+        for call in (1, 2):
+            label = f"saving-{call}"
+            patched, names = interrupting_write(layer1_anchor, call)
+            with self.subTest(call=call), patched:
+                try:
+                    code, _, _ = self.main("run", "--weights", "float16", output=label)
+                except BaseException as error:
+                    self.fail(f"{type(error).__name__} ended the run without a failed run record")
+                self.assertEqual(code, 1)
+                self.assertEqual(read_json(self.folder / label / "run.json"),
+                                 {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "KeyboardInterrupt"})
+                self.assertFalse((self.folder / label / "logits.json").exists())
 
     def test_an_exception_after_a_record_was_written_keeps_that_record_and_still_ends_with_exit_code_1(self):
         for name in ("run.json", "failure.json"):
@@ -765,6 +797,19 @@ class CandidateRunTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "longer than the context of the export"):
             self.run_candidate(output="long-out")
         self.assertFalse((self.folder / "long-out").exists() or self.launches.exists())
+
+    def test_an_interrupt_while_the_records_are_saved_leaves_a_failed_run_record(self):
+        for call in (1, 2):
+            label = f"saving-{call}"
+            patched, names = interrupting_write(layer1_candidate, call)
+            with self.subTest(call=call), patched:
+                try:
+                    result = self.run_candidate(output=label)
+                except BaseException as error:
+                    self.fail(f"{type(error).__name__} ended the run without a failed run record")
+                self.assertEqual(result["passed"], False)
+                self.assertEqual(result["problems"], ["the run could not be recorded (KeyboardInterrupt)"])
+                self.assertEqual(read_json(self.folder / label / "run.json"), result)
 
     def test_a_failure_in_building_the_record_is_refused_before_the_folder_is_made(self):
         self.write_plan()
