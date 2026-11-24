@@ -2008,6 +2008,17 @@ class ExportWeightsTests(unittest.TestCase):
         self.assertIsNot(seen["term"], terminated)
         self.assertIs(seen["interrupt"], interrupted)
 
+    def test_a_sigterm_while_the_inputs_are_checked_is_an_interruption_and_makes_no_output(self):
+        terminated, interrupted = self.guarded()
+
+        def terminate(*arguments):
+            signal.raise_signal(signal.SIGTERM)
+
+        with mock.patch.object(mtp, "table_shard", side_effect=terminate), self.assertRaises(KeyboardInterrupt):
+            self.export()
+        self.assertFalse(self.output.exists())
+        self.assertEqual((signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT)), (terminated, interrupted))
+
     def test_the_handlers_that_were_set_before_are_set_again_after_a_success_a_failure_and_a_refusal(self):
         terminated, interrupted = self.guarded()
         with mock.patch.object(mtp, "export_assets", side_effect=fake()):

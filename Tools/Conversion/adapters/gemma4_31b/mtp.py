@@ -11,6 +11,7 @@ import resource
 import signal
 import stat
 import sys
+import threading
 import time
 
 from Tools.LLMEvaluation.layer1 import file_bytes, strict, strict_records
@@ -872,6 +873,9 @@ def interrupted(signum, frame):
 
 @contextlib.contextmanager
 def terminating_as_interruption():
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
     previous = signal.signal(signal.SIGTERM, interrupted)
     try:
         yield
@@ -977,33 +981,33 @@ def export_assets(plan, output):
 
 def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, steps, context, output):
     output = Path(output)
-    if os.path.lexists(output):
-        raise FileExistsError(f"The export must be written to a new folder: {output}")
-    check_export_steps(steps)
-    limited(contract_path, CONTRACT_LIMIT)
-    contract, contract_sha256 = target_contract(contract_path)
-    limited(assistant_path, CONTRACT_LIMIT)
-    assistant, assistant_sha256 = load_assistant(assistant_path)
-    config = contract["config"]
-    check_context(context, config)
-    files, shard = table_shard(snapshot, contract)
-    files.update(verified(snapshot, contract["files"], (shard,)))
-    verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
-    config_bytes = assistant["files"]["config.json"]["bytes"]
-    settings = assistant_config(document(Path(assistant_snapshot) / "config.json", config_bytes),
-                                {key: config[key] for key in TARGET})
-    expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
-    expect(Path(snapshot) / shard, table_shape(config), False)
-    plan = {"assistant": Path(assistant_snapshot), "shard": Path(snapshot) / shard, "config": config,
-            "settings": settings, "config_bytes": config_bytes, "steps": steps, "context": context,
-            "sources": {"model": {"id": contract["model_id"], "revision": contract["revision"],
-                                  "contract_sha256": contract_sha256, "verified_before_loading": files},
-                        "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
-                                      "contract_sha256": assistant_sha256,
-                                      "verified_before_loading": {name: dict(assistant["files"][name])
-                                                                  for name in ASSISTANT_FILES}}}}
-    made = False
     with terminating_as_interruption():
+        if os.path.lexists(output):
+            raise FileExistsError(f"The export must be written to a new folder: {output}")
+        check_export_steps(steps)
+        limited(contract_path, CONTRACT_LIMIT)
+        contract, contract_sha256 = target_contract(contract_path)
+        limited(assistant_path, CONTRACT_LIMIT)
+        assistant, assistant_sha256 = load_assistant(assistant_path)
+        config = contract["config"]
+        check_context(context, config)
+        files, shard = table_shard(snapshot, contract)
+        files.update(verified(snapshot, contract["files"], (shard,)))
+        verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
+        config_bytes = assistant["files"]["config.json"]["bytes"]
+        settings = assistant_config(document(Path(assistant_snapshot) / "config.json", config_bytes),
+                                    {key: config[key] for key in TARGET})
+        expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
+        expect(Path(snapshot) / shard, table_shape(config), False)
+        plan = {"assistant": Path(assistant_snapshot), "shard": Path(snapshot) / shard, "config": config,
+                "settings": settings, "config_bytes": config_bytes, "steps": steps, "context": context,
+                "sources": {"model": {"id": contract["model_id"], "revision": contract["revision"],
+                                      "contract_sha256": contract_sha256, "verified_before_loading": files},
+                            "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
+                                          "contract_sha256": assistant_sha256,
+                                          "verified_before_loading": {name: dict(assistant["files"][name])
+                                                                      for name in ASSISTANT_FILES}}}}
+        made = False
         try:
             with deferred_interrupts():
                 output.mkdir(parents=True)
