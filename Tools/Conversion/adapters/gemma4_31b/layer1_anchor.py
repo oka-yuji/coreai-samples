@@ -327,17 +327,20 @@ def main():
                                           f"layers, the final norm and the head: {kind}, computed in float32"),
                       compute={"weights": args.weights, "compute": "float32", "attention_rows": anchor.ROWS,
                                "embed_scale": None}, quantized=quantized)
-    args.output.mkdir(parents=True)
-
     def conclude(result, observed, began):
         finished(result, observed, reference.memory(result["device"]), [item["id"] for item in records])
         result["timing"]["total_s"] = time.perf_counter() - began
         return recorded(args.output, result)
 
+    created = False
     try:
+        args.output.mkdir(parents=True)
+        created = True
         interruptible()
         return reference.supervise(args.output, schema, lambda: work(record, args, records), conclude)
     except BaseException as error:
+        if not args.output.is_dir() or isinstance(error, FileExistsError) and not created:
+            raise
         return abandoned(args.output, schema, error)
 
 

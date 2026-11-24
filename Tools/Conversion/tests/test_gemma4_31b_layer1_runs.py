@@ -127,6 +127,23 @@ sys.exit(code)
 """
 
 
+def mkdir_that(output, mode):
+    real, done = Path.mkdir, []
+
+    def mkdir(path, *arguments, **options):
+        if path != output or done:
+            return real(path, *arguments, **options)
+        done.append(True)
+        if mode == "denied":
+            raise PermissionError(13, "Permission denied", str(path))
+        real(path, *arguments, **options)
+        if mode == "interrupted":
+            raise KeyboardInterrupt
+        return real(path, *arguments, **options)
+
+    return mock.patch.object(Path, "mkdir", mkdir)
+
+
 def interrupting_write(module, call):
     real, names = module.write_json, []
 
@@ -409,6 +426,29 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(read_json(self.folder / "out/failure.json"),
                          {"schema": layer1_anchor.SCHEMA, "passed": False, "error": "ValueError"})
+
+    def test_an_interrupt_inside_mkdir_after_the_folder_exists_leaves_a_failure_record_and_exit_code_1(self):
+        for command, extra, schema in (("run", ("--weights", "float16"), layer1_anchor.SCHEMA),
+                                       ("agreement", ("--items", "ja-choice-0001"), layer1_anchor.AGREEMENT)):
+            with self.subTest(command=command), mkdir_that(self.folder / command, "interrupted"):
+                try:
+                    code, _, _ = self.main(command, *extra, output=command)
+                except BaseException as error:
+                    self.fail(f"{type(error).__name__} ended the run without a record")
+                self.assertEqual(code, 1)
+                self.assertEqual(sorted(path.name for path in (self.folder / command).iterdir()), ["failure.json"])
+                self.assertEqual(read_json(self.folder / command / "failure.json"),
+                                 {"schema": schema, "passed": False, "error": "KeyboardInterrupt"})
+
+    def test_a_folder_that_another_process_made_is_raised_again_and_nothing_is_written_to_it(self):
+        with mkdir_that(self.folder / "taken-out", "taken"), self.assertRaises(FileExistsError):
+            self.main("run", "--weights", "float16", output="taken-out")
+        self.assertEqual(list((self.folder / "taken-out").iterdir()), [])
+
+    def test_an_error_of_mkdir_that_leaves_no_folder_is_raised_again_and_nothing_is_written(self):
+        with mkdir_that(self.folder / "denied-out", "denied"), self.assertRaises(PermissionError):
+            self.main("run", "--weights", "float16", output="denied-out")
+        self.assertFalse((self.folder / "denied-out").exists())
 
     def test_the_handoff_is_written_before_the_run_record(self):
         patched, names = interrupting_write(layer1_anchor, 0)
@@ -797,6 +837,23 @@ class CandidateRunTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "longer than the context of the export"):
             self.run_candidate(output="long-out")
         self.assertFalse((self.folder / "long-out").exists() or self.launches.exists())
+
+    def test_an_interrupt_inside_mkdir_after_the_folder_exists_leaves_the_records_of_a_failed_run(self):
+        with mkdir_that(self.folder / "out", "interrupted"), self.assertRaises(KeyboardInterrupt):
+            self.run_candidate()
+        self.assertEqual(read_json(self.folder / "out/run.json")["passed"], False)
+        self.assertEqual(read_json(self.folder / "out/logits.json")["items"], [])
+
+    def test_a_folder_that_another_process_made_is_raised_again_and_nothing_is_written_to_it_by_the_candidate(self):
+        with mkdir_that(self.folder / "out", "taken"), self.assertRaises(FileExistsError):
+            self.run_candidate()
+        self.assertEqual(list((self.folder / "out").iterdir()), [])
+        self.assertFalse(self.launches.exists())
+
+    def test_an_error_of_mkdir_that_leaves_no_folder_is_raised_again_and_nothing_is_written_by_the_candidate(self):
+        with mkdir_that(self.folder / "out", "denied"), self.assertRaises(PermissionError):
+            self.run_candidate()
+        self.assertFalse((self.folder / "out").exists() or self.launches.exists())
 
     def test_an_interrupt_while_the_records_are_saved_leaves_a_failed_run_record(self):
         for call in (1, 2):

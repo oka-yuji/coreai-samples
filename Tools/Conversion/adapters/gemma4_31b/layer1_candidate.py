@@ -119,21 +119,27 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
               "forced": {**hashes, "items": [record["id"] for record in records]}, "chunk": CHUNK,
               "prefill_chunk": native.prefill_chunk(), "items": [], "problems": []}
     began = time.perf_counter()
-    output.mkdir(parents=True)
+    created = foreign = False
     try:
+        output.mkdir(parents=True)
+        created = True
         for record in records:
             result["items"].append(attempted(record, facts, vocabulary, verifier, output))
             print(record["id"], result["items"][-1].get("seconds"), result["items"][-1]["problems"][:1], flush=True)
+    except FileExistsError:
+        foreign = not created
+        raise
     finally:
-        done = [(entry, record) for entry, record in zip(result["items"], records) if not entry["problems"]]
-        result["problems"] = [f"{entry['id']}: {problem}" for entry in result["items"] for problem in entry["problems"]]
-        result["passed"] = not result["problems"] and len(done) == len(records)
-        result["timing"] = {"items_s": time.perf_counter() - began}
-        handoff = {"schema": LOGITS, "role": role, "weights": weights, "forced_sha256": hashes["sha256"],
-                   "items": [{"id": entry["id"], "file": entry["output"]["file"], "dtype": "float16",
-                              "shape": [entry["rows"], vocabulary], "sha256": entry["output"]["sha256"],
-                              "tokens_sha256": record["tokens_sha256"]} for entry, record in done]}
-        result = recorded(output, result, handoff)
+        if not foreign and output.is_dir():
+            done = [(entry, record) for entry, record in zip(result["items"], records) if not entry["problems"]]
+            result["problems"] = [f"{entry['id']}: {problem}" for entry in result["items"] for problem in entry["problems"]]
+            result["passed"] = not result["problems"] and len(done) == len(records)
+            result["timing"] = {"items_s": time.perf_counter() - began}
+            handoff = {"schema": LOGITS, "role": role, "weights": weights, "forced_sha256": hashes["sha256"],
+                       "items": [{"id": entry["id"], "file": entry["output"]["file"], "dtype": "float16",
+                                  "shape": [entry["rows"], vocabulary], "sha256": entry["output"]["sha256"],
+                                  "tokens_sha256": record["tokens_sha256"]} for entry, record in done]}
+            result = recorded(output, result, handoff)
     return result
 
 
