@@ -35,6 +35,7 @@ KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
 LARGEST = 2**63 - 1
 BLOCK_BYTES = 16 * 2**20
+EXPORT_LIMIT = 16 * 2**20
 CRITERIA = {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE}
 KNOWN_CALL = {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST}
 PREFILL_CHUNKS = (2048, 4096)
@@ -492,7 +493,7 @@ def relation_problems(record, precision):
 
 def load_export(folder, contract, contract_path):
     path = folder / "export.json"
-    entry, data = regular_file(path, keep=True)
+    entry, data = regular_file(path, keep=True, limit=EXPORT_LIMIT)
     record, hashed = parse(data), entry["sha256"]
     recorded = (record.get("bundle") or {}) if isinstance(record, dict) else None
     if not isinstance(recorded, dict) or not isinstance(recorded.get("files") or {}, dict):
@@ -543,8 +544,9 @@ def load_export(folder, contract, contract_path):
             try:
                 if not isinstance(entry, dict) or not valid("count", entry.get("bytes")):
                     raise ValueError(f"the record of {relative} has no size")
-                hashes[relative], contents[relative] = regular_file(bundle / relative, entry["bytes"],
-                                                                    keep=relative in (main, "metadata.json"))
+                kept = relative in (main, "metadata.json")
+                hashes[relative], contents[relative] = regular_file(bundle / relative, entry["bytes"], keep=kept,
+                                                                    limit=EXPORT_LIMIT if kept else None)
             except (OSError, ValueError):
                 hashes[relative] = None
             if hashes[relative] is None or hashes[relative] != entry:

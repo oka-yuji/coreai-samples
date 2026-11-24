@@ -1388,6 +1388,54 @@ class ReadLimitTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             native.read_record(record, 100)
 
+    def exported(self):
+        (self.folder / "snapshot").mkdir()
+        for index, item in enumerate(TOKENIZER_FILES):
+            (self.folder / "snapshot" / item).write_text("abc"[index])
+        files = {item: {"bytes": 1, "sha256": sha256(self.folder / "snapshot" / item)} for item in TOKENIZER_FILES}
+        contract_path = write_contract(self.folder, files)
+        return complete_export(self.folder / "export", contract_path), load_contract(contract_path), contract_path
+
+    def test_an_export_record_above_the_limit_is_refused_and_not_read_beyond_the_limit_and_one_block(self):
+        export, contract, contract_path = self.exported()
+        size = (export / "export.json").stat().st_size
+        with mock.patch.object(native, "EXPORT_LIMIT", size - 1):
+            refused, reads = self.read_counting(lambda: native.load_export(export, contract, contract_path))
+        self.assertIsInstance(refused, ValueError)
+        self.assertEqual(reads, [])
+        real = os.fstat
+        lying = lambda descriptor: types.SimpleNamespace(st_mode=real(descriptor).st_mode, st_size=100)
+        with mock.patch.object(native, "EXPORT_LIMIT", size - 1), mock.patch.object(native.os, "fstat", side_effect=lying):
+            refused, reads = self.read_counting(lambda: native.load_export(export, contract, contract_path))
+        self.assertIsInstance(refused, ValueError)
+        self.assertEqual(sum(reads), size)
+        with mock.patch.object(native, "EXPORT_LIMIT", size):
+            self.assertEqual(native.load_export(export, contract, contract_path)[3], [])
+
+    def test_an_export_record_that_is_sparse_and_above_the_limit_is_refused_without_reading_it(self):
+        export, contract, contract_path = self.exported()
+        os.truncate(export / "export.json", native.EXPORT_LIMIT + 1)
+        refused, reads = self.read_counting(lambda: native.load_export(export, contract, contract_path))
+        self.assertIsInstance(refused, ValueError)
+        self.assertIn("is larger than", str(refused))
+        self.assertEqual(reads, [])
+
+    def test_every_file_that_the_export_loader_keeps_is_read_under_the_limit_and_the_others_are_only_hashed(self):
+        export, contract, contract_path = self.exported()
+        calls, real = [], native.regular_file
+
+        def spy(path, size=None, keep=False, limit=None):
+            calls.append((Path(path).name, keep, limit))
+            return real(path, size, keep, limit)
+
+        with mock.patch.object(native, "regular_file", side_effect=spy):
+            self.assertEqual(native.load_export(export, contract, contract_path)[3], [])
+        kept = [(name, limit) for name, keep, limit in calls if keep]
+        self.assertEqual(sorted(kept), [("export.json", native.EXPORT_LIMIT), ("main.hash", native.EXPORT_LIMIT),
+                                        ("metadata.json", native.EXPORT_LIMIT)])
+        hashed = [limit for name, keep, limit in calls if not keep]
+        self.assertEqual((len(hashed) > 0, set(hashed)), (True, {None}))
+
 
 if __name__ == "__main__":
     unittest.main()
