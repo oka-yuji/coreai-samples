@@ -10,6 +10,8 @@ from .model import MLP, bfloat16, proportional_frequencies
 
 INPUTS = ("input_ids", "hidden_states", "position_ids", "k_sliding", "v_sliding", "k_full", "v_full")
 OUTPUT = "draft_tokens"
+VERIFY_FUNCTION = "verify_step"
+VERIFY_OUTPUTS = ("logits", "post_projection")
 
 
 class SharedAttention(nn.Module):
@@ -108,6 +110,15 @@ class Gemma4AssistantDrafter(nn.Module):
         return torch.cat(drafted, dim=-1)
 
 
+class VerificationStep(nn.Module):
+    def __init__(self, drafter):
+        super().__init__()
+        self.drafter = drafter
+
+    def forward(self, input_ids, hidden_states, position_ids, k_sliding, v_sliding, k_full, v_full):
+        return self.drafter.outputs(input_ids, hidden_states, position_ids, k_sliding, v_sliding, k_full, v_full)
+
+
 def traced(model, context):
     config, dtype = model.config, model.pre_projection.weight.dtype
     sliding = (1, 1, config.num_key_value_heads, 5, config.head_dim)
@@ -142,6 +153,27 @@ def export(drafters, context):
 
         converter.add_pytorch_module(model, export_fn=export_fn, externalize_modules=EXTERNALIZE_SPECS,
                                      input_names=INPUTS, output_names=(OUTPUT,), entrypoint_name=f"draft_{model.steps}")
+    register_custom_torch_lowering(converter)
+    return converter.to_coreai()
+
+
+def export_verification(model, context):
+    import coreai_torch
+    from coreai_models.export.externalize import EXTERNALIZE_SPECS
+    from coreai_models.export.mlir_ops import register_custom_torch_lowering, remove_functionalization
+
+    inputs, shapes = traced(model, context)
+
+    def export_fn(module):
+        with torch.no_grad():
+            program = torch.export.export(module, args=(), kwargs=inputs, dynamic_shapes=shapes)
+        program = program.run_decompositions(coreai_torch.get_decomp_table())
+        remove_functionalization(program)
+        return program
+
+    converter = coreai_torch.TorchConverter(mode=coreai_torch.TorchConverter.Mode.RELEASE)
+    converter.add_pytorch_module(VerificationStep(model), export_fn=export_fn, externalize_modules=EXTERNALIZE_SPECS,
+                                 input_names=INPUTS, output_names=VERIFY_OUTPUTS, entrypoint_name=VERIFY_FUNCTION)
     register_custom_torch_lowering(converter)
     return converter.to_coreai()
 
