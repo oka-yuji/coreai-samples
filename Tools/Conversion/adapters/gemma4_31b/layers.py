@@ -203,14 +203,14 @@ def run(implementation, contract_path, snapshot, layers, taps, output, weights, 
         quantized["tensors"] = len(digests)
     import numpy as np
 
+    started = time.perf_counter()
+    verified = verify_inputs(snapshot, contract)
+    hashed = time.perf_counter()
     made = False
     try:
         with deferred_interrupts():
             output.mkdir(parents=True)
             made = True
-        started = time.perf_counter()
-        verified = verify_inputs(snapshot, contract)
-        hashed = time.perf_counter()
         model, scale, layer_types = (original_model(snapshot, layers) if implementation == "original"
                                      else class_model(snapshot, layers, taps, contract))
         apply(model, restored)

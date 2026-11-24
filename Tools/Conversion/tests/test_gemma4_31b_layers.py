@@ -9,6 +9,7 @@ import signal
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest import mock
 
@@ -677,7 +678,7 @@ class OriginalRunTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed", "float16", None)
             load.assert_not_called()
-            self.assertEqual([path.name for path in (Path(folder) / "changed").iterdir()], ["failure.json"])
+            self.assertFalse(os.path.lexists(Path(folder) / "changed"))
 
 
 def quantized_tensors(text, seed=5):
@@ -1056,8 +1057,7 @@ class RestoredReferenceTests(unittest.TestCase):
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder, hidden_size=64)
             source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
-            cases = {"the check of the inputs": ("original", "float16", None, "verify_inputs"),
-                     "the load of the original implementation": ("original", "8bit", source, "original_model"),
+            cases = {"the load of the original implementation": ("original", "8bit", source, "original_model"),
                      "the load of the model class": ("class", "float16", None, "class_model")}
             for error in (RuntimeError("private-example-sentinel"), KeyboardInterrupt()):
                 for label, (implementation, weights, export_folder, target) in cases.items():
@@ -1120,6 +1120,48 @@ class RestoredReferenceTests(unittest.TestCase):
                              (["failure.json"], "RuntimeError", ["failure.json"]))
             self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
 
+    def test_a_run_whose_inputs_do_not_match_the_contract_is_refused_before_its_folder_is_made(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            shard = snapshot / SHARD
+            data = bytearray(shard.read_bytes())
+            data[-1] ^= 1
+            changed = bytes(data)
+            original = shard.read_bytes()
+            cases = {"a shard that differs": ("float16", None, ValueError, None),
+                     "a shard that differs for restored weights": ("8bit", source, ValueError, None),
+                     "an error of the check": ("float16", None, RuntimeError, RuntimeError("private-example-sentinel")),
+                     "an interruption of the check": ("float16", None, KeyboardInterrupt, KeyboardInterrupt())}
+            for label, (weights, export_folder, expected, failure) in cases.items():
+                output = folder / label.replace(" ", "-")
+                shard.write_bytes(original if failure else changed)
+                with self.subTest(case=label), mock.patch.object(layers, "original_model") as load, \
+                        mock.patch.object(layers, "write_json") as write, mock.patch.object(
+                            layers, "verify_inputs", side_effect=failure or layers.verify_inputs), \
+                        self.assertRaises(expected):
+                    layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, weights, export_folder)
+                load.assert_not_called()
+                write.assert_not_called()
+                self.assertFalse(os.path.lexists(output))
+
+    def test_a_run_records_the_time_of_the_check_of_its_inputs_as_the_time_to_hash_them(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            real = layers.verify_inputs
+
+            def slow(*arguments):
+                time.sleep(0.3)
+                return real(*arguments)
+
+            with mock.patch.object(layers, "verify_inputs", side_effect=slow):
+                record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "timed", "float16", None)
+            timing = record["timing"]
+            self.assertGreaterEqual(timing["input_hash_s"], 0.3)
+            self.assertGreaterEqual(timing["total_s"], timing["input_hash_s"] + timing["load_s"])
+
     def test_a_run_stopped_by_sigterm_after_its_folder_is_made_leaves_a_failure_record(self):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
@@ -1144,7 +1186,7 @@ class RestoredReferenceTests(unittest.TestCase):
             with mock.patch("os.path.lexists", return_value=False), mock.patch.object(
                     layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
                 layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "taken", "float16", None)
-            verify.assert_not_called()
+            verify.assert_called_once()
             self.assertEqual(list((folder / "taken").iterdir()), [])
 
     def test_a_restored_reference_refuses_an_export_that_did_not_finish_did_not_pass_or_has_other_blocks(self):
