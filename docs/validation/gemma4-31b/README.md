@@ -938,7 +938,8 @@ directory.
 ### Conditions
 
 - The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power, battery 100
-  %). Every model job held the shared machine lock and started only when no other model process ran. The two references,
+  %). Every model job held the shared machine lock and started only when no process of the model tools (`coreai-chat`,
+  `coreai-verify`, `CoreAISamples` and the Python conversion tools) was running. The two references,
   the two comparisons, the checks of the command and the costs ran in one hold from 12:39:46 to 12:44:40 JST on
   2026-11-24, taken as a timing measurement with no wait for the lock; the other processes of the machine were not
   stopped. The test of the engine ran in a second hold (12:46:53 to 12:47:18), which is not a timing measurement.
@@ -1011,10 +1012,10 @@ again after the checks.
 
 ### Logits and the cost of reading the outputs
 
-Asking for the outputs does not change the logits. Five runs of `coreai-verify logits` per asset were made; four of them
-without outputs and the fifth (`short-c1`) with both outputs of `main`, and every logits file is byte-identical (SHA-256
-and size) to the file of the same condition of the comparison of the section of #695 (FP16, `36d35e55…`) and of the
-comparison of the 8-bit section (`05b43a87…`).
+In these runs, asking for the outputs did not change the logits. Five runs of `coreai-verify logits` per asset were
+made; four of them without outputs and the fifth (`short-c1`) with both outputs of `main`, and every logits file is
+byte-identical (SHA-256 and size) to the file of the same condition of the comparison of the section of #695 (FP16,
+`36d35e55…`) and of the comparison of the 8-bit section (`05b43a87…`).
 
 | Run | Condition | Bytes | Same as the earlier comparison (FP16 / 8-bit) |
 |---|---|---:|---|
@@ -1056,8 +1057,8 @@ function. The cache of the testing helper (21,660,884 KiB) was removed after the
 - The references are PyTorch in float32 on the CPU, not the FP16 or 8-bit assets; the comparison checks which layer an
   output is of and how close it is, not the quality of the model. The criteria are those of the recipe, not tolerances
   that a drafter needs.
-- The timings are those of one hold on one machine with other processes running; the specialization cache was in place
-  for every condition after the first.
+- The timings are those of one hold on one machine whose other processes were not stopped; the specialization cache was
+  in place for every condition after the first.
 - The check of the command and the cost used no more than two runs per kind.
 
 ### Sources
