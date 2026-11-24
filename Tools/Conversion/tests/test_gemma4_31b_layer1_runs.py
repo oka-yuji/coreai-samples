@@ -47,6 +47,8 @@ plan = json.loads(Path(__file__).with_suffix(".json").read_text())
 with Path(plan["launches"]).open("a") as launches:
     launches.write(" ".join(sys.argv[1:2]) + "\\n")
 arguments = dict(zip(sys.argv[2::2], sys.argv[3::2]))
+with Path(plan["models"]).open("a") as models:
+    models.write(arguments["--model"] + "\\n")
 ids = json.loads(Path(arguments["--tokens"]).read_text())
 start, chunk = int(arguments["--start"]), int(arguments["--chunk"])
 name = Path(arguments["--output"]).stem
@@ -810,6 +812,7 @@ class CandidateRunTests(unittest.TestCase):
         self.export = complete_export(self.folder / "export", self.contract)
         self.exported = read_json(self.export / "export.json")
         self.verifier, self.calls, self.launches = self.folder / "verifier", self.folder / "calls.txt", self.folder / "launches.txt"
+        self.models = self.folder / "models.txt"
 
     def eight_bit(self):
         (self.folder / "eight").mkdir()
@@ -820,7 +823,7 @@ class CandidateRunTests(unittest.TestCase):
         prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
                   for record in self.records}
         plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": main_hash,
-                "prefix": prefix, "launches": str(self.launches)}
+                "prefix": prefix, "launches": str(self.launches), "models": str(self.models)}
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
@@ -840,6 +843,7 @@ class CandidateRunTests(unittest.TestCase):
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual(read_json(out / "run.json"), result)
         self.assertEqual(self.called(), [record["id"] for record in self.records])
+        self.assertEqual(self.models.read_text().split(), [str(self.export / native.BUNDLE)] * len(self.records))
         handoff = read_json(out / "logits.json")
         self.assertEqual({key: handoff[key] for key in ("schema", "role", "weights", "forced_sha256")},
                          {"schema": layer1_anchor.LOGITS, "role": "fp16",
