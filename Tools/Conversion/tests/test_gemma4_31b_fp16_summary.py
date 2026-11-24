@@ -349,8 +349,15 @@ class SummaryTests(Records):
             rewrite(runs[1] / "record.json", lambda record: record.update(weights=layers.WEIGHTS))
             return runs
 
+        def restored_both():
+            runs = self.write_runs("restored-both")
+            for folder in runs:
+                rewrite(folder / "record.json", lambda record: record.update(weights=layers.RESTORED))
+            return runs
+
         cases = {"runs of another contract": (lambda: self.write_runs("another", contract=another), None),
                  "an original run of the restored weights": (restored, None),
+                 "runs of the restored weights in both records": (restored_both, None),
                  "runs of four tap layers": (lambda: self.write_runs("four", taps=(1, 2, 3, 4)), None),
                  "a model-class run of twelve layers": (lambda: self.write_runs("twelve"), twelve),
                  "a model-class array replaced after its record": (lambda: self.write_runs("replaced"), replaced),
