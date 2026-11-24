@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -1237,6 +1238,91 @@ class CompareTests(unittest.TestCase):
                     mock.patch("sys.stdout"):
                 self.assertEqual(native.main(), 0 if passed else 1)
             self.assertEqual(compare.call_args.args[:4], (Path("e"), Path("r"), Path("v"), Path("o")))
+
+
+class VerifierProcessTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.sleeper = self.folder / "sleeper"
+        self.sleeper.write_text("#!/bin/sh\nexec sleep 600\n")
+        self.sleeper.chmod(0o755)
+        self.addCleanup(signal.signal, signal.SIGINT, signal.signal(signal.SIGINT, signal.default_int_handler))
+
+    def test_a_verifier_that_is_started_when_an_interruption_arrives_is_stopped_and_collected(self):
+        real = subprocess.Popen
+        for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            started, forced = [], []
+
+            def stop(process):
+                forced.append(True)
+                with contextlib.suppress(ProcessLookupError, PermissionError):
+                    os.killpg(process.pid, signal.SIGKILL)
+
+            def popen(*arguments, **keywords):
+                process = real(*arguments, **keywords)
+                started.append(process)
+                threading.Timer(5, stop, [process]).start()
+                signal.raise_signal(number)
+                return process
+
+            with self.subTest(signal=name):
+                try:
+                    with layers.terminated_as_interrupt(), mock.patch.object(
+                            native.subprocess, "Popen", side_effect=popen), self.assertRaises(KeyboardInterrupt):
+                        native.run_verifier([str(self.sleeper)], 30, self.folder / f"{name}.log")
+                    self.assertEqual(forced, [])
+                    self.assertIsNotNone(started[0].returncode)
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(started[0].pid, 0)
+                finally:
+                    for process in started:
+                        with contextlib.suppress(ProcessLookupError, PermissionError):
+                            os.killpg(process.pid, signal.SIGKILL)
+                        process.poll()
+
+    def test_a_verifier_that_is_waited_for_when_an_interruption_arrives_is_stopped_and_collected(self):
+        for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            pidfile, forced = Path(f"{self.sleeper}.pid"), []
+            self.sleeper.write_text('#!/bin/sh\necho $$ > "$0.pid"\nexec sleep 600\n')
+            pidfile.unlink(missing_ok=True)
+            finished = threading.Event()
+
+            def interrupt_when_it_waits():
+                for _ in range(600):
+                    if pidfile.exists() and pidfile.read_text().strip():
+                        break
+                    time.sleep(0.05)
+                os.kill(os.getpid(), number)
+                while not finished.wait(5):
+                    forced.append(True)
+                    with contextlib.suppress(ProcessLookupError, ValueError):
+                        os.kill(int(pidfile.read_text()), signal.SIGKILL)
+
+            thread = threading.Thread(target=interrupt_when_it_waits, daemon=True)
+            thread.start()
+            with self.subTest(signal=name):
+                try:
+                    with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
+                        native.run_verifier([str(self.sleeper)], 60, self.folder / f"wait-{name}.log")
+                finally:
+                    finished.set()
+                thread.join(10)
+                self.assertEqual(forced, [])
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(int(pidfile.read_text()), 0)
+
+    def test_a_verifier_that_fails_to_start_leaves_no_process_and_raises_its_error(self):
+        with self.assertRaises(OSError):
+            native.run_verifier([str(self.folder / "absent")], 30, self.folder / "absent.log")
+
+    def test_a_verifier_can_be_run_from_a_thread_other_than_the_main_thread(self):
+        outcome = {}
+        thread = threading.Thread(
+            target=lambda: outcome.update(result=native.run_verifier(["/usr/bin/true"], 30, self.folder / "thread.log")))
+        thread.start()
+        thread.join(30)
+        self.assertEqual(outcome.get("result"), (0, b""))
 
 
 if __name__ == "__main__":

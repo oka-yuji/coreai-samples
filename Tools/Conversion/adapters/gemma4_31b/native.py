@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import hashlib
 import io
 import json
@@ -9,8 +10,10 @@ import signal
 import stat
 import subprocess
 import sys
+import threading
 import time
 
+from ...runner import deferred_interrupts
 from ...storage import PipelineError, canonical, digest, write_json
 from ..jev27b.monitor import FREE_PERCENT, INTERVAL_S, STREAK, SWAP_LIMIT_BYTES
 from ..pinned import sha256
@@ -603,17 +606,24 @@ def correspondence(exported, export_hash, reference):
     return []
 
 
+def held_interrupts():
+    return deferred_interrupts() if threading.current_thread() is threading.main_thread() else contextlib.nullcontext()
+
+
 def run_verifier(command, timeout, log):
     with log.open("xb") as errors:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=errors, start_new_session=True)
+        process = None
         try:
+            with held_interrupts():
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=errors, start_new_session=True)
             stdout, _ = process.communicate(timeout=timeout)
         except BaseException:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.communicate()
+            if process is not None:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.communicate()
             raise
     return process.returncode, stdout
 

@@ -475,6 +475,7 @@ class CompareTests(unittest.TestCase):
             if seen["handler"] is layers.raise_interruption:
                 os.kill(os.getpid(), signal.SIGTERM)
             while not finished.wait(5):
+                seen["forced"] = True
                 with contextlib.suppress(ProcessLookupError, ValueError):
                     os.kill(int(pidfile.read_text()), signal.SIGKILL)
 
@@ -486,6 +487,7 @@ class CompareTests(unittest.TestCase):
         finally:
             finished.set()
         thread.join(10)
+        self.assertNotIn("forced", seen)
         self.assertIs(seen["handler"], layers.raise_interruption)
         with self.assertRaises(ProcessLookupError):
             os.kill(seen["pid"], 0)
