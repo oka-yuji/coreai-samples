@@ -963,13 +963,15 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
   `input_ids` int32 [1, 1], `hidden_states` float16 [1, 1, 5376], `position_ids` int32 [1, 1], `k_sliding` and
   `v_sliding` float16 [1, 1, 16, w, 256] and `k_full` and `v_full` float16 [1, 1, 4, n, 512], with w declared from 1 to
   1,025 and n from 1 to `--context`.
-- `export.json` is written last and holds no path: `schema`, `steps`, `context`, `model` and `assistant` (the ID, the
-  revision, the SHA-256 of the contract, and the size and SHA-256 of the files that were checked before loading),
-  `assets` (for each asset: its folder, its functions, `asset`, the summary that the inspection read, with the
-  descriptors of the inputs, outputs and states, the order of the outputs, the storage types and the number of
-  dequantizations, the elements of the PyTorch model by type, the size and SHA-256 of each file, the total size,
-  `main_hash`, the content of `main.hash` in hex, read with a limit of 64 B, the seconds of the conversion and of the save,
-  and `problems`), `versions`, `timing` (`load_s`, the seconds that reading the embedding table took, and `total_s`, the
+- `export.json` is written last and holds no absolute path: `schema`, `steps`, `context`, `model` and `assistant` (the
+  ID, the revision, the SHA-256 of the contract, and the size and SHA-256 of the files that were checked before loading,
+  each under its name in the snapshot), `assets` (for each asset: its folder, `functions` (the names of the functions that
+  the inspection expects; the functions that the asset holds are in `asset`), `asset` (the summary that the inspection
+  read, with the descriptors of the inputs, outputs and states, the order of the outputs, the storage types and the
+  number of dequantizations), the elements of the PyTorch model by type, the size and SHA-256 of each file, each under
+  its path relative to the output folder, such as `verification.aimodel/main.mlirb`, the total size, `main_hash`, the
+  content of `main.hash` in hex, read with a limit of 64 B, the seconds of the conversion and of the save, and
+  `problems`), `versions`, `timing` (`load_s`, the seconds that reading the embedding table took, and `total_s`, the
   seconds from there to the end of the inspections; the checks of the files before and after them are in neither, so the
   tool takes longer than `total_s`), `memory` (the largest resident set of the process and the lifetime
   peak of its footprint), `problems` of the output folder and `passed`.
