@@ -204,6 +204,91 @@ Standard output gets one JSON line per item, with `record` set to `evaluate`, `i
 
 The model-free checks are `swift test --package-path Tools/Verify -c release --filter "EvaluationRecordTests|EvaluationRunTests"`.
 
+## Functions without state
+
+`coreai-verify function` runs one function of a Core AI asset that has no state on inputs read from files, and writes the outputs to files and a record. It is for assets that are not language models, such as the MTP drafter of the Gemma 4 31B conversion, and it runs them through Core AI the way the app does. It loads the model, so take the heavy-job lock described in `AGENTS.md` first.
+
+```bash
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify function --model drafter.aimodel --function draft_7 --inputs inputs/inputs.json --output out --repeat 3
+```
+
+The example runs in a folder that holds `drafter.aimodel`, which is `unrolled.aimodel` or `both.aimodel` of the [synthetic drafter export](../Tools/Conversion/recipes/gemma4_31b/README.md#export-of-a-synthetic-drafter) run with `--steps 7` (both have the function `draft_7`), and the folder `inputs` with `inputs.json` and the data files that it names.
+
+| Option | Meaning |
+|---|---|
+| `--model` | The `.aimodel` folder of the asset, not a bundle folder. |
+| `--function` | The name of the function. An asset can hold several. |
+| `--inputs` | The JSON file that lists the inputs, described below. |
+| `--output` | A new folder. A path that exists, a link included, is rejected. |
+| `--repeat` | The number of calls with the same inputs, 1 or more, 1 by default. The outputs of every call must equal those of the first call byte for byte. |
+
+The inputs file is a JSON object with exactly the key `inputs`, an array with one object for each input. Each object has exactly the keys `name`, `dtype`, `shape` and `file`:
+
+```json
+{"inputs": [
+  {"name": "input_ids", "dtype": "int32", "shape": [1, 1], "file": "input_ids.bin"},
+  {"name": "hidden_states", "dtype": "float16", "shape": [1, 1, 48], "file": "hidden_states.bin"},
+  {"name": "position_ids", "dtype": "int32", "shape": [1, 1], "file": "position_ids.bin"},
+  {"name": "k_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "k_sliding.bin"},
+  {"name": "v_sliding", "dtype": "float16", "shape": [1, 1, 2, 5, 16], "file": "v_sliding.bin"},
+  {"name": "k_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "k_full.bin"},
+  {"name": "v_full", "dtype": "float16", "shape": [1, 1, 1, 9, 32], "file": "v_full.bin"}
+]}
+```
+
+These are all seven inputs of `draft_7`, for 5 positions of the sliding-window keys and values and 9 of the full-attention ones; their files have 4, 96, 4, 320, 320, 576 and 576 bytes.
+
+`dtype` is `int32`, `float16` or `float32`. `shape` is a non-empty array of integers from 1, written as integers: `1.0` and `1e0`, 0, negative numbers, booleans and strings are rejected. `file` is the name of a file in the folder of the inputs file: not empty, with no `/` and no NUL character, and not `.` or `..`. The file holds the elements as little-endian values in row-major order and no header, so exactly the product of the shape times the width of the dtype (2 bytes for `float16`, 4 for `int32` and `float32`). The NumPy dtypes are `"<i4"` for `int32`, `"<f2"` for `float16` and `"<f4"` for `float32`: `array.astype("<f2").tofile(path)` writes a file and `np.fromfile(path, dtype="<f2").reshape(shape)` reads one. A member name that is written twice in one object is not detected.
+
+The command rejects these cases before it specializes the asset. It says which one, stops, and does not make the output folder:
+
+1. The output path exists.
+2. The inputs file is not a regular file (a link, a folder and a named pipe are not), or its content does not have the form above.
+3. The asset has no function of that name, or the function has state. The command runs functions without state only.
+4. The names of the list are not exactly the names of the inputs of the function, each listed once.
+5. For an input, the dtype or the number of dimensions differs from the asset's, or a fixed dimension differs. A dynamic dimension, which the asset writes as `?`, takes any size from 1.
+6. A data file is not a regular file (a link, a folder and a named pipe are not) or has another size than its shape and dtype need. The command opens a file without waiting and without following a link, checks its kind and its size, and only then reads it.
+
+The command reads the types of the inputs from the summary of the asset, which does not specialize it, as `NDArray (<type>, <dimensions>)` with `Int32`, `Float16` or `Float32`. An input that the asset describes in another form is rejected.
+
+After the checks the command makes the output folder (when it cannot, for example because its parent folder is missing, it stops with the reason before it loads the model), specializes the asset the way the own engine does (automatic choice of compute units, with frequent reshapes expected; there is no option to change it) and calls the function `--repeat` times. The output folder then holds:
+
+| File | Content |
+|---|---|
+| `<output name>.bin` | One file for each output of the last call, in the order of the outputs of the function: the elements as little-endian values in row-major order and no header, in the dtype that the record gives for the output (the NumPy dtypes are above). An output name that cannot make a file name (empty, with `/` or a NUL character, or a file name over 255 bytes) is rejected after the calls and before any file is written. |
+| `function.json` | The record described below, the same line that standard output gets. |
+| `failure.json` | Written first and removed when the run succeeds; its presence means that the run did not succeed, as described below. |
+
+The record is one JSON line with `record` set to `function`:
+
+| Key | Content |
+|---|---|
+| `byte_order` | `little` |
+| `main_hash` | The `main.hash` of the asset in hex, the SHA-256 of `main.mlirb`; absent when the file is missing or is not a regular file (a link, a folder and a named pipe are not) |
+| `function` | The name of the function |
+| `inputs` | One entry for each input in the order of the inputs file: `name`, `dtype`, `shape`, `bytes` (the product of the shape times the width of the dtype, the size of the file) and `sha256` of the bytes of the file |
+| `outputs` | One entry for each output: the same keys and `file`, the name of its file in the output folder |
+| `requested_compute`, `expect_frequent_reshapes`, `cached`, `cache_query_error`, `specialize_s`, `load_s` | The specialization request and the cache state, as in the `own-load` record; `load_s` is the seconds from the cache query to the loaded function. `cache_query_error` is the description of the error and can contain local paths, so do not publish a raw record that has it |
+| `call_s` | The seconds of each call, in order |
+| `repeat_identical`, `repeat_differing_calls` | Whether every call returned the outputs of the first call, and the numbers of the calls (from 2) whose name, dtype, shape or bytes differ from the first call's |
+
+The command writes `failure.json` as its first act on the output folder. When it cannot, it removes the folder that it made, or says that it could not remove it, and stops with the reason before it loads the model. The file is one JSON line, `{"kind": ..., "record": "function-failure"}`, and nothing else. Its `kind` starts as `incomplete`. As soon as the command knows how the run ends, it rewrites the file with the kind that says so. When it cannot rewrite it, `kind` stays `incomplete`; it also stays when the process is stopped without a trace, for example by a kill.
+
+| `kind` | How the run ended |
+|---|---|
+| `incomplete` | The file was not rewritten, as above. |
+| `load` | Specialization or loading the function failed. |
+| `call` | A call failed. |
+| `write` | Writing the outputs or `function.json`, or removing `failure.json`, failed, including a rejected output name. |
+| `cancelled` | The task was cancelled. The command checks before it loads the function, before each call and before it writes the outputs. |
+| `repeat_mismatch` | A call returned outputs that differ from the first call's. The files of the last call and `function.json` (with `repeat_identical` false) are written, the record is printed and the exit code is 1. |
+
+`load`, `call`, `write` and `cancelled` end the command with the error that caused them. A run that succeeds writes `function.json` and then removes `failure.json`; when it cannot remove it, the run fails. So there is one rule: when `failure.json` is in the output folder, the run did not succeed.
+
+The model-free checks are `swift test --package-path Tools/Verify -c release --filter "Function|InputFile|RunFunction|AIModelFunctionSource"`. They check the inputs file, the comparison with the description of the function, the data files, the record, the failure record and the stop on cancellation with a fake in place of the model, and the conversion of tensors with the SDK's `NDArray`. A run on an asset is a separate check.
+
 ## Measurement fields and boundaries
 
 The per-request measurement is opt-in. `chat --runtime own --measure summary` adds a `measurement` object to each `turn` record, and `--measure trace` also adds one row per sample. `--measure off`, the default, leaves the record without this field, and generation, stops, errors, metadata and usage are the same as without the option. `tools` rejects `--measure`, and `bench` has no such option. `CoreAIBackend` collects the values and `coreai-verify` prints them. The Verification SPI `lastRequestMeasurement()` returns the measurement of the last request admitted to execution, like `lastGeneratedTokens()`, and nothing when that request ended before generation, for example on a context overflow or a load failure. A turn record omits `measurement` when its own request has none; a request rejected before execution leaves the previous request's measurement in the SPI, so the CLI compares `request_id` with the previous turn's. Times are seconds from one monotonic clock and counts are integers.
