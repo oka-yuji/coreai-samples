@@ -264,6 +264,12 @@ def recorded(output, record):
     return 0 if record["passed"] else 1
 
 
+def abandoned(output, schema, error):
+    if not any((output / name).exists() for name in ("run.json", "failure.json")):
+        write_json(output / "failure.json", {"schema": schema, "passed": False, "error": type(error).__name__})
+    return 1
+
+
 def main():
     parser = argparse.ArgumentParser(description="Write the logits of the scored rows of the layer 1 forced input that "
                                                  "the original Gemma 4 31B implementation gives in float32 with the "
@@ -325,8 +331,11 @@ def main():
         result["timing"]["total_s"] = time.perf_counter() - began
         return recorded(args.output, result)
 
-    interruptible()
-    return reference.supervise(args.output, schema, lambda: work(record, args, records), conclude)
+    try:
+        interruptible()
+        return reference.supervise(args.output, schema, lambda: work(record, args, records), conclude)
+    except BaseException as error:
+        return abandoned(args.output, schema, error)
 
 
 if __name__ == "__main__":

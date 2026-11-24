@@ -365,6 +365,44 @@ class AnchorRunTests(unittest.TestCase):
         self.assertEqual({item["id"]: item["swap_used_bytes"] for item in record["items"]},
                          {item["id"]: {"before": 5, "after": 5} for item in self.records})
 
+    def main_ended_by(self, supervise, command, *extra, output):
+        with mock.patch.object(reference, "supervise", side_effect=supervise):
+            try:
+                return self.main(command, *extra, output=output)[0]
+            except BaseException as error:
+                self.fail(f"{type(error).__name__} ended the run without a record")
+
+    def test_an_exception_that_ends_the_supervision_before_the_work_leaves_a_failure_record_and_exit_code_1(self):
+        def ending(error):
+            def supervise(folder, schema, work, conclude):
+                raise error
+
+            return supervise
+
+        for command, extra, schema in (("run", ("--weights", "float16"), layer1_anchor.SCHEMA),
+                                       ("agreement", ("--items", "ja-choice-0001"), layer1_anchor.AGREEMENT)):
+            for error in (KeyboardInterrupt(), RuntimeError("the monitor could not start")):
+                label = f"{command}-{type(error).__name__}"
+                with self.subTest(case=label):
+                    code = self.main_ended_by(ending(error), command, *extra, output=label)
+                    self.assertEqual(code, 1)
+                    self.assertEqual(sorted(path.name for path in (self.folder / label).iterdir()), ["failure.json"])
+                    self.assertEqual(read_json(self.folder / label / "failure.json"),
+                                     {"schema": schema, "passed": False, "error": type(error).__name__})
+
+    def test_an_exception_after_a_record_was_written_keeps_that_record_and_still_ends_with_exit_code_1(self):
+        for name in ("run.json", "failure.json"):
+            def supervise(folder, schema, work, conclude, name=name):
+                write_json(folder / name, {"schema": schema, "passed": True, "written_by": name})
+                raise KeyboardInterrupt
+
+            label = name.removesuffix(".json")
+            with self.subTest(record=name):
+                code = self.main_ended_by(supervise, "run", "--weights", "float16", output=label)
+                self.assertEqual(code, 1)
+                self.assertEqual(sorted(path.name for path in (self.folder / label).iterdir()), [name])
+                self.assertEqual(read_json(self.folder / label / name)["written_by"], name)
+
     def test_an_interrupt_is_made_effective_just_before_the_supervision_starts(self):
         for command, extra in (("run", ("--weights", "float16")), ("agreement", ("--items", "ja-choice-0001"))):
             events = []
@@ -575,7 +613,7 @@ class CandidateRunTests(unittest.TestCase):
         contract = write_snapshot(self.folder / "eight", hidden_size=64)[1]
         return write_export(self.folder / "export-8bit", contract, quantized_tensors({**TEXT, "hidden_size": 64})), contract
 
-    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH, contract=None, verifier=None):
+    def write_plan(self, changes=None, main_hash=MAIN_HASH):
         prefix = {record["id"]: native.prefix_record(record["start"], native.prefill_chunk(), True)
                   for record in self.records}
         plan = {"changes": changes or {}, "calls": str(self.calls), "vocabulary": self.vocabulary, "main_hash": main_hash,
@@ -583,6 +621,9 @@ class CandidateRunTests(unittest.TestCase):
         self.verifier.write_text(FAKE.format(python=sys.executable))
         self.verifier.chmod(0o755)
         self.verifier.with_suffix(".json").write_text(json.dumps(plan))
+
+    def run_candidate(self, changes=None, output="out", main_hash=MAIN_HASH, contract=None, verifier=None):
+        self.write_plan(changes, main_hash)
         with contextlib.redirect_stdout(io.StringIO()):
             return layer1_candidate.run(self.export, self.forced, verifier or self.verifier, self.folder / output,
                                         contract or self.contract)
@@ -688,6 +729,13 @@ class CandidateRunTests(unittest.TestCase):
             self.assertEqual(result["verifier"], {"bytes": self.verifier.stat().st_size, "sha256": sha256(self.verifier)})
         self.assertFalse(marker.exists())
         self.assertEqual(self.called(), [record["id"] for record in self.records] * 2)
+
+    def test_a_failure_in_building_the_record_is_refused_before_the_folder_is_made(self):
+        self.write_plan()
+        with mock.patch.object(native, "prefill_chunk", side_effect=RuntimeError("no page size")), \
+                self.assertRaises(RuntimeError):
+            layer1_candidate.run(self.export, self.forced, self.verifier, self.folder / "early", self.contract)
+        self.assertFalse((self.folder / "early").exists() or self.launches.exists())
 
     def test_a_verifier_path_that_cannot_be_resolved_is_refused_before_anything_is_written_or_launched(self):
         loop = self.folder / "loop"

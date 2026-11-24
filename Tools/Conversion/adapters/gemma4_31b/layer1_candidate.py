@@ -112,7 +112,6 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
     data = layer1.file_bytes(verifier)
     verifier_hash = hashlib.sha256(data).hexdigest()
     weights = f"{name} main.hash {facts['main_hash']}"
-    output.mkdir(parents=True)
     result = {"schema": SCHEMA, "role": role, "weights": weights, "passed": False,
               "export": {"sha256": export_hash, "precision": precision, "layers": exported.get("layers"),
                          "functions": exported.get("functions"), "context": context, "main_hash": facts["main_hash"]},
@@ -120,6 +119,7 @@ def run(export_folder, forced_folder, verifier, output, contract_path=CONTRACT):
               "forced": {**hashes, "items": [record["id"] for record in records]}, "chunk": CHUNK,
               "prefill_chunk": native.prefill_chunk(), "items": [], "problems": []}
     began = time.perf_counter()
+    output.mkdir(parents=True)
     try:
         for record in records:
             result["items"].append(attempted(record, facts, vocabulary, verifier, output))
