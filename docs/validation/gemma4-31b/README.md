@@ -1324,8 +1324,9 @@ the asset.
   values are those of the class in float32 on the CPU with the weights rounded to float16.
 - The five float inputs of the assets are the rounded values; the changes that the rounding made are in the table above.
   The features themselves are those of #691: the original implementation in BF16 on MPS under teacher forcing.
-- The tool does not read its own files again to check them; the next work checks the sizes and SHA-256 of the files against
-  `record.json`.
+- After it writes a file, the tool opens the file once more and reads it to record its size and SHA-256; it does not rebuild
+  the arrays from the files or compare them with the values that it computed. The next work checks the sizes and SHA-256 of
+  the files against `record.json`.
 - Between its two checks of the files the tool opens the weights and the features again by their paths. A file that is
   replaced in between is read as it was replaced, and the second check then finds a difference that is still there when
   it runs (`failure.json` stays and `record.json` is not written); a change that was undone before then is not found.

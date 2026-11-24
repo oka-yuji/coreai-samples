@@ -1096,8 +1096,10 @@ and safetensors.
   was replaced, and the second check finds a difference that is still there when it runs (then `record.json` is not
   written); a change that was undone before then is not found. The reference values are those of the class in float32 on
   the CPU with the weights rounded to float16, not of an asset: how far an asset may differ from them is for the next
-  work to judge. The tool does not read its output again; the next work reads it, and takes the types and shapes from the
-  fixed definitions and the sizes from the record.
+  work to judge. After it writes a file, the tool opens the file once more and reads it to record its size and SHA-256
+  (the numbers of `record.json` are those of the bytes that it read back); it does not rebuild the arrays from the files
+  or compare them with the values that it computed, which is for the next work. The next work reads the output, and
+  takes the types and shapes from the fixed definitions and the sizes from the record.
 
 The numbers of a run are in [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-inputs-and-reference-values-716).
 `Tools/Conversion/tests/test_gemma4_31b_mtp_native.py` fixes the ranking and the probabilities of the two best tokens, the
@@ -1107,7 +1109,8 @@ folder is made, the records after an error, an interruption and a second check t
 small stand-in of the drafter class in PyTorch, so it runs in the reference environment, the converter environment and
 the system Python without the converter. `Tools/Conversion/tests/export_gemma4_31b_mtp_native.py` runs the tool on the
 synthetic drafter class in the converter environment and checks the names and types of the inputs against the class and
-against the descriptors that `export-weights` checks the assets against, and the arrays against the class on the files.
+against the descriptors that `export-weights` checks the assets against, the arrays against the class on the files, and
+that the logits follow the weights of the assistant and the table of the target, each when the other is the same.
 
 ## Terms
 
