@@ -1,4 +1,5 @@
 import builtins
+import copy
 import hashlib
 import io
 import itertools
@@ -7,9 +8,11 @@ import math
 import os
 from pathlib import Path
 import shutil
+import signal
 import stat
 import tempfile
 import threading
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -1177,13 +1180,15 @@ class ReadTests(unittest.TestCase):
         write_json(records / "drafters/alpha-0001.json", {})
         arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
         commands = {"run": lambda output: mtp.run("class", *arguments, output),
-                    "acceptance": lambda output: mtp.acceptance(*arguments)}
-        cases = {"the target contract": (contract, ("run", "acceptance")),
-                 "the assistant contract": (assistant_contract, ("run", "acceptance")),
-                 "the index of the target": (target / mtp.INDEX, ("run",)),
-                 "the shard of the table": (target / SHARD, ("run",)),
-                 "the assistant configuration": (assistant / "config.json", ("run",)),
-                 "the assistant weights": (assistant / "model.safetensors", ("run",)),
+                    "acceptance": lambda output: mtp.acceptance(*arguments),
+                    "export_weights": lambda output: mtp.export_weights(contract, assistant_contract, target, assistant,
+                                                                        7, 16896, output)}
+        cases = {"the target contract": (contract, ("run", "acceptance", "export_weights")),
+                 "the assistant contract": (assistant_contract, ("run", "acceptance", "export_weights")),
+                 "the index of the target": (target / mtp.INDEX, ("run", "export_weights")),
+                 "the shard of the table": (target / SHARD, ("run", "export_weights")),
+                 "the assistant configuration": (assistant / "config.json", ("run", "export_weights")),
+                 "the assistant weights": (assistant / "model.safetensors", ("run", "export_weights")),
                  "subset.json": (records / "subset.json", ("run",)), "the input records": (inputs, ("run",)),
                  "the output records": (outputs, ("run",)),
                  "the features": (records / "tf/features/alpha-0001.safetensors", ("run",)),
@@ -1274,12 +1279,16 @@ class RefusalTests(unittest.TestCase):
                 events, watched = tensor_reads()
                 arguments = (contract, assistant_contract, target, assistant, records, inputs, outputs, 7)
                 for command, call in {"run": lambda: mtp.run("class", *arguments, folder / "out"),
-                                      "acceptance": lambda: mtp.acceptance(*arguments)}.items():
+                                      "acceptance": lambda: mtp.acceptance(*arguments),
+                                      "export_weights": lambda: mtp.export_weights(
+                                          contract, assistant_contract, target, assistant, 7, 16896,
+                                          folder / "weights")}.items():
                     with self.subTest(change=name, command=command), watched(), \
                             self.assertRaisesRegex(ValueError, message):
                         call()
                 self.assertEqual(events, [])
                 self.assertFalse((folder / "out").exists())
+                self.assertFalse((folder / "weights").exists())
                 for path, data in saved.items():
                     path.write_bytes(data)
                 if (target / mtp.INDEX).is_symlink():
@@ -1473,10 +1482,527 @@ class RefusalTests(unittest.TestCase):
                 with self.subTest(case=label, command="acceptance"), watched(), \
                         self.assertRaisesRegex(ValueError, message):
                     mtp.acceptance(*arguments)
+                if not callable(other):
+                    with self.subTest(case=label, command="export_weights"), watched(), \
+                            self.assertRaisesRegex(ValueError, message):
+                        mtp.export_weights(contract, assistant_contract, target, assistant, 7, 16896, case / "weights")
+                    self.assertFalse((case / "weights").exists())
             self.assertEqual(events, [])
             with watched():
                 mtp.table(target / SHARD, CONFIG)
             self.assertEqual(events, [(inode(target / SHARD), mtp.TABLE)])
+
+
+REAL = SimpleNamespace(backbone_hidden_size=5376, vocab_size=262144, num_key_value_heads=16, head_dim=256,
+                       num_global_key_value_heads=4, global_head_dim=512)
+HELD = {"tensors": 49, "elements": 74372, "elements_by_dtype": {"torch.float16": 74372}, "quantized_layouts": 0}
+
+
+def shaped(dtype, *shape):
+    return {"dtype": dtype, "shape": list(shape)}
+
+
+def found_of(name, steps=7):
+    outputs = ({"logits": shaped("float16", 1, 1, 262144), "post_projection": shaped("float16", 1, 1, 5376)}
+               if name == "verification" else {"draft_tokens": shaped("int32", 1, steps)})
+    function = "verify_step" if name == "verification" else f"draft_{steps}"
+    sliding, full = shaped("float16", 1, 1, 16, None, 256), shaped("float16", 1, 1, 4, None, 512)
+    inputs = {"input_ids": shaped("int32", 1, 1), "hidden_states": shaped("float16", 1, 1, 5376),
+              "position_ids": shaped("int32", 1, 1), "k_sliding": sliding, "v_sliding": copy.deepcopy(sliding),
+              "k_full": full, "v_full": copy.deepcopy(full)}
+    return {"functions": {function: {"inputs": inputs, "outputs": outputs, "states": {}}},
+            "output_order": {function: list(outputs)}}
+
+
+def function_of(found):
+    return next(iter(found["functions"].values()))
+
+
+def inputs_of(found):
+    return function_of(found)["inputs"]
+
+
+def outputs_of(found):
+    return function_of(found)["outputs"]
+
+
+def first_output(found):
+    return next(iter(outputs_of(found).values()))
+
+
+def last_output(found):
+    return list(outputs_of(found).values())[-1]
+
+
+def inspected(name, change=None, steps=7, expected_steps=7):
+    found, held = found_of(name, steps), copy.deepcopy(HELD)
+    if change:
+        change(found, held)
+    return mtp.asset_problems(found, mtp.expected_assets(REAL, expected_steps)[name], held)
+
+
+def renamed_function(found, held):
+    old = next(iter(found["functions"]))
+    found["functions"]["other"] = found["functions"].pop(old)
+    found["output_order"]["other"] = found["output_order"].pop(old)
+
+
+def extra_function(found, held):
+    found["functions"]["extra"] = copy.deepcopy(function_of(found))
+    found["output_order"]["extra"] = list(outputs_of(found))
+
+
+def no_function(found, held):
+    found["functions"].clear()
+    found["output_order"].clear()
+
+
+def set_field(getter, key, field, value):
+    def change(found, held):
+        getter(found)[key][field] = value
+    return change
+
+
+def set_dimension(getter, key, index, value):
+    def change(found, held):
+        getter(found)[key]["shape"][index] = value
+    return change
+
+
+def drop(getter, key):
+    return lambda found, held: getter(found).pop(key)
+
+
+def rename(getter, old, new):
+    return lambda found, held: getter(found).update({new: getter(found).pop(old)})
+
+
+def add(getter, key, value):
+    return lambda found, held: getter(found).update({key: value})
+
+
+def element_types(types, layouts=0):
+    def change(found, held):
+        held.update(elements_by_dtype=types, quantized_layouts=layouts)
+    return change
+
+
+def set_output(index, **fields):
+    def change(found, held):
+        list(outputs_of(found).values())[index].update(fields)
+    return change
+
+
+class AssetInspectionTests(unittest.TestCase):
+    def test_the_expected_functions_are_the_one_step_logits_and_the_unrolled_tokens_of_the_assistant_and_the_steps(self):
+        for steps in (1, 7, 15):
+            expected = mtp.expected_assets(REAL, steps)
+            with self.subTest(steps=steps):
+                self.assertEqual(list(expected), ["verification", "distribution"])
+                self.assertEqual(expected["verification"], found_of("verification")["functions"])
+                self.assertEqual(expected["distribution"], found_of("distribution", steps)["functions"])
+                self.assertEqual(list(expected["verification"]["verify_step"]["outputs"]), ["logits", "post_projection"])
+                self.assertEqual(list(expected["distribution"][f"draft_{steps}"]["outputs"]), ["draft_tokens"])
+        self.assertEqual(list(inputs_of(found_of("distribution"))), ["input_ids", "hidden_states", "position_ids",
+                                                                       "k_sliding", "v_sliding", "k_full", "v_full"])
+        self.assertEqual(mtp.expected_assets(REAL, 7)["verification"]["verify_step"]["inputs"],
+                         mtp.expected_function(REAL, 7)["inputs"])
+
+    def test_an_asset_that_matches_the_expected_functions_and_float16_weights_passes(self):
+        for name in ("verification", "distribution"):
+            with self.subTest(asset=name):
+                self.assertEqual(inspected(name), [])
+
+    def test_an_asset_whose_functions_inputs_outputs_states_or_weights_differ_from_the_expected_fails(self):
+        cases = {"another function name": renamed_function, "an extra function": extra_function, "no function": no_function,
+                 "an input with another name": rename(inputs_of, "input_ids", "token_ids"),
+                 "an input that is missing": drop(inputs_of, "position_ids"),
+                 "an extra input": add(inputs_of, "mask", shaped("int32", 1, 1)),
+                 "hidden_states in float32": set_field(inputs_of, "hidden_states", "dtype", "float32"),
+                 "input_ids in int64": set_field(inputs_of, "input_ids", "dtype", "int64"),
+                 "position_ids in float32": set_field(inputs_of, "position_ids", "dtype", "float32"),
+                 "k_full in float32": set_field(inputs_of, "k_full", "dtype", "float32"),
+                 "v_sliding in int32": set_field(inputs_of, "v_sliding", "dtype", "int32"),
+                 "an input of one dimension less": set_field(inputs_of, "k_sliding", "shape", [1, 16, None, 256]),
+                 "an input of one dimension more": set_field(inputs_of, "k_sliding", "shape", [1, 1, 1, 16, None, 256]),
+                 "a fixed dimension of another size": set_dimension(inputs_of, "k_full", 2, 8),
+                 "another width of the hidden state": set_dimension(inputs_of, "hidden_states", 2, 5375),
+                 "a window of fixed length": set_dimension(inputs_of, "k_sliding", 3, 1025),
+                 "full keys of fixed length": set_dimension(inputs_of, "v_full", 3, 16896),
+                 "a hidden state of dynamic width": set_dimension(inputs_of, "hidden_states", 2, None),
+                 "a dynamic dimension of the anchor token": set_dimension(inputs_of, "input_ids", 1, None),
+                 "a position that is fixed at one place and dynamic at another": set_dimension(
+                     inputs_of, "v_sliding", 4, None),
+                 "an output that is missing": lambda found, held: outputs_of(found).pop(next(reversed(outputs_of(found)))),
+                 "an extra output": add(outputs_of, "extra", shaped("float16", 1, 1, 5376)),
+                 "an output in float32": set_output(0, dtype="float32"),
+                 "an output in int64": set_output(0, dtype="int64"),
+                 "an output of one dimension less": lambda found, held: first_output(found)["shape"].pop(0),
+                 "an output of one dimension more": lambda found, held: first_output(found)["shape"].insert(0, 1),
+                 "a state": add(lambda found: function_of(found)["states"], "keyCache",
+                                shaped("float16", 1, 1, 4, None, 512)),
+                 "float32 elements next to the float16 elements": element_types(
+                     {"torch.float16": 74371, "torch.float32": 1}),
+                 "only float32 elements": element_types({"torch.float32": 74372}),
+                 "bfloat16 elements": element_types({"torch.bfloat16": 74372}),
+                 "uint8 elements of a quantization": element_types({"torch.float16": 10, "torch.uint8": 74362}, 7),
+                 "a quantized layout among float16 elements": element_types({"torch.float16": 74372}, 1),
+                 "a quantized layout count of 0.0": element_types({"torch.float16": 74372}, 0.0),
+                 "a quantized layout count of false": element_types({"torch.float16": 74372}, False),
+                 "no weights": element_types({})}
+        for name in ("verification", "distribution"):
+            for label, change in cases.items():
+                with self.subTest(asset=name, case=label):
+                    self.assertTrue(inspected(name, change))
+
+    def test_the_outputs_must_be_returned_in_the_fixed_order(self):
+        def swapped(found, held):
+            found["output_order"]["verify_step"] = ["post_projection", "logits"]
+
+        def one_missing(found, held):
+            found["output_order"]["verify_step"] = ["logits"]
+
+        def other_function(found, held):
+            found["output_order"] = {"other": ["logits", "post_projection"]}
+
+        def empty(found, held):
+            found["output_order"] = {}
+
+        for label, change in {"swapped": swapped, "one missing": one_missing, "listed for another function": other_function,
+                              "not listed": empty}.items():
+            with self.subTest(order=label):
+                self.assertTrue(inspected("verification", change))
+        self.assertTrue(inspected("distribution", lambda found, held: found["output_order"].update({"draft_7": []})))
+        self.assertTrue(inspected("distribution", lambda found, held: found["output_order"].update(
+            {"draft_7": ["draft_tokens", "extra"]})))
+
+    def test_an_asset_of_another_number_of_steps_fails_even_when_its_name_and_its_output_agree(self):
+        for steps in (1, 6, 8, 15):
+            with self.subTest(steps=steps):
+                problems = inspected("distribution", steps=steps)
+                self.assertTrue(problems)
+                self.assertIn("draft_7", " ".join(problems))
+        self.assertTrue(inspected("distribution", set_output(0, shape=[1, 6])))
+        self.assertTrue(inspected("distribution", set_output(0, shape=[1, 8])))
+        self.assertTrue(inspected("distribution", expected_steps=6))
+        self.assertEqual(inspected("verification", expected_steps=6), [])
+
+    def test_values_that_equal_the_expected_numbers_in_python_but_are_not_the_same_type_fail(self):
+        cases = {"a width given as a float": ("verification", set_dimension(inputs_of, "hidden_states", 2, 5376.0)),
+                 "a width given as a boolean": ("verification", set_dimension(inputs_of, "input_ids", 0, True)),
+                 "an output width given as a float": ("verification", set_output(0, shape=[1, 1, 262144.0])),
+                 "steps given as a float": ("distribution", set_output(0, shape=[1, 7.0]))}
+        for label, (name, change) in cases.items():
+            with self.subTest(case=label):
+                self.assertTrue(inspected(name, change))
+
+    def test_a_folder_of_an_asset_holds_exactly_its_three_regular_files(self):
+        self.assertEqual(mtp.ASSET_ITEMS, ("main.hash", "main.mlirb", "metadata.json"))
+        self.assertEqual(list(mtp.ASSET_FOLDERS.items()), [("verification", "verification.aimodel"),
+                                                           ("distribution", "distribution.aimodel")])
+        wanted = {name: "file" for name in mtp.ASSET_ITEMS}
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            good = folder / "good"
+            good.mkdir()
+            for name in mtp.ASSET_ITEMS:
+                (good / name).write_bytes(b"data")
+            self.assertEqual(mtp.listing(good), wanted)
+            self.assertEqual(mtp.layout_problems(mtp.listing(good), wanted), [])
+            (folder / "outside.bin").write_bytes(b"data")
+
+            def link(name):
+                return lambda path: (path / name).unlink() or (path / name).symlink_to(folder / "outside.bin")
+
+            def folder_in_place(name):
+                return lambda path: (path / name).unlink() or (path / name).mkdir()
+
+            def pipe_in_place(name):
+                return lambda path: (path / name).unlink() or os.mkfifo(path / name)
+
+            cases = {"no main.hash": lambda path: (path / "main.hash").unlink(),
+                     "no main.mlirb": lambda path: (path / "main.mlirb").unlink(),
+                     "no metadata.json": lambda path: (path / "metadata.json").unlink(),
+                     "no file": lambda path: [(path / name).unlink() for name in mtp.ASSET_ITEMS],
+                     "an extra file": lambda path: (path / "notes.txt").write_bytes(b"data"),
+                     "an extra hidden file": lambda path: (path / ".DS_Store").write_bytes(b"data"),
+                     "an extra folder": lambda path: (path / "derived").mkdir(),
+                     "a link in place of main.mlirb": link("main.mlirb"),
+                     "a link in place of main.hash": link("main.hash"),
+                     "a link in place of metadata.json": link("metadata.json"),
+                     "a folder in place of metadata.json": folder_in_place("metadata.json"),
+                     "a named pipe in place of main.hash": pipe_in_place("main.hash")}
+            for label, change in cases.items():
+                changed = folder / "changed"
+                shutil.copytree(good, changed)
+                change(changed)
+                with self.subTest(case=label):
+                    self.assertTrue(mtp.layout_problems(mtp.listing(changed), wanted))
+                shutil.rmtree(changed)
+
+    def test_the_output_folder_holds_exactly_the_two_asset_folders(self):
+        wanted = {folder: "folder" for folder in mtp.ASSET_FOLDERS.values()}
+        cases = {"another file": lambda path: (path / "export.json").write_bytes(b"{}"),
+                 "a failure record": lambda path: (path / "failure.json").write_bytes(b"{}"),
+                 "another folder": lambda path: (path / "other.aimodel").mkdir(),
+                 "a missing asset": lambda path: (path / "verification.aimodel").rmdir(),
+                 "both assets missing": lambda path: [(path / name).rmdir() for name in wanted],
+                 "a file in place of an asset": lambda path: (path / "distribution.aimodel").rmdir() or (
+                     path / "distribution.aimodel").write_bytes(b"data"),
+                 "a link in place of an asset": lambda path: (path / "distribution.aimodel").rmdir() or (
+                     path / "distribution.aimodel").symlink_to(path / "verification.aimodel")}
+        with tempfile.TemporaryDirectory() as folder:
+            for label, change in [("nothing", None), *cases.items()]:
+                path = Path(folder) / label.replace(" ", "-")
+                path.mkdir()
+                for name in wanted:
+                    (path / name).mkdir()
+                if change:
+                    change(path)
+                with self.subTest(case=label):
+                    self.assertEqual(bool(mtp.layout_problems(mtp.listing(path), wanted)), change is not None)
+
+
+def fake_assets(output, passed=True, partly=False):
+    for name in mtp.ASSET_FOLDERS.values():
+        (output / name).mkdir(parents=True, exist_ok=True)
+        (output / name / "main.mlirb").write_bytes(b"data")
+        if partly:
+            break
+    return {"schema": mtp.EXPORT_WEIGHTS, "assets": {"verification": {"bytes": 4, "problems": []},
+                                                      "distribution": {"bytes": 4, "problems": []}},
+            "problems": [] if passed else ["a problem"], "passed": passed}
+
+
+def fake(passed=True):
+    return lambda *arguments: fake_assets(arguments[-1], passed)
+
+
+@unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and safetensors are required for the folders")
+class ExportWeightsTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.target, self.contract = write_target(self.folder, torch.zeros(CONFIG["vocab_size"], CONFIG["hidden_size"]))
+        self.assistant, self.assistant_contract = write_assistant(self.folder, SYNTHETIC["assistant"], assistant_state())
+        self.output = self.folder / "export"
+
+    def export(self, steps=7, context=16896, output=None):
+        return mtp.export_weights(self.contract, self.assistant_contract, self.target, self.assistant, steps, context,
+                                  output or self.output)
+
+    def names(self, output=None):
+        return sorted(path.name for path in (output or self.output).iterdir())
+
+    def test_an_existing_output_or_a_bad_number_of_steps_is_refused_before_anything_is_read_or_made(self):
+        (self.folder / "file").write_text("x")
+        (self.folder / "dangling").symlink_to(self.folder / "missing")
+        (self.folder / "folder").mkdir()
+        (self.folder / "folder/kept").write_text("x")
+        with mock.patch.object(mtp, "target_contract") as read, mock.patch.object(mtp, "export_assets") as work:
+            for name in ("file", "dangling", "folder"):
+                with self.subTest(output=name), self.assertRaises(FileExistsError):
+                    self.export(output=self.folder / name)
+            for steps in (0, -1, True, 1.0, None, "7", mtp.DRAFTS + 1, 2 ** 40):
+                with self.subTest(steps=steps), self.assertRaises(ValueError):
+                    self.export(steps=steps)
+            read.assert_not_called()
+            work.assert_not_called()
+        self.assertEqual(self.names(self.folder / "folder"), ["kept"])
+        self.assertFalse(self.output.exists())
+
+    def test_a_context_that_is_not_a_whole_number_above_the_window_and_within_int32_is_refused_before_the_table(self):
+        window = CONFIG["sliding_window"] + 1
+        with mock.patch.object(mtp, "table_shard") as shard, mock.patch.object(mtp, "export_assets") as work:
+            for context in (True, 1.0, "16896", None, -1, 0, 1, window - 1, window, 2 ** 31):
+                with self.subTest(context=context), self.assertRaises(ValueError):
+                    self.export(context=context)
+            shard.assert_not_called()
+            work.assert_not_called()
+        self.assertFalse(self.output.exists())
+        with mock.patch.object(mtp, "export_assets", side_effect=fake()) as work:
+            for index, (steps, context) in enumerate(((1, window + 1), (mtp.DRAFTS, 2 ** 31 - 1))):
+                output = self.folder / f"accepted-{index}"
+                with self.subTest(steps=steps, context=context):
+                    self.export(steps=steps, context=context, output=output)
+                    self.assertEqual(self.names(output), ["distribution.aimodel", "export.json", "verification.aimodel"])
+            self.assertEqual([(call.args[0]["steps"], call.args[0]["context"]) for call in work.call_args_list],
+                             [(1, window + 1), (mtp.DRAFTS, 2 ** 31 - 1)])
+
+    def test_a_file_that_differs_from_its_pinned_size_or_hash_is_refused_before_the_output_and_any_tensor(self):
+        files = {"the assistant weights": self.assistant / "model.safetensors",
+                 "the assistant configuration": self.assistant / "config.json",
+                 "the shard of the table": self.target / SHARD, "the index of the target": self.target / mtp.INDEX}
+        for label, path in files.items():
+            saved, middle = path.read_bytes(), len(path.read_bytes()) // 2
+            changes = {"a byte flipped": (saved[:middle] + bytes([saved[middle] ^ 1]) + saved[middle + 1:],
+                                          "differs from its contract"),
+                       "a byte appended": (saved + b" ", "B, not")}
+            for change, (data, message) in changes.items():
+                path.write_bytes(data)
+                events, watched = tensor_reads()
+                with self.subTest(file=label, change=change), watched(), self.assertRaisesRegex(ValueError, message):
+                    self.export()
+                self.assertEqual(events, [])
+                self.assertFalse(self.output.exists())
+            path.write_bytes(saved)
+        with mock.patch.object(mtp, "export_assets", side_effect=fake()):
+            self.export()
+        self.assertEqual(self.names(), ["distribution.aimodel", "export.json", "verification.aimodel"])
+
+    def test_contracts_that_are_not_in_the_pinned_form_are_refused_before_the_output(self):
+        pinned = read_json(self.assistant_contract)
+        entries = pinned["files"]
+        changes = {"a revision that is not a full hash": {**pinned, "revision": "627c5ec"},
+                   "a missing file": {**pinned, "files": {"config.json": entries["config.json"]}},
+                   "an extra file": {**pinned, "files": {**entries, "tokenizer.json": entries["config.json"]}},
+                   "a size as a float": {**pinned, "files": {**entries, "config.json": {
+                       **entries["config.json"], "bytes": float(entries["config.json"]["bytes"])}}},
+                   "a hash in capitals": {**pinned, "files": {**entries, "config.json": {
+                       **entries["config.json"], "sha256": entries["config.json"]["sha256"].upper()}}},
+                   "another model": {**pinned, "model_id": "not a repository"}}
+        for label, change in changes.items():
+            write_json(self.assistant_contract, change)
+            with self.subTest(change=label), self.assertRaises(ValueError):
+                self.export()
+            self.assertFalse(self.output.exists())
+        write_json(self.assistant_contract, pinned)
+        good = read_json(self.contract)
+        for label, config in {"a width as a float": {**good["config"], "hidden_size": 48.0},
+                              "a window as a boolean": {**good["config"], "sliding_window": True},
+                              "a stop token beyond the vocabulary": {**good["config"], "eos_token_id": [1, 301]}}.items():
+            write_json(self.contract, {**good, "config": config})
+            with self.subTest(change=label), self.assertRaises(ValueError):
+                self.export()
+            self.assertFalse(self.output.exists())
+
+    def test_an_export_that_stops_after_creating_its_output_leaves_only_the_name_of_the_error(self):
+        def signalled(*arguments):
+            signal.raise_signal(signal.SIGINT)
+
+        def after_one_asset(*arguments):
+            fake_assets(arguments[-1], partly=True)
+            raise RuntimeError("a message with details")
+
+        cases = [("RuntimeError", RuntimeError("a message with details"), RuntimeError, ["failure.json"]),
+                 ("KeyboardInterrupt", KeyboardInterrupt(), KeyboardInterrupt, ["failure.json"]),
+                 ("SystemExit", SystemExit(3), SystemExit, ["failure.json"]),
+                 ("MemoryError", MemoryError(), MemoryError, ["failure.json"]),
+                 ("a signal", signalled, KeyboardInterrupt, ["failure.json"]),
+                 ("a failure after one asset was saved", after_one_asset, RuntimeError,
+                  ["failure.json", "verification.aimodel"])]
+        for label, effect, error, names in cases:
+            output = self.folder / label.replace(" ", "-")
+            with self.subTest(error=label), mock.patch.object(mtp, "export_assets", side_effect=effect), \
+                    self.assertRaises(error):
+                self.export(output=output)
+            self.assertEqual(self.names(output), names)
+            self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS, "failure": error.__name__})
+
+    def test_a_signal_while_the_output_is_made_lets_the_creation_finish_and_leaves_a_failure_record(self):
+        real = Path.mkdir
+        for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            output, fired = self.folder / label, []
+
+            def made_and_signalled(path, *arguments, output=output, fired=fired, number=number, **options):
+                real(path, *arguments, **options)
+                if path == output and not fired:
+                    fired.append(path)
+                    signal.raise_signal(number)
+
+            with self.subTest(signal=label), mock.patch.object(Path, "mkdir", made_and_signalled), \
+                    mock.patch.object(mtp, "export_assets") as work, self.assertRaises(KeyboardInterrupt):
+                self.export(output=output)
+            work.assert_not_called()
+            self.assertEqual(self.names(output), ["failure.json"])
+            self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS,
+                                                                  "failure": "KeyboardInterrupt"})
+
+    def test_a_signal_while_the_success_record_is_written_lets_the_write_finish_and_replaces_it_by_a_failure_record(self):
+        real = mtp.write_json
+        for label, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            events, output = [], self.folder / label
+
+            def logged(path, value, events=events, number=number):
+                if Path(path).name == "export.json":
+                    events.append("signal")
+                    signal.raise_signal(number)
+                real(path, value)
+                events.append(Path(path).name)
+
+            with self.subTest(signal=label), mock.patch.object(mtp, "write_json", logged), \
+                    mock.patch.object(mtp, "export_assets", side_effect=fake()), self.assertRaises(KeyboardInterrupt):
+                self.export(output=output)
+            self.assertEqual(events, ["signal", "export.json", "failure.json"])
+            self.assertEqual(self.names(output), ["distribution.aimodel", "failure.json", "verification.aimodel"])
+            self.assertEqual(read_json(output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS,
+                                                                  "failure": "KeyboardInterrupt"})
+
+    def test_a_signal_while_the_failure_record_is_written_lets_the_write_finish(self):
+        real, events = mtp.write_json, []
+
+        def logged(path, value):
+            if Path(path).name == "failure.json":
+                events.append("signal")
+                signal.raise_signal(signal.SIGINT)
+            real(path, value)
+            events.append(Path(path).name)
+
+        with mock.patch.object(mtp, "write_json", logged), \
+                mock.patch.object(mtp, "export_assets", side_effect=RuntimeError("a message")), \
+                self.assertRaises(KeyboardInterrupt):
+            self.export()
+        self.assertEqual(events, ["signal", "failure.json"])
+        self.assertEqual(self.names(), ["failure.json"])
+        self.assertEqual(read_json(self.output / "failure.json"), {"schema": mtp.EXPORT_WEIGHTS, "failure": "RuntimeError"})
+
+    def test_an_output_that_another_process_made_after_the_check_is_refused_without_a_file_written_into_it(self):
+        real, fired = Path.mkdir, []
+
+        def raced(path, *arguments, **options):
+            if path == self.output and not fired:
+                fired.append(path)
+                real(path)
+                (path / "theirs").write_text("x")
+            return real(path, *arguments, **options)
+
+        with mock.patch.object(Path, "mkdir", raced), mock.patch.object(mtp, "export_assets") as work, \
+                self.assertRaises(FileExistsError):
+            self.export()
+        work.assert_not_called()
+        self.assertEqual(self.names(), ["theirs"])
+
+    def test_the_record_is_the_last_file_written_and_a_failed_inspection_is_recorded_with_passed_false(self):
+        real = mtp.write_json
+        for passed in (True, False):
+            output, writes = self.folder / str(passed), []
+
+            def logged(path, value, output=output, writes=writes):
+                writes.append((Path(path).name, sorted(item.name for item in output.iterdir())))
+                real(path, value)
+
+            with self.subTest(passed=passed), mock.patch.object(mtp, "write_json", logged), \
+                    mock.patch.object(mtp, "export_assets", side_effect=fake(passed)):
+                record = self.export(output=output)
+            self.assertEqual(writes, [("export.json", ["distribution.aimodel", "verification.aimodel"])])
+            self.assertEqual(read_json(output / "export.json"), record)
+            self.assertEqual(record["passed"], passed)
+            self.assertEqual(self.names(output), ["distribution.aimodel", "export.json", "verification.aimodel"])
+
+    def test_the_command_passes_its_arguments_prints_the_sizes_and_exits_with_one_unless_the_inspection_passed(self):
+        for passed in (True, False):
+            record = {"assets": {"verification": {"bytes": 11}, "distribution": {"bytes": 22}}, "passed": passed}
+            with self.subTest(passed=passed), mock.patch.object(mtp, "export_weights", return_value=record) as export, \
+                    mock.patch("sys.argv", ["mtp", "export-weights", "--model", "a.json", "--assistant", "b.json",
+                                            "--snapshot", "target", "--assistant-snapshot", "assistant", "--steps", "7",
+                                            "--context", "16896", "--output", "out"]), \
+                    mock.patch("sys.stdout", new_callable=io.StringIO) as printed:
+                code = mtp.main()
+            export.assert_called_once_with(Path("a.json"), Path("b.json"), Path("target"), Path("assistant"), 7, 16896,
+                                           Path("out"))
+            self.assertEqual(json.loads(printed.getvalue()), {"bytes": {"verification": 11, "distribution": 22},
+                                                              "passed": passed})
+            self.assertEqual(code, 0 if passed else 1)
 
 
 if __name__ == "__main__":

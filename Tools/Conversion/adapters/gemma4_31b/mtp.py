@@ -13,9 +13,11 @@ import time
 
 from Tools.LLMEvaluation.layer1 import file_bytes, strict, strict_records
 from Tools.LLMEvaluation.scoring import generated, partition
+from ...runner import deferred_interrupts
 from ...storage import write_json
 from .assistant import FULL, KINDS, SLIDING, SYNTHETIC, TARGET, assistant_config, checkpoint_shapes
 from .baseline import read_inputs
+from .export import ASSET_FILES
 from .layers import CONVERTER, PACKAGES, PREFIX, RATIO, WEIGHTS, rounded_scale, same_file
 from .native import valid
 from .prepare import HEX40, HEX64, REPOSITORY, load_contract
@@ -25,6 +27,12 @@ SCHEMA = "gemma4-31b-mtp-run/1"
 COMPARISON = "gemma4-31b-mtp-comparison/1"
 ACCEPTANCE = "gemma4-31b-mtp-acceptance/1"
 EXPORT = "gemma4-31b-mtp-export/1"
+EXPORT_WEIGHTS = "gemma4-31b-mtp-export-weights/1"
+VERIFY = "verify_step"
+ASSET_FOLDERS = {"verification": "verification.aimodel", "distribution": "distribution.aimodel"}
+ASSET_ITEMS = ASSET_FILES
+INT32_MAX = 2 ** 31 - 1
+KIND = {stat.S_IFREG: "file", stat.S_IFDIR: "folder"}
 IMPLEMENTATIONS = ("original", "class")
 LOGIT_LIMIT = 1e-3
 INDEX = "model.safetensors.index.json"
@@ -839,11 +847,149 @@ def export_synthetic(output, steps, context, seed):
         raise
 
 
+def check_export_steps(steps):
+    if check_steps(steps) > DRAFTS:
+        raise ValueError(f"The export unrolls at most the {DRAFTS} drafts of #691: {steps}")
+    return steps
+
+
+def check_context(context, config):
+    window = config["sliding_window"] + 1
+    if type(context) is not int or not window < context <= INT32_MAX:
+        raise ValueError(f"The context must be a whole number above the {window} positions of the window and up to "
+                         f"{INT32_MAX}: {context!r}")
+    return context
+
+
+def expected_assets(config, steps):
+    step = expected_function(config, 1)
+    step["outputs"] = {"logits": {"dtype": "float16", "shape": [1, 1, config.vocab_size]},
+                       "post_projection": {"dtype": "float16", "shape": [1, 1, config.backbone_hidden_size]}}
+    return {"verification": {VERIFY: step}, "distribution": {f"draft_{steps}": expected_function(config, steps)}}
+
+
+def listing(folder):
+    with os.scandir(folder) as entries:
+        return {entry.name: KIND.get(stat.S_IFMT(entry.stat(follow_symlinks=False).st_mode), "other")
+                for entry in entries}
+
+
+def layout_problems(found, expected):
+    missing, extra = sorted(set(expected) - set(found)), sorted(set(found) - set(expected))
+    other = sorted(name for name in set(expected) & set(found) if found[name] != expected[name])
+    return [f"the folder holds {sorted(found)}, not {sorted(expected)}: missing {missing}, unexpected {extra}, not of "
+            f"the expected kind {other}"] if missing or extra or other else []
+
+
+def asset_problems(found, expected, held):
+    functions = found["functions"]
+    problems = [] if set(functions) == set(expected) else [
+        f"the asset has the functions {sorted(functions)}, not {sorted(expected)}"]
+    problems += [f"{function} {kind}: {canonical(functions[function][kind])}, not {canonical(expected[function][kind])}"
+                 for function in sorted(set(expected) & set(functions)) for kind in ("inputs", "outputs", "states")
+                 if canonical(functions[function][kind]) != canonical(expected[function][kind])]
+    problems += [f"{function} returns {found['output_order'].get(function)}, not {list(expected[function]['outputs'])}"
+                 for function in expected if found["output_order"].get(function) != list(expected[function]["outputs"])]
+    if set(held["elements_by_dtype"]) != {"torch.float16"} or canonical(held["quantized_layouts"]) != canonical(0):
+        problems.append(f"the PyTorch model holds {canonical(held['elements_by_dtype'])} elements and "
+                        f"{canonical(held['quantized_layouts'])} quantized layouts; every parameter and buffer must be "
+                        "float16")
+    return problems
+
+
+def inspected(output, name, expected, held, timing):
+    from .export import inspect_asset
+
+    folder = ASSET_FOLDERS[name]
+    found, kinds = inspect_asset(output / folder), listing(output / folder)
+    files = {f"{folder}/{item}": digest(output / folder / item) for item in ASSET_ITEMS if kinds.get(item) == "file"}
+    pinned = files.get(f"{folder}/main.hash")
+    main_hash = None if pinned is None else file_bytes(output / folder / "main.hash", pinned["bytes"]).hex()
+    return {"folder": folder, "functions": list(expected), "asset": found, "weights": held, "files": files,
+            "bytes": sum(entry["bytes"] for entry in files.values()), "main_hash": main_hash, "timing": timing,
+            "problems": asset_problems(found, expected, held)
+            + layout_problems(kinds, dict.fromkeys(ASSET_ITEMS, "file"))}
+
+
+def export_assets(plan, output):
+    import torch
+
+    from . import drafter
+    from .export import weights
+
+    started = time.perf_counter()
+    values = table(plan["shard"], plan["config"])
+    loaded = time.perf_counter()
+    expected = expected_assets(plan["settings"], plan["steps"])
+    counts = {"verification": 1, "distribution": plan["steps"]}
+    converters = {"verification": lambda model: drafter.export_verification(model, plan["context"]),
+                  "distribution": lambda model: drafter.export([model], plan["context"])}
+    assets = {}
+    for name, folder in ASSET_FOLDERS.items():
+        model = class_drafter(plan["assistant"], values, plan["config"], counts[name]).to(torch.float16)
+        held = weights(model)
+        began = time.perf_counter()
+        program = converters[name](model)
+        converted = time.perf_counter()
+        program.save_asset(output / folder)
+        saved = time.perf_counter()
+        del program, model
+        assets[name] = inspected(output, name, expected[name], held,
+                                 {"convert_s": converted - began, "save_s": saved - converted})
+    problems = layout_problems(listing(output), dict.fromkeys(ASSET_FOLDERS.values(), "folder"))
+    return {"schema": EXPORT_WEIGHTS, "steps": plan["steps"], "context": plan["context"], **plan["sources"],
+            "assets": assets, "versions": versions("class"),
+            "timing": {"load_s": loaded - started, "total_s": time.perf_counter() - started}, "memory": memory(),
+            "problems": problems, "passed": not problems and not any(entry["problems"] for entry in assets.values())}
+
+
+def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, steps, context, output):
+    output = Path(output)
+    if os.path.lexists(output):
+        raise FileExistsError(f"The export must be written to a new folder: {output}")
+    check_export_steps(steps)
+    (contract, contract_sha256), (assistant, assistant_sha256) = target_contract(contract_path), load_assistant(
+        assistant_path)
+    config = contract["config"]
+    check_context(context, config)
+    files, shard = table_shard(snapshot, contract)
+    files.update(verified(snapshot, contract["files"], (shard,)))
+    verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
+    settings = assistant_config(document(Path(assistant_snapshot) / "config.json",
+                                         assistant["files"]["config.json"]["bytes"]),
+                                {key: config[key] for key in TARGET})
+    expect(Path(assistant_snapshot) / "model.safetensors", checkpoint_shapes(settings), True)
+    expect(Path(snapshot) / shard, table_shape(config), False)
+    plan = {"assistant": Path(assistant_snapshot), "shard": Path(snapshot) / shard, "config": config,
+            "settings": settings, "steps": steps, "context": context,
+            "sources": {"model": {"id": contract["model_id"], "revision": contract["revision"],
+                                  "contract_sha256": contract_sha256, "verified_before_loading": files},
+                        "assistant": {"id": assistant["model_id"], "revision": assistant["revision"],
+                                      "contract_sha256": assistant_sha256,
+                                      "verified_before_loading": {name: dict(assistant["files"][name])
+                                                                  for name in ASSISTANT_FILES}}}}
+    made = False
+    try:
+        with deferred_interrupts():
+            output.mkdir(parents=True)
+            made = True
+        record = export_assets(plan, output)
+        with deferred_interrupts():
+            write_json(output / "export.json", record)
+        return record
+    except BaseException as error:
+        if made:
+            with deferred_interrupts():
+                (output / "export.json").unlink(missing_ok=True)
+                write_json(output / "failure.json", {"schema": EXPORT_WEIGHTS, "failure": type(error).__name__})
+        raise
+
+
 def main():
     parser = argparse.ArgumentParser(description="The MTP drafter of Gemma 4 31B: FP32 runs of the original drafter "
                                                  "and of the drafter class on recorded features, their comparison, the "
-                                                 "accepted drafts on the teacher path and the export of a synthetic "
-                                                 "drafter.")
+                                                 "accepted drafts on the teacher path, the export of a synthetic "
+                                                 "drafter and the export of the drafter with the real weights.")
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("run", "acceptance"):
         command = commands.add_parser(name)
@@ -861,6 +1007,11 @@ def main():
     exporter.add_argument("--output", type=Path, required=True)
     for option in ("steps", "context", "seed"):
         exporter.add_argument(f"--{option}", type=int, required=True)
+    real_exporter = commands.add_parser("export-weights")
+    for option in ("model", "assistant", "snapshot", "assistant-snapshot", "output"):
+        real_exporter.add_argument(f"--{option}", type=Path, required=True)
+    for option in ("steps", "context"):
+        real_exporter.add_argument(f"--{option}", type=int, required=True)
     args = parser.parse_args()
     if args.command == "run":
         record = run(args.implementation, args.model, args.assistant, args.snapshot, args.assistant_snapshot,
@@ -871,6 +1022,12 @@ def main():
     if args.command == "export":
         record = export_synthetic(args.output, args.steps, args.context, args.seed)
         print(json.dumps({name: entry["bytes"] for name, entry in record["assets"].items()}), flush=True)
+        return 0 if record["passed"] else 1
+    if args.command == "export-weights":
+        record = export_weights(args.model, args.assistant, args.snapshot, args.assistant_snapshot, args.steps,
+                                args.context, args.output)
+        print(json.dumps({"bytes": {name: entry["bytes"] for name, entry in record["assets"].items()},
+                          "passed": record["passed"]}), flush=True)
         return 0 if record["passed"] else 1
     result = (compare(args.original, args.model_class, args.model, args.assistant, args.snapshot, args.records,
                       args.inputs, args.outputs, args.steps) if args.command == "compare"
