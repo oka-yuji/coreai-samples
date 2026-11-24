@@ -1247,6 +1247,43 @@ class CompareTests(unittest.TestCase):
             self.assertEqual(compare.call_args.args[:4], (Path("e"), Path("r"), Path("v"), Path("o")))
 
 
+def awaited(event, finished, seconds=30):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if event.wait(0.05):
+            return True
+        if finished.is_set():
+            return False
+    return False
+
+
+def recorded(*paths):
+    return all(path.exists() and path.read_text().strip() for path in paths)
+
+
+def kill_recorded(*paths):
+    for path in paths:
+        with contextlib.suppress(ProcessLookupError, ValueError, FileNotFoundError):
+            os.kill(int(path.read_text()), signal.SIGKILL)
+
+
+def interrupt_when_waiting(number, entered, finished, ready, force, forced, seconds=30):
+    if not awaited(entered, finished, seconds):
+        return
+    for _ in range(600):
+        if finished.is_set():
+            return
+        if ready():
+            break
+        time.sleep(0.05)
+    else:
+        return
+    os.kill(os.getpid(), number)
+    while not finished.wait(5):
+        forced.append(True)
+        force()
+
+
 def stop_leftovers(processes):
     for process in processes:
         if process.poll() is None:
@@ -1334,19 +1371,8 @@ class VerifierProcessTests(unittest.TestCase):
             pidfile.unlink(missing_ok=True)
             finished = threading.Event()
             with self.subTest(signal=name), watched_children() as (started, entered):
-                def interrupt_when_it_waits():
-                    entered.wait(30)
-                    for _ in range(600):
-                        if pidfile.exists() and pidfile.read_text().strip():
-                            break
-                        time.sleep(0.05)
-                    os.kill(os.getpid(), number)
-                    while not finished.wait(5):
-                        forced.append(True)
-                        with contextlib.suppress(ProcessLookupError, ValueError):
-                            os.kill(int(pidfile.read_text()), signal.SIGKILL)
-
-                thread = threading.Thread(target=interrupt_when_it_waits, daemon=True)
+                thread = threading.Thread(target=interrupt_when_waiting, daemon=True, args=(
+                    number, entered, finished, lambda: recorded(pidfile), lambda: kill_recorded(pidfile), forced))
                 thread.start()
                 try:
                     with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
@@ -1370,6 +1396,47 @@ class VerifierProcessTests(unittest.TestCase):
         thread.start()
         thread.join(30)
         self.assertEqual(outcome.get("result"), (0, b""))
+
+
+class InterruptingHelperTests(unittest.TestCase):
+    def interrupted(self, entered, finished, ready, seconds=30, signalled=False):
+        entered_event, finished_event = threading.Event(), threading.Event()
+        if entered:
+            entered_event.set()
+        if finished:
+            finished_event.set()
+        with mock.patch.object(os, "kill") as kill:
+            thread = threading.Thread(target=interrupt_when_waiting, daemon=True, args=(
+                signal.SIGTERM, entered_event, finished_event, ready, lambda: None, [], seconds))
+            thread.start()
+            if signalled:
+                for _ in range(100):
+                    if kill.called:
+                        break
+                    time.sleep(0.05)
+                finished_event.set()
+            thread.join(5)
+            self.assertFalse(thread.is_alive())
+        return kill.call_args_list
+
+    def test_no_signal_is_sent_when_the_call_never_waits(self):
+        self.assertEqual(self.interrupted(False, False, lambda: True, seconds=0.2), [])
+
+    def test_the_wait_for_the_call_ends_when_the_test_is_over(self):
+        self.assertEqual(self.interrupted(False, True, lambda: True), [])
+
+    def test_no_signal_is_sent_when_the_test_is_over_before_the_verifier_is_ready(self):
+        self.assertEqual(self.interrupted(True, True, lambda: True), [])
+
+    def test_no_signal_is_sent_when_the_verifier_never_becomes_ready(self):
+        polls = []
+        with mock.patch.object(time, "sleep", side_effect=polls.append):
+            self.assertEqual(self.interrupted(True, False, lambda: False), [])
+        self.assertEqual(len(polls), 600)
+
+    def test_one_signal_is_sent_when_the_call_waits_and_the_verifier_is_ready(self):
+        calls = self.interrupted(True, False, lambda: True, signalled=True)
+        self.assertEqual(calls, [mock.call(os.getpid(), signal.SIGTERM)])
 
 
 class ReadLimitTests(unittest.TestCase):
