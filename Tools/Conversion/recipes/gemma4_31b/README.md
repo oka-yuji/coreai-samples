@@ -987,10 +987,11 @@ index and the whole shard that holds the embedding table (49,784,788,364 B) and 
 
 The numbers of a run are in [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-assets-with-the-real-weights-713).
 `AssetInspectionTests` and `ExportWeightsTests` in `Tools/Conversion/tests/test_gemma4_31b_mtp.py` fix the inspection,
-the refusals, the reads, the two checks of the files, the records and the signals with fake assets and synthetic
-folders; `VerificationStepTests` and
-`WeightsExportTests` in `Tools/Conversion/tests/export_gemma4_31b_drafter.py` convert the synthetic drafter through the
-command and check the descriptors, the files and the record. `checked_contract` of `prepare.py` is the checks of
+the refusals, the reads, the two checks of the files, the records, the signals and the arguments, the output and the exit
+code of the command with fake assets and synthetic folders; `VerificationStepTests` in
+`Tools/Conversion/tests/export_gemma4_31b_drafter.py` checks that the step returns the two outputs of the drafter, and
+`WeightsExportTests` there convert the synthetic drafter with `export_weights` and check the descriptors, the files and
+the record. `checked_contract` of `prepare.py` is the checks of
 `load_contract` on a parsed contract, and `ContractTests` in `Tools/Conversion/tests/test_gemma4_31b_prepare.py` fix that
 it gives the same result and errors.
 

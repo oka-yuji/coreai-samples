@@ -1099,9 +1099,9 @@ compares them with the class.
   coreai-models 0.1.0, numpy 2.3.5, safetensors 0.7.0) with `HF_HUB_OFFLINE=1`, in one run that held the shared machine lock
   from 2026-11-24 12:21:54 to 12:23:21 JST (87 s, on AC power with the battery at 97%; no `coreai-verify`, `coreai-chat` or
   demo-app process was running). The times below are those of that run, not timing measurements.
-- Commit ffab7889 with no local changes. Two earlier runs, at commit 475e9134 and at commit 542f17c4, before the tool
-  read the contracts once, read `main.hash` first and checked the files again after the assets were made, gave the same
-  descriptors and weights.
+- Commit ffab7889 with no local changes. Two earlier runs gave the same descriptors and weights: the run at commit
+  475e9134, before the tool read the contracts once and read `main.hash` first, and the run at commit 542f17c4, before it
+  checked the files again after the assets were made.
 - Inputs: `google/gemma-4-31B-it-assistant@627c5ec1458b9086b841a91e0512fd31fd2fbbf1` (`assistant.json`, SHA-256
   `0878b84df2892e4db2f019255f3f6f1f8bb5afcceda09c873f6262852bac160f`; `config.json` 2,316 B and `model.safetensors`
   939,042,560 B) and the embedding table of `model-00001-of-00002.safetensors` of
