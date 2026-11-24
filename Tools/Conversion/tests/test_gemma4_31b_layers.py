@@ -1378,14 +1378,15 @@ class RestoredReferenceTests(unittest.TestCase):
                     if f"{name}.quantized_data" in tensors:
                         parameter.copy_(float16_restore(*(tensors[f"{name}.{part}"] for part in
                                                           ("quantized_data", "scale", "minval"))).float())
-            ids = layers.tokens("short", load_contract(contract)["config"])
-            expected = layers.outputs(model, "original", ids, [[0, len(ids)]], (1, 2, 3, 4, 5, 6))
-            for output, array in expected.items():
-                with self.subTest(output=output):
-                    restored = np.load(folder / f"restored/short.{output}.npy")
-                    np.testing.assert_array_equal(restored, array)
-                    self.assertGreater(float(np.abs(restored - np.load(folder / f"rounded/short.{output}.npy")).max()),
-                                       1e-3)
+            for name in layers.INPUTS:
+                ids = layers.tokens(name, load_contract(contract)["config"])
+                expected = layers.outputs(model, "original", ids, [[0, len(ids)]], (1, 2, 3, 4, 5, 6))
+                for output, array in expected.items():
+                    with self.subTest(input=name, output=output):
+                        restored = np.load(folder / f"restored/{name}.{output}.npy")
+                        np.testing.assert_array_equal(restored, array)
+                        self.assertGreater(
+                            float(np.abs(restored - np.load(folder / f"rounded/{name}.{output}.npy")).max()), 1e-3)
 
     def test_a_run_refuses_other_weights_before_it_reads_the_contract_and_an_existing_output_before_the_export(self):
         with tempfile.TemporaryDirectory() as folder:
