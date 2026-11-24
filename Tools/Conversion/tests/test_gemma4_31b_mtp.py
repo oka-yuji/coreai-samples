@@ -483,8 +483,9 @@ class DigestTests(unittest.TestCase):
 
                 def piece(descriptor, length, growing=growing, requested=requested, returned=returned):
                     requested.append(length)
-                    if sum(returned) > 10 * 1024 * 1024:
-                        raise AssertionError("the read did not stop")
+                    remaining = 101 - sum(returned)
+                    if length > remaining:
+                        raise AssertionError(f"asked for {length} B with {remaining} B remaining")
                     block = b"y" * min(length, 60) if growing else real(descriptor, min(length, 60))
                     returned.append(len(block))
                     return block
@@ -496,8 +497,6 @@ class DigestTests(unittest.TestCase):
                     else:
                         self.assertEqual(mtp.digest(path, 100),
                                          {"bytes": 100, "sha256": hashlib.sha256(content).hexdigest()})
-                    self.assertTrue(all(length <= 101 - sum(returned[:index]) for index, length in enumerate(requested)),
-                                    requested)
                     self.assertEqual(sum(returned), 101 if growing else 100)
 
 
@@ -2275,7 +2274,7 @@ class ExportWeightsTests(unittest.TestCase):
         real = signal.signal
 
         def setting(signum, handler):
-            if signum == signal.SIGTERM and handler is terminated:
+            if signum == signal.SIGTERM and handler is terminated and not seen:
                 seen.append((output / "export.json").exists())
                 signal.raise_signal(number)
             return real(signum, handler)
