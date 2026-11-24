@@ -197,6 +197,13 @@ before they write anything when the records or the summary do not fit (`ForcedIn
 `Tools/Conversion/tests/test_gemma4_31b_layer1_runs.py`). Run them from the repository root with the reference
 environment, under the shared machine lock, which they do not take themselves.
 
+The two sides have to be made with the same number of layers and the same weights: a candidate of an 8-bit export is
+compared with a baseline restored from that same export, and a `float16` candidate with a `float16` baseline.
+`layer1_compare` keeps the `weights` of each side as text and does not check this. Before the comparison, check that
+`quantized.export_sha256` in the `run.json` of the baseline equals `export.sha256` in the `run.json` of the candidate;
+for `float16`, check that `layers` of the baseline equals `export.layers` of the candidate and that `model.revision`
+of the baseline is the `revision` of `model.json`.
+
 ### Baseline side
 
 ~~~sh
@@ -222,7 +229,7 @@ in that order.
 | `<id>.f32` | The logits of the scored rows: float32, little-endian, row-major, [rows, vocabulary] |
 | `run.json` | `passed`, `checks`, `error` (the type name of an exception after the folder was made), `weights`, `compute`, `loading`, `forced` and per item the token counts, `seconds`, the size and SHA-256 of its file, the memory after it and the swap use before and after it, then `resources` and `timing` |
 | `logits.json` | Written only when the run passed: role `anchor`, `weights`, `forced_sha256` and one entry per item |
-| `monitor.tsv`, `failure.json` | The monitor of `reference` and its record of a stop |
+| `monitor.tsv`, `failure.json` | The monitor of `reference` and its record of a stop, or, when an exception ended the run before `run.json` was written, the `schema`, `passed` and the type name of the exception in `error` |
 
 `passed` is true only when every check in `run.json` is. `AnchorRunTests` and `RestoredRunTests` fix the records and
 the refusals.
@@ -233,10 +240,10 @@ the refusals.
 (`original_model`: the weights rounded to float16, float32) in one call per item, with the attention implementations
 `sdpa` and `eager` on the CPU and `sdpa` on MPS. The compared pair is the computation on the CPU and the original
 implementation with `sdpa`, its default, on the CPU; the limit of their largest absolute logit difference is 1e-4 for
-every item, and one item has to have more input tokens than the sliding window. The other differences, between the
+every item, every variant has to return exactly the scored rows of the item (`shapes` in `checks`), and one item has
+to have more input tokens than the sliding window. The other differences, between the
 devices and between the attention implementations, are listed under `recorded` and decide nothing. `run` computes on
-MPS, so its logits carry the difference between MPS and the CPU; on the first six layers it reached 2.4e-3
-([validation record](../../../../docs/validation/gemma4-31b/README.md#layer-1-runs-in-the-first-six-layers-699)).
+MPS, so its logits carry the difference between MPS and the CPU; on the first six layers it reached 2.4e-3.
 
 ### Candidate side
 
@@ -249,7 +256,9 @@ MPS, so its logits carry the difference between MPS and the CPU; on the first si
 It launches `coreai-verify logits --model <bundle> --tokens <id>.tokens.json --start <start> --chunk 1 --output
 <id>.f16` once per item: the tokens before `start` are read as the engine reads them, then the scored rows one token at a
 time. It takes only an export that `load_export` of `native.py` accepts. The role follows the precision of the export,
-`fp16` for `float16` and `w8` for `8bit`, and `weights` is the bundle name with its `main.hash`.
+`fp16` for `float16` and `w8` for `8bit`, and `weights` is the bundle name with its `main.hash`. `--verifier` is
+resolved to an absolute path against the current folder (symbolic links followed), so a bare name is the file in the
+current folder and not a command of `PATH`, and that file is hashed and started for every item.
 
 | File | Contents |
 |---|---|
