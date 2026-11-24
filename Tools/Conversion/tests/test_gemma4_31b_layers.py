@@ -568,6 +568,19 @@ class ConditionTests(unittest.TestCase):
         self.assertEqual(seen, [layers.raise_interruption])
         self.assertIs(signal.getsignal(signal.SIGTERM), previous)
 
+    def test_the_run_command_passes_its_arguments_and_the_kind_of_weights_and_the_export_to_the_run(self):
+        record = {"inputs": {"short": {"logits": {"shape": [26, 301]}}}, "timing": {}, "memory": {}}
+        base = ["layers", "run", "--implementation", "original", "--layers", "6", "--taps", "1,2", "--model", "m",
+                "--snapshot", "s", "--output", "o"]
+        cases = {"float16": (["--weights", "float16"], "float16", None),
+                 "8bit": (["--weights", "8bit", "--export", "e"], "8bit", Path("e"))}
+        for label, (extra, weights, export_folder) in cases.items():
+            with self.subTest(weights=label), mock.patch.object(sys, "argv", base + extra), \
+                    mock.patch("sys.stdout"), mock.patch.object(layers, "run", return_value=record) as run:
+                self.assertEqual(layers.main(), 0)
+            self.assertEqual(run.call_args.args, ("original", Path("m"), Path("s"), 6, "1,2", Path("o"), weights,
+                                                  export_folder))
+
     @unittest.skipIf(os.geteuid() == 0, "root searches a folder without permission")
     def test_a_context_run_refuses_a_link_into_a_folder_without_search_permission_before_it_reads_the_contract(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -1088,37 +1101,40 @@ class RestoredReferenceTests(unittest.TestCase):
             snapshot, contract = write_snapshot(folder, hidden_size=64)
             real_mkdir, real_write = os.mkdir, layers.write_json
 
-            def interrupted_at(label, point, failure=None):
+            def interrupted_at(label, number, point, failure=None):
                 output, written = folder / label, []
 
                 def after_mkdir(path, *arguments, **keywords):
                     real_mkdir(path, *arguments, **keywords)
                     if point == "mkdir" and Path(path) == output:
-                        signal.raise_signal(signal.SIGINT)
+                        signal.raise_signal(number)
 
                 def around_write(path, value):
                     if point == Path(path).name:
-                        signal.raise_signal(signal.SIGINT)
+                        signal.raise_signal(number)
                     real_write(path, value)
                     written.append(Path(path).name)
 
-                with mock.patch("os.mkdir", side_effect=after_mkdir), \
+                with layers.terminated_as_interrupt(), mock.patch("os.mkdir", side_effect=after_mkdir), \
                         mock.patch.object(layers, "write_json", side_effect=around_write), \
                         mock.patch.object(layers, "original_model", side_effect=failure or layers.original_model), \
                         self.assertRaises(KeyboardInterrupt):
                     layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, "float16", None)
                 return output, written, read_json(output / "failure.json")["error"]
 
-            output, written, error = interrupted_at("folder", "mkdir")
-            self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
-                             (["failure.json"], "KeyboardInterrupt", ["failure.json"]))
-            output, written, error = interrupted_at("record", "record.json")
-            self.assertEqual((written, error), (["record.json", "failure.json"], "KeyboardInterrupt"))
-            self.assertFalse((output / "record.json").exists())
-            output, written, error = interrupted_at("failure", "failure.json", RuntimeError("private-example-sentinel"))
-            self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
-                             (["failure.json"], "RuntimeError", ["failure.json"]))
-            self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
+            for name, number in (("sigint", signal.SIGINT), ("sigterm", signal.SIGTERM)):
+                with self.subTest(signal=name):
+                    output, written, error = interrupted_at(f"folder-{name}", number, "mkdir")
+                    self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                                     (["failure.json"], "KeyboardInterrupt", ["failure.json"]))
+                    output, written, error = interrupted_at(f"record-{name}", number, "record.json")
+                    self.assertEqual((written, error), (["record.json", "failure.json"], "KeyboardInterrupt"))
+                    self.assertFalse((output / "record.json").exists())
+                    output, written, error = interrupted_at(f"failure-{name}", number, "failure.json",
+                                                            RuntimeError("private-example-sentinel"))
+                    self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                                     (["failure.json"], "RuntimeError", ["failure.json"]))
+                    self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
 
     def test_a_run_whose_inputs_do_not_match_the_contract_is_refused_before_its_folder_is_made(self):
         with tempfile.TemporaryDirectory() as folder:
