@@ -109,7 +109,8 @@ def write_run(folder, implementation, contract, arrays, taps=TAPS):
     model = {"id": pinned["model_id"], "revision": pinned["revision"], "contract_sha256": sha256(contract),
              "verified_before_loading": pinned["files"]}
     write_json(folder / "record.json", {"implementation": implementation, "layers": 6, "tap_layers": list(taps),
-                                        "inputs": inputs, "layer_types": TEXT["layer_types"][:6], "model": model})
+                                        "inputs": inputs, "layer_types": TEXT["layer_types"][:6], "model": model,
+                                        "weights": layers.WEIGHTS})
 
 
 def edit_record(folder, change):
@@ -293,23 +294,26 @@ class CompareTests(unittest.TestCase):
                 (run / f"class/long.{output}.npy").unlink()
                 self.assertFalse(self.compare(run)["passed"])
 
-    def test_runs_of_other_weights_never_pass_and_the_result_names_no_layers(self):
-        cases = {"restored weights against rounded weights": (layers.RESTORED, layers.WEIGHTS),
-                 "rounded weights against restored weights": (layers.WEIGHTS, layers.RESTORED),
-                 "weights recorded for one run only": (None, layers.WEIGHTS)}
-        for label, (original, model_class) in cases.items():
+    def test_runs_of_other_or_unknown_weights_never_pass_and_the_result_names_no_layers(self):
+        unknown = "the {} run recorded no known kind of weights"
+        differ = "the runs differ in weights"
+        cases = {"restored weights against rounded weights": (layers.RESTORED, layers.WEIGHTS, [differ]),
+                 "rounded weights against restored weights": (layers.WEIGHTS, layers.RESTORED, [differ]),
+                 "weights recorded for one run only": (None, layers.WEIGHTS, [unknown.format("original"), differ]),
+                 "weights recorded for neither run": (None, None, [unknown.format("original"), unknown.format("class")]),
+                 "another kind of weights in both runs": ("bfloat16", "bfloat16",
+                                                          [unknown.format("original"), unknown.format("class")])}
+        for label, (original, model_class, problems) in cases.items():
             with self.subTest(case=label):
                 run = self.pair(label.replace(" ", "-"))
-                edit_record(run / "original", lambda record: record.update(weights=original))
-                edit_record(run / "class", lambda record: record.update(weights=model_class))
+                for kind, weights in (("original", original), ("class", model_class)):
+                    edit_record(run / kind, lambda record: record.pop("weights") if weights is None
+                                else record.update(weights=weights))
                 result = self.compare(run)
                 self.assertFalse(result["passed"])
-                self.assertEqual(result["problems"], ["the runs differ in weights"])
+                self.assertEqual(result["problems"], problems)
                 self.assertEqual((result["layers"], result["tap_layers"]), (None, list(TAPS)))
-        run = self.pair("rounded")
-        for kind in ("original", "class"):
-            edit_record(run / kind, lambda record: record.update(weights=layers.WEIGHTS))
-        result = self.compare(run)
+        result = self.compare(self.pair("rounded"))
         self.assertTrue(result["passed"], result["problems"])
         self.assertEqual(result["layers"], 6)
 

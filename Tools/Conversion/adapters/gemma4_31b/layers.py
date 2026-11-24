@@ -460,6 +460,8 @@ def compare(original, model_class, contract_path=CONTRACT):
     for kind, record in zip(IMPLEMENTATIONS, records):
         if record.get("model") != model:
             problems.append(f"the {kind} run recorded another model or contract")
+        if record.get("weights") not in WEIGHT_KINDS.values():
+            problems.append(f"the {kind} run recorded no known kind of weights")
         try:
             if record.get("layer_types") != check_layers(config, record.get("layers")):
                 problems.append(f"the {kind} run recorded layer types that differ from the contract")
@@ -468,7 +470,8 @@ def compare(original, model_class, contract_path=CONTRACT):
             problems.append(f"the {kind} run: {error}")
     problems += [f"the runs differ in {key}" for key in ("model", "layers", "layer_types", "tap_layers", "weights")
                  if records[0].get(key) != records[1].get(key)]
-    agreed = all(records[0].get(key) == records[1].get(key) for key in ("layers", "weights"))
+    agreed = all(records[0].get(key) == records[1].get(key) for key in ("layers", "weights")) \
+        and all(record.get("weights") in WEIGHT_KINDS.values() for record in records)
     taps = recorded_taps[0] if len(recorded_taps) == 2 and recorded_taps[0] == recorded_taps[1] else ()
     if same_file(*(folder / "record.json" for folder in folders)):
         problems.append("both runs read the same record.json")
