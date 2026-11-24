@@ -115,6 +115,8 @@
 - GPU を使う統合テストは `.enabled(if:)` で既定の実行から外す。`swift test` だけでは、モデルを読むテストは動かない。動かすのは、バンドルのフォルダを `:` 区切りで渡したときだけ(このときはロックを取る): `COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test --package-path CoreAISamplesKit`
 - Gemma 4 31Bの呼び出しの形の実結合は共有heavy-jobロック下で `COREAI_GEMMA4_SHAPE_BUNDLES=/path/to/bundle-a:/path/to/bundle-b COREAI_GEMMA4_SHAPE_REPORT=/new/report.json swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ModelIntegrationTests.gemma4CallShapes`。`source.hf_model_id`が`google/gemma-4-31B-it`の資産だけを受け付け、bundleのtokenizerで作った300 tokenを、`prefill`と1回の`main`の経路ごとに別のEngineで読み、それぞれ1 tokenずつ読んだlogitsを基準に、長さ1〜300の最後の位置の差を比べる(2関数の資産では、同じEngineで`prefill`関数の1・2 tokenの後に`main`で3 tokenを読むとMPSGraphでプロセスが止まる)。`prefill`は全長で2.0未満、1回の`main`は97〜112のどれかで2.0以上・ほかは2.0未満、非有限値0。報告は既存のファイルを拒否する。`check.sh`は`COREAI_*`を消すので直接流す。既定はskip。規則と記録の項目は`docs/verification.md`。
 
+- Engineの追加の出力の読み出しの実結合は共有heavy-jobロック下で `COREAI_OUTPUT_ROWS_BUNDLE=/path/to/gemma4-31b-first-layers-main-prefill-bundle swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ModelIntegrationTests.outputRowsFollowTheLastCall`。`main`が`hidden_states`・`tap_hidden_states`、`prefill`が`tap_hidden_states`を返す資産で、読んだ呼び出しの行だけを読めること、次の読み込み・`reset`・`restore`・`unload`の後と読まなかった出力は`notRead`、関数が持たない名前とmainの`logits`は呼び出しの前に`unreadableOutput`でエンジンが変わらないことを確かめる。`prefill`関数を持たない資産では、試験は失敗する。`prefill`関数の後に複数tokenの`main`を呼ばない。既定はskip。
+
 - Decide の統合テストは言語モデル用と混ぜず、GPU ロックの下で専用の変数と filter を使う:
   `COREAI_DECISION_BUNDLE=/path/to/decision-bundle swift test --package-path CoreAISamplesKit -c release --filter DecisionInferenceTests`
   20 文書のメモリ試験は `DECIDE_MEMORY_TEST=1` を追加する。測定の JSON は `DECIDE_METRICS_DIR=/path/to/output` で保存できる。
