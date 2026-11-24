@@ -252,8 +252,8 @@ class RunTests(unittest.TestCase):
             folder = Path(folder)
             snapshot, contract = write_snapshot(folder)
             count, taps = TEXT["num_hidden_layers"], ",".join(map(str, TAPS))
-            layers.run("original", contract, snapshot, count, taps, folder / "original")
-            record = layers.run("class", contract, snapshot, count, taps, folder / "class")
+            layers.run("original", contract, snapshot, count, taps, folder / "original", "float16", None)
+            record = layers.run("class", contract, snapshot, count, taps, folder / "class", "float16", None)
             self.assertEqual(record["inputs"]["long"]["calls"][:3], [[0, 8], [8, 9], [9, 11]])
             self.assertEqual(record["upstream_revision"], json.loads(contract.read_text())["upstream_revision"])
             result = layers.compare(folder / "original", folder / "class", contract)
@@ -270,12 +270,12 @@ class RunTests(unittest.TestCase):
                     self.assertLess(max(entry["largest_ratio"] for entry in outputs["tap_hidden_states"].values()),
                                     layers.RATIO)
             with mock.patch.object(model, "window", replica(shorter=1)):
-                layers.run("class", contract, snapshot, count, taps, folder / "shorter")
+                layers.run("class", contract, snapshot, count, taps, folder / "shorter", "float16", None)
             result = layers.compare(folder / "original", folder / "shorter", contract)
             self.assertEqual(result["problems"], [])
             self.assertGreaterEqual(result["inputs"]["long"]["max_abs_logit"], TOLERANCE)
             self.assertFalse(result["inputs"]["long"]["checks"]["tap_hidden_states"])
-            layers.run("class", contract, snapshot, count, "1,6,7,11", folder / "shifted")
+            layers.run("class", contract, snapshot, count, "1,6,7,11", folder / "shifted", "float16", None)
             result = layers.compare(folder / "original", folder / "shifted", contract)
             self.assertFalse(result["passed"])
             self.assertIn("the runs differ in tap_layers", result["problems"])
@@ -287,7 +287,8 @@ class RunTests(unittest.TestCase):
             with mock.patch.object(local, "check_checkout", side_effect=PipelineError("another revision")), \
                     mock.patch.object(model.Gemma4ForCausalLM, "from_hf_memory_efficient") as load, \
                     self.assertRaises(PipelineError):
-                layers.run("class", contract, snapshot, TEXT["num_hidden_layers"], "1", folder / "refused")
+                layers.run("class", contract, snapshot, TEXT["num_hidden_layers"], "1", folder / "refused", "float16",
+                           None)
             load.assert_not_called()
             self.assertFalse((folder / "refused/record.json").exists())
 
