@@ -113,7 +113,12 @@ OPEN = io.open
 
 @contextlib.contextmanager
 def watched():
-    reads = []
+    reads, real = [], os.read
+
+    def read_descriptor(descriptor, count):
+        status = os.fstat(descriptor)
+        reads.append((status.st_dev, status.st_ino))
+        return real(descriptor, count)
 
     def opener(file, *arguments, **options):
         handle = OPEN(file, *arguments, **options)
@@ -127,7 +132,8 @@ def watched():
         handle.read = read
         return handle
 
-    with mock.patch("builtins.open", new=opener), mock.patch("io.open", new=opener):
+    with mock.patch("builtins.open", new=opener), mock.patch("io.open", new=opener), \
+            mock.patch.object(os, "read", side_effect=read_descriptor):
         yield reads
 
 
