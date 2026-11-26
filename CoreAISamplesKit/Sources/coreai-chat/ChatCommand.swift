@@ -65,7 +65,14 @@ enum ChatCommand {
                 model: url, prompts: prompts, system: system, maxTokens: maxTokens, stats: stats,
                 recoverPreparedCopy: recoverPreparedCopy)
         } catch {
-            FileHandle.standardError.write(Data("error: \(error)\n".utf8))
+            let message: String
+            if let failure = error as? PreparedCopyError {
+                let hint = failure == .recoveryFailed ? " Use --clear-prepared-copy with --model." : ""
+                message = "\(failure): \(failure.localizedDescription)\(hint)"
+            } else {
+                message = String(describing: error)
+            }
+            FileHandle.standardError.write(Data("error: \(message)\n".utf8))
             exit(1)
         }
     }

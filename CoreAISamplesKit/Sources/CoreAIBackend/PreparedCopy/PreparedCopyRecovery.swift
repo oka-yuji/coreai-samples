@@ -37,14 +37,16 @@ struct PreparedCopyRecovery: Sendable {
         onRecovery: () -> Void = {}, delete: () throws -> Void,
         load: () async throws -> Loaded, warmUp: (Loaded) async throws -> Void
     ) async throws -> PreparedCopyLoad<Loaded> {
+        try Task.checkCancellation()
         var attempt = try begin(reload: reload)
         while true {
             if attempt.recovering {
                 onRecovery()
-                try discard(with: delete)
+                try discard(attempt, with: delete)
             }
             let value: Loaded
             do {
+                try Task.checkCancellation()
                 value = try await load()
             } catch {
                 if !reload, !attempt.recovering, !Task.isCancelled, shouldRetry(error) {
@@ -61,7 +63,9 @@ struct PreparedCopyRecovery: Sendable {
             }
             do {
                 try advance(attempt)
+                try Task.checkCancellation()
                 try await warmUp(value)
+                try Task.checkCancellation()
             } catch {
                 abandon(attempt, after: error)
                 throw error
@@ -152,10 +156,19 @@ struct PreparedCopyRecovery: Sendable {
         return dead
     }
 
-    private func discard(with delete: () throws -> Void) throws {
+    private func discard(_ attempt: PreparedCopyAttempt, with delete: () throws -> Void) throws {
         do {
+            try Task.checkCancellation()
             try delete()
         } catch {
+            if error is CancellationError || Task.isCancelled {
+                try update { record in
+                    record.marks = record.suspects.filter { $0.attempt != attempt.mark.attempt }
+                    record.recoveries = 0
+                    record.suspects = []
+                }
+                throw CancellationError()
+            }
             try? update { $0.failed = true }
             throw error
         }
@@ -171,7 +184,7 @@ struct PreparedCopyRecovery: Sendable {
     }
 
     private func abandon(_ attempt: PreparedCopyAttempt, after error: any Error) {
-        let terminal = attempt.recovering && !(error is CancellationError)
+        let terminal = attempt.recovering && !(error is CancellationError) && !Task.isCancelled
         try? update { record in
             if terminal {
                 record.failed = true

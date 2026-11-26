@@ -20,6 +20,10 @@ protocol RuntimeEngine: AnyObject {
 }
 
 extension RuntimeEngine {
+    var hasUsableLogits: Bool {
+        hasLogits && withLogits { $0.contains(where: \.isFinite) }
+    }
+
     func prefill(
         _ input: [Int32], usePrefillFunction: Bool, onProgress: @Sendable (Int) -> Void
     ) async throws {

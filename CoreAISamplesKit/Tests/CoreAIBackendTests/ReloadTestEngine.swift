@@ -9,6 +9,7 @@ final class ReloadTestControl: Sendable {
     struct State {
         var loads = 0
         var failNextLoad = false
+        var hasOnlyMaskedLogits = false
         var failNextRead = false
         var failReadAfterTokens: Int?
         var failNextStep = false
@@ -150,6 +151,7 @@ final class ReloadTestEngine: RuntimeEngine {
     }
 
     func logits() -> [Float16] {
+        if control.state.withLock({ $0.hasOnlyMaskedLogits }) { return Array(repeating: -.infinity, count: 4) }
         var values = Array(repeating: Float16(-10), count: 4)
         let token = control.state.withLock { $0.generationTokens[min(outputIndex, $0.generationTokens.count - 1)] }
         values[token] = 10

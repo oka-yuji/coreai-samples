@@ -37,7 +37,7 @@ extension Engine {
             try Task.checkCancellation()
         }
         try await readInOneCall([0])
-        guard withLogits({ $0.contains(where: \.isFinite) }) else { throw EngineError.missingOutput }
+        guard hasUsableLogits else { throw EngineError.missingOutput }
         try Task.checkCancellation()
     }
 }

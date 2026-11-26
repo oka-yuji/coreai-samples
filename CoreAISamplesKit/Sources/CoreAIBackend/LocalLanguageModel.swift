@@ -380,7 +380,7 @@ actor Runtime {
                 })
             if let pendingReload, let recovery {
                 try Task.checkCancellation()
-                guard core.engine.hasLogits, !core.engine.logits().isEmpty else { throw EngineError.missingOutput }
+                guard core.engine.hasUsableLogits else { throw EngineError.missingOutput }
                 try recovery.finishReload(pendingReload)
                 self.pendingReload = nil
             }

@@ -68,11 +68,12 @@ struct RuntimePreparedCopyTests {
             #expect(runtime.loadStats.recoveredPreparedCopy)
             #expect(control.events == ["load:1", "repair", "delete", "load:2", "warmUp:2"])
             #expect(recovery.record().marks.isEmpty)
-            withExtendedLifetime(runtime) {
+            _ = withExtendedLifetime(runtime) {
                 #expect(throws: PreparedCopyError.inUse) { try recovery.clear {} }
             }
         } catch is CancellationError {
             #expect(outcome == "cancelled")
+            #expect(recovery.record() == PreparedCopyFixture.empty)
         } catch let error as PreparedCopyError {
             #expect(outcome == "delete failure" || outcome == "load failure")
             #expect(error == .recoveryFailed)
@@ -85,7 +86,7 @@ struct RuntimePreparedCopyTests {
 
     @Test(
         "A reload protects the real input read and releases its mark on success, failure and cancellation",
-        arguments: ["success", "failure", "cancellation"])
+        arguments: ["success", "failure", "cancellation", "masked"])
     func protectsFirstRead(outcome: String) async throws {
         let fixture = try PreparedCopyFixture()
         defer { fixture.remove() }
@@ -99,6 +100,7 @@ struct RuntimePreparedCopyTests {
         #expect(!model.model.loadStats.recoveredPreparedCopy)
         try fixture.write(PreparedCopyFixture.record([PreparedCopyFixture.alive]))
         model.control.state.withLock {
+            $0.hasOnlyMaskedLogits = outcome == "masked"
             $0.footprint = 1
             $0.blockNextRead = true
             $0.readIgnoresCancellation = outcome == "cancellation"
@@ -119,6 +121,9 @@ struct RuntimePreparedCopyTests {
                         return true
                     } catch is CancellationError {
                         #expect(outcome == "cancellation")
+                        return false
+                    } catch EngineError.missingOutput {
+                        #expect(outcome == "masked")
                         return false
                     } catch ReloadTestFailure.read {
                         #expect(outcome == "failure")
@@ -144,6 +149,7 @@ struct RuntimePreparedCopyTests {
         } else {
             #expect(await model.model.processedTokens().isEmpty)
             try recovery.clear {}
+            model.control.state.withLock { $0.hasOnlyMaskedLogits = false }
             _ = try await model.request("a")
             #expect(model.control.loads == 3)
             #expect(recovery.record().marks.isEmpty)
