@@ -467,8 +467,12 @@ def provenance(contract, contract_sha256, files, assistant, assistant_sha256, su
 
 
 def prepared(contract_path, assistant_path, snapshot, assistant_snapshot, records, inputs, outputs, choose):
-    (contract, contract_sha256), (assistant, assistant_sha256) = target_contract(contract_path), load_assistant(
-        assistant_path)
+    return prepared_from(target_contract(contract_path), load_assistant(assistant_path), snapshot, assistant_snapshot,
+                         records, inputs, outputs, choose)
+
+
+def prepared_from(target, pinned, snapshot, assistant_snapshot, records, inputs, outputs, choose):
+    (contract, contract_sha256), (assistant, assistant_sha256) = target, pinned
     files, shard = table_shard(snapshot, contract)
     files.update(verified(snapshot, contract["files"], (shard,)))
     verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
@@ -995,6 +999,14 @@ def snapshot_checks(snapshot, assistant_snapshot, contract, assistant):
     return shard, files, verified(assistant_snapshot, assistant["files"], ASSISTANT_FILES)
 
 
+def read_contracts(contract_path, assistant_path):
+    data = small(contract_path, CONTRACT_LIMIT)
+    contract = checked_target(checked_contract(strict(data)), Path(contract_path).name)
+    contract_sha256 = hashlib.sha256(data).hexdigest()
+    data = small(assistant_path, CONTRACT_LIMIT)
+    return (contract, contract_sha256), (checked_assistant(strict(data)), hashlib.sha256(data).hexdigest())
+
+
 def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, steps, context, output):
     output, made = Path(output), False
     try:
@@ -1002,11 +1014,7 @@ def export_weights(contract_path, assistant_path, snapshot, assistant_snapshot, 
             if os.path.lexists(output):
                 raise FileExistsError(f"The export must be written to a new folder: {output}")
             check_export_steps(steps)
-            data = small(contract_path, CONTRACT_LIMIT)
-            contract = checked_target(checked_contract(strict(data)), Path(contract_path).name)
-            contract_sha256 = hashlib.sha256(data).hexdigest()
-            data = small(assistant_path, CONTRACT_LIMIT)
-            assistant, assistant_sha256 = checked_assistant(strict(data)), hashlib.sha256(data).hexdigest()
+            (contract, contract_sha256), (assistant, assistant_sha256) = read_contracts(contract_path, assistant_path)
             config = contract["config"]
             check_context(context, config)
             checks = snapshot_checks(snapshot, assistant_snapshot, contract, assistant)

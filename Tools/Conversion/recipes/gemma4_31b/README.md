@@ -1012,6 +1012,106 @@ the record. `checked_contract` of `prepare.py` is the checks of
 `load_contract` on a parsed contract, and `ContractTests` in `Tools/Conversion/tests/test_gemma4_31b_prepare.py` fix that
 it gives the same result and errors.
 
+### Inputs and reference values for checking the assets
+
+~~~sh
+.local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.mtp_native \
+  inputs --model Tools/Conversion/recipes/gemma4_31b/model.json \
+  --assistant Tools/Conversion/recipes/gemma4_31b/assistant.json \
+  --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --assistant-snapshot .local/conversion/models/google--gemma-4-31B-it-assistant \
+  --records .local/conversion/gemma4_31b/spike-691/records \
+  --inputs .local/conversion/gemma4_31b/evaluation/G31-QC-v1-primary-inputs/inputs.jsonl \
+  --outputs .local/conversion/gemma4_31b/evaluation/runs/G31-QC-v1-primary-reference/outputs.jsonl \
+  --steps 7 --output .local/conversion/gemma4_31b/drafter-inputs
+~~~
+
+`adapters/gemma4_31b/mtp_native.py` writes, for the rows of `mtp.py run` (the first item of each category of #691, the
+anchors of `anchors`: 47 rows of 13 items), the seven input files of the two assets of `export-weights` in the form
+that `coreai-verify function` reads, and the values that the drafter class computes in float32 on the CPU from the same
+inputs. It does not run an asset: the next work (#714) runs the assets on these files and compares their outputs with
+the reference values. Run it under the shared machine lock, which the tool does not take itself. It runs in the
+converter environment, because `mtp.class_drafter` imports the converter; the tool itself imports only NumPy, PyTorch
+and safetensors.
+
+- Arguments: those of `mtp.py run` without `--implementation`. `--steps` is a whole number from 1 to 15 (7 for the
+  assets of #713) and `--output` a path that does not exist, a link included.
+- Checks before the output folder is made, in this order: the output path, `--steps`, `model.json` and `assistant.json`
+  (opened once each, without waiting and not through a link, regular files of at most 1,048,576 B, read from the one
+  descriptor; their form and SHA-256 come from those bytes), and then the checks that `run` makes: the size and
+  SHA-256 of the index and the shard of the target and of the two files of the assistant, the records of #691, the
+  features and the shapes and types of every tensor that is read (see the start of MTP drafter). A check that fails
+  stops the tool, and no folder or file is made. The same checks, with the contracts that were read once, are made a
+  second time after the last file is written and before `record.json` is.
+- Inputs. `rows/000` to `rows/046` each hold `inputs.json` and seven files `input_ids.bin`, `hidden_states.bin`,
+  `position_ids.bin`, `k_sliding.bin`, `v_sliding.bin`, `k_full.bin` and `v_full.bin`. `inputs.json` is
+  `{"inputs": [...]}` with, in the order of the inputs of the drafter class, one object with exactly `name`, `dtype`,
+  `shape` and `file`; a file holds the elements as little-endian values in row-major order and no header, so exactly the
+  product of the shape times the width of the type. `input_ids` and `position_ids` are int32 [1, 1] (the token at the
+  anchor a, and a), `hidden_states` float16 [1, 1, 5376], `k_sliding` and `v_sliding` float16 [1, 1, 16, w, 256] with
+  w = min(a, 1,025), and `k_full` and `v_full` float16 [1, 1, 4, n, 512] with n = a: the ranges that `row_inputs` cuts
+  for the class. The five float inputs are the BF16 features of #691 taken through float32 and rounded to float16 (to
+  nearest, ties to even). Values that the rounding changes are counted for each kind of input (elements, changed, the
+  largest absolute difference of the finite ones, not finite); a value that is not finite after the rounding is a
+  problem.
+- Reference values, from the values that the files hold (the rounded values, converted back to float32; never the
+  features before the rounding), with the weights of `run` (every checkpoint tensor rounded to float16, computed in
+  float32 on the CPU). Four files of the output folder, each with the rows in the order of `rows/`, no header and
+  little-endian: `logits.bin` float32 [rows, 262144], the logits of the first step, over the whole vocabulary;
+  `drafts.bin` int32 [rows, steps], the tokens that the unrolled drafter returns; `top2_ids.bin` int32 [rows, steps, 2]
+  and `top2_probabilities.bin` float64 [rows, steps, 2], for each of the steps that are run one at a time (the token and
+  the output of `post_projection` of the step before, as `run` does) the two tokens with the largest logit and their
+  probabilities in a softmax of temperature 1 over the whole vocabulary in float64; equal logits are ordered by the
+  smaller token ID. The output of `post_projection` is not written.
+- `record.json` is written last and holds no absolute path and no list of token IDs: `schema`, `steps`, `rows` (the
+  number, `id`, `category`, `anchor`, `output_index`, the lengths `sliding` and `full`, the size and SHA-256 of
+  `inputs.json` and the type, shape, size and SHA-256 of each of the seven files), `arrays` (type, shape, size and
+  SHA-256 of the four files), `rounding`, `model`, `assistant` and `records` (as `run` records them), `weights`,
+  `versions` (NumPy, safetensors and PyTorch), `timing` (`load_s`, the load of the table and the model, `rows_s`, the
+  rows and the files, and `total_s`; the checks before and after are in none of them), `memory` (the largest resident set
+  of the process and the lifetime peak of its footprint), `problems` and `passed`.
+- Judgement. `passed` is true only when `problems` is empty, and the exit code is 0 only then. A row is a problem when
+  the unrolled drafts differ from the tokens of the steps run one at a time, or when a token of those steps is not the
+  best token of its step; a kind of input with a value that is not finite after the rounding is a problem; so is a
+  value that is not finite in `logits.bin` or `top2_probabilities.bin`. A problem does not stop the tool: it keeps all
+  files, writes `record.json` with `passed` false and the problems and exits with code 1, and writes no `failure.json`.
+  The problems name rows, kinds of input and files, no token.
+- Records and interruptions. `record.json` is written last, after every row and array is written and the files are
+  checked a second time; where it exists, the folder is complete. An error that stops the tool after the output folder
+  is made (an exception, an interruption, or a second check that differs from the first) leaves `failure.json` (the
+  schema and the name of the error) and no `record.json`, and the files that were written stay in the folder; a folder
+  that holds neither is unfinished. SIGINT and SIGTERM are held while the output folder is made and while `record.json`
+  or `failure.json` is written, and raised as an interruption when the section ends; one that arrives outside these
+  three sections is raised at once, as `KeyboardInterrupt`, and takes the path of an error (in the main thread SIGTERM
+  raises it from the start of the command until the handler that was set before is set again). Three cases are not
+  guaranteed, each within a few instructions: (1) another interruption that arrives between the start of the handling of
+  an error or an interruption and the start of the section that writes `failure.json`, where no record may be left; (2) a
+  SIGTERM that arrives after the handler that was set before is set again, where that handler handles it and a
+  `record.json` that was written stays; (3) an interruption that arrives just as that handler is being set again, where
+  the handler of the tool can stay in the process (the command ends afterwards) and the records are those of any other
+  interruption.
+- Limits. (a) A SIGTERM that arrives after the handler that was set before is set again is handled by that handler, and
+  the success record that was written before stays. (b) Between the two checks the tool opens the weights and the
+  features again by their paths and reads them; it does not keep a file that is replaced in between from being read as it
+  was replaced, and the second check finds a difference that is still there when it runs (then `record.json` is not
+  written); a change that was undone before then is not found. The reference values are those of the class in float32 on
+  the CPU with the weights rounded to float16, not of an asset: how far an asset may differ from them is for the next
+  work to judge. After it writes a file, the tool opens the file once more and reads it to record its size and SHA-256
+  (the numbers of `record.json` are those of the bytes that it read back); it does not rebuild the arrays from the files
+  or compare them with the values that it computed, which is for the next work. The next work reads the output, and
+  takes the types and shapes from the fixed definitions and the sizes from the record.
+
+The numbers of a run are in [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#mtp-drafter-inputs-and-reference-values-716).
+`Tools/Conversion/tests/test_gemma4_31b_mtp_native.py` fixes the ranking and the probabilities of the two best tokens, the
+steps that are run one at a time, the rounding and its counts, the files of every row (names, order, types, shapes, sizes
+and values of the anchor), the arrays (types, shapes and the row of each), the record, the refusals before the output
+folder is made, the records after an error, an interruption and a second check that differs, and the command; it uses a
+small stand-in of the drafter class in PyTorch, so it runs in the reference environment, the converter environment and
+the system Python without the converter. `Tools/Conversion/tests/export_gemma4_31b_mtp_native.py` runs the tool on the
+synthetic drafter class in the converter environment and checks the names and types of the inputs against the class and
+against the descriptors that `export-weights` checks the assets against, the arrays against the class on the files, and
+that the logits follow the weights of the assistant and the table of the target, each when the other is the same.
+
 ## Terms
 
 Gemma 4 31B is distributed under Apache-2.0. The weights stay outside Git.
