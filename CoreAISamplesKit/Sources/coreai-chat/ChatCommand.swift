@@ -5,11 +5,16 @@ import FoundationModels
 @main
 enum ChatCommand {
     static let usage =
-        "usage: coreai-chat --model <bundle> --prompt <text> [--prompt <text> ...] [--system <text>] [--max-tokens <n>] [--stats]\n"
+        """
+        usage: coreai-chat --model <bundle> --prompt <text> [--prompt <text> ...] [--system <text>] [--max-tokens <n>] [--stats] [--recover-prepared-copy]
+               coreai-chat --model <bundle> --clear-prepared-copy
+
+        """
 
     struct LoadReport: Encodable {
         let cached: Bool
         let cacheQueryError: String?
+        let recoveredPreparedCopy: Bool?
         let specializeS: Double
         let loadS: Double
     }
@@ -30,6 +35,8 @@ enum ChatCommand {
         var system: String?
         var maxTokens = 512
         var stats = false
+        var recoverPreparedCopy = false
+        var clearPreparedCopy = false
         var arguments = CommandLine.arguments.dropFirst().makeIterator()
         while let argument = arguments.next() {
             switch argument {
@@ -38,29 +45,49 @@ enum ChatCommand {
             case "--system": system = arguments.next()
             case "--max-tokens": maxTokens = arguments.next().flatMap(Int.init) ?? 0
             case "--stats": stats = true
+            case "--recover-prepared-copy": recoverPreparedCopy = true
+            case "--clear-prepared-copy": clearPreparedCopy = true
             default: maxTokens = 0
             }
         }
-        guard let model, !prompts.isEmpty, maxTokens > 0 else {
+        let hasInput = clearPreparedCopy ? CommandLine.arguments.count == 4 : !prompts.isEmpty
+        guard let model, hasInput, maxTokens > 0 else {
             FileHandle.standardError.write(Data(usage.utf8))
             exit(2)
         }
         do {
-            try await run(model: model, prompts: prompts, system: system, maxTokens: maxTokens, stats: stats)
+            let url = URL(filePath: model)
+            if clearPreparedCopy {
+                try Engine.deleteSpecializationCache(bundle: ModelBundle(url: url))
+                return
+            }
+            try await run(
+                model: url, prompts: prompts, system: system, maxTokens: maxTokens, stats: stats,
+                recoverPreparedCopy: recoverPreparedCopy)
         } catch {
-            FileHandle.standardError.write(Data("error: \(error)\n".utf8))
+            let message: String
+            if let failure = error as? PreparedCopyError {
+                let hint = failure == .recoveryFailed ? " Use --clear-prepared-copy with --model." : ""
+                message = "\(failure): \(failure.localizedDescription)\(hint)"
+            } else {
+                message = String(describing: error)
+            }
+            FileHandle.standardError.write(Data("error: \(message)\n".utf8))
             exit(1)
         }
     }
 
-    static func run(model path: String, prompts: [String], system: String?, maxTokens: Int, stats: Bool) async throws {
+    static func run(
+        model url: URL, prompts: [String], system: String?, maxTokens: Int, stats: Bool, recoverPreparedCopy: Bool
+    ) async throws {
         let clock = ContinuousClock()
         let start = clock.now
-        let model = try await LocalLanguageModel(bundle: URL(filePath: path))
+        let model = try await LocalLanguageModel(bundle: url, recoverPreparedCopy: recoverPreparedCopy)
         if stats {
             report(
                 LoadReport(
                     cached: model.loadStats.cached, cacheQueryError: model.loadStats.cacheQueryError,
+                    recoveredPreparedCopy: recoverPreparedCopy ? model.loadStats.recoveredPreparedCopy : nil,
                     specializeS: model.loadStats.specializeSeconds, loadS: (clock.now - start) / .seconds(1)))
         }
         let session = LanguageModelSession(model: model, instructions: system)

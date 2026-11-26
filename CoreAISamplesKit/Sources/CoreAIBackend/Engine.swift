@@ -26,6 +26,7 @@ public final class Engine {
         public let requestedComputeUnit: String?
         public let expectsFrequentReshapes: Bool?
         public let cacheQueryError: String?
+        public internal(set) var recoveredPreparedCopy = false
     }
 
     public struct Stats: Sendable {
@@ -112,7 +113,11 @@ public final class Engine {
     public var tokens: [Int32] { context.tokens }
     public var kvCapacity: Int { context.capacity }
 
-    public init(bundle: ModelBundle, contextLimit: Int? = nil) async throws {
+    public convenience init(bundle: ModelBundle, contextLimit: Int? = nil) async throws {
+        try await self.init(bundle: bundle, contextLimit: contextLimit, markCachedLoadFailure: false)
+    }
+
+    init(bundle: ModelBundle, contextLimit: Int?, markCachedLoadFailure: Bool) async throws {
         let clock = ContinuousClock()
         let start = clock.now
         let options = Self.specializationOptions()
@@ -126,8 +131,13 @@ public final class Engine {
             })
         let model = resolved.model
 
+        func function(_ name: String) throws -> InferenceFunction? {
+            try Self.loadingFunction(markFailure: markCachedLoadFailure && resolved.cached) {
+                try model.loadFunction(named: name)
+            }
+        }
         guard let descriptor = model.functionDescriptor(for: "main"),
-            let main = try model.loadFunction(named: "main")
+            let main = try function("main")
         else { throw EngineError.missingFunction("main") }
         for name in ["input_ids", "position_ids"] where !descriptor.inputNames.contains(name) {
             throw EngineError.missingInput(name)
@@ -139,7 +149,7 @@ public final class Engine {
         if let width = logitsDescriptor.shape.last, width >= 0, width != bundle.vocabSize {
             throw BundleError.notLanguageModel(outputWidth: width, vocabSize: bundle.vocabSize)
         }
-        let prefillFunction = model.functionNames.contains("prefill") ? try model.loadFunction(named: "prefill") : nil
+        let prefillFunction = model.functionNames.contains("prefill") ? try function("prefill") : nil
 
         let limit = min(contextLimit ?? bundle.maxContextLength, bundle.maxContextLength)
         var buffers: [StateBuffer] = []
@@ -220,7 +230,20 @@ public final class Engine {
     }
 
     public static func deleteSpecializationCache(bundle: ModelBundle) throws {
-        try AIModelCache.default.deleteEntries(for: bundle.modelURL)
+        if let recovery = try PreparedCopyRecovery.forBundle(bundle) {
+            try recovery.clear { try deletePreparedEntry(bundle: bundle) }
+        } else {
+            try deletePreparedEntry(bundle: bundle)
+        }
+    }
+
+    static func deletePreparedEntry(bundle: ModelBundle) throws {
+        let cache = AIModelCache.default
+        let options = specializationOptions()
+        try cache.deleteEntry(for: bundle.modelURL, options: options)
+        guard try cache.model(for: bundle.modelURL, options: options) == nil else {
+            throw PreparedCopyError.inUse
+        }
     }
 
     public func prefill(_ input: [Int32], usePrefillFunction: Bool = true) async throws {

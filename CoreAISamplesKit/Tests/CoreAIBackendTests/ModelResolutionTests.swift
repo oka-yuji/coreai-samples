@@ -80,4 +80,23 @@ import Testing
                 query: { () throws -> Int? in nil }, fallback: { throw Failure(description: "Specialization failed") })
         }
     }
+
+    @Test("Only an opted-in cached function load error qualifies for an immediate retry")
+    func onlyCachedFunctionLoadErrorsCanRetry() throws {
+        let error = Failure(description: "Could not load the function")
+        let marked = try #require(
+            #expect(throws: (any Error).self) {
+                try Engine.loadingFunction(markFailure: true) { throw error }
+            })
+        #expect(Engine.cachedLoadFailure(marked))
+        #expect(!Engine.cachedLoadFailure(error))
+        #expect(throws: error) {
+            try Engine.loadingFunction(markFailure: false) { throw error }
+        }
+        #expect(throws: CancellationError.self) {
+            try Engine.loadingFunction(markFailure: true) { throw CancellationError() }
+        }
+        let missing: Int? = try Engine.loadingFunction(markFailure: true) { nil }
+        #expect(missing == nil)
+    }
 }

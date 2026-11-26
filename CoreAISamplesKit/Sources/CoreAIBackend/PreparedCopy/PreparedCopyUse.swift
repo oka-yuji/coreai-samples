@@ -21,6 +21,15 @@ final class PreparedCopyUse: Sendable {
         return PreparedCopyUse(descriptor: descriptor)
     }
 
+    func takeExclusive() throws -> Bool {
+        do {
+            try PreparedCopyDescriptor.lock(descriptor, LOCK_EX | LOCK_NB)
+            return true
+        } catch let error as POSIXError where error.code == .EWOULDBLOCK {
+            return false
+        }
+    }
+
     func share() throws {
         try PreparedCopyDescriptor.lock(descriptor, LOCK_SH)
     }

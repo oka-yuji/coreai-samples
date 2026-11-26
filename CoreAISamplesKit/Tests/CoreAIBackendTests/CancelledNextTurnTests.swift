@@ -109,6 +109,10 @@ final class RecordingEngine: RuntimeEngine {
         log.record(.reset)
     }
 
+    func warmUpPreparedCopy() async throws {
+        try await engine.warmUpPreparedCopy()
+    }
+
     func unload() {
         engine.unload()
         log.record(.unload)

@@ -9,6 +9,7 @@ final class ReloadTestControl: Sendable {
     struct State {
         var loads = 0
         var failNextLoad = false
+        var hasOnlyMaskedLogits = false
         var failNextRead = false
         var failReadAfterTokens: Int?
         var failNextStep = false
@@ -150,6 +151,7 @@ final class ReloadTestEngine: RuntimeEngine {
     }
 
     func logits() -> [Float16] {
+        if control.state.withLock({ $0.hasOnlyMaskedLogits }) { return Array(repeating: -.infinity, count: 4) }
         var values = Array(repeating: Float16(-10), count: 4)
         let token = control.state.withLock { $0.generationTokens[min(outputIndex, $0.generationTokens.count - 1)] }
         values[token] = 10
@@ -195,6 +197,10 @@ final class ReloadTestEngine: RuntimeEngine {
     func reset() {
         tokens = []
         hasLogits = false
+    }
+
+    func warmUpPreparedCopy() async throws {
+        control.state.withLock { $0.events.append("warmUp:\(id)") }
     }
 
     func unload() {
@@ -272,9 +278,14 @@ struct ReloadTestModel {
 
     static func make(
         policy: LocalLanguageModel.ReloadPolicy, limit: Int = 128,
-        settings: LocalLanguageModel.VerificationSettings = .init(), tokenizer: String? = nil
+        settings: LocalLanguageModel.VerificationSettings = .init(), tokenizer: String? = nil,
+        hashLength: Int? = nil, recoverPreparedCopy: Bool = false,
+        makeRecovery: @Sendable (ModelBundle) throws -> PreparedCopyRecovery? = PreparedCopyRecovery.forBundle
     ) async throws -> Self {
         let folder = try tinyBundle()
+        if let hashLength {
+            try Data(repeating: 0x42, count: hashLength).write(to: folder.appending(path: "tiny.aimodel/main.hash"))
+        }
         if let tokenizer { try Data(tokenizer.utf8).write(to: folder.appending(path: "tokenizer/tokenizer.json")) }
         let config = [
             "tokenizer_class": "Qwen2Tokenizer", "eos_token": "<|im_end|>",
@@ -285,7 +296,9 @@ struct ReloadTestModel {
         let control = ReloadTestControl()
         let runtime = try await Runtime(
             bundle: ModelBundle(url: folder), contextLimit: limit, overflow: .error,
-            settings: settings, reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint,
+            settings: settings, reloadPolicy: policy, recoverPreparedCopy: recoverPreparedCopy,
+            makeRecovery: makeRecovery,
+            makeEngine: control.make, footprint: control.footprint,
             graphics: control.graphics)
         return Self(
             model: LocalLanguageModel(runtime: runtime, bundle: folder), runtime: runtime, folder: folder,

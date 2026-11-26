@@ -40,20 +40,20 @@ public struct LocalLanguageModel: LanguageModel {
 
     public init(
         bundle url: URL, contextLimit: Int? = nil, overflow: OverflowPolicy = .error,
-        reloadPolicy: ReloadPolicy = .init()
+        reloadPolicy: ReloadPolicy = .init(), recoverPreparedCopy: Bool = false, onRecovery: @Sendable () -> Void = {}
     ) async throws {
         try await self.init(
             bundle: url, contextLimit: contextLimit, overflow: overflow, reloadPolicy: reloadPolicy,
-            verification: VerificationSettings())
+            verification: VerificationSettings(), recoverPreparedCopy: recoverPreparedCopy, onRecovery: onRecovery)
     }
 
     @_spi(Verification) public init(
         bundle url: URL, contextLimit: Int?, overflow: OverflowPolicy, reloadPolicy: ReloadPolicy = .init(),
-        verification: VerificationSettings
+        verification: VerificationSettings, recoverPreparedCopy: Bool = false, onRecovery: @Sendable () -> Void = {}
     ) async throws {
         let runtime = try await Runtime(
             bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow, settings: verification,
-            reloadPolicy: reloadPolicy)
+            reloadPolicy: reloadPolicy, recoverPreparedCopy: recoverPreparedCopy, onRecovery: onRecovery)
         self.init(runtime: runtime, bundle: url)
     }
 
@@ -114,6 +114,8 @@ actor Runtime {
     private let bundle: ModelBundle
     private let contextLimit: Int
     private let reloadPolicy: LocalLanguageModel.ReloadPolicy
+    private let recovery: PreparedCopyRecovery?
+    private var pendingReload: PreparedCopyAttempt?
     private let makeEngine: @Sendable (ModelBundle, Int) async throws -> EngineBox
     private let footprint: @Sendable () throws -> UInt64
     private let graphics: @Sendable () throws -> UInt64
@@ -139,9 +141,10 @@ actor Runtime {
         bundle: ModelBundle, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy,
         settings: LocalLanguageModel.VerificationSettings,
         reloadPolicy: LocalLanguageModel.ReloadPolicy = .init(),
-        makeEngine: @escaping @Sendable (ModelBundle, Int) async throws -> EngineBox = {
-            EngineBox(try await Engine(bundle: $0, contextLimit: $1))
-        },
+        recoverPreparedCopy: Bool = false, onRecovery: @Sendable () -> Void = {},
+        makeRecovery: @Sendable (ModelBundle) throws -> PreparedCopyRecovery? = PreparedCopyRecovery.forBundle,
+        makeEngine: (@Sendable (ModelBundle, Int) async throws -> EngineBox)? = nil,
+        deletePreparedEntry: @Sendable (ModelBundle) throws -> Void = Engine.deletePreparedEntry,
         footprint: @escaping @Sendable () throws -> UInt64 = ProcessFootprint.bytes,
         graphics: @escaping @Sendable () throws -> UInt64 = ProcessFootprint.graphicsBytes
     ) async throws {
@@ -149,17 +152,30 @@ actor Runtime {
         self.bundle = bundle
         self.contextLimit = min(contextLimit ?? bundle.maxContextLength, bundle.maxContextLength)
         self.reloadPolicy = reloadPolicy
-        self.makeEngine = makeEngine
+        recovery = recoverPreparedCopy ? try makeRecovery(bundle) : nil
+        self.makeEngine = makeEngine ?? { EngineBox(try await Engine(bundle: $0, contextLimit: $1)) }
         self.footprint = footprint
         self.graphics = graphics
         graphicsLimit = reloadPolicy.graphicsGrowthLimit(modelID: bundle.sourceModelID, assetHash: bundle.mainHash)
         sanitizer = try ControlTokenSanitizer(tokens: bundle.addedTokenStrings())
         tokenizer = try await bundle.loadTokenizer()
-        let loaded = try await makeEngine(bundle, self.contextLimit)
+        let loaded: EngineBox
+        var recovered = false
+        if let recovery {
+            let result = try await recovery.loadEngine(
+                bundle: bundle, contextLimit: self.contextLimit, makeEngine: makeEngine,
+                delete: deletePreparedEntry, onRecovery: onRecovery)
+            loaded = EngineBox(result.value.engine, use: result.use)
+            recovered = result.recovered
+        } else {
+            loaded = try await self.makeEngine(bundle, self.contextLimit)
+        }
         core = loaded
         self.overflow = overflow
         self.settings = settings
-        loadStats = loaded.engine.loadStats
+        var stats = loaded.engine.loadStats
+        stats.recoveredPreparedCopy = recovered
+        loadStats = stats
         thinks = tokenizer.convertTokenToId(ThinkParser.open) != nil
         stopTokens = Set(
             [tokenizer.eosTokenId, tokenizer.convertTokenToId("<|endoftext|>")].compactMap { $0.map(Int32.init) })
@@ -229,9 +245,16 @@ actor Runtime {
         let start = ContinuousClock.now
         if unloadedTokens == nil { unloadedTokens = core?.engine.tokens }
         checkpoints.removeAll()
-        core?.engine.unload()
+        core?.unload()
         core = nil
-        core = try await withTaskCancellationShield { try await makeEngine(bundle, contextLimit) }
+        pendingReload = try recovery?.beginReload()
+        let loaded = try await withTaskCancellationShield { try await makeEngine(bundle, contextLimit) }
+        if let recovery, let pendingReload {
+            try recovery.loadedReload(pendingReload)
+            core = EngineBox(loaded.engine, use: pendingReload.use)
+        } else {
+            core = loaded
+        }
         reloadState.didLoad()
         let elapsed = (ContinuousClock.now - start) / .seconds(1)
         try Task.checkCancellation()
@@ -286,15 +309,27 @@ actor Runtime {
         var (prompt, spliced) = splice(rendered[...])
         if prompt.count >= contextLimit { (splicing, prompt, spliced) = ([], rendered, 0) }
         let boundary = splice(rendered.prefix(afterUser)).prompt.count
-        let reloadSeconds = try await reloadIfNeeded(isNewConversation: isNewConversation)
-        let sharedOverride =
-            reloadSeconds != nil || hasUnloadedHistory
-            ? zip(settings.reusesState ? previous : [], prompt).prefix { $0 == $1 }.count : nil
-        try await generate(
-            request: request, channel: channel, core: currentCore(), tools: tools, messages: messages, context: context,
-            rendered: rendered, prompt: prompt, afterUser: boundary, previous: previous, splicing: splicing,
-            spliced: spliced, truncated: truncated, reloadSeconds: reloadSeconds, sharedOverride: sharedOverride,
-            measurementLevel: measurement ?? settings.measurement)
+        do {
+            let reloadSeconds = try await reloadIfNeeded(isNewConversation: isNewConversation)
+            let sharedOverride =
+                reloadSeconds != nil || hasUnloadedHistory
+                ? zip(settings.reusesState ? previous : [], prompt).prefix { $0 == $1 }.count : nil
+            try await generate(
+                request: request, channel: channel, core: currentCore(), tools: tools, messages: messages,
+                context: context,
+                rendered: rendered, prompt: prompt, afterUser: boundary, previous: previous, splicing: splicing,
+                spliced: spliced, truncated: truncated, reloadSeconds: reloadSeconds, sharedOverride: sharedOverride,
+                measurementLevel: measurement ?? settings.measurement)
+        } catch {
+            if let pendingReload, let recovery {
+                core?.unload()
+                checkpoints.removeAll()
+                core = nil
+                recovery.abandonReload(pendingReload, after: error)
+                self.pendingReload = nil
+            }
+            throw error
+        }
     }
 
     private func generate(
@@ -343,6 +378,12 @@ actor Runtime {
                         tokenizer.decode(tokens: $0)
                     }.prompt.count
                 })
+            if let pendingReload, let recovery {
+                try Task.checkCancellation()
+                guard core.engine.hasUsableLogits else { throw EngineError.missingOutput }
+                try recovery.finishReload(pendingReload)
+                self.pendingReload = nil
+            }
             unloadedTokens = nil
             let prefilled = core.engine.stats.prefillTokens - before
             let readEnd = clock.now
@@ -810,8 +851,19 @@ struct ToolSchema {
 
 final class EngineBox: @unchecked Sendable {
     let engine: any RuntimeEngine
+    private var use: PreparedCopyUse?
 
-    init(_ engine: any RuntimeEngine) {
+    init(_ engine: any RuntimeEngine, use: PreparedCopyUse? = nil) {
         self.engine = engine
+        self.use = use
+    }
+
+    func unload() {
+        engine.unload()
+        use = nil
+    }
+
+    deinit {
+        if use != nil { engine.unload() }
     }
 }
