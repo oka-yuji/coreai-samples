@@ -113,9 +113,10 @@ executor は、推論の状態を取得・変更する前に依頼を検査し�
 
 ## 運用の注意
 
-- **初回の読み込みでモデルを、計算ユニットの自動選択(優先する計算ユニットを指定せず、頻繁な reshape を期待する設定)で準備する。** 設定は `SpecializationOptions.default` に `expectFrequentReshapes = true` を足したものです。Core AI は準備済みのコピーを `~/Library/Caches/coreai-cache/<OS build>/<name>/` に置きます。`<name>` はコマンドラインのツールならプロセスの名前(`coreai-chat`、`coreai-verify`、`swift test` なら `swiftpm-testing-helper`)、アプリならバンドル ID(`com.coreai-samples.DemoApp`)です。同じプログラムの次の読み込みはそれを使い回します。別のプログラムは自分のコピーを準備し、モデルとほぼ同じ容量のディスクを使います(量子化していないバンドルではもっと大きい)。`coreai-chat --stats` で、コピーを使い回したか(`cached`)と準備にかかった時間(`specialize_s`)が分かります。GPU 向けに準備していた以前の版から更新した後の初回の読み込みでは、準備がもう一度走ります(再特殊化)。以前の設定で準備したコピーは、容量不足などで OS が消すか、下の方法で準備済みのコピーを消す(そのプログラムのそのバンドルの新旧両方が消えます)まで残ります。
+- **初回の読み込みでモデルを、計算ユニットの自動選択(優先する計算ユニットを指定せず、頻繁な reshape を期待する設定)で準備する。** 設定は `SpecializationOptions.default` に `expectFrequentReshapes = true` を足したものです。Core AI は準備済みのコピーを `~/Library/Caches/coreai-cache/<OS build>/<name>/` に置きます。`<name>` はコマンドラインのツールならプロセスの名前(`coreai-chat`、`coreai-verify`、`swift test` なら `swiftpm-testing-helper`)、アプリならバンドル ID(`com.coreai-samples.DemoApp`)です。同じプログラムの次の読み込みはそれを使い回します。別のプログラムは自分のコピーを準備し、モデルとほぼ同じ容量のディスクを使います(量子化していないバンドルではもっと大きい)。`coreai-chat --stats` で、コピーを使い回したか(`cached`)と準備にかかった時間(`specialize_s`)が分かります。GPU 向けに準備していた以前の版から更新した後の初回の読み込みでは、準備がもう一度走ります(再特殊化)。OS は容量が必要になったときに以前のコピーを回収できます。
 
-- **準備済みのコピーを消すには**、呼び出したプログラムのそのバンドルのコピーを消す `Engine.deleteSpecializationCache(bundle:)` を呼ぶか、デモアプリのモデルの見出しにある **モデル情報**(ⓘ)の **準備済みキャッシュを削除**(Clear Prepared Copy。画面の確認では `--clear-prepared`)を使うか、フォルダを消します。
+- 復旧を有効にするには、CLI に `--recover-prepared-copy`、ライブラリの `LocalLanguageModel` に `recoverPreparedCopy: true` を渡します。初回の読み込みは台帳に印を付け、短い推論を通してからモデルを返します。途中でプロセスが終了した場合は次の起動で該当項目を作り直します。キャッシュにある関数の読み込みがエラーを返した場合は、その場で1回だけ作り直します。ほかの読み込みが項目を使用中なら削除を延期します。同じ会話でモデルを再読込するときは、最初の実入力で確認を終えます。CLI の読み込み統計には `recovered_prepared_copy` が加わります。
+- 復旧に失敗したらモデルを解放し、同じ CLI で `coreai-chat --model <bundle> --clear-prepared-copy` を実行して読み込み直します。このコマンドと `Engine.deleteSpecializationCache(bundle:)` は現在の特殊化設定の項目と台帳を消します。Mac アプリのコピーは **モデル情報** の **準備済みキャッシュを削除** で消せます。
 
 ライブラリでは `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)` を、モデルの初期化の `reloadPolicy:` に渡して設定します。間隔を 0 にすると周期の読み直しを、footprint の上限を 0 にするとプロセス全体の footprint の条件を、`graphicsGrowthLimitBytes` を 0 にすると下の graphics の増分の条件を止めます。
 

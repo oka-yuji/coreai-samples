@@ -33,25 +33,78 @@ struct PreparedCopyRecovery: Sendable {
 
     func load<Loaded>(
         isolation: isolated (any Actor)? = #isolation,
-        reload: Bool = false, onRecovery: () -> Void = {}, delete: () throws -> Void,
+        reload: Bool = false, shouldRetry: (any Error) -> Bool = { _ in false },
+        onRecovery: () -> Void = {}, delete: () throws -> Void,
         load: () async throws -> Loaded, warmUp: (Loaded) async throws -> Void
     ) async throws -> PreparedCopyLoad<Loaded> {
-        let attempt = try begin(reload: reload)
-        if attempt.recovering {
-            onRecovery()
-            try discard(with: delete)
+        try Task.checkCancellation()
+        var attempt = try begin(reload: reload)
+        while true {
+            if attempt.recovering {
+                onRecovery()
+                try discard(attempt, with: delete)
+            }
+            let value: Loaded
+            do {
+                try Task.checkCancellation()
+                value = try await load()
+            } catch {
+                if !reload, !attempt.recovering, !Task.isCancelled, shouldRetry(error) {
+                    do {
+                        attempt = try reserveRepair(after: attempt)
+                    } catch {
+                        throw abandon(attempt, after: error)
+                    }
+                    continue
+                }
+                throw abandon(attempt, after: error)
+            }
+            do {
+                try advance(attempt)
+                try Task.checkCancellation()
+                try await warmUp(value)
+                try Task.checkCancellation()
+            } catch {
+                throw abandon(attempt, after: error)
+            }
+            try finish(attempt)
+            return PreparedCopyLoad(value: value, recovered: attempt.recovering, use: attempt.use)
         }
-        let value: Loaded
-        do {
-            value = try await load()
-            try advance(attempt)
-            try await warmUp(value)
-        } catch {
-            abandon(attempt, after: error)
-            throw error
-        }
+    }
+
+    func beginReload() throws -> PreparedCopyAttempt {
+        try begin(reload: true)
+    }
+
+    func loadedReload(_ attempt: PreparedCopyAttempt) throws {
+        try advance(attempt)
+    }
+
+    func finishReload(_ attempt: PreparedCopyAttempt) throws {
         try finish(attempt)
-        return PreparedCopyLoad(value: value, recovered: attempt.recovering, use: attempt.use)
+    }
+
+    func abandonReload(_ attempt: PreparedCopyAttempt, after error: any Error) {
+        _ = abandon(attempt, after: error)
+    }
+
+    private func reserveRepair(after attempt: PreparedCopyAttempt) throws -> PreparedCopyAttempt {
+        try store.locked {
+            try store.modify { record in
+                guard !record.failed, record.recoveries < 1 else { throw PreparedCopyError.recoveryFailed }
+                let others = record.marks.filter { $0.attempt != attempt.mark.attempt }
+                guard others.allSatisfy({ liveness($0) == .dead }), try attempt.use.takeExclusive() else {
+                    throw PreparedCopyError.preparing
+                }
+                var mark = attempt.mark
+                mark.kind = .recovery
+                mark.at = now()
+                record.marks = [mark]
+                record.recoveries = 1
+                record.suspects = others + [attempt.mark]
+                return PreparedCopyAttempt(mark: mark, use: attempt.use)
+            }
+        }
     }
 
     func clear(delete: () throws -> Void) throws {
@@ -100,10 +153,19 @@ struct PreparedCopyRecovery: Sendable {
         return dead
     }
 
-    private func discard(with delete: () throws -> Void) throws {
+    private func discard(_ attempt: PreparedCopyAttempt, with delete: () throws -> Void) throws {
         do {
+            try Task.checkCancellation()
             try delete()
         } catch {
+            if error is CancellationError || Task.isCancelled {
+                try update { record in
+                    record.marks = record.suspects.filter { $0.attempt != attempt.mark.attempt }
+                    record.recoveries = 0
+                    record.suspects = []
+                }
+                throw CancellationError()
+            }
             try? update { $0.failed = true }
             throw error
         }
@@ -118,8 +180,9 @@ struct PreparedCopyRecovery: Sendable {
         }
     }
 
-    private func abandon(_ attempt: PreparedCopyAttempt, after error: any Error) {
-        let terminal = attempt.recovering && !(error is CancellationError)
+    private func abandon(_ attempt: PreparedCopyAttempt, after error: any Error) -> any Error {
+        let failure: any Error = Task.isCancelled ? CancellationError() : error
+        let terminal = attempt.recovering && !(failure is CancellationError)
         try? update { record in
             if terminal {
                 record.failed = true
@@ -127,6 +190,7 @@ struct PreparedCopyRecovery: Sendable {
                 record.marks.removeAll { $0.attempt == attempt.mark.attempt }
             }
         }
+        return failure
     }
 
     private func finish(_ attempt: PreparedCopyAttempt) throws {
