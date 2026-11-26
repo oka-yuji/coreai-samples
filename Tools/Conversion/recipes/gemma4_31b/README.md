@@ -382,28 +382,49 @@ of either implementation for two fixed inputs, `short` (26 tokens) and `long` (1
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
-  --implementation original --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
-  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/original
+  --implementation original --layers 6 --taps 1,2,3,4,5 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output .local/conversion/gemma4_31b/first-layers/original
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers \
-  run --implementation class --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
-  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/class
+  run --implementation class --layers 6 --taps 1,2,3,4,5 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output .local/conversion/gemma4_31b/first-layers/class
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers compare \
-  --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
+  --original .local/conversion/gemma4_31b/first-layers/original \
+  --model-class .local/conversion/gemma4_31b/first-layers/class \
+  > .local/conversion/gemma4_31b/first-layers/comparison.json
 ~~~
 
-`run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
-layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses
-any other before it creates the folder or reads a weight. It writes `<input>.<output>.npy` for both inputs and the
-three outputs and, last, `record.json` into a new folder. The original implementation reads each input in one call;
-its tap layer i is entry i of `output_hidden_states`, except for the last layer, whose entry the original
-implementation replaces with the output of the final norm: that tap is the output of the last layer, taken with a
-forward hook. The model class reads the window and then calls of 1, 2, 4 and 8 tokens with its caches.
-`compare` passes only for a run of the original implementation and a run of the model class on the same inputs and
-tap layers whose differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and
-for `long` a largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no
-position with another `argmax`; for both inputs, at every position of `hidden_states` and of each tap layer of
-`tap_hidden_states`, a largest absolute difference below 1e-3 (`ratio_limit`) times the largest absolute value of the
-original implementation at that position. `largest_ratio` is the largest quotient of the two over the positions.
+`run` loads the weights: start it under the shared machine lock, which it does not take itself. Once the command line
+is parsed (the parser reports a missing argument or a value that it does not accept, such as an unknown `--weights`,
+before anything else), it refuses an existing output first, before it reads the contract or checks any other argument.
+It accepts only a layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and tap layers of that
+count, and refuses any other before it creates the
+folder or reads a weight. It checks the size and SHA-256 of the files to load against the contract before it checks or
+reads the export and before it creates the folder, so a snapshot that differs from the contract leaves no folder and
+its index and shards are not parsed. `--weights float16` rounds every checkpoint
+tensor that it loads to float16. `--weights 8bit --export "$EXPORT_FOLDER"`, for the original implementation only, puts
+in the weights restored from the quantized tensors of an 8-bit export, as `context` does ([FP32 reference restored from
+the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), and records `weights` and `quantized` as
+`context` does. It writes `<input>.<output>.npy` for both inputs and the three outputs and, last, `record.json` into a
+new folder, so a folder with `record.json` is complete. An error leaves `failure.json` with the type of the error and no
+`record.json`. SIGINT and SIGTERM are held back while it makes the folder and writes `record.json` or `failure.json`,
+and then stop it as for an interruption; one that arrives anywhere else stops it as an error does. It does not promise a
+record when a second interruption arrives after it has begun to handle an error and before it writes `failure.json`, nor
+for a SIGTERM that arrives after it has put back the earlier handler of SIGTERM (the records written before stay), and
+an interruption that arrives while it puts the handler back can leave its handler in the process. When it cannot write
+`failure.json` either (for example when the volume of the output folder is full), neither record remains. Treat a folder
+with no record as unfinished. The original implementation reads each input in one call; its tap layer i is entry i of
+`output_hidden_states`, except for the last layer, whose entry the original implementation replaces with the output of
+the final norm: that tap is the output of the last layer, taken with a forward hook. The model class reads the window
+and then calls of 1, 2, 4 and 8 tokens with its caches. `compare` passes only for a run of the original implementation
+and a run of the model class on the same inputs and tap layers, both with the weights rounded to float16 (a run of
+restored weights, or of no known kind, is a problem of the comparison and the result names no layers), whose
+differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for `long` a
+largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position with another
+`argmax`; for both inputs, at every position of `hidden_states` and of each tap layer of `tap_hidden_states`, a largest
+absolute difference below 1e-3 (`ratio_limit`) times the largest absolute value of the original implementation at that
+position. `largest_ratio` is the largest quotient of the two over the positions.
 `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` fixes the criteria, and `ModelClassTests` in
 `Tools/Conversion/tests/export_gemma4_31b_model.py` the outputs of the class against the original implementation on a
 synthetic model.

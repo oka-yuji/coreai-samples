@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
+import sys
 import tempfile
 import threading
 import unittest
@@ -108,7 +110,8 @@ def write_run(folder, implementation, contract, arrays, taps=TAPS):
     model = {"id": pinned["model_id"], "revision": pinned["revision"], "contract_sha256": sha256(contract),
              "verified_before_loading": pinned["files"]}
     write_json(folder / "record.json", {"implementation": implementation, "layers": 6, "tap_layers": list(taps),
-                                        "inputs": inputs, "layer_types": TEXT["layer_types"][:6], "model": model})
+                                        "inputs": inputs, "layer_types": TEXT["layer_types"][:6], "model": model,
+                                        "weights": layers.WEIGHTS})
 
 
 def edit_record(folder, change):
@@ -165,7 +168,8 @@ class InputTests(unittest.TestCase):
                         output = Path(folder) / f"{implementation}-{count}"
                         with self.subTest(implementation=implementation, layers=count):
                             with self.assertRaisesRegex(ValueError, "must end with a full-attention layer"):
-                                layers.run(implementation, contract, Path(folder) / "snapshot", count, "1", output)
+                                layers.run(implementation, contract, Path(folder) / "snapshot", count, "1", output,
+                                           "float16", None)
                             self.assertFalse(output.exists())
             verify.assert_not_called()
             original_model.assert_not_called()
@@ -194,7 +198,8 @@ class InputTests(unittest.TestCase):
                         output = Path(folder) / f"{implementation}-{taps or 'none'}"
                         with self.subTest(implementation=implementation, taps=taps):
                             with self.assertRaisesRegex(ValueError, "tap layers"):
-                                layers.run(implementation, contract, Path(folder) / "snapshot", 6, taps, output)
+                                layers.run(implementation, contract, Path(folder) / "snapshot", 6, taps, output,
+                                           "float16", None)
                             self.assertFalse(output.exists())
             verify.assert_not_called()
             original_model.assert_not_called()
@@ -290,6 +295,34 @@ class CompareTests(unittest.TestCase):
                 (run / f"class/long.{output}.npy").unlink()
                 self.assertFalse(self.compare(run)["passed"])
 
+    def test_runs_of_other_or_unknown_weights_never_pass_and_the_result_names_no_layers(self):
+        unknown = "the {} run recorded no known kind of weights"
+        restored = "the {} run used the restored weights, not the weights rounded to float16"
+        differ = "the runs differ in weights"
+        cases = {"restored weights against rounded weights": (layers.RESTORED, layers.WEIGHTS,
+                                                              [restored.format("original"), differ]),
+                 "rounded weights against restored weights": (layers.WEIGHTS, layers.RESTORED,
+                                                              [restored.format("class"), differ]),
+                 "restored weights in both runs": (layers.RESTORED, layers.RESTORED,
+                                                   [restored.format("original"), restored.format("class")]),
+                 "weights recorded for one run only": (None, layers.WEIGHTS, [unknown.format("original"), differ]),
+                 "weights recorded for neither run": (None, None, [unknown.format("original"), unknown.format("class")]),
+                 "another kind of weights in both runs": ("bfloat16", "bfloat16",
+                                                          [unknown.format("original"), unknown.format("class")])}
+        for label, (original, model_class, problems) in cases.items():
+            with self.subTest(case=label):
+                run = self.pair(label.replace(" ", "-"))
+                for kind, weights in (("original", original), ("class", model_class)):
+                    edit_record(run / kind, lambda record: record.pop("weights") if weights is None
+                                else record.update(weights=weights))
+                result = self.compare(run)
+                self.assertFalse(result["passed"])
+                self.assertEqual(result["problems"], problems)
+                self.assertEqual((result["layers"], result["tap_layers"]), (None, list(TAPS)))
+        result = self.compare(self.pair("rounded"))
+        self.assertTrue(result["passed"], result["problems"])
+        self.assertEqual(result["layers"], 6)
+
     def test_records_that_both_lack_or_share_a_layer_count_layer_types_or_model_off_the_contract_never_pass(self):
         kinds = TEXT["layer_types"]
         edits = {"no layer count": lambda record: record.pop("layers"),
@@ -328,7 +361,7 @@ class CompareTests(unittest.TestCase):
             before = state(output)
             with self.subTest(output=label):
                 with mock.patch.object(layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
-                    layers.run("original", self.contract, self.folder / "snapshot", 6, "1", output)
+                    layers.run("original", self.contract, self.folder / "snapshot", 6, "1", output, "float16", None)
                 verify.assert_not_called()
                 self.assertEqual(state(output), before)
 
@@ -506,6 +539,53 @@ class ConditionTests(unittest.TestCase):
                 load.assert_not_called()
                 self.assertEqual(seen(), before)
 
+    def test_a_run_refuses_an_existing_output_before_it_reads_the_contract_or_checks_its_other_arguments(self):
+        with tempfile.TemporaryDirectory() as folder:
+            broken = Path(folder) / "broken.json"
+            broken.write_text("{")
+            outputs = {"file": lambda path: path.write_text("earlier"), "folder": lambda path: path.mkdir(),
+                       "dangling link": lambda path: path.symlink_to(Path(folder) / "missing")}
+            for label, make in outputs.items():
+                output = Path(folder) / label.replace(" ", "-")
+                make(output)
+                seen = lambda: (os.readlink(output) if output.is_symlink() else None,
+                                output.read_bytes() if output.is_file() else None)
+                before = seen()
+                for weights, export_folder in (("float16", None), ("8bit", Path(folder) / "export"),
+                                               ("bfloat16", None)):
+                    with self.subTest(output=label, weights=weights), mock.patch.object(
+                            layers, "load_contract", wraps=layers.load_contract) as load, \
+                            self.assertRaises(FileExistsError):
+                        layers.run("original", broken, Path(folder) / "snapshot", 6, "1", output, weights,
+                                   export_folder)
+                    load.assert_not_called()
+                self.assertEqual(seen(), before)
+
+    def test_the_run_command_turns_sigterm_into_an_interruption_while_it_runs(self):
+        seen = []
+        self.addCleanup(signal.signal, signal.SIGTERM, signal.signal(signal.SIGTERM, signal.SIG_DFL))
+        record = {"inputs": {"short": {"logits": {"shape": [26, 301]}}}, "timing": {}, "memory": {}}
+        arguments = ["layers", "run", "--implementation", "original", "--layers", "6", "--taps", "1", "--model", "m",
+                     "--snapshot", "s", "--output", "o", "--weights", "float16"]
+        with mock.patch.object(sys, "argv", arguments), mock.patch("sys.stdout"), mock.patch.object(
+                layers, "run", side_effect=lambda *items: seen.append(signal.getsignal(signal.SIGTERM)) or record):
+            self.assertEqual(layers.main(), 0)
+        self.assertEqual(seen, [layers.raise_interruption])
+        self.assertIs(signal.getsignal(signal.SIGTERM), signal.SIG_DFL)
+
+    def test_the_run_command_passes_its_arguments_and_the_kind_of_weights_and_the_export_to_the_run(self):
+        record = {"inputs": {"short": {"logits": {"shape": [26, 301]}}}, "timing": {}, "memory": {}}
+        base = ["layers", "run", "--implementation", "original", "--layers", "6", "--taps", "1,2", "--model", "m",
+                "--snapshot", "s", "--output", "o"]
+        cases = {"float16": (["--weights", "float16"], "float16", None),
+                 "8bit": (["--weights", "8bit", "--export", "e"], "8bit", Path("e"))}
+        for label, (extra, weights, export_folder) in cases.items():
+            with self.subTest(weights=label), mock.patch.object(sys, "argv", base + extra), \
+                    mock.patch("sys.stdout"), mock.patch.object(layers, "run", return_value=record) as run:
+                self.assertEqual(layers.main(), 0)
+            self.assertEqual(run.call_args.args, ("original", Path("m"), Path("s"), 6, "1,2", Path("o"), weights,
+                                                  export_folder))
+
     @unittest.skipIf(os.geteuid() == 0, "root searches a folder without permission")
     def test_a_context_run_refuses_a_link_into_a_folder_without_search_permission_before_it_reads_the_contract(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -577,7 +657,7 @@ class OriginalRunTests(unittest.TestCase):
             reference.load_state_dict({name: tensor.to(torch.bfloat16).to(torch.float16).float()
                                        for name, tensor in reference.state_dict().items()})
             taps = (1, 6, 7, 12)
-            record = layers.run("original", contract, snapshot, 12, "1,6,7,12", Path(folder) / "all")
+            record = layers.run("original", contract, snapshot, 12, "1,6,7,12", Path(folder) / "all", "float16", None)
             self.assertEqual(record["tap_layers"], list(taps))
             for name in layers.INPUTS:
                 ids = layers.tokens(name, config)
@@ -598,7 +678,7 @@ class OriginalRunTests(unittest.TestCase):
                     self.assertEqual(record["inputs"][name]["tokens_sha256"], digest(ids))
                     self.assertFalse(np.array_equal(expected["hidden_states"].numpy(), last[0][0].numpy()))
             self.assertEqual(record["embed_scale"], 6.9375)
-            first = layers.run("original", contract, snapshot, 6, "1,2,3,4,5", Path(folder) / "first")
+            first = layers.run("original", contract, snapshot, 6, "1,2,3,4,5", Path(folder) / "first", "float16", None)
             self.assertEqual((first["layer_types"], first["tap_layers"]), (TEXT["layer_types"][:6], [1, 2, 3, 4, 5]))
             self.assertEqual(read_json(Path(folder) / "first/record.json"), first)
 
@@ -611,12 +691,12 @@ class OriginalRunTests(unittest.TestCase):
             data[-1] ^= 1
             with mock.patch.object(layers, "original_model") as load:
                 with self.assertRaises(FileExistsError):
-                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "used")
+                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "used", "float16", None)
                 shard.write_bytes(data)
                 with self.assertRaises(ValueError):
-                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed")
+                    layers.run("original", contract, snapshot, 6, "1", Path(folder) / "changed", "float16", None)
             load.assert_not_called()
-            self.assertEqual(list((Path(folder) / "changed").iterdir()), [])
+            self.assertFalse(os.path.lexists(Path(folder) / "changed"))
 
 
 def quantized_tensors(text, seed=5):
@@ -835,6 +915,20 @@ def float16_restore(data, scale, minval):
     return torch.from_numpy(product + np.repeat(minval.numpy(), blocks, axis=1))
 
 
+class Clock:
+    now = 0.0
+
+    def perf_counter(self):
+        return self.now
+
+    def delaying(self, call, seconds):
+        def delayed(*arguments, **keywords):
+            self.now += seconds
+            return call(*arguments, **keywords)
+
+        return delayed
+
+
 @unittest.skipIf(np is None or torch is None, "NumPy, PyTorch and Transformers are required for the run")
 class RestoredReferenceTests(unittest.TestCase):
     TEXT = {**TEXT, "hidden_size": 64}
@@ -990,6 +1084,175 @@ class RestoredReferenceTests(unittest.TestCase):
                         "error": type(error).__name__})
                     self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
 
+    def test_a_run_that_fails_after_its_folder_is_made_leaves_a_record_of_its_type_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            cases = {"the load of the original implementation": ("original", "8bit", source, "original_model"),
+                     "the load of the model class": ("class", "float16", None, "class_model")}
+            for error in (RuntimeError("private-example-sentinel"), KeyboardInterrupt()):
+                for label, (implementation, weights, export_folder, target) in cases.items():
+                    output = folder / f"failed-{label.replace(' ', '-')}-{type(error).__name__}"
+                    with self.subTest(case=label, error=type(error).__name__), mock.patch.object(
+                            layers, target, side_effect=error), self.assertRaises(type(error)):
+                        layers.run(implementation, contract, snapshot, 6, "1,2,3,4,5,6", output, weights, export_folder)
+                    self.assertEqual(read_json(output / "failure.json"), {
+                        "schema": layers.SCHEMA, "passed": False, "implementation": implementation, "weights": weights,
+                        "error": type(error).__name__})
+                    self.assertEqual(sorted(path.name for path in output.iterdir()), ["failure.json"])
+            real, late = layers.write_json, folder / "late"
+
+            def interrupted_after(path, value):
+                real(path, value)
+                if Path(path).name == "record.json":
+                    raise KeyboardInterrupt
+
+            with mock.patch.object(layers, "write_json", side_effect=interrupted_after), \
+                    self.assertRaises(KeyboardInterrupt):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", late, "float16", None)
+            self.assertEqual(read_json(late / "failure.json")["error"], "KeyboardInterrupt")
+            self.assertFalse((late / "record.json").exists())
+
+    def test_a_run_holds_an_interruption_back_until_its_folder_or_one_of_its_records_is_written(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            real_mkdir, real_write = os.mkdir, layers.write_json
+
+            def interrupted_at(label, number, point, failure=None):
+                output, written = folder / label, []
+
+                def after_mkdir(path, *arguments, **keywords):
+                    real_mkdir(path, *arguments, **keywords)
+                    if point == "mkdir" and Path(path) == output:
+                        signal.raise_signal(number)
+
+                def around_write(path, value):
+                    if point == Path(path).name:
+                        signal.raise_signal(number)
+                    real_write(path, value)
+                    written.append(Path(path).name)
+
+                with layers.terminated_as_interrupt(), mock.patch("os.mkdir", side_effect=after_mkdir), \
+                        mock.patch.object(layers, "write_json", side_effect=around_write), \
+                        mock.patch.object(layers, "original_model", side_effect=failure or layers.original_model), \
+                        self.assertRaises(KeyboardInterrupt):
+                    layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, "float16", None)
+                return output, written, read_json(output / "failure.json")["error"]
+
+            for name, number in (("sigint", signal.SIGINT), ("sigterm", signal.SIGTERM)):
+                with self.subTest(signal=name):
+                    output, written, error = interrupted_at(f"folder-{name}", number, "mkdir")
+                    self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                                     (["failure.json"], "KeyboardInterrupt", ["failure.json"]))
+                    output, written, error = interrupted_at(f"record-{name}", number, "record.json")
+                    self.assertEqual((written, error), (["record.json", "failure.json"], "KeyboardInterrupt"))
+                    self.assertFalse((output / "record.json").exists())
+                    output, written, error = interrupted_at(f"failure-{name}", number, "failure.json",
+                                                            RuntimeError("private-example-sentinel"))
+                    self.assertEqual((written, error, sorted(path.name for path in output.iterdir())),
+                                     (["failure.json"], "RuntimeError", ["failure.json"]))
+                    self.assertNotIn("private-example-sentinel", (output / "failure.json").read_text())
+
+    def test_a_run_whose_inputs_do_not_match_the_contract_is_refused_before_its_folder_is_made(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            shard = snapshot / SHARD
+            data = bytearray(shard.read_bytes())
+            data[-1] ^= 1
+            changed = bytes(data)
+            original = shard.read_bytes()
+            cases = {"a shard that differs": ("float16", None, ValueError, None),
+                     "a shard that differs for restored weights": ("8bit", source, ValueError, None),
+                     "an error of the check": ("float16", None, RuntimeError, RuntimeError("private-example-sentinel")),
+                     "an interruption of the check": ("float16", None, KeyboardInterrupt, KeyboardInterrupt())}
+            for label, (weights, export_folder, expected, failure) in cases.items():
+                output = folder / label.replace(" ", "-")
+                shard.write_bytes(original if failure else changed)
+                with self.subTest(case=label), mock.patch.object(layers, "original_model") as load, \
+                        mock.patch.object(layers, "write_json") as write, \
+                        mock.patch.object(layers, "quantized_export", wraps=layers.quantized_export) as exported, \
+                        mock.patch.object(layers, "checkpoint_shapes", wraps=layers.checkpoint_shapes) as shapes, \
+                        mock.patch.object(layers, "quantized_weights", wraps=layers.quantized_weights) as restored, \
+                        mock.patch.object(layers, "verify_inputs", side_effect=failure or layers.verify_inputs), \
+                        self.assertRaises(expected):
+                    layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, weights, export_folder)
+                for untouched in (load, write, exported, shapes, restored):
+                    untouched.assert_not_called()
+                self.assertFalse(os.path.lexists(output))
+
+    def test_a_run_records_the_time_of_the_check_of_its_inputs_as_the_time_to_hash_them(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            clock = Clock()
+            checked = clock.delaying(layers.verify_inputs, 3.0)
+            with mock.patch.object(layers, "time", clock), \
+                    mock.patch.object(layers, "verify_inputs", side_effect=checked):
+                record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "timed", "float16", None)
+            self.assertEqual({key: record["timing"][key] for key in ("input_hash_s", "load_s", "total_s")},
+                             {"input_hash_s": 3.0, "load_s": 0.0, "total_s": 3.0})
+
+    def test_a_run_of_restored_weights_records_the_check_and_the_reading_of_its_export_in_the_time_to_load(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            clock = Clock()
+            checked = clock.delaying(layers.verify_inputs, 3.0)
+            restored = clock.delaying(layers.quantized_weights, 5.0)
+            with mock.patch.object(layers, "time", clock), mock.patch.object(
+                    layers, "verify_inputs", side_effect=checked), mock.patch.object(
+                        layers, "quantized_weights", side_effect=restored):
+                record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "timed", "8bit", source)
+            self.assertEqual({key: record["timing"][key] for key in ("input_hash_s", "load_s", "total_s")},
+                             {"input_hash_s": 3.0, "load_s": 5.0, "total_s": 8.0})
+
+    def test_a_run_stopped_by_sigint_after_its_folder_is_made_leaves_a_failure_record(self):
+        self.addCleanup(signal.signal, signal.SIGINT, signal.signal(signal.SIGINT, signal.default_int_handler))
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            output = folder / "interrupted"
+
+            def interrupt(*arguments, **keywords):
+                signal.raise_signal(signal.SIGINT)
+
+            with mock.patch.object(layers, "original_model", side_effect=interrupt), self.assertRaises(KeyboardInterrupt):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, "float16", None)
+            self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
+            self.assertFalse((output / "record.json").exists())
+
+    def test_a_run_stopped_by_sigterm_after_its_folder_is_made_leaves_a_failure_record(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            output = folder / "terminated"
+
+            def terminate(*arguments, **keywords):
+                self.assertIs(signal.getsignal(signal.SIGTERM), layers.raise_interruption)
+                signal.raise_signal(signal.SIGTERM)
+
+            with layers.terminated_as_interrupt(), mock.patch.object(layers, "original_model", side_effect=terminate), \
+                    self.assertRaises(KeyboardInterrupt):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", output, "float16", None)
+            self.assertEqual(read_json(output / "failure.json")["error"], "KeyboardInterrupt")
+            self.assertFalse((output / "record.json").exists())
+
+    def test_a_run_that_finds_its_folder_made_by_another_process_writes_no_record_into_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            (folder / "taken").mkdir()
+            with mock.patch("os.path.lexists", return_value=False), mock.patch.object(
+                    layers, "verify_inputs") as verify, self.assertRaises(FileExistsError):
+                layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "taken", "float16", None)
+            verify.assert_called_once()
+            self.assertEqual(list((folder / "taken").iterdir()), [])
+
     def test_a_restored_reference_refuses_an_export_that_did_not_finish_did_not_pass_or_has_other_blocks(self):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
@@ -1105,6 +1368,58 @@ class RestoredReferenceTests(unittest.TestCase):
                         layers.context(contract, snapshot, 6, output, "8bit", source)
                     load.assert_not_called()
                     self.assertFalse(os.path.lexists(output))
+
+    def test_a_run_of_the_original_implementation_reads_the_restored_weights_and_records_the_tensors(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            tensors = quantized_tensors(self.TEXT)
+            source = write_export(folder / "export", contract, tensors)
+            record = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "restored", "8bit", source)
+            self.assertEqual(read_json(folder / "restored/record.json"), record)
+            self.assertEqual(record["weights"], layers.RESTORED)
+            self.assertEqual(record["quantized"], {"export_sha256": sha256(source / "export.json"),
+                                                   "file": file_hash(source / layers.QUANTIZED), "tensors": 123})
+            rounded = layers.run("original", contract, snapshot, 6, "1,2,3,4,5,6", folder / "rounded", "float16", None)
+            self.assertEqual(rounded["weights"], layers.WEIGHTS)
+            self.assertNotIn("quantized", rounded)
+            model, _, _ = layers.original_model(snapshot, 6)
+            with torch.no_grad():
+                for name, parameter in model.named_parameters():
+                    if f"{name}.quantized_data" in tensors:
+                        parameter.copy_(float16_restore(*(tensors[f"{name}.{part}"] for part in
+                                                          ("quantized_data", "scale", "minval"))).float())
+            for name in layers.INPUTS:
+                ids = layers.tokens(name, load_contract(contract)["config"])
+                expected = layers.outputs(model, "original", ids, [[0, len(ids)]], (1, 2, 3, 4, 5, 6))
+                for output, array in expected.items():
+                    with self.subTest(input=name, output=output):
+                        restored = np.load(folder / f"restored/{name}.{output}.npy")
+                        np.testing.assert_array_equal(restored, array)
+                        self.assertGreater(
+                            float(np.abs(restored - np.load(folder / f"rounded/{name}.{output}.npy")).max()), 1e-3)
+
+    def test_a_run_refuses_other_weights_before_it_reads_the_contract_and_an_existing_output_before_the_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            snapshot, contract = write_snapshot(folder, hidden_size=64)
+            source = write_export(folder / "export", contract, quantized_tensors(self.TEXT))
+            for label, (implementation, weights, given) in {"8bit without an export": ("original", "8bit", None),
+                                                            "float16 with an export": ("original", "float16", source),
+                                                            "8bit for the model class": ("class", "8bit", source),
+                                                            "another kind of weights": ("original", "bfloat16", None)
+                                                            }.items():
+                output = folder / label.replace(" ", "-")
+                with self.subTest(case=label), mock.patch.object(layers, "load_contract") as load, \
+                        self.assertRaises(ValueError):
+                    layers.run(implementation, contract, snapshot, 6, "1", output, weights, given)
+                load.assert_not_called()
+                self.assertFalse(os.path.lexists(output))
+            (folder / "used").mkdir()
+            with mock.patch.object(layers, "quantized_export") as restored, self.assertRaises(FileExistsError):
+                layers.run("original", contract, snapshot, 6, "1", folder / "used", "8bit", source)
+            restored.assert_not_called()
+            self.assertEqual(list((folder / "used").iterdir()), [])
 
 
 if __name__ == "__main__":
