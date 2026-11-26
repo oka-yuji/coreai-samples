@@ -108,6 +108,7 @@ public final class Engine {
     private var logitsOffset = 0
     private(set) var hasLogits = false
     private var rowLayout = LogitRowLayout()
+    private var outputRows = OutputRows()
     private var scratch: [Float]
 
     public var tokens: [Int32] { context.tokens }
@@ -291,15 +292,38 @@ public final class Engine {
         Self.callLengths(from: position, count: count, limit: prefillChunkSize, rule: callShapeRule)
     }
 
-    @_spi(Verification) public func readInOneCall(_ chunk: [Int32], usePrefillFunction: Bool = false) async throws {
+    @_spi(Verification) public func readInOneCall(
+        _ chunk: [Int32], usePrefillFunction: Bool = false, outputs names: Set<String> = []
+    ) async throws {
         precondition(!chunk.isEmpty)
         guard let main else { throw EngineError.unloaded }
         try context.checkRoom(chunk.count)
         if usePrefillFunction, let prefillFunction {
-            try await forward(prefillFunction, chunk[...], logits: false)
+            let outputs = try Self.rowOutputs(names, of: prefillFunction.descriptor, except: nil)
+            try await forward(prefillFunction, chunk[...], logits: false, outputs: outputs)
         } else {
-            try await forward(main, chunk[...], logits: true)
+            let outputs = try Self.rowOutputs(names, of: main.descriptor, except: logitsName)
+            try await forward(main, chunk[...], logits: true, outputs: outputs)
         }
+    }
+
+    @_spi(Verification) public func output(_ name: String, row: Int) throws(OutputRowError) -> [Float16] {
+        try outputRows.row(row, of: name)
+    }
+
+    static func rowOutputs(
+        _ names: Set<String>, of function: InferenceFunctionDescriptor, except logits: String?
+    ) throws(OutputRowError) -> [String: NDArrayDescriptor] {
+        guard !names.isEmpty else { return [:] }
+        try OutputRows.check(names, outputNames: function.outputNames, except: logits)
+        var outputs: [String: NDArrayDescriptor] = [:]
+        for name in names {
+            guard case .ndArray(let descriptor) = function.outputDescriptor(of: name),
+                OutputRows.readable(descriptor.scalarType, shape: descriptor.shape)
+            else { throw .unreadableOutput(name) }
+            outputs[name] = descriptor
+        }
+        return outputs
     }
 
     public func generate(
@@ -340,6 +364,7 @@ public final class Engine {
 
     public func restore(_ checkpoint: Checkpoint) throws {
         rowLayout.clear()
+        outputRows = OutputRows()
         try context.restore(checkpoint)
         hasLogits = checkpoint.logits.count == vocabSize
         guard hasLogits else { return }
@@ -356,6 +381,7 @@ public final class Engine {
         context.reset()
         hasLogits = false
         rowLayout.clear()
+        outputRows = OutputRows()
     }
 
     public func unload() {
@@ -367,6 +393,7 @@ public final class Engine {
         logitsArray = NDArray(shape: [1], scalarType: .float16)
         hasLogits = false
         rowLayout.clear()
+        outputRows = OutputRows()
     }
 
     func withLogits<R>(_ body: (UnsafeBufferPointer<Float16>) -> R) -> R {
@@ -381,9 +408,19 @@ public final class Engine {
         }
     }
 
-    private func forward(_ function: InferenceFunction, _ chunk: ArraySlice<Int32>, logits: Bool) async throws {
+    private func forward(
+        _ function: InferenceFunction, _ chunk: ArraySlice<Int32>, logits: Bool,
+        outputs: [String: NDArrayDescriptor] = [:]
+    ) async throws {
         let prepareStart = measuresPreparation ? ContinuousClock.now : nil
         rowLayout.clear()
+        outputRows = OutputRows(
+            arrays: outputs.map { name, descriptor in
+                (
+                    name,
+                    NDArray(descriptor: descriptor.resolvingDynamicDimensions([1, chunk.count, descriptor.shape[2]]))
+                )
+            })
         let end = context.tokens.count + chunk.count
         context.reserve(end)
         context.writeInputs(chunk)
@@ -408,10 +445,16 @@ public final class Engine {
             outputViews.insert(unsafe _overrideLifetime(logitsArray.mutableRawView(), borrowing: self), for: logitsName)
             logitsOffset = (chunk.count - 1) * logitsArray.strides[1]
         }
+        for index in outputRows.arrays.indices {
+            let name = outputRows.arrays[index].name
+            outputViews.insert(
+                unsafe _overrideLifetime(outputRows.arrays[index].array.mutableRawView(), borrowing: self), for: name)
+        }
         if let prepareStart { stats.prepareSeconds += (ContinuousClock.now - prepareStart) / .seconds(1) }
         _ = try await function.run(inputs: inputs, states: stateViews, outputViews: outputViews)
         context.tokens.append(contentsOf: chunk)
         hasLogits = logits
+        outputRows.isRead = true
         if logits {
             rowLayout.update(
                 rows: chunk.count, strides: logitsArray.strides, interleaved: logitsArray.interleaveLayout != nil)

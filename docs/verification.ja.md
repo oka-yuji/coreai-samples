@@ -53,7 +53,7 @@ swift build -c release
 .build/release/coreai-verify chat --model <bundle> --runtime own --max-tokens 64 --prompt "What is the capital of France? Answer with one word."
 ```
 
-`CoreAISamplesKit` フォルダで `swift test` を実行すると、使い回しの計画、解析器、サンプラー、文脈の詰め方、RAG の段落と日付のような、モデルの要らない試験が流れます。モデルを読む試験は、`COREAI_TEST_BUNDLES` にバンドルのフォルダを `:` で区切って並べたときだけ流れます。
+`CoreAISamplesKit` フォルダで `swift test` を実行すると、使い回しの計画、解析器、サンプラー、文脈の詰め方、RAG の段落と日付のような、モデルの要らない試験が流れます。モデルを読む試験は、環境変数で有効にしたときだけ流れます。`COREAI_TEST_BUNDLES` にバンドルのフォルダを `:` で区切って並べると流れる試験と、専用の変数を持つ試験があります(例: Gemma 4 31B の呼び出しの形は `COREAI_GEMMA4_SHAPE_BUNDLES`、エンジンの追加の出力は `COREAI_OUTPUT_ROWS_BUNDLE`)。`AGENTS.md` に書いてある試験は、変数と流し方がそこにあり、ほかの試験の変数は、その試験のソースにあります。
 
 ```bash
 cd CoreAISamplesKit
@@ -98,11 +98,13 @@ swift build -c release
 | 指定 | 意味 |
 |---|---|
 | `--tokens` | トークン ID の JSON の配列(例: `[151644, 872, 198]`)。空の配列は断ります。各 ID は `language.vocab_size` 未満、トークンの数は `language.max_context_length` 以下にします。 |
-| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの `callLengths(from:count:)` が返す呼び出しで読みます。1 回はエンジンの prefill の塊の長さ(記録の `prefix_chunk`)以下で、[呼び出しの形の規則](#呼び出しの形)が求めるところでは短くなります(最後の、または唯一の呼び出しも短いことがある)。その行はファイルに書きません。`prefill` 関数があればそれで読み、logits の配列を作りません。ただし、呼び出しの形の規則が前置きを prefill の塊と違う分け方にするときは、`prefill` 関数が無いときと同じく `main` で読み、その logits は捨てます。その `main` の各呼び出しには、`--chunk` によらず、呼び出しの長さ × 語彙 × 2 バイトの logits の配列が要ります。`prefill` 関数が無いときは最大で前置きの塊の長さぶん(4,096 × 262,144 で 2 GiB)、Gemma 4 31B の資産で規則が前置きを分けたときは、最も長い呼び出しの 96 × 262,144 × 2 バイト = 48 MiB です。 |
+| `--start` | logits を書き出す最初の位置で、0 から最後の位置まで。これより前のトークンは、エンジンの `callLengths(from:count:)` が返す呼び出しで読みます。1 回はエンジンの prefill の塊の長さ(記録の `prefix_chunk`)以下で、[呼び出しの形の規則](#呼び出しの形)が求めるところでは短くなります(最後の、または唯一の呼び出しも短いことがある)。その行は logits のファイルに書きません(`--prefill-output` のファイルには、その行が入ります)。`prefill` 関数があればそれで読み、logits の配列を作りません。ただし、呼び出しの形の規則が前置きを prefill の塊と違う分け方にするときは、`prefill` 関数が無いときと同じく `main` で読み、その logits は捨てます。その `main` の各呼び出しには、`--chunk` によらず、呼び出しの長さ × 語彙 × 2 バイトの logits の配列が要ります。`prefill` 関数が無いときは最大で前置きの塊の長さぶん(4,096 × 262,144 で 2 GiB)、Gemma 4 31B の資産で規則が前置きを分けたときは、最も長い呼び出しの 96 × 262,144 × 2 バイト = 48 MiB です。 |
 | `--chunk` | `--start` から後を 1 回の `main` に通すトークンの数で、正の数。1 回ごとにちょうど 1 回の `main` の呼び出しで、最後の 1 回は短くなることがあります。 |
 | `--output` | 出力のファイル。まだ無いファイルを指定します。あるファイルは上書きしません。 |
+| `--main-output` | `NAME=FILE`。繰り返して指定できます。`main` の出力 `NAME` を、logits と同じ位置について `FILE` に書きます。形は `[位置数, 幅]` で、幅はその出力の幅です。`NAME` は `main` の logits 以外の出力で、形が `[1, 行数, 幅]` の float16 の配列でなければならず、そうでなければ `--start` から後の最初の `main` の呼び出しの前に失敗します。資産は、こうした出力の行の軸を動的な長さ、幅を固定の長さで宣言している必要があります。`FILE` はまだ無いファイルにします。 |
+| `--prefill-output` | `NAME=FILE`。繰り返して指定できます。`prefill` 関数の出力 `NAME` を、`--start` より前の位置について `FILE` に書きます。形は `[start, 幅]` です。`--start` は 0 より大きく、その前のトークンを `prefill` 関数で読むこと(`prefix_function` が `prefill`)と、`NAME` が `prefill` 関数の同じ種類の出力であることが要り、そうでなければそのトークンを読む前に失敗します。`FILE` はまだ無いファイルにします。 |
 
-位置 p の行は、トークン列の 0 番目から p 番目までを読んだ後の、次のトークンの分布です(`main` が位置 p について返した logits)。ファイルはヘッダの無い little-endian の float16 で、形は `[位置数, 語彙]`、位置数はトークンの数 − 開始位置です。各行はその `main` の呼び出しが返ったらすぐに書きます。メモリに要るのは 1 回の `main` の行(塊の長さ × 語彙 × 2 バイト)です。例えば語彙 262,144 で、塊 256 なら 128 MiB、16,384 位置を 1 つの塊にすると 8 GiB です。`--start` より前を `main` で読むとき(`prefill` 関数が無い資産と、Gemma 4 31B の資産で規則が前置きを分けるとき。後者は `--start` が 97〜112)は、その間も 1 回の呼び出しの長さ × 語彙 × 2 バイトが要り、`--chunk` を小さくしても減りません。`prefill` 関数が無い資産では最大で前置きの塊の長さぶん、規則で分けた前置きでは 96 × 262,144 × 2 バイト = 48 MiB です。ファイルは位置数 × 語彙 × 2 バイトです。失敗したときは自分で作ったファイルを消します。記録の行が出たファイルだけを完全なものとして扱います。コマンドが終わる前にプロセスが止まったときは、書きかけのファイルが残るので、同じ `--output` で流し直す前に消します。NumPy では `np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。
+位置 p の行は、トークン列の 0 番目から p 番目までを読んだ後の、次のトークンの分布です(`main` が位置 p について返した logits)。ファイルはヘッダの無い little-endian の float16 で、形は `[位置数, 語彙]`、位置数はトークンの数 − 開始位置です。各行はその `main` の呼び出しが返ったらすぐに書きます。メモリに要るのは 1 回の `main` の行(塊の長さ × 語彙 × 2 バイト)です。例えば語彙 262,144 で、塊 256 なら 128 MiB、16,384 位置を 1 つの塊にすると 8 GiB です。`--start` より前を `main` で読むとき(`prefill` 関数が無い資産と、Gemma 4 31B の資産で規則が前置きを分けるとき。後者は `--start` が 97〜112)は、その間も 1 回の呼び出しの長さ × 語彙 × 2 バイトが要り、`--chunk` を小さくしても減りません。`prefill` 関数が無い資産では最大で前置きの塊の長さぶん、規則で分けた前置きでは 96 × 262,144 × 2 バイト = 48 MiB です。ファイルは位置数 × 語彙 × 2 バイトです。失敗したときは自分で作ったファイルを消します。記録の行が出たファイルだけを完全なものとして扱います。コマンドが終わる前にプロセスが止まったときは、書きかけのファイルが残るので、同じ `--output` で流し直す前に消します。NumPy では `np.fromfile(path, dtype="<f2").reshape(shape)` で読めます。`--main-output` と `--prefill-output` のファイルも同じ形式で、失敗したときは logits のファイルと一緒に消します。コマンドが終わる前にプロセスが止まったときは、logits のファイルと同じく書きかけのまま残るので、同じ名前で流し直す前に消します。メモリでは、それぞれの出力が 1 回の呼び出しの行(呼び出しの長さ × 幅 × 2 バイト)を持ちます。
 
 記録は `record` が `logits` の JSON の 1 行です。
 
@@ -115,12 +117,14 @@ swift build -c release
 | `main_calls` | `start` から後の `main` の呼び出しの回数 |
 | `main_hash` | 資産の `main.hash` の 16 進(`main.mlirb` の SHA-256)。ファイルが無いときは無い |
 | `requested_compute`、`expect_frequent_reshapes`、`cached`、`cache_query_error`、`specialize_s` | 自前のエンジンの特殊化の要求とキャッシュの状態。`own-load` の記録と同じ |
-| `non_finite_count` | 書き出した行の NaN と無限大の数。0 でなくてもコマンドは成功するので、この数を確かめます。 |
+| `non_finite_count` | 書き出した logits の行の NaN と無限大の数。`--main-output` と `--prefill-output` のファイルは数えません。0 でなくてもコマンドは成功するので、この数を確かめます。 |
 | `load_s`、`prefix_s`、`scoring_s` | エンジンの読み込み、`start` より前のトークンの読み込み、`start` から後の読み込みと書き出しの秒数 |
+| `scoring_call_s` | `start` から後の `main` の呼び出しの中の秒数(行の読み出しとファイルの書き出しを含まない) |
+| `outputs` | `--main-output` か `--prefill-output` を指定したときだけ。そのファイルごとの `function`(`main` か `prefill`)、`name`、`rows`、`width` と、中身の `sha256` |
 
-このコマンドは `Engine` の Verification SPI を使います。`readInOneCall(_:usePrefillFunction:)` は、塊をちょうど 1 回の `main` の呼び出し(頼まれて、バンドルに `prefill` 関数があれば `prefill`)で読みます。`logits(row:)` は直前の `main` の呼び出しの 1 行を返し、最後の行は `logits()` と同じです。行を読めるのは、次の読み込み・`restore`・`reset`・`unload` までです。`prefill` だけで読んだ直後とこれらの後、直前の呼び出しの範囲外の行では `LogitRowError` を投げます。logits の配列の語彙の軸が連続でないとき(stride が 1 でない、または interleave の配置)も、別の値を読まずに `LogitRowError` を投げます。`prefillChunkSize` と、位置 `from` から `count` 個のトークンを読むときの呼び出しの長さの列を返す `callLengths(from:count:)` も、同じ SPI にあります。この読み込みは、`Engine.Stats` の `prefillTokens`・`prefillSeconds`・`decodeTokens`・`decodeSeconds` を変えません。
+このコマンドは `Engine` の Verification SPI を使います。`readInOneCall(_:usePrefillFunction:outputs:)` は、塊をちょうど 1 回の `main` の呼び出し(頼まれて、バンドルに `prefill` 関数があれば `prefill`)で読みます。`outputs` を渡さない呼び出しは、これまでどおり、`main` では logits だけを束縛し、`prefill` 関数では出力を束縛しません。`outputs` を渡すと、その関数のその出力も、呼び出しの全行について束縛し、`output(_:row:)` が、次の読み込み・`restore`・`reset`・`unload` まで、その 1 行を返します。関数が持たない名前、`main` の logits、形が `[1, 行数, 幅]` の float16 の配列でない出力は、呼び出しの前に `OutputRowError.unreadableOutput` を投げ、エンジンは変わりません。`output(_:row:)` は、直前の呼び出しが読まなかった出力、呼び出しの範囲外の行、幅の軸が連続でない配列で `OutputRowError` を投げます。`logits(row:)` は直前の `main` の呼び出しの 1 行を返し、最後の行は `logits()` と同じです。行を読めるのは、次の読み込み・`restore`・`reset`・`unload` までです。`prefill` だけで読んだ直後とこれらの後、直前の呼び出しの範囲外の行では `LogitRowError` を投げます。logits の配列の語彙の軸が連続でないとき(stride が 1 でない、または interleave の配置)も、別の値を読まずに `LogitRowError` を投げます。`prefillChunkSize` と、位置 `from` から `count` 個のトークンを読むときの呼び出しの長さの列を返す `callLengths(from:count:)` も、同じ SPI にあります。この読み込みは、`Engine.Stats` の `prefillTokens`・`prefillSeconds`・`decodeTokens`・`decodeSeconds` を変えません。
 
-モデルの要らない確認は `swift test --package-path CoreAISamplesKit --filter LogitRowLayoutTests` と `swift test --package-path Tools/Verify -c release --filter PositionLogitsTests` です。バンドルを渡すと、モデルを使う試験が、最後の行を `logits()` と、1 トークンずつの塊を `step` と、2・4・8 の塊を 1 トークンずつの塊と比べます。前の 2 つはビットまで一致しなければなりません。長い塊は計算の順が変わるので、非有限値が無く、上位のトークンが違うのは 8 目盛りの同点近傍の規則が許す場合だけであることを求め、塊の長さごとに logits の最大絶対差を出力します。
+モデルの要らない確認は `swift test --package-path CoreAISamplesKit --filter 'LogitRowLayoutTests|OutputRowsTests'` と `swift test --package-path Tools/Verify -c release --filter PositionLogitsTests` です。バンドルを渡すと、モデルを使う試験が、最後の行を `logits()` と、1 トークンずつの塊を `step` と、2・4・8 の塊を 1 トークンずつの塊と比べます。前の 2 つはビットまで一致しなければなりません。長い塊は計算の順が変わるので、非有限値が無く、上位のトークンが違うのは 8 目盛りの同点近傍の規則が許す場合だけであることを求め、塊の長さごとに logits の最大絶対差を出力します。
 
 ```bash
 COREAI_TEST_BUNDLES=/path/to/bundle swift test --package-path CoreAISamplesKit --filter ModelIntegrationTests.positionLogits

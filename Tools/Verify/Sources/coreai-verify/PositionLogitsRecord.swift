@@ -21,4 +21,6 @@ struct PositionLogitsRecord: Encodable {
     let loadS: Double
     let prefixS: Double
     let scoringS: Double
+    let scoringCallS: Double
+    var outputs: [OutputFileRecord]?
 }
