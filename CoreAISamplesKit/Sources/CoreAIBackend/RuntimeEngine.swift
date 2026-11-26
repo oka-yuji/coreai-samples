@@ -11,6 +11,7 @@ protocol RuntimeEngine: AnyObject {
     func restore(_ checkpoint: Engine.Checkpoint) throws
     func reset()
     func unload()
+    func warmUpPreparedCopy() async throws
     func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws
     func prefill(
         _ input: [Int32], usePrefillFunction: Bool, onProgress: @Sendable (Int) -> Void
