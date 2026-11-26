@@ -382,28 +382,45 @@ of either implementation for two fixed inputs, `short` (26 tokens) and `long` (1
 
 ~~~sh
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
-  --implementation original --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
-  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/original
+  --implementation original --layers 6 --taps 1,2,3,4,5 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output .local/conversion/gemma4_31b/first-layers/original
 .local/conversion/upstream-gemma4-31b/coreai-models/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers \
-  run --implementation class --layers 6 --taps 1,2,3,4,5 --model Tools/Conversion/recipes/gemma4_31b/model.json \
-  --snapshot .local/conversion/models/google--gemma-4-31B-it --output <new folder>/class
+  run --implementation class --layers 6 --taps 1,2,3,4,5 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output .local/conversion/gemma4_31b/first-layers/class
 .local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers compare \
-  --original <new folder>/original --model-class <new folder>/class > <new folder>/comparison.json
+  --original .local/conversion/gemma4_31b/first-layers/original \
+  --model-class .local/conversion/gemma4_31b/first-layers/class \
+  > .local/conversion/gemma4_31b/first-layers/comparison.json
 ~~~
 
-`run` loads the weights: start it under the shared machine lock, which it does not take itself. It accepts only a
-layer count whose last layer is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses
-any other before it creates the folder or reads a weight. It writes `<input>.<output>.npy` for both inputs and the
-three outputs and, last, `record.json` into a new folder. The original implementation reads each input in one call;
-its tap layer i is entry i of `output_hidden_states`, except for the last layer, whose entry the original
-implementation replaces with the output of the final norm: that tap is the output of the last layer, taken with a
-forward hook. The model class reads the window and then calls of 1, 2, 4 and 8 tokens with its caches.
-`compare` passes only for a run of the original implementation and a run of the model class on the same inputs and
-tap layers whose differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and
-for `long` a largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no
-position with another `argmax`; for both inputs, at every position of `hidden_states` and of each tap layer of
-`tap_hidden_states`, a largest absolute difference below 1e-3 (`ratio_limit`) times the largest absolute value of the
-original implementation at that position. `largest_ratio` is the largest quotient of the two over the positions.
+`run` loads the weights: start it under the shared machine lock, which it does not take itself. It refuses an existing
+output first, before it reads the contract or checks any other argument. It accepts only a layer count whose last layer
+is a full-attention layer (6, 12, …, 60 here) and tap layers of that count, and refuses any other before it creates the
+folder or reads a weight. It checks the size and SHA-256 of the files to load against the contract before it checks or
+reads the export and before it creates the folder, so a snapshot that differs from the contract leaves no folder and
+its index and shards are not parsed. `--weights float16` rounds every checkpoint
+tensor that it loads to float16. `--weights 8bit --export "$EXPORT_FOLDER"`, for the original implementation only, puts
+in the weights restored from the quantized tensors of an 8-bit export, as `context` does ([FP32 reference restored from
+the quantized weights](#fp32-reference-restored-from-the-quantized-weights)), and records `weights` and `quantized` as
+`context` does. It writes `<input>.<output>.npy` for both inputs and the three outputs and, last, `record.json` into a
+new folder, so a folder with `record.json` is complete. An error leaves `failure.json` with the type of the error and no
+`record.json`. SIGINT and SIGTERM are held back while it makes the folder and writes `record.json` or `failure.json`,
+and then stop it as for an interruption; one that arrives anywhere else stops it as an error does. It does not promise a
+record when a second interruption arrives after it has begun to handle an error and before it writes `failure.json`, nor
+for a SIGTERM that arrives after it has put back the earlier handler of SIGTERM (the records written before stay), and
+an interruption that arrives while it puts the handler back can leave its handler in the process. Treat a folder with no
+record as unfinished. The original implementation reads each input in one call; its tap layer i is entry i of
+`output_hidden_states`, except for the last layer, whose entry the original implementation replaces with the output of
+the final norm: that tap is the output of the last layer, taken with a forward hook. The model class reads the window
+and then calls of 1, 2, 4 and 8 tokens with its caches. `compare` passes only for a run of the original implementation
+and a run of the model class on the same inputs, tap layers and kind of weights, a kind that `run` writes, whose
+differences stay below the criteria: for `short` a largest absolute logit difference below 1e-3, and for `long` a
+largest absolute logit difference below 5e-3, a largest probability difference below 1e-6 and no position with another
+`argmax`; for both inputs, at every position of `hidden_states` and of each tap layer of `tap_hidden_states`, a largest
+absolute difference below 1e-3 (`ratio_limit`) times the largest absolute value of the original implementation at that
+position. `largest_ratio` is the largest quotient of the two over the positions.
 `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_layers.py` fixes the criteria, and `ModelClassTests` in
 `Tools/Conversion/tests/export_gemma4_31b_model.py` the outputs of the class against the original implementation on a
 synthetic model.
@@ -717,6 +734,85 @@ other weights, of another contract, of other layers than the restored reference,
 holding the same logits as the restored one) or did not start from the record of the restored reference.
 `QuantizedSummaryTests` fixes these checks. The published record is
 [docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#8-bit-export-of-the-first-six-layers).
+
+## Outputs for speculation read by the own engine
+
+`speculation` compares the outputs for speculation that `coreai-verify logits` reads from an export with
+`--main-output` and `--prefill-output` (`hidden_states` and `tap_hidden_states` of `main`, `tap_hidden_states` of
+`prefill`) with a run of `layers.py` of the original implementation that holds the output of every layer, with the
+weights of the export: `--weights float16` for an FP16 export, and `--weights 8bit --export "$EXPORT_FOLDER"`
+for an 8-bit export. `EXPORT_FOLDER` is the `export` folder of the artifacts of the export step; the commands below
+stop before the first one when it is not set. Start both under the shared machine lock, which they do not take
+themselves. The two outputs are new folders, one for the reference and one for the comparison:
+
+~~~sh
+: "${EXPORT_FOLDER:?set it to the export folder of the artifacts of the export step}" &&
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
+  --implementation original --layers 6 --taps 1,2,3,4,5,6 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output .local/conversion/gemma4_31b/speculation/reference-float16 &&
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.speculation \
+  --export "$EXPORT_FOLDER" --reference .local/conversion/gemma4_31b/speculation/reference-float16 \
+  --verifier Tools/Verify/.build/release/coreai-verify \
+  --output .local/conversion/gemma4_31b/speculation/comparison-float16
+~~~
+
+It refuses an existing output before it reads anything, and stops without writing anything when its inputs cannot be
+compared. It runs `coreai-verify` once per condition, in a new process, and stops each call after 1,800 s:
+
+| Condition | Tokens | `--start` | `--chunk` | Compared rows |
+|---|---|---:|---:|---|
+| `short-c1`, `short-c8` | `short` (26) | 0 | 1, 8 | `main` 0 to 25 |
+| `long-main` | `long` (1,400) | 0 | 1,400 | `main` 0 to 1,399 |
+| `long-prefill` | `long` (1,400) | 1,100 | 1 | `prefill` 0 to 1,099, `main` 1,100 to 1,399 |
+
+`long-main` reads the input in one `main` call, the call that `Engine.callLengths(from:count:)` gives for 1,400
+tokens from position 0. `long-prefill` reads the first 1,100 positions, past the window of 1,024, with the `prefill`
+function and the rest with `main` one token at a time.
+
+For each output, and for `tap_hidden_states` for each of its tap layers, a condition passes with:
+
+| Check | Value |
+|---|---|
+| Mixup | the sum over the rows of the squared differences from the reference of the same layer is at most 1/2 of the sum from every other layer of the reference (1 to the layer count), and the smallest of those sums is above 0 (when it is 0 the check fails and has no ratio); for `hidden_states`, from the final norm at most 1/2 of the sum from the last layer before the norm |
+| Cosine | the cosine of every row with the reference of the same layer (for `hidden_states`, the final norm) at least 0.99, and their median at least 0.999 |
+| Finite | no non-finite value |
+
+`SectionTests` and `CompareTests` in `Tools/Conversion/tests/test_gemma4_31b_speculation.py` fix these values and the
+checks on the inputs, the record of `coreai-verify` and its files. Into the new folder it writes, for every condition,
+`<condition>.tokens.json`, the logits (`<condition>.f16`), the outputs (`<condition>.hidden_states.f16`,
+`<condition>.tap_hidden_states.f16` and, for `long-prefill`, `<condition>.prefill.tap_hidden_states.f16`) and the
+standard error of `coreai-verify` (`<condition>.log`), and last `comparison.json`: for every output its rows, width,
+SHA-256 and non-finite values with their rows, and for an output without them the sums of squares by layer of the
+reference, the nearest other layer and the ratio to it, the smallest cosine with its position, the median and the rows
+below 0.99, and the checks. When `coreai-verify` exits with an error, does not answer within 1,800 s, prints no record
+or writes a `hidden_states` or `tap_hidden_states` file that is not rows × width × 2 bytes or whose SHA-256 is not the
+one in its record, that condition fails and its `problems` say why (the comparison does not open the logits file: it
+compares only the `shape` that the record of `coreai-verify` gives for it with the expected one, and records neither
+its size nor its SHA-256): the comparison is still written, with `passed` false, and the exit code is 1, so look at
+`comparison.json`. It writes `comparison.json` last, after every condition, so a folder with `comparison.json` is
+complete (its `passed` says whether the comparison passed).
+Its records follow the promises of `run` ([FP32 outputs of the first layers](#fp32-outputs-of-the-first-layers)): an
+error that reaches the tool itself (for example a failure while it writes `comparison.json`) leaves `failure.json`
+with the type of the error and no `comparison.json`, and when it cannot write `failure.json` either (a disk that stays
+full), neither record remains; SIGINT and SIGTERM are held back while it makes the folder and writes `comparison.json`
+or `failure.json`, and an interruption stops `coreai-verify` too, also when it arrives as the
+process starts. What `run` does not promise is not promised here either, and a folder with no record is unfinished. It
+reads the reference, the verifier, the export record and the `hidden_states` and `tap_hidden_states` files that
+`coreai-verify` writes only as regular files, opened without waiting and refusing a link as the last part of the path
+(a link given for `--verifier` is followed, because the path is resolved first), of the recorded size where a record
+gives one, and no further than a limit on the open file: 1 MiB for the reference record; for an array of the reference,
+the rows × width × 4 bytes of its values plus up to 64 KiB of header, and a recorded size outside that range is refused
+before the file is opened; the rows × width × 2 bytes of the file for each of those files; and 16 MiB for the export
+record and for the two bundle files that it keeps in memory (`main.hash` and `metadata.json`). It only hashes the other
+bundle files and the verifier, without keeping them: a bundle file must have its recorded size, and the verifier has no
+limit. It reads the header of an array of the reference first and refuses a shape, type (little-endian float32) or order
+other than the record's before it makes the array from the values. It resolves `--verifier` to an absolute path, then
+hashes that file and starts that same path. It prints a short summary, and the exit code is 0 only when the comparison
+passed. The specialization cache that `coreai-verify` makes stays in place; remove it yourself.
+
+The numbers of the first six layers are in
+[docs/validation/gemma4-31b](../../../../docs/validation/gemma4-31b/README.md#outputs-for-speculation-read-by-the-own-engine-in-the-first-six-layers-702).
 
 ## MTP drafter
 

@@ -920,6 +920,177 @@ python3 -m Tools.Conversion.adapters.gemma4_31b.fp16_summary --reference <restor
   > docs/validation/gemma4-31b/8bit-first-layers-20261123.json
 ~~~
 
+## Outputs for speculation read by the own engine in the first six layers (#702)
+
+This section copies the numbers of reading the two outputs for speculation from the FP16 and the 8-bit export of the
+first six layers with the own engine and `coreai-verify` (#702), and of their comparison with the original
+implementation in FP32. Both exports have `main` and `prefill` ([FP16 export of the first six
+layers](#fp16-export-of-the-first-six-layers) and [8-bit export of the first six
+layers](#8-bit-export-of-the-first-six-layers)); [the section of
+#695](#outputs-for-speculation-in-the-first-six-layers-695) compared the two outputs only as the model class in FP32,
+and the own engine read the logits only. `hidden_states` [1, n, 5376] and `tap_hidden_states` [1, n, 26880] (the outputs
+after layers 1 to 5 joined in ascending order) are read from `main`, and `tap_hidden_states` from `prefill`.
+[`speculation-outputs-first-layers-20261124.json`](speculation-outputs-first-layers-20261124.json) holds the states,
+numbers, hashes and versions of the references, the comparisons, the checks of the logits files, the costs and the test.
+It has no local paths, commands or environment variables; the records, bundles and arrays stay in the local work
+directory.
+
+### Conditions
+
+- The Mac of the runs above (Apple M4 Max, 128 GiB, macOS 27.0 (26A428), Xcode 27.0 (27A266a), on AC power, battery 100
+  %). Every model job held the shared machine lock and started only when no process of the model tools (`coreai-chat`,
+  `coreai-verify`, `CoreAISamples` and the Python conversion tools) was running. The two references,
+  the two comparisons, the checks of the command and the costs ran in one hold from 16:12:26 to 16:17:14 JST on
+  2026-11-24, taken as a timing measurement with no wait for the lock; the other processes of the machine were not
+  stopped. The test of the engine ran in a second hold (16:19:29 to 16:19:57), which is not a timing measurement.
+- Commit 4c88220b with no local changes (the jobs ran from a `git archive` of the commit). The reference environment is
+  that of the sections above (numpy 2.4.6, safetensors 0.8.0, torch 2.15.0, transformers 5.16.1). `coreai-verify` was
+  built in release from d89fd838, from ac954297 and from 4c88220b (`swift build --package-path Tools/Verify -c release`),
+  each time with the SHA-256 `e1754211fb67f045fcbc8beb4ac497776cc48270b3362785ccf9644c7b37337f`; their Swift sources
+  are the same.
+- Assets: the FP16 export `20261122T202000-cacdae94` (`main.hash` `8a242c80a12e…`) and the 8-bit export
+  `20261123T043147-264994c4` (`main.hash` `4284357701f6…`), each with the tap layers 1 to 5.
+- References: `layers.py run` of the original implementation with `--layers 6 --taps 1,2,3,4,5,6`, which holds the
+  output of every layer. The FP16 export is compared with the weights rounded to float16 (`--weights float16`), the
+  8-bit export with the quantized Linear weights restored from the tensors that the export passed to the converter,
+  every other tensor rounded to float16 (`--weights 8bit --export`); both in float32 on the CPU. Inputs: the fixed-seed
+  token IDs of the recipe, not text: `short` (26 tokens) and `long` (1,400 tokens).
+
+### FP32 references
+
+| | FP16 weights | 8-bit weights |
+|---|---:|---:|
+| Run | 32.2 s | 36.6 s |
+| Hashing the files to load | 24.2 s | 22.7 s |
+| Loading | 2.1 s | 7.8 s |
+| `short` (26 rows) | 0.22 s | 0.23 s |
+| `long` (1,400 rows) | 4.33 s | 4.29 s |
+| Peak resident memory | 26,721,943,552 B | 29,637,787,648 B |
+| Kernel lifetime footprint peak | 24,625,989,704 B | 28,403,782,488 B |
+
+`Run` is the whole run, from the check of the files to load to the last array, and `Hashing the files to load` is that
+check against the contract, which comes first. `Loading` is what lies between that check and the first input: for the
+8-bit reference it includes the check of its export and the reading of its quantized tensors (which is why it is longer
+than that of the FP16 reference), then, for both, the loading of the model and the application of the weights.
+
+The 8-bit reference restored 123 tensors from the quantized file of the export (3,294,771,912 B,
+`5dadc554a8d37b718fe93d1449618af83c41509af58c3fe771d3c718fcfb8833`), whose export record has the SHA-256
+`ce5a3eb725214faac782150e2606476b666da7a1c7ec43cbcea889d6aec7b025`. All arrays are finite.
+
+### Comparison
+
+`speculation` ran `coreai-verify logits` once per condition and compared the files that it wrote. Both assets passed all
+four conditions; the checks and values are those of
+[`speculation`](../../../Tools/Conversion/recipes/gemma4_31b/README.md#outputs-for-speculation-read-by-the-own-engine):
+for every output and every tap layer the sum of the squared differences from the reference of the same layer is at most
+1/2 of the sum from every other layer (the smallest of them above 0), the cosine of every row is at least 0.99 and the
+median at least 0.999, and every value is finite. For `hidden_states` the other layer is the last layer, and for each
+tap layer the table gives the largest ratio to the nearest other layer (the criterion: at most 0.5) and the smallest
+cosine and median cosine over the tap layers.
+
+| Condition | Output | FP16: largest ratio | Smallest cosine | Smallest median | 8-bit: largest ratio | Smallest cosine | Smallest median |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `short-c1` | `main.hidden_states` | 3.97e-07 | 1.000000 | 0.9999998 | 5.70e-07 | 0.999999 | 0.9999998 |
+| `short-c1` | `main.tap_hidden_states` | 3.87e-05 | 1.000000 | 0.9999999 | 5.93e-05 | 1.000000 | 0.9999999 |
+| `short-c8` | `main.hidden_states` | 3.85e-07 | 1.000000 | 0.9999999 | 6.41e-07 | 0.999999 | 0.9999997 |
+| `short-c8` | `main.tap_hidden_states` | 4.17e-05 | 1.000000 | 0.9999999 | 5.71e-05 | 1.000000 | 0.9999999 |
+| `long-main` | `main.hidden_states` | 3.75e-07 | 0.999999 | 0.9999998 | 4.91e-07 | 0.999999 | 0.9999998 |
+| `long-main` | `main.tap_hidden_states` | 4.55e-05 | 1.000000 | 0.9999999 | 5.86e-05 | 0.999999 | 0.9999999 |
+| `long-prefill` | `main.hidden_states` | 3.77e-07 | 1.000000 | 0.9999998 | 4.73e-07 | 1.000000 | 0.9999998 |
+| `long-prefill` | `main.tap_hidden_states` | 4.66e-05 | 1.000000 | 0.9999999 | 5.90e-05 | 1.000000 | 0.9999999 |
+| `long-prefill` | `prefill.tap_hidden_states` | 4.52e-05 | 1.000000 | 0.9999999 | 5.88e-05 | 0.999999 | 0.9999999 |
+
+In every case the nearest other layer of the largest ratio is the last layer (`hidden_states`) or layer 4 of tap layer
+5. `long-prefill` reads positions 0 to 1,099 with the `prefill` function (one call) and the rest with `main`, one token
+at a time (300 calls); `long-main` reads the 1,400 tokens in one `main` call; `short-c1` and `short-c8` read 26 tokens
+in 26 and in 4 calls.
+
+| Condition | Seconds (FP16 / 8-bit) | Scoring seconds (FP16 / 8-bit) |
+|---|---:|---:|
+| `short-c1` | 20.0 / 5.7 | 0.75 / 0.56 |
+| `short-c8` | 3.7 / 1.7 | 0.23 / 0.18 |
+| `long-main` | 5.0 / 3.0 | 1.45 / 1.49 |
+| `long-prefill` | 11.3 / 7.5 | 7.26 / 5.39 |
+
+The first condition of each asset specialized the asset (15.1 s and 3.6 s); the others used the specialization cache.
+The caches took 21,660,884 KiB and 8,739,724 KiB after the comparisons, and were removed after the comparisons and
+again after the checks.
+
+### Logits and the cost of reading the outputs
+
+In these runs, asking for the outputs did not change the logits. Five runs of `coreai-verify logits` per asset were
+made; four of them without outputs and the fifth (`short-c1`) with both outputs of `main`, and every logits file is
+byte-identical (SHA-256 and size) to the file of the same condition of the comparison of the section of #695 (FP16,
+`36d35e55…`) and of the comparison of the 8-bit section (`05b43a87…`).
+
+| Run | Condition | Bytes | Same as the earlier comparison (FP16 / 8-bit) |
+|---|---|---:|---|
+| Without outputs | `short-c1` | 13,631,488 | yes / yes |
+| Without outputs | `short-c26` | 13,631,488 | yes / yes |
+| Without outputs | `window-c8` | 681,574,400 | yes / yes |
+| Without outputs | `prefix-c1` | 157,286,400 | yes / yes |
+| With both outputs of `main` | `short-c1` | 13,631,488 | yes / yes |
+
+A request for the `logits` output, for a name that the function does not have, and for `hidden_states` from `prefill`
+each ended with exit code 1 (`unreadableOutput`). A run of `long` from position 1,100 with both outputs of `main`
+and `tap_hidden_states` of `prefill` ended with exit code 0 on both assets.
+
+The cost of reading both outputs of `main` for the whole `long` input (one call of 1,400 tokens, specialization cache in
+place; two runs of each kind, alternating, in this order of plain, with outputs, plain, with outputs):
+
+| | Seconds of the call | Peak resident set | Peak memory footprint |
+|---|---|---:|---:|
+| FP16, without outputs | 0.946, 0.986 | 35,682,795,520 B | 2,287,502,040 B |
+| FP16, with both outputs | 1.500, 0.963 | 35,682,779,136 B | 2,288,124,656 B |
+| 8-bit, without outputs | 1.265, 1.544 | 12,255,838,208 B | 2,153,848,296 B |
+| 8-bit, with both outputs | 1.486, 1.927 | 12,255,821,824 B | 2,153,979,320 B |
+
+The logits of the four runs of each asset are identical (SHA-256). Peak values are the largest of the two runs.
+
+### Test of the engine
+
+`ModelIntegrationTests.outputRowsFollowTheLastCall` ran on the FP16 export (opt-in with `COREAI_OUTPUT_ROWS_BUNDLE`,
+under the shared lock) and passed in 13.993 s. It reads both outputs in one call and by row, and checks that a row out
+of range, an output that the last read did not ask for, `logits` or a name that the function does not have as an output
+(the engine's tokens stay as they were), and `hidden_states` from `prefill` are refused, and that the outputs are
+unavailable after the next read, a reset, a restore or an unload. The test requires the asset to have the `prefill`
+function. The cache of the testing helper (21,660,884 KiB) was removed after the run.
+
+### Limits
+
+- Six of the 60 layers with the tap layers 1 to 5, one machine, one OS build and one software environment. The export of
+  all 60 layers with the tap layers 1, 17, 29, 47 and 59 is a later step.
+- The references are PyTorch in float32 on the CPU, not the FP16 or 8-bit assets; the comparison checks which layer an
+  output is of and how close it is, not the quality of the model. The criteria are those of the recipe, not tolerances
+  that a drafter needs.
+- The timings are those of one hold on one machine whose other processes were not stopped; the specialization cache was
+  in place for every condition after the first.
+- The check of the command and the cost used no more than two runs per kind.
+
+### Sources
+
+| File | SHA-256 |
+|---|---|
+| `record.json` of the FP32 reference with the FP16 weights | `ad043097d1796a773ecee410b5690844c2e472682da4b322b4ebb0491714d540` |
+| `record.json` of the FP32 reference with the 8-bit weights | `3b1edbc607604b1170e0ce253b4a34645dc04796f7781860339345520427ea0b` |
+| `export.json` of the FP16 export | `e67ff01f72625b6118972c81c9889b60f3e4ee59d471cc558aa36078fb680353` |
+| `export.json` of the 8-bit export | `ce5a3eb725214faac782150e2606476b666da7a1c7ec43cbcea889d6aec7b025` |
+| `comparison.json` of the FP16 export | `aab3ba5ba8cc68a74ef357fe74b3e9e6a1db367dbd2764d9241a37d6dbd60dc4` |
+| `comparison.json` of the 8-bit export | `553a52529e21f54756374eeb1cd4fd0b30985b86b9d4e7a769b14f3dcf566d7c` |
+| `coreai-verify` (release) | `e1754211fb67f045fcbc8beb4ac497776cc48270b3362785ccf9644c7b37337f` |
+
+~~~sh
+: "${EXPORT_FOLDER:?set it to the export folder of the artifacts of the export step}" &&
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.layers run \
+  --implementation original --layers 6 --taps 1,2,3,4,5,6 --weights float16 \
+  --model Tools/Conversion/recipes/gemma4_31b/model.json --snapshot .local/conversion/models/google--gemma-4-31B-it \
+  --output .local/conversion/gemma4_31b/speculation/reference-float16 &&
+.local/conversion/gemma4_31b/.venv/bin/python -m Tools.Conversion.adapters.gemma4_31b.speculation \
+  --export "$EXPORT_FOLDER" --reference .local/conversion/gemma4_31b/speculation/reference-float16 \
+  --verifier Tools/Verify/.build/release/coreai-verify \
+  --output .local/conversion/gemma4_31b/speculation/comparison-float16
+~~~
+
 ## MTP drafter class (#704)
 
 This section copies the numbers of the drafter class of the recipe for the MTP drafter

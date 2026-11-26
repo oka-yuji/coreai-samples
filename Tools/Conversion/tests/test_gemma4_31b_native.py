@@ -7,11 +7,13 @@ import math
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+import types
 import unittest
 from unittest import mock
 
@@ -111,7 +113,12 @@ OPEN = io.open
 
 @contextlib.contextmanager
 def watched():
-    reads = []
+    reads, real = [], os.read
+
+    def read_descriptor(descriptor, count):
+        status = os.fstat(descriptor)
+        reads.append((status.st_dev, status.st_ino))
+        return real(descriptor, count)
 
     def opener(file, *arguments, **options):
         handle = OPEN(file, *arguments, **options)
@@ -125,7 +132,8 @@ def watched():
         handle.read = read
         return handle
 
-    with mock.patch("builtins.open", new=opener), mock.patch("io.open", new=opener):
+    with mock.patch("builtins.open", new=opener), mock.patch("io.open", new=opener), \
+            mock.patch.object(os, "read", side_effect=read_descriptor):
         yield reads
 
 
@@ -1237,6 +1245,362 @@ class CompareTests(unittest.TestCase):
                     mock.patch("sys.stdout"):
                 self.assertEqual(native.main(), 0 if passed else 1)
             self.assertEqual(compare.call_args.args[:4], (Path("e"), Path("r"), Path("v"), Path("o")))
+
+
+def awaited(event, finished, seconds=30):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if event.wait(0.05):
+            return True
+        if finished.is_set():
+            return False
+    return False
+
+
+def recorded(*paths):
+    return all(path.exists() and path.read_text().strip() for path in paths)
+
+
+def kill_recorded(*paths):
+    for path in paths:
+        with contextlib.suppress(ProcessLookupError, ValueError, FileNotFoundError):
+            os.kill(int(path.read_text()), signal.SIGKILL)
+
+
+def interrupt_when_waiting(number, entered, finished, ready, force, forced, seconds=30):
+    if not awaited(entered, finished, seconds):
+        return
+    for _ in range(600):
+        if finished.is_set():
+            return
+        if ready():
+            break
+        time.sleep(0.05)
+    else:
+        return
+    os.kill(os.getpid(), number)
+    while not finished.wait(5):
+        forced.append(True)
+        force()
+
+
+def stop_leftovers(processes):
+    for process in processes:
+        if process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                process.kill()
+            process.wait()
+
+
+@contextlib.contextmanager
+def watched_children():
+    started, entered, real = [], threading.Event(), subprocess.Popen
+
+    def popen(*arguments, **keywords):
+        process = real(*arguments, **keywords)
+        started.append(process)
+        original = process.communicate
+
+        def communicate(*items, **options):
+            entered.set()
+            return original(*items, **options)
+
+        process.communicate = communicate
+        return process
+
+    with mock.patch.object(native.subprocess, "Popen", side_effect=popen):
+        try:
+            yield started, entered
+        finally:
+            stop_leftovers(started)
+
+
+class VerifierProcessTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.sleeper = self.folder / "sleeper"
+        self.sleeper.write_text("#!/bin/sh\nexec sleep 600\n")
+        self.sleeper.chmod(0o755)
+        self.addCleanup(signal.signal, signal.SIGINT, signal.signal(signal.SIGINT, signal.default_int_handler))
+
+    def test_a_verifier_that_is_started_when_an_interruption_arrives_is_stopped_and_collected(self):
+        real = subprocess.Popen
+        for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            started, forced, timers = [], [], []
+
+            def stop(process):
+                if process.returncode is None:
+                    forced.append(True)
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError):
+                        process.kill()
+
+            def popen(*arguments, **keywords):
+                process = real(*arguments, **keywords)
+                started.append(process)
+                timers.append(threading.Timer(5, stop, [process]))
+                timers[-1].daemon = True
+                timers[-1].start()
+                signal.raise_signal(number)
+                return process
+
+            with self.subTest(signal=name):
+                try:
+                    with layers.terminated_as_interrupt(), mock.patch.object(
+                            native.subprocess, "Popen", side_effect=popen), self.assertRaises(KeyboardInterrupt):
+                        native.run_verifier([str(self.sleeper)], 30, self.folder / f"{name}.log")
+                    self.assertEqual(forced, [])
+                    self.assertIsNotNone(started[0].returncode)
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(started[0].pid, 0)
+                finally:
+                    for timer in timers:
+                        timer.cancel()
+                        timer.join(2)
+                    stop_leftovers(started)
+                    self.assertEqual([timer for timer in timers if timer.is_alive()], [])
+
+    def test_a_verifier_that_is_waited_for_when_an_interruption_arrives_is_stopped_and_collected(self):
+        for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            pidfile, forced = Path(f"{self.sleeper}.pid"), []
+            self.sleeper.write_text('#!/bin/sh\necho $$ > "$0.pid"\nexec sleep 600\n')
+            pidfile.unlink(missing_ok=True)
+            finished = threading.Event()
+            with self.subTest(signal=name), watched_children() as (started, entered):
+                thread = threading.Thread(target=interrupt_when_waiting, daemon=True, args=(
+                    number, entered, finished, lambda: recorded(pidfile), lambda: kill_recorded(pidfile), forced))
+                thread.start()
+                try:
+                    with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
+                        native.run_verifier([str(self.sleeper)], 60, self.folder / f"wait-{name}.log")
+                finally:
+                    finished.set()
+                thread.join(10)
+                self.assertEqual(forced, [])
+                self.assertTrue(entered.is_set())
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(int(pidfile.read_text()), 0)
+
+    def test_a_verifier_that_has_a_child_of_its_own_is_stopped_with_it_when_an_interruption_arrives(self):
+        parent_file, child_file = Path(f"{self.sleeper}.pid"), Path(f"{self.sleeper}.child")
+        self.sleeper.write_text('#!/bin/sh\nsleep 600 &\necho $! > "$0.child"\necho $$ > "$0.pid"\nwait\n')
+
+        def numbers():
+            found = []
+            for path in (parent_file, child_file):
+                with contextlib.suppress(ValueError, FileNotFoundError):
+                    found.append(int(path.read_text()))
+            return found
+
+        def vanished(number):
+            for _ in range(100):
+                try:
+                    os.kill(number, 0)
+                except ProcessLookupError:
+                    return True
+                time.sleep(0.05)
+            return False
+
+        for name, number in (("SIGINT", signal.SIGINT), ("SIGTERM", signal.SIGTERM)):
+            forced, finished = [], threading.Event()
+            for leftover in (parent_file, child_file):
+                leftover.unlink(missing_ok=True)
+            with self.subTest(signal=name), watched_children() as (started, entered):
+                thread = threading.Thread(target=interrupt_when_waiting, daemon=True, args=(
+                    number, entered, finished, lambda: recorded(parent_file, child_file),
+                    lambda: kill_recorded(parent_file, child_file), forced))
+                thread.start()
+                gone = []
+                try:
+                    with layers.terminated_as_interrupt(), self.assertRaises(KeyboardInterrupt):
+                        native.run_verifier([str(self.sleeper)], 60, self.folder / f"child-{name}.log")
+                    gone = [vanished(found) for found in numbers()]
+                finally:
+                    finished.set()
+                    thread.join(10)
+                    kill_recorded(parent_file, child_file)
+                self.assertEqual(forced, [])
+                self.assertEqual(gone, [True, True])
+
+    def test_a_verifier_that_fails_to_start_leaves_no_process_and_raises_its_error(self):
+        with self.assertRaises(OSError):
+            native.run_verifier([str(self.folder / "absent")], 30, self.folder / "absent.log")
+
+    def test_a_verifier_can_be_run_from_a_thread_other_than_the_main_thread(self):
+        outcome = {}
+        thread = threading.Thread(
+            target=lambda: outcome.update(result=native.run_verifier(["/usr/bin/true"], 30, self.folder / "thread.log")))
+        thread.start()
+        thread.join(30)
+        self.assertEqual(outcome.get("result"), (0, b""))
+
+
+class InterruptingHelperTests(unittest.TestCase):
+    def interrupted(self, entered, finished, ready, seconds=30, signalled=False):
+        entered_event, finished_event = threading.Event(), threading.Event()
+        if entered:
+            entered_event.set()
+        if finished:
+            finished_event.set()
+        with mock.patch.object(os, "kill") as kill:
+            thread = threading.Thread(target=interrupt_when_waiting, daemon=True, args=(
+                signal.SIGTERM, entered_event, finished_event, ready, lambda: None, [], seconds))
+            thread.start()
+            if signalled:
+                for _ in range(100):
+                    if kill.called:
+                        break
+                    time.sleep(0.05)
+                finished_event.set()
+            thread.join(5)
+            self.assertFalse(thread.is_alive())
+        return kill.call_args_list
+
+    def test_no_signal_is_sent_when_the_call_never_waits(self):
+        self.assertEqual(self.interrupted(False, False, lambda: True, seconds=0.2), [])
+
+    def test_the_wait_for_the_call_ends_when_the_test_is_over(self):
+        self.assertEqual(self.interrupted(False, True, lambda: True), [])
+
+    def test_no_signal_is_sent_when_the_test_is_over_before_the_verifier_is_ready(self):
+        self.assertEqual(self.interrupted(True, True, lambda: True), [])
+
+    def test_no_signal_is_sent_when_the_verifier_never_becomes_ready(self):
+        polls = []
+        with mock.patch.object(time, "sleep", side_effect=polls.append):
+            self.assertEqual(self.interrupted(True, False, lambda: False), [])
+        self.assertEqual(len(polls), 600)
+
+    def test_one_signal_is_sent_when_the_call_waits_and_the_verifier_is_ready(self):
+        calls = self.interrupted(True, False, lambda: True, signalled=True)
+        self.assertEqual(calls, [mock.call(os.getpid(), signal.SIGTERM)])
+
+
+class ReadLimitTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.path = self.folder / "file"
+        self.path.write_bytes(bytes(range(256)) * 160)
+
+    def read_counting(self, call, short=None):
+        reads, real = [], os.read
+
+        def counting(descriptor, count):
+            block = real(descriptor, count if short is None else min(count, short))
+            reads.append((count, len(block), os.lseek(descriptor, 0, os.SEEK_CUR)))
+            return block
+
+        with mock.patch.object(native.os, "read", side_effect=counting), \
+                mock.patch.object(native, "BLOCK_BYTES", 4096):
+            try:
+                return call(), reads
+            except ValueError as error:
+                return error, reads
+
+    def taken(self, reads):
+        return sum(length for _, length, _ in reads)
+
+    def assertWithin(self, reads, budget):
+        before = 0
+        for count, length, position in reads:
+            self.assertLessEqual(count, budget - before)
+            before += length
+            self.assertEqual(position, before)
+        self.assertLessEqual(before, budget)
+
+    def test_a_file_above_the_limit_is_refused_before_it_is_read_and_a_file_up_to_it_is_read(self):
+        size = self.path.stat().st_size
+        refused, reads = self.read_counting(lambda: native.regular_file(self.path, keep=True, limit=size - 1))
+        self.assertIsInstance(refused, ValueError)
+        self.assertEqual(reads, [])
+        for limit in (size, size + 1, 10**9):
+            with self.subTest(limit=limit):
+                (found, data), reads = self.read_counting(lambda: native.regular_file(self.path, keep=True, limit=limit))
+                self.assertEqual((found["bytes"], len(data), self.taken(reads)), (size, size, size))
+        (found, data), _ = self.read_counting(lambda: native.regular_file(self.path, keep=True))
+        self.assertEqual((found["bytes"], len(data)), (size, size))
+
+    def test_a_file_that_grows_after_its_size_was_read_is_not_read_beyond_the_limit_and_one_byte_from_its_descriptor(self):
+        real = os.fstat
+        lying = lambda descriptor: types.SimpleNamespace(st_mode=real(descriptor).st_mode, st_size=100)
+        for short in (None, 700):
+            with self.subTest(short=short), mock.patch.object(native.os, "fstat", side_effect=lying):
+                refused, reads = self.read_counting(
+                    lambda: native.regular_file(self.path, keep=True, limit=10000), short=short)
+            self.assertIsInstance(refused, ValueError)
+            self.assertEqual(self.taken(reads), 10001)
+            self.assertWithin(reads, 10001)
+        self.assertGreater(len(reads), 10)
+
+    def test_a_file_is_read_completely_when_the_descriptor_returns_short_reads(self):
+        for limit in (None, 10**9):
+            with self.subTest(limit=limit):
+                (found, data), reads = self.read_counting(
+                    lambda: native.regular_file(self.path, keep=True, limit=limit), short=333)
+                self.assertEqual(data, self.path.read_bytes())
+                self.assertEqual(found, {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+                self.assertGreater(len(reads), len(data) // 333)
+
+    def test_a_record_is_read_up_to_its_limit_only(self):
+        record = self.folder / "record.json"
+        record.write_text(json.dumps({"key": "x" * 200}))
+        self.assertEqual(native.read_record(record, 1000)[0], {"key": "x" * 200})
+        self.assertEqual(native.read_record(record)[0], {"key": "x" * 200})
+        with self.assertRaises(ValueError):
+            native.read_record(record, 100)
+
+    def exported(self):
+        (self.folder / "snapshot").mkdir()
+        for index, item in enumerate(TOKENIZER_FILES):
+            (self.folder / "snapshot" / item).write_text("abc"[index])
+        files = {item: {"bytes": 1, "sha256": sha256(self.folder / "snapshot" / item)} for item in TOKENIZER_FILES}
+        contract_path = write_contract(self.folder, files)
+        return complete_export(self.folder / "export", contract_path), load_contract(contract_path), contract_path
+
+    def test_an_export_record_above_the_limit_is_refused_and_not_read_beyond_the_limit_and_one_block(self):
+        export, contract, contract_path = self.exported()
+        size = (export / "export.json").stat().st_size
+        with mock.patch.object(native, "EXPORT_LIMIT", size - 1):
+            refused, reads = self.read_counting(lambda: native.load_export(export, contract, contract_path))
+        self.assertIsInstance(refused, ValueError)
+        self.assertEqual(reads, [])
+        real = os.fstat
+        lying = lambda descriptor: types.SimpleNamespace(st_mode=real(descriptor).st_mode, st_size=100)
+        with mock.patch.object(native, "EXPORT_LIMIT", size - 1), mock.patch.object(native.os, "fstat", side_effect=lying):
+            refused, reads = self.read_counting(lambda: native.load_export(export, contract, contract_path))
+        self.assertIsInstance(refused, ValueError)
+        self.assertEqual(self.taken(reads), size)
+        with mock.patch.object(native, "EXPORT_LIMIT", size):
+            self.assertEqual(native.load_export(export, contract, contract_path)[3], [])
+
+    def test_an_export_record_that_is_sparse_and_above_the_limit_is_refused_without_reading_it(self):
+        export, contract, contract_path = self.exported()
+        os.truncate(export / "export.json", native.EXPORT_LIMIT + 1)
+        refused, reads = self.read_counting(lambda: native.load_export(export, contract, contract_path))
+        self.assertIsInstance(refused, ValueError)
+        self.assertIn("is larger than", str(refused))
+        self.assertEqual(reads, [])
+
+    def test_every_file_that_the_export_loader_keeps_is_read_under_the_limit_and_the_others_are_only_hashed(self):
+        export, contract, contract_path = self.exported()
+        calls, real = [], native.regular_file
+
+        def spy(path, size=None, keep=False, limit=None):
+            calls.append((Path(path).name, keep, limit))
+            return real(path, size, keep, limit)
+
+        with mock.patch.object(native, "regular_file", side_effect=spy):
+            self.assertEqual(native.load_export(export, contract, contract_path)[3], [])
+        kept = [(name, limit) for name, keep, limit in calls if keep]
+        self.assertEqual(sorted(kept), [("export.json", native.EXPORT_LIMIT), ("main.hash", native.EXPORT_LIMIT),
+                                        ("metadata.json", native.EXPORT_LIMIT)])
+        hashed = [limit for name, keep, limit in calls if not keep]
+        self.assertEqual((len(hashed) > 0, set(hashed)), (True, {None}))
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import hashlib
 import io
 import json
@@ -9,8 +10,10 @@ import signal
 import stat
 import subprocess
 import sys
+import threading
 import time
 
+from ...runner import deferred_interrupts
 from ...storage import PipelineError, canonical, digest, write_json
 from ..jev27b.monitor import FREE_PERCENT, INTERVAL_S, STREAK, SWAP_LIMIT_BYTES
 from ..pinned import sha256
@@ -32,6 +35,7 @@ KNOWN_ENDS, KNOWN_SHORTEST = range(97, 113), 8
 TIMEOUT_S = 1800
 LARGEST = 2**63 - 1
 BLOCK_BYTES = 16 * 2**20
+EXPORT_LIMIT = 16 * 2**20
 CRITERIA = {"max_abs_logit": MAX_ABS_LOGIT, "near_tie": NEAR_TIE}
 KNOWN_CALL = {"ends": [KNOWN_ENDS[0], KNOWN_ENDS[-1]], "shortest": KNOWN_SHORTEST}
 PREFILL_CHUNKS = (2048, 4096)
@@ -340,19 +344,20 @@ def reference_record_problems(record, contract, arrays):
     return problems + [message for message, holds in formulas.items() if not holds]
 
 
-def regular_file(path, size=None, keep=False):
+def regular_file(path, size=None, keep=False, limit=None):
     descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
     try:
         status = os.fstat(descriptor)
         if not stat.S_ISREG(status.st_mode) or size is not None and status.st_size != size:
             raise ValueError(f"{Path(path).name} is not a regular file of the recorded size")
+        if limit is not None and status.st_size > limit:
+            raise ValueError(f"{Path(path).name} is larger than {limit} B")
         hasher, kept, total = hashlib.sha256(), [], 0
-        with open(descriptor, "rb", closefd=False) as handle:
-            while block := handle.read(BLOCK_BYTES):
-                hasher.update(block)
-                total += len(block)
-                if keep:
-                    kept.append(block)
+        while block := os.read(descriptor, BLOCK_BYTES if limit is None else min(BLOCK_BYTES, limit + 1 - total)):
+            hasher.update(block)
+            total += len(block)
+            if keep:
+                kept.append(block)
     finally:
         os.close(descriptor)
     if total != status.st_size:
@@ -360,8 +365,8 @@ def regular_file(path, size=None, keep=False):
     return {"bytes": total, "sha256": hasher.hexdigest()}, b"".join(kept) if keep else None
 
 
-def read_record(path):
-    found, data = regular_file(path, keep=True)
+def read_record(path, limit=None):
+    found, data = regular_file(path, keep=True, limit=limit)
     return parse(data), found["sha256"], found["bytes"]
 
 
@@ -487,7 +492,7 @@ def relation_problems(record, precision):
 
 def load_export(folder, contract, contract_path):
     path = folder / "export.json"
-    entry, data = regular_file(path, keep=True)
+    entry, data = regular_file(path, keep=True, limit=EXPORT_LIMIT)
     record, hashed = parse(data), entry["sha256"]
     recorded = (record.get("bundle") or {}) if isinstance(record, dict) else None
     if not isinstance(recorded, dict) or not isinstance(recorded.get("files") or {}, dict):
@@ -538,8 +543,9 @@ def load_export(folder, contract, contract_path):
             try:
                 if not isinstance(entry, dict) or not valid("count", entry.get("bytes")):
                     raise ValueError(f"the record of {relative} has no size")
-                hashes[relative], contents[relative] = regular_file(bundle / relative, entry["bytes"],
-                                                                    keep=relative in (main, "metadata.json"))
+                kept = relative in (main, "metadata.json")
+                hashes[relative], contents[relative] = regular_file(bundle / relative, entry["bytes"], keep=kept,
+                                                                    limit=EXPORT_LIMIT if kept else None)
             except (OSError, ValueError):
                 hashes[relative] = None
             if hashes[relative] is None or hashes[relative] != entry:
@@ -603,17 +609,24 @@ def correspondence(exported, export_hash, reference):
     return []
 
 
+def held_interrupts():
+    return deferred_interrupts() if threading.current_thread() is threading.main_thread() else contextlib.nullcontext()
+
+
 def run_verifier(command, timeout, log):
     with log.open("xb") as errors:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=errors, start_new_session=True)
+        process = None
         try:
+            with held_interrupts():
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=errors, start_new_session=True)
             stdout, _ = process.communicate(timeout=timeout)
         except BaseException:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.communicate()
+            if process is not None:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.communicate()
             raise
     return process.returncode, stdout
 

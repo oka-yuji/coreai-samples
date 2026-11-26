@@ -10,7 +10,7 @@ from .anchor_summary import signed
 from .compare import CONTRACT
 from .effect import effect as quantization_effect
 from .export import QUANTIZATION, SCHEMA as EXPORT_SCHEMA
-from .layers import CONDITIONS, CONTEXT_SCHEMA, RESTORED, compare as compare_layers
+from .layers import CONDITIONS, CONTEXT_SCHEMA, RESTORED, WEIGHTS, compare as compare_layers
 from .native import (CRITERIA, KNOWN_CALL, PUBLIC, SCHEMA as COMPARISON_SCHEMA, VERIFIER, comparison_passed,
                      condition_problems, correspondence, load_export, load_reference, measurement_problems,
                      read_record, reference_record_problems, regular_file, texts, valid)
@@ -333,6 +333,10 @@ def main():
         precisions = {record.get("precision") for _, record, _, _ in exports}
         given = tuple(value is not None for value in (args.original, args.model_class, args.rounded))
         if precisions == {"float16"} and given == (True, True, False):
+            if any(read_record(Path(folder) / "record.json")[0].get("weights") != WEIGHTS
+                   for folder in (args.original, args.model_class)):
+                raise PipelineError("The runs of the original implementation and the model class must use the weights "
+                                    "rounded to float16")
             layered, effect = compare_layers(args.original, args.model_class, CONTRACT), None
         elif precisions == {"8bit"} and given == (False, False, True):
             layered, effect = None, effected(quantization_effect(args.reference.parent, args.rounded, CONTRACT),
