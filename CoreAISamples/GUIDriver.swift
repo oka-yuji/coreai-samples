@@ -133,9 +133,11 @@ final class GUIDriver {
     func step(_ index: Int, _ slug: String, _ title: String, _ body: () async -> (Bool, String)) async {
         note("step \(index) \(slug) start")
         let started = Date()
-        let (pass, detail) = await body()
+        let (matched, detail) = await body()
         await settle()
         let shot = await shoot(index, slug)
+        let requiresScreenshot = LaunchArguments.value("--prepared-copy-check") != nil
+        let pass = matched && (!requiresScreenshot || shot.name != nil)
         let seconds = Date().timeIntervalSince(started)
         results.append(
             StepResult(
