@@ -595,7 +595,7 @@ struct LoadingView: View {
             Text(
                 LocalizedStringKey(
                     preparing
-                        ? "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy."
+                        ? "Preparing a copy for the GPU can take a minute. This Mac reuses the copy on later loads."
                         : "Reading the model from disk.")
             )
             .font(.callout)

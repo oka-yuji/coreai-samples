@@ -124,8 +124,11 @@ private struct ModelInformationButton: View {
                             message = Text(
                                 "Removed the prepared copy of \(model.name). The next load prepares it again.")
                         } catch {
-                            message = Text(
-                                "Could not remove the prepared copy of \(model.name): \(error.localizedDescription)")
+                            let detail =
+                                ChatViewModel.preparedCopyMessage(for: error).map {
+                                    DemoStrings(locale: locale).text($0)
+                                } ?? error.localizedDescription
+                            message = Text("Could not remove the prepared copy of \(model.name): \(detail)")
                         }
                     }
                     .help("Remove the copy this app prepared for the GPU. The next load prepares it again.")

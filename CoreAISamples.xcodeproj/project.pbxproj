@@ -44,6 +44,7 @@
 		19542B4BB02EEEFD72B640AA /* RAGSelectionSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16F9ACC21FBADD31D00D5BE /* RAGSelectionSelfTest.swift */; };
 		1B661960FFD10BEF3AEB5E8F /* product-preview.json in Resources */ = {isa = PBXBuildFile; fileRef = 3E1806903B2EE352B87387AF /* product-preview.json */; };
 		1BAB353782013F29BE9CC155 /* TruckInspectionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9A63E199B15D68E147DE18FB /* TruckInspectionCore */; };
+		1C4515E51FBA80D070EB77CC /* GUIDriver+PreparedCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6579DD92CE234E1E373ACD1C /* GUIDriver+PreparedCopy.swift */; };
 		1D79DE0ADBBAD01CFE315A95 /* SpokenSearchPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1354B9C8D1787717F518DE09 /* SpokenSearchPreview.swift */; };
 		1ECF3359D4CFD442B31C7822 /* SpeechReferenceControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E8F067D0636EEF40E2268B3 /* SpeechReferenceControls.swift */; };
 		206C9EF25FB18034EBEF99E4 /* ObjectFinderFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 69B40134CCF3862045F4E7C5 /* ObjectFinderFeature */; };
@@ -420,6 +421,7 @@
 		5B01769CA25F5F41CFA1E93F /* CitationGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitationGuard.swift; sourceTree = "<group>"; };
 		5FAF3BCA498D31AA8B0B55E7 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
 		5FE1AAADA7D78400722AF4AA /* ConversationSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSidebar.swift; sourceTree = "<group>"; };
+		6579DD92CE234E1E373ACD1C /* GUIDriver+PreparedCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GUIDriver+PreparedCopy.swift"; sourceTree = "<group>"; };
 		659A8534A432DD74FD5D0E6D /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		681B6A08183C9B3A3DE51E58 /* gradient_tall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gradient_tall.png; sourceTree = "<group>"; };
 		69CD3BEEBD95887645565C8C /* ConversationLifetime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationLifetime.swift; sourceTree = "<group>"; };
@@ -834,6 +836,7 @@
 				347693E891F4308F370D720E /* DemoNavigator.swift */,
 				F3C4386FEDC295B729DF07C1 /* DemoRootView.swift */,
 				57DF8A7744E8740E70B48D78 /* GUIDriver.swift */,
+				6579DD92CE234E1E373ACD1C /* GUIDriver+PreparedCopy.swift */,
 				0477EBADA2061C5A4A49EFE4 /* LaunchArguments.swift */,
 				F417EC4866A0F58AB8F72380 /* MetricsLog.swift */,
 				008855CE995F7BA32D722E90 /* Demos */,
@@ -1594,6 +1597,7 @@
 				35A8F2FF5029AB1D9E5300B5 /* FetchProvenanceSelfTest.swift in Sources */,
 				38D5380927AEC3918CC5F304 /* FieldEditor.swift in Sources */,
 				5BB2FFBBAE4EDB21463258C0 /* FieldRow.swift in Sources */,
+				1C4515E51FBA80D070EB77CC /* GUIDriver+PreparedCopy.swift in Sources */,
 				E3DA34EB5609CB1F3033BBDC /* GUIDriver.swift in Sources */,
 				3F4ED2B0CA9165CEBA8D841B /* IOSImageGenerationConnectionCheck.swift in Sources */,
 				CBD514AF16595650B2E201CF /* IOSModelLibraryAssembly.swift in Sources */,

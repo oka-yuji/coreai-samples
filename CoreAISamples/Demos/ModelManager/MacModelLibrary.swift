@@ -1,6 +1,7 @@
 #if os(macOS)
     import ChronosUI
     import CoreAI
+    import CoreAIBackend
     import FeatureStore
     import ForecastUI
     import Foundation
@@ -42,6 +43,15 @@
         }
 
         static func clearPrepared(_ directory: URL, artifact: ModelArtifact) throws {
+            if artifact.id == LanguageModelArtifacts.qwenID {
+                try Engine.deleteSpecializationCache(bundle: ModelBundle(url: directory))
+            } else {
+                try clearPreparedAssets(directory, artifact: artifact)
+            }
+            ModelStorage.prepared.remove(ModelStorage.key(directory))
+        }
+
+        private static func clearPreparedAssets(_ directory: URL, artifact: ModelArtifact) throws {
             let assets = Set(
                 artifact.files.compactMap { file -> String? in
                     let parts = file.path.split(separator: "/")
@@ -51,7 +61,6 @@
                 try AIModelCache.default.deleteEntries(
                     for: directory.appending(path: asset, directoryHint: .isDirectory))
             }
-            ModelStorage.prepared.remove(ModelStorage.key(directory))
         }
 
         func refresh() {

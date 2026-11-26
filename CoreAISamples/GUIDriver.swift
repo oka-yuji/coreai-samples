@@ -53,7 +53,7 @@ final class GUIDriver {
 
     private func window() -> NSWindow? { NSApp.windows.first { $0.isVisible } }
 
-    private func wait(seconds: Double, until condition: () -> Bool) async -> Bool {
+    func wait(seconds: Double, until condition: () -> Bool) async -> Bool {
         let deadline = Date().addingTimeInterval(seconds)
         while !condition() {
             if Date() > deadline { return false }
@@ -82,7 +82,7 @@ final class GUIDriver {
 
     private func captureWithScreenCaptureKit(_ window: NSWindow) async -> Data? {
         do {
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            let content = try await SCShareableContent.currentProcess
             let id = CGWindowID(window.windowNumber)
             guard let target = content.windows.first(where: { $0.windowID == id }) else {
                 note("capture: window \(id) is not in the shareable list")
@@ -130,12 +130,14 @@ final class GUIDriver {
         return (name, detail)
     }
 
-    private func step(_ index: Int, _ slug: String, _ title: String, _ body: () async -> (Bool, String)) async {
+    func step(_ index: Int, _ slug: String, _ title: String, _ body: () async -> (Bool, String)) async {
         note("step \(index) \(slug) start")
         let started = Date()
-        let (pass, detail) = await body()
+        let (matched, detail) = await body()
         await settle()
         let shot = await shoot(index, slug)
+        let requiresScreenshot = LaunchArguments.value("--prepared-copy-check") != nil
+        let pass = matched && (!requiresScreenshot || shot.name != nil)
         let seconds = Date().timeIntervalSince(started)
         results.append(
             StepResult(
@@ -168,7 +170,7 @@ final class GUIDriver {
         return (thinking, answer)
     }
 
-    private func openModel(
+    func openModel(
         _ url: URL, direct: Bool, chat: ChatViewModel, library: MacModelLibrary, choice: MacModelChoice
     ) async {
         if direct {
@@ -209,12 +211,13 @@ final class GUIDriver {
         _ = await wait(seconds: 30) { self.window() != nil }
         await settle()
 
+        let preparedCopyCheck = LaunchArguments.value("--prepared-copy-check")
         await step(1, "library", "The library reports the acquired conversation model") {
             navigator.selection = .chat
             if let supplied {
                 do {
                     _ = try BundleSupport.supportedBundle(at: supplied)
-                    if LaunchArguments.flag("--clear-prepared") {
+                    if preparedCopyCheck == nil && LaunchArguments.flag("--clear-prepared") {
                         try Engine.deleteSpecializationCache(bundle: ModelBundle(url: supplied))
                         ModelStorage.prepared.remove(ModelStorage.key(supplied))
                     }
@@ -231,7 +234,7 @@ final class GUIDriver {
             else {
                 return (false, "Download Qwen3.8 27B from its sidebar heading before this check.")
             }
-            if LaunchArguments.flag("--clear-prepared") {
+            if preparedCopyCheck == nil && LaunchArguments.flag("--clear-prepared") {
                 do { try MacModelLibrary.clearPrepared(resource.directory, artifact: artifact) } catch {
                     return (false, error.localizedDescription)
                 }
@@ -240,6 +243,13 @@ final class GUIDriver {
             return (true, "artifact=\(resource.artifactID) revision=\(resource.revision) ready=true")
         }
         guard let url = selected else {
+            await finish(metricsBefore: metricsBefore)
+            return
+        }
+
+        if let preparedCopyCheck {
+            await checkPreparedCopy(
+                preparedCopyCheck, url: url, direct: supplied != nil, chat: chat, library: library, choice: choice)
             await finish(metricsBefore: metricsBefore)
             return
         }

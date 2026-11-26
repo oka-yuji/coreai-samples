@@ -1,5 +1,6 @@
 import ConversationFeature
 import ConversationRuntime
+import CoreAIBackend
 import Foundation
 import FoundationModels
 import Synchronization
@@ -106,6 +107,11 @@ enum ConversationBudgetSelfTest {
                     state.lastFinish == .eos && values.finalRequests == 1 && values.executed == ["web_search"]
                     && values.retainedOutputs > 0 && state.entries.filter { $0.kind == .user }.count == 1
                     && state.entries.contains { $0.kind == .answer && $0.text == "Bounded final answer" }
+            case .preparedCopyFailure:
+                let expected = ChatViewModel.preparedCopyMessage(for: PreparedCopyError.recoveryFailed)
+                valid =
+                    state.lastFinish == .failed && values.executed.isEmpty
+                    && state.entries.contains { $0.detail == .failure && $0.text == expected }
             case .failFinal, .emptyFinal, .toolInFinal:
                 valid =
                     !state.isRunning && values.finalRequests == 1 && values.executed == ["web_search"]
@@ -191,7 +197,7 @@ private final class BudgetStoreReference {
 private nonisolated final class BudgetProbe: Sendable {
     enum Scenario: String, CaseIterable, Sendable {
         case research, answer, failFinal, emptyFinal, toolInFinal, toolInFinalBeforeStop
-        case stopFinal, stopBudget, workFinal, workRepairStop
+        case stopFinal, stopBudget, workFinal, workRepairStop, preparedCopyFailure
     }
 
     struct Values: Sendable {
@@ -226,6 +232,7 @@ private nonisolated struct BudgetModel: LanguageModel {
             streamingInto channel: LanguageModelExecutorGenerationChannel
         ) async throws {
             try Task.checkCancellation()
+            if model.probe.scenario == .preparedCopyFailure { throw PreparedCopyError.recoveryFailed }
             let final = request.generationOptions.toolCallingMode?.kind == .disallowed
             let count = model.probe.values.withLock { values in
                 values.requests += 1
