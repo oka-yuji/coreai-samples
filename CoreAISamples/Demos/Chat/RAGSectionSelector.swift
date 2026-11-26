@@ -61,8 +61,9 @@ final class RAGSectionSelector {
                 trace.reason = "cancelled"
             } else {
                 trace.status = "failed"
-                trace.reason = error.localizedDescription
-                result.selectionFailure = error.localizedDescription
+                let message = ChatViewModel.preparedCopyMessage(for: error) ?? error.localizedDescription
+                trace.reason = message
+                result.selectionFailure = message
             }
         }
         trace.seconds = (ContinuousClock.now - started) / .seconds(1)
@@ -125,7 +126,9 @@ final class RAGSectionSelector {
                     try Task.checkCancellation()
                     _ = try await native.respond(to: request, options: options, contextOptions: context)
                     return .finished(nil)
-                } catch { return .finished(error.localizedDescription) }
+                } catch {
+                    return .finished(ChatViewModel.preparedCopyMessage(for: error) ?? error.localizedDescription)
+                }
             }
             group.addTask {
                 do {

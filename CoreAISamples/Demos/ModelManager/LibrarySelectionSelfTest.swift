@@ -1,3 +1,4 @@
+import CoreAIBackend
 import FeatureStore
 import Foundation
 import ModelLibraryFeature
@@ -107,6 +108,7 @@ enum LibrarySelectionSelfTest {
 
     static func run(_ check: (String, Bool, String) -> Void) async {
         checkPresentation(check)
+        await checkRecoveryPresentation(check)
         let root = URL.temporaryDirectory.appending(path: "library-selection-" + UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         do {
@@ -238,6 +240,52 @@ enum LibrarySelectionSelfTest {
                 && adapter.bind(first, gate: firstGate) == nil && adapter.bind(next, gate: nextGate) == nil,
             "Closing and reopening one window keeps the recording session in the other window active.")
         await adapter.stop(other)
+    }
+
+    private static func checkRecoveryPresentation(_ check: (String, Bool, String) -> Void) async {
+        let chat = ChatViewModel()
+        let url = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        let key = ModelStorage.key(url)
+        ModelStorage.prepared.insert(key)
+        defer { ModelStorage.prepared.remove(key) }
+        await chat.load(url) { _, _, first in
+            let loading = chat.phase == .loading(preparing: false)
+            first()
+            await drainMainQueue()
+            check(
+                "library/currentRepair", loading && chat.phase == .loading(preparing: true),
+                "A known model changes from loading to preparing when recovery begins.")
+            chat.clearModel()
+            await chat.load(url) { _, _, _ in
+                first()
+                await drainMainQueue()
+                check(
+                    "library/staleRepair", chat.phase == .loading(preparing: false),
+                    "A notification for the previous load cannot change the next load.")
+                throw PreparedCopyError.recoveryFailed
+            }
+            first()
+            await drainMainQueue()
+            throw CancellationError()
+        }
+        let expected = ChatViewModel.preparedCopyMessage(for: PreparedCopyError.recoveryFailed) ?? ""
+        check(
+            "library/terminalRepair", chat.phase == .failed(expected) && expected.contains("Clear Prepared Copy"),
+            "The actionable failure stays visible after stale callbacks and completion.")
+        for language in ["en", "ja"] {
+            let strings = DemoStrings(locale: Locale(identifier: language))
+            let detail = strings.text(expected)
+            check(
+                "library/terminalRepair/" + language,
+                detail.contains(strings.text("Clear Prepared Copy")) && (language == "en" || detail != expected),
+                "The terminal message names the visible clear button in the selected language.")
+        }
+    }
+
+    private static func drainMainQueue() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async { continuation.resume() }
+        }
     }
 
     private static func bundle(_ name: String, modelID: String?, in root: URL) throws -> URL {

@@ -1,3 +1,4 @@
+import CoreAIBackend
 import DecideFeature
 import Foundation
 import RecipeCore
@@ -54,6 +55,9 @@ enum DemoLocalizationCheck {
             ]
             keys += try [SpeechEngine.irodori, .voxcpm2].flatMap { try SpeechAssembly.examples($0) }
                 .map { "Speech example: " + $0.title }
+            let preparedCopyErrors: [PreparedCopyError] = [.preparing, .recoveryFailed, .reloadRequired, .inUse]
+            keys += preparedCopyErrors.compactMap { ChatViewModel.preparedCopyMessage(for: $0) }
+            keys.append("Preparing a copy for the GPU can take a minute. This Mac reuses the copy on later loads.")
             let speechErrors: [SpeechError] = [
                 .unreadableText, .speechNotFinished, .modelNotOpened("VoxCPM2"), .voiceNotTranslated,
             ]

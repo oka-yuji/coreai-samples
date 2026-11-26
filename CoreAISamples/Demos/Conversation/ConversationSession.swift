@@ -446,7 +446,8 @@ final class ConversationSession {
         }
         if let failure {
             guard case LanguageModelError.contextSizeExceeded(let exceeded) = failure else {
-                return TurnEnd(kind: .failed(String(describing: failure)), outcome: "failed", answer: partial)
+                let message = ChatViewModel.preparedCopyMessage(for: failure) ?? String(describing: failure)
+                return TurnEnd(kind: .failed(message), outcome: "failed", answer: partial)
             }
             let message = ConversationFeature.contextFullMessage(
                 needed: exceeded.tokenCount, limit: exceeded.contextSize)
@@ -562,7 +563,7 @@ final class ConversationSession {
                 stats.stopReason = "contextSizeExceeded"
             } else {
                 stats.stopReason = "error"
-                stats.error = failure.localizedDescription
+                stats.error = ChatViewModel.preparedCopyMessage(for: failure) ?? failure.localizedDescription
             }
         } else {
             var metadata: [String: GeneratedContent] = [:]

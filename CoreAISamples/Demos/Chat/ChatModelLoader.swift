@@ -12,7 +12,7 @@ final class ChatModelLoader {
 
     init(managed: Bool) { self.managed = managed }
 
-    func load(_ url: URL, contextLimit: Int) async throws -> LocalLanguageModel {
+    func load(_ url: URL, contextLimit: Int, onRecovery: @Sendable () -> Void) async throws -> LocalLanguageModel {
         guard !loading, releasing == 0 else { throw CancellationError() }
         loading = true
         let ticket = generation
@@ -38,7 +38,8 @@ final class ChatModelLoader {
             try Task.checkCancellation()
             guard ticket == generation else { throw CancellationError() }
             let model = try await LocalLanguageModel(
-                bundle: url, contextLimit: contextLimit, overflow: .dropOldToolOutputs)
+                bundle: url, contextLimit: contextLimit, overflow: .dropOldToolOutputs,
+                recoverPreparedCopy: true, onRecovery: onRecovery)
             try Task.checkCancellation()
             guard ticket == generation else { throw CancellationError() }
             relinquish = release

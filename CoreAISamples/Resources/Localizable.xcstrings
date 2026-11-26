@@ -1,6 +1,50 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "The prepared copy could not be repaired. If the model is loaded, unload it. In Model information, choose Clear Prepared Copy, then load the model again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備済みのコピーを修復できませんでした。モデルを読み込み済みの場合は、モデルのメニューで「モデルを解放」を選んでください。「モデル情報」で「準備済みキャッシュを削除」を選び、モデルをもう一度読み込んでください。"
+          }
+        }
+      }
+    },
+    "The prepared copy is being used or repaired. Try loading the model again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備済みのコピーを使用中または修復中です。しばらくしてから、もう一度モデルを読み込んでください。"
+          }
+        }
+      }
+    },
+    "Load the model again to repair its prepared copy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備済みのコピーを修復するため、モデルをもう一度読み込んでください。"
+          }
+        }
+      }
+    },
+    "The prepared copy is in use." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備済みのコピーを使用中です。"
+          }
+        }
+      }
+    },
     "Ask about the recording. EmbeddingGemma 2 compares your question with the transcribed passages." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9183,13 +9227,13 @@
         }
       }
     },
-    "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy." : {
+    "Preparing a copy for the GPU can take a minute. This Mac reuses the copy on later loads." : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このMacで初めて読み込むモデルは、GPU用の準備を行います。次回以降は準備済みのキャッシュを再利用します。"
+            "value" : "GPU 用のコピーを準備しています。1 分ほどかかることがあります。次回以降はこの Mac に保存したコピーを使います。"
           }
         }
       }

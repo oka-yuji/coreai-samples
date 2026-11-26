@@ -73,6 +73,15 @@ final class ChatViewModel {
 
     init(managed: Bool = false) { loader = ChatModelLoader(managed: managed) }
 
+    nonisolated static func preparedCopyMessage(for error: any Error) -> String? {
+        guard let failure = error as? PreparedCopyError else { return nil }
+        if failure == .recoveryFailed {
+            return "The prepared copy could not be repaired. If the model is loaded, unload it. "
+                + "In Model information, choose Clear Prepared Copy, then load the model again."
+        }
+        return failure.errorDescription
+    }
+
     func clearModel() {
         loadGeneration += 1
         model = nil
@@ -102,6 +111,10 @@ final class ChatViewModel {
     }
 
     func load(_ url: URL) async {
+        await load(url, open: loader.load)
+    }
+
+    func load(_ url: URL, open: @MainActor (URL, Int, @Sendable () -> Void) async throws -> LocalLanguageModel) async {
         guard !isLoading, !isResponding, !externallyBusy else { return }
         loadGeneration += 1
         let generation = loadGeneration
@@ -114,7 +127,12 @@ final class ChatViewModel {
         let clock = ContinuousClock()
         let start = clock.now
         do {
-            let model = try await loader.load(url, contextLimit: contextLimit)
+            let model = try await open(url, contextLimit) { [weak self] in
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, generation == self.loadGeneration, self.isLoading else { return }
+                    self.phase = .loading(preparing: true)
+                }
+            }
             guard generation == loadGeneration else { return }
             loadSeconds = (clock.now - start) / .seconds(1)
             self.model = model
@@ -128,7 +146,8 @@ final class ChatViewModel {
             phase = .ready
         } catch {
             guard generation == loadGeneration else { return }
-            phase = error is CancellationError ? .empty : .failed(error.localizedDescription)
+            let message = ChatViewModel.preparedCopyMessage(for: error) ?? error.localizedDescription
+            phase = error is CancellationError ? .empty : .failed(message)
         }
     }
 
