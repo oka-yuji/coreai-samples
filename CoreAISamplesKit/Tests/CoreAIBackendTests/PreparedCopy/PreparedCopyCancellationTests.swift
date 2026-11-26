@@ -37,7 +37,7 @@ import Testing
                     throw POSIXError(.EIO)
                 }, warmUp: { (_: Int) in })
         }
-        _ = await task.result
+        await #expect(throws: CancellationError.self) { try await task.value }
         #expect(!recovery.record().failed)
         #expect(recovery.record().marks.isEmpty)
         let result = try await PreparedCopyRecorder().load(recovery)

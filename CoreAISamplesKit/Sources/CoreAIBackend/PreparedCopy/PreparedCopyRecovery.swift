@@ -53,13 +53,11 @@ struct PreparedCopyRecovery: Sendable {
                     do {
                         attempt = try reserveRepair(after: attempt)
                     } catch {
-                        abandon(attempt, after: error)
-                        throw error
+                        throw abandon(attempt, after: error)
                     }
                     continue
                 }
-                abandon(attempt, after: error)
-                throw error
+                throw abandon(attempt, after: error)
             }
             do {
                 try advance(attempt)
@@ -67,8 +65,7 @@ struct PreparedCopyRecovery: Sendable {
                 try await warmUp(value)
                 try Task.checkCancellation()
             } catch {
-                abandon(attempt, after: error)
-                throw error
+                throw abandon(attempt, after: error)
             }
             try finish(attempt)
             return PreparedCopyLoad(value: value, recovered: attempt.recovering, use: attempt.use)
@@ -88,7 +85,7 @@ struct PreparedCopyRecovery: Sendable {
     }
 
     func abandonReload(_ attempt: PreparedCopyAttempt, after error: any Error) {
-        abandon(attempt, after: error)
+        _ = abandon(attempt, after: error)
     }
 
     private func reserveRepair(after attempt: PreparedCopyAttempt) throws -> PreparedCopyAttempt {
@@ -183,8 +180,9 @@ struct PreparedCopyRecovery: Sendable {
         }
     }
 
-    private func abandon(_ attempt: PreparedCopyAttempt, after error: any Error) {
-        let terminal = attempt.recovering && !(error is CancellationError) && !Task.isCancelled
+    private func abandon(_ attempt: PreparedCopyAttempt, after error: any Error) -> any Error {
+        let failure: any Error = Task.isCancelled ? CancellationError() : error
+        let terminal = attempt.recovering && !(failure is CancellationError)
         try? update { record in
             if terminal {
                 record.failed = true
@@ -192,6 +190,7 @@ struct PreparedCopyRecovery: Sendable {
                 record.marks.removeAll { $0.attempt == attempt.mark.attempt }
             }
         }
+        return failure
     }
 
     private func finish(_ attempt: PreparedCopyAttempt) throws {

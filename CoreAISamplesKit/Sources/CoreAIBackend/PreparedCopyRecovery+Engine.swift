@@ -20,7 +20,6 @@ extension PreparedCopyRecovery {
                 warmUp: { try await $0.engine.warmUpPreparedCopy() })
         } catch {
             if repairing, !(error is CancellationError) {
-                try Task.checkCancellation()
                 throw PreparedCopyError.recoveryFailed
             }
             throw error
